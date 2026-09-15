@@ -76,7 +76,7 @@ private struct ItemCard: View {
         switch kind {
         case .rareCandy: return store.canUseRareCandy
         case .mint:      return store.canUseMint
-        case .shinyCharm: return false   // 보유형 — 사용 개념 없음(상시 효과)
+        default:         return false
         }
     }
     /// 사용 컨트롤 효과 힌트 ("+XP" / "성격 랜덤 변경").
@@ -85,23 +85,36 @@ private struct ItemCard: View {
         case .rareCandy: return "+\(TokenFormatter.compact(RareCandy.xp)) XP"
         case .mint:      return l.mintEffectHint
         case .shinyCharm: return l.shinyCharmEffectHint
+        case .legendCharm: return l.legendCharmEffectHint
+        case .silverWing: return l.silverWingEffectHint
+        case .oldSeaMap: return l.oldSeaMapEffectHint
+        case .clearBell: return l.clearBellEffectHint
+        case .rainbowWing: return l.rainbowWingEffectHint
+        case .magmaStone: return l.magmaStoneEffectHint
+        case .soulDew: return l.soulDewEffectHint
+        case .jadeOrb: return l.jadeOrbEffectHint
+        case .gracidea: return l.gracideaEffectHint
+        case .griseousOrb: return l.griseousOrbEffectHint
+        case .libertyPass: return l.libertyPassEffectHint
+        case .revealGlass: return l.revealGlassEffectHint
+        case .dnaSplicers: return l.dnaSplicersEffectHint
         }
     }
     private func performUse() {
         switch kind {
         case .rareCandy: _ = store.useRareCandy()
         case .mint:      _ = store.useMint()
-        case .shinyCharm: break   // 보유형 — 사용 동작 없음
+        default:         break
         }
     }
 
     @ViewBuilder
     private func useControls(_ l: L) -> some View {
         if kind.isPassive {
-            // 보유형(이로치 부적) — 사용 버튼 대신 상시 효과 표시.
+            // 보유형(패시브 아이템) — 사용 버튼 대신 상시 효과 표시.
             HStack(spacing: 6) {
                 Image(systemName: "checkmark.seal.fill").font(.caption2).foregroundStyle(.green)
-                Text(l.shinyCharmEffectHint).font(.caption2.weight(.semibold)).foregroundStyle(.green)
+                Text(effectHint(l)).font(.caption2.weight(.semibold)).foregroundStyle(.green)
                 Spacer()
             }
         } else if canUse {

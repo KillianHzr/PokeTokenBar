@@ -1273,10 +1273,11 @@ private struct DexSpeciesCell: View {
                                          : Color.secondary.opacity(isSelected ? 0.16 : 0.06))
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .overlay {
-                if isSelected {
-                    RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(Color.accentColor, lineWidth: 1.5)
-                }
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(
+                        isSelected ? Color.accentColor : rarityColor(species.rarity).opacity(0.5),
+                        lineWidth: isSelected ? 1.5 : 1
+                    )
             }
         }
         .buttonStyle(.plain)
@@ -1396,6 +1397,10 @@ private struct DexEntryRow: View {
         .padding(Self.cardPadding)
         .background(Color.secondary.opacity(0.06))
         .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay {
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(rarityColor(entry.rarity).opacity(0.55), lineWidth: 1.5)
+        }
         .task(id: "\(entry.id)-\(store.language.rawValue)") {
             resolved = await store.dexResolveChainNames(entry)
         }

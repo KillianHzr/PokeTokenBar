@@ -150,23 +150,38 @@ final class CompanionStore {
 
     /// 난이도를 반영한 알 부화 임계.
     private var eggHatchThreshold: Int {
-        PokemonBalance.scaled(PokemonBalance.eggHatchThreshold, by: growthDifficulty)
+        var threshold = PokemonBalance.scaled(PokemonBalance.eggHatchThreshold, by: growthDifficulty)
+        if ownsSilverWing {
+            threshold = max(1_000_000, threshold / 2)
+        }
+        return threshold
     }
 
     /// 난이도를 반영한 단계 임계. **`PokemonBalance.phaseThreshold` 를 직접 부르지 않는다** —
     /// 배율을 빠뜨린 호출부가 생기면 그 경로만 조용히 기본 난이도로 돌아간다.
     private func stageThreshold(for mon: MonState) -> Int {
-        PokemonBalance.scaled(mon.phaseThreshold, by: growthDifficulty)
+        var base = mon.phaseThreshold
+        if mon.hasGrowthBoost && ownsMagmaStone {
+            base = (base * 3) / 4
+        }
+        return PokemonBalance.scaled(base, by: growthDifficulty)
     }
 
     /// 상점 표시·결제에 쓰는 실제 가격 — 기본가 × 상점 난이도. 미판매면 nil.
     func price(of kind: ItemKind) -> Int? {
-        kind.shopPrice.map { PokemonBalance.scaled($0, by: shopDifficulty) }
+        kind.shopPrice.map { base in
+            var p = PokemonBalance.scaled(base, by: shopDifficulty)
+            if ownsRainbowWing { p = max(1, Int(Double(p) * 0.75)) }
+            return p
+        }
     }
 
     /// 알을 포함한 상점 한 줄의 실제 가격.
     func price(of entry: ShopEntry) -> Int {
-        PokemonBalance.scaled(entry.price, by: shopDifficulty)
+        var p = PokemonBalance.scaled(entry.price, by: shopDifficulty)
+        if ownsRainbowWing { p = max(1, Int(Double(p) * 0.75)) }
+        if case .egg = entry, ownsJadeOrb { p = max(1, Int(Double(p) * 0.80)) }
+        return p
     }
     /// 앱 전체 UI 문자열 — language 변경 시 자동 재렌더.
     var l: L { L(language) }
@@ -353,6 +368,14 @@ final class CompanionStore {
     /// 희귀도별 포획 로그 개수(요약 헤더용) — 개체 수 기준. 도감(종 단위)은 dexSpecies 를 쓴다.
     func dexCount(_ rarity: Rarity) -> Int { dexEntries.lazy.filter { $0.rarity == rarity }.count }
 
+    func addDexEntry(_ entry: DexEntry) {
+        state.dex.append(entry)
+    }
+
+    func addDexEntries(_ entries: [DexEntry]) {
+        state.dex.append(contentsOf: entries)
+    }
+
     /// 도감 한 칸 — 종 1개로 접힌 수집 기록. 같은 라인을 여러 번 키워도 종은 한 칸이다.
     /// **종 정보만 담는다** — 성격·획득 횟수처럼 개체에 딸린 것은 포획 로그가 개체 단위로 보여준다.
     struct DexSpecies: Identifiable, Sendable {
@@ -480,7 +503,8 @@ final class CompanionStore {
     // MARK: 갱신 (AppDelegate 가 UsageStore 값으로 호출)
 
     func update(todayTokensByProvider: [String: Int], todayDate: String, monthTotal: Int,
-                burnTier: BurnTier, limitWarning: Bool, hasUsageData: Bool) {
+                burnTier: BurnTier, limitWarning: Bool, hasUsageData: Bool,
+                weekTotal: Int = 0) {
         let todayTokens = todayTokensByProvider.values.reduce(0, +)
         // `hasUsageData`는 표시용 snapshot 존재 여부이고, 이 map은 오늘 날짜가 확인된
         // provider 데이터만 담는다. stale snapshot이나 today == nil carrier만 있는 refresh는
@@ -599,6 +623,7 @@ final class CompanionStore {
            a.usedAtStage >= stageThreshold(for: a) {
             Task { await revealDitto() }
         }
+        updateStreakAndQuests(todayTokens: todayTokens, todayDate: todayDate, weekTotal: weekTotal)
         displayState = computeState(burnTier: burnTier, limitWarning: limitWarning,
                                     hasUsageData: hasUsageData, today: todayTokens)
         save()
@@ -607,9 +632,14 @@ final class CompanionStore {
     /// 토큰 증분을 현재 포켓몬에 적용 — 임계 도달 시 진화/졸업.
     /// 라인 미로딩(재시작 직후·오프라인)이어도 사용량은 항상 적립한다 — 여기서 드롭하면
     /// 프로바이더별 ledger 는 이미 전진해 델타가 영구 유실된다. 진화 판정만 라인 로드 후로 미룬다.
-    func applyUsage(_ delta: Int) {
+    func applyUsage(_ delta: Int, isTokenUsage: Bool = true) {
         guard state.active != nil else { return }
-        state.active!.usedAtStage += delta
+        var growthDelta = delta
+        if isTokenUsage {
+            if ownsOldSeaMap { growthDelta = Int(Double(growthDelta) * 1.20) }
+            if ownsDnaSplicers { growthDelta = Int(Double(growthDelta) * 1.50) }
+        }
+        state.active!.usedAtStage += growthDelta
         reconcileActiveProfileGrowth()
         guard let line = currentLine else { save(); return }
         var guardCount = 0
@@ -759,8 +789,24 @@ final class CompanionStore {
 
     var rareCandyCount: Int { itemCount(.rareCandy) }
     func itemCount(_ kind: ItemKind) -> Int { state.inventory[kind.rawValue] ?? 0 }
-    /// 이로치 부적 보유 여부 — 보유형이라 개수>0 = 소유(부화 shiny 분모를 낮춘다).
     var ownsShinyCharm: Bool { itemCount(.shinyCharm) > 0 }
+    var ownsLegendCharm: Bool { itemCount(.legendCharm) > 0 }
+    var ownsSilverWing: Bool { itemCount(.silverWing) > 0 }
+    var ownsOldSeaMap: Bool { itemCount(.oldSeaMap) > 0 }
+    var ownsClearBell: Bool { itemCount(.clearBell) > 0 }
+    var ownsRainbowWing: Bool { itemCount(.rainbowWing) > 0 }
+    var ownsMagmaStone: Bool { itemCount(.magmaStone) > 0 }
+    var ownsSoulDew: Bool { itemCount(.soulDew) > 0 }
+    var ownsJadeOrb: Bool { itemCount(.jadeOrb) > 0 }
+    var ownsGracidea: Bool { itemCount(.gracidea) > 0 }
+    var ownsGriseousOrb: Bool { itemCount(.griseousOrb) > 0 }
+    var ownsLibertyPass: Bool { itemCount(.libertyPass) > 0 }
+    var ownsRevealGlass: Bool { itemCount(.revealGlass) > 0 }
+    var ownsDnaSplicers: Bool { itemCount(.dnaSplicers) > 0 }
+
+    private var ownedPokemonIDs: Set<Int> {
+        Set(dexSpecies.map(\.id))
+    }
 
     /// 소유 아이템(개수>0) — 가방 목록. 정렬은 ItemKind.allCases 순서.
     var ownedItems: [(kind: ItemKind, count: Int)] {
@@ -783,11 +829,12 @@ final class CompanionStore {
     func useRareCandy() -> CandyUseResult {
         guard canUseRareCandy else { return .unavailable }
         state.inventory[ItemKind.rareCandy.rawValue] = rareCandyCount - 1
+        state.questState.totalCandiesUsed += 1
         let beforeStage = state.active?.stageIndex ?? 0
-        // 진화 안 될 때(부분 진행)도 즉시 "+XP" 피드백 — CompanionHeader 가 연출과 별개로 표시.
-        candyFeedbackAmount = RareCandy.xp
+        let xp = ownsSoulDew ? Int(Double(RareCandy.xp) * 1.5) : RareCandy.xp
+        candyFeedbackAmount = xp
         candyFeedbackSeq += 1
-        applyUsage(RareCandy.xp)   // 내부에서 save() 수행(인벤토리 감소 포함 영속)
+        applyUsage(xp, isTokenUsage: false)   // 내부에서 save() 수행(인벤토리 감소 포함 영속)
         if state.active == nil { return .graduated }
         if state.active!.stageIndex > beforeStage { return .evolved }
         return .progressed
@@ -980,6 +1027,7 @@ final class CompanionStore {
         let grants = Self.evaluateCandyGrants(windows: windows, grantTier: &state.candyGrantTier)
         for g in grants {
             state.inventory[ItemKind.rareCandy.rawValue, default: 0] += g.count
+            state.questState.limitsHitCount += 1
             // 지급 자체는 알림 여부와 무관(상태 변경). 알림은 "왜 받는지"(그 창 한도를 다 채운 수고) 명시.
             notifyCompanionEvent(l.notifCandyTitle(item: l.itemName(.rareCandy), count: g.count),
                                  l.notifCandyBody(window: g.windowName))
@@ -1001,6 +1049,305 @@ final class CompanionStore {
         content.sound = .default
         UNUserNotificationCenter.current().add(
             UNNotificationRequest(identifier: "companion-event-\(notifSeq)", content: content, trigger: nil))
+    }
+
+    // MARK: Quests & Streaks
+
+    var currentStreak: Int { state.questState.currentStreak }
+    var bestStreak: Int { state.questState.bestStreak }
+    var isStreakActiveToday: Bool {
+        state.questState.lastActiveDate == state.lastDate && !state.questState.lastActiveDate.isEmpty
+    }
+
+    var todayTokensForQuests: Int {
+        state.claimedTodayTokensByProvider?.values.reduce(0, +) ?? 0
+    }
+
+    var dailyQuests: [DailyQuestItem] {
+        let today = todayTokensForQuests
+        return DailyQuestType.allCases.map { type in
+            let progress: Int
+            switch type {
+            case .warmup, .focus, .power, .deepWork, .marathon, .titan:
+                progress = today
+            case .streak:
+                progress = today > 0 ? 1 : 0
+            case .incubator:
+                let rate = ownsLibertyPass ? 2 : 1
+                progress = today > 0 ? min(today * rate, type.target) : 0
+            }
+            let isClaimed = state.questState.claimedDailyQuestIDs.contains(type.rawValue)
+            return DailyQuestItem(type: type, progress: progress, isClaimed: isClaimed)
+        }
+    }
+
+    var weeklyQuests: [WeeklyQuestItem] {
+        WeeklyQuestType.allCases.map { type in
+            let progress: Int
+            switch type {
+            case .activeDays3, .activeDays5:
+                progress = state.questState.weeklyActiveDays.count
+            case .tokens100M, .tokens300M, .tokens1B, .tokens2B, .tokens3_5B:
+                progress = state.questState.weeklyTokens
+            }
+            let isClaimed = state.questState.claimedWeeklyQuestIDs.contains(type.rawValue)
+            return WeeklyQuestItem(type: type, progress: progress, isClaimed: isClaimed)
+        }
+    }
+
+    var achievements: [AchievementItem] {
+        AchievementType.allCases.map { type in
+            let progress: Int
+            switch type {
+            case .firstHatch:
+                progress = (hasActive || !state.dex.isEmpty) ? 1 : 0
+            case .firstEvolve:
+                let evolvedActive = (state.active?.stageIndex ?? 0) > 0
+                let evolvedDex = state.dex.contains { $0.chainOrder.count > 1 }
+                progress = (evolvedActive || evolvedDex) ? 1 : 0
+            case .firstGraduate:
+                progress = state.dex.contains { !$0.isReleased } ? 1 : 0
+            case .squad5:
+                progress = state.dex.filter { !$0.isReleased }.count
+            case .dex15, .dex30:
+                progress = dexSpecies.count
+            case .shinyHunter:
+                let shinyDex = state.dex.contains { $0.isShiny }
+                let shinyActive = (state.active?.isShiny == true && state.active?.dittoDisguise == nil)
+                progress = (shinyDex || shinyActive) ? 1 : 0
+            case .streak3, .streak7, .streak14, .streak30:
+                progress = max(state.questState.currentStreak, state.questState.bestStreak)
+            case .tokens100M, .tokens1B, .tokens5B, .tokens10B:
+                progress = state.usedSinceInstall
+            case .candyUser:
+                progress = state.questState.totalCandiesUsed
+            case .shopSpender:
+                progress = state.spentTokens
+            case .limitBreaker:
+                progress = state.questState.limitsHitCount
+            case .duplicateLegendary:
+                let legendaryDex = state.dex.filter { $0.rarity == .legendary && !$0.isReleased }
+                let counts = Dictionary(grouping: legendaryDex, by: \.finalID).mapValues(\.count)
+                let maxCopies = counts.values.max() ?? 0
+                progress = min(2, maxCopies)
+            case .legendaryBirds:
+                let birds = [144, 145, 146]
+                progress = birds.filter { ownedPokemonIDs.contains($0) }.count
+            case .kantoDuo:
+                let duo = [150, 151]
+                progress = duo.filter { ownedPokemonIDs.contains($0) }.count
+            case .legendaryBeasts:
+                let beasts = [243, 244, 245]
+                progress = beasts.filter { ownedPokemonIDs.contains($0) }.count
+            case .towerDuo:
+                let tower = [249, 250]
+                progress = tower.filter { ownedPokemonIDs.contains($0) }.count
+            case .legendaryTitans:
+                let titans = [377, 378, 379]
+                progress = titans.filter { ownedPokemonIDs.contains($0) }.count
+            case .eonDuo:
+                let eon = [380, 381]
+                progress = eon.filter { ownedPokemonIDs.contains($0) }.count
+            case .weatherTrio:
+                let weather = [382, 383, 384]
+                progress = weather.filter { ownedPokemonIDs.contains($0) }.count
+            case .lakeGuardians:
+                let lake = [480, 481, 482]
+                progress = lake.filter { ownedPokemonIDs.contains($0) }.count
+            case .creationTrio:
+                let creation = [483, 484, 487]
+                progress = creation.filter { ownedPokemonIDs.contains($0) }.count
+            case .swordsOfJustice:
+                let swords = [638, 639, 640]
+                progress = swords.filter { ownedPokemonIDs.contains($0) }.count
+            case .forcesOfNature:
+                let forces = [641, 642, 645]
+                progress = forces.filter { ownedPokemonIDs.contains($0) }.count
+            case .taoDuo:
+                let tao = [643, 644]
+                progress = tao.filter { ownedPokemonIDs.contains($0) }.count
+            }
+            let isClaimed = state.questState.claimedAchievementIDs.contains(type.rawValue)
+            return AchievementItem(type: type, progress: progress, isClaimed: isClaimed)
+        }
+    }
+
+    var unclaimedDailyCount: Int {
+        dailyQuests.filter { $0.isCompleted && !$0.isClaimed }.count
+    }
+
+    var unclaimedWeeklyCount: Int {
+        weeklyQuests.filter { $0.isCompleted && !$0.isClaimed }.count
+    }
+
+    var unclaimedQuestsTabCount: Int {
+        unclaimedDailyCount + unclaimedWeeklyCount
+    }
+
+    var unclaimedAchievementsCount: Int {
+        achievements.filter { $0.isCompleted && !$0.isClaimed }.count
+    }
+
+    var unclaimedQuestsCount: Int {
+        unclaimedQuestsTabCount + unclaimedAchievementsCount
+    }
+
+    @discardableResult
+    func claimDailyQuest(_ type: DailyQuestType) -> Bool {
+        guard let item = dailyQuests.first(where: { $0.type == type }),
+              item.isCompleted, !item.isClaimed else { return false }
+        state.questState.claimedDailyQuestIDs.insert(type.rawValue)
+        applyQuestReward(type.reward)
+        return true
+    }
+
+    @discardableResult
+    func claimWeeklyQuest(_ type: WeeklyQuestType) -> Bool {
+        guard let item = weeklyQuests.first(where: { $0.type == type }),
+              item.isCompleted, !item.isClaimed else { return false }
+        state.questState.claimedWeeklyQuestIDs.insert(type.rawValue)
+        applyQuestReward(type.reward)
+        return true
+    }
+
+    @discardableResult
+    func claimAchievement(_ type: AchievementType) -> Bool {
+        guard let item = achievements.first(where: { $0.type == type }),
+              item.isCompleted, !item.isClaimed else { return false }
+        state.questState.claimedAchievementIDs.insert(type.rawValue)
+        applyQuestReward(type.reward)
+        return true
+    }
+
+    @discardableResult
+    func claimAllQuests() -> Int {
+        var count = 0
+        for q in dailyQuests where q.isCompleted && !q.isClaimed {
+            if claimDailyQuest(q.type) { count += 1 }
+        }
+        for w in weeklyQuests where w.isCompleted && !w.isClaimed {
+            if claimWeeklyQuest(w.type) { count += 1 }
+        }
+        return count
+    }
+
+    @discardableResult
+    func claimAllAchievements() -> Int {
+        var count = 0
+        for a in achievements where a.isCompleted && !a.isClaimed {
+            if claimAchievement(a.type) { count += 1 }
+        }
+        return count
+    }
+
+    private func applyQuestReward(_ reward: QuestReward) {
+        if let item = reward.item, !item.isEmpty {
+            state.inventory[item, default: 0] += 1
+        }
+        if reward.candies > 0 {
+            state.inventory[ItemKind.rareCandy.rawValue, default: 0] += reward.candies
+        }
+        var tokens = reward.tokens
+        if ownsGriseousOrb && tokens > 0 {
+            tokens *= 2
+        }
+        if tokens > 0 {
+            state.usedSinceInstall += tokens
+            if state.active == nil {
+                state.eggUsage += tokens
+                if state.eggUsage >= eggTokensToHatch {
+                    Task { await hatchIfNeeded() }
+                }
+            } else {
+                applyUsage(tokens, isTokenUsage: false)
+            }
+        }
+        save()
+    }
+
+    static func weekKey(for dateString: String) -> String {
+        guard !dateString.isEmpty else { return "" }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone.current
+        guard let date = formatter.date(from: dateString) else { return "" }
+        var calendar = Calendar(identifier: .iso8601)
+        calendar.timeZone = TimeZone.current
+        let year = calendar.component(.yearForWeekOfYear, from: date)
+        let week = calendar.component(.weekOfYear, from: date)
+        return String(format: "%04d-W%02d", year, week)
+    }
+
+    private func updateStreakAndQuests(todayTokens: Int, todayDate: String, weekTotal: Int = 0) {
+        guard !todayDate.isEmpty else { return }
+
+        // Daily quests reset on date change
+        if state.questState.dailyQuestDate != todayDate {
+            state.questState.dailyQuestDate = todayDate
+            state.questState.claimedDailyQuestIDs.removeAll()
+        }
+
+        // Weekly quests reset on ISO week change
+        let currentWeekKey = Self.weekKey(for: todayDate)
+        if !currentWeekKey.isEmpty && state.questState.weeklyQuestKey != currentWeekKey {
+            state.questState.weeklyQuestKey = currentWeekKey
+            state.questState.claimedWeeklyQuestIDs.removeAll()
+            state.questState.weeklyActiveDays.removeAll()
+            state.questState.weeklyTokens = 0
+        }
+
+        if todayTokens > 0 {
+            state.questState.weeklyActiveDays.insert(todayDate)
+        }
+        if weekTotal > 0 {
+            state.questState.weeklyTokens = max(state.questState.weeklyTokens, weekTotal)
+        } else if todayTokens > 0 {
+            state.questState.weeklyTokens = max(state.questState.weeklyTokens, todayTokens)
+        }
+
+        let last = state.questState.lastActiveDate
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone.current
+
+        let allowedGap = ownsGracidea ? 2 : 1
+
+        if !last.isEmpty && last != todayDate,
+           let lastDate = formatter.date(from: last),
+           let currDate = formatter.date(from: todayDate) {
+            let calendar = Calendar.current
+            let diff = calendar.dateComponents([.day], from: calendar.startOfDay(for: lastDate), to: calendar.startOfDay(for: currDate)).day ?? 0
+            if diff > allowedGap && todayTokens == 0 {
+                state.questState.currentStreak = 0
+            }
+        }
+
+        if todayTokens > 0 {
+            if last.isEmpty {
+                state.questState.currentStreak = 1
+                state.questState.bestStreak = max(state.questState.bestStreak, 1)
+                state.questState.lastActiveDate = todayDate
+            } else if last != todayDate {
+                if let lastDate = formatter.date(from: last),
+                   let currDate = formatter.date(from: todayDate) {
+                    let calendar = Calendar.current
+                    let diff = calendar.dateComponents([.day], from: calendar.startOfDay(for: lastDate), to: calendar.startOfDay(for: currDate)).day ?? 0
+                    if diff <= allowedGap {
+                        state.questState.currentStreak += 1
+                    } else {
+                        state.questState.currentStreak = 1
+                    }
+                    state.questState.bestStreak = max(state.questState.bestStreak, state.questState.currentStreak)
+                    state.questState.lastActiveDate = todayDate
+                } else {
+                    state.questState.currentStreak = 1
+                    state.questState.bestStreak = max(state.questState.bestStreak, 1)
+                    state.questState.lastActiveDate = todayDate
+                }
+            }
+        }
     }
 
     // MARK: 부화
@@ -1094,9 +1441,13 @@ final class CompanionStore {
         rarity == .common && totalForms >= 2 && roll % PokemonOdds.dittoDisguiseDenominator == 0
     }
 
-    /// 이로치 부화 판정(순수) — 미리 뽑은 roll 값 % 분모(부적 보유 48, 없으면 64)==0. (부수효과 없이 xctest)
-    nonisolated static func rollsShiny(roll: UInt64, charmOwned: Bool) -> Bool {
-        roll % (charmOwned ? ShinyCharm.shinyDenominator : PokemonOdds.shinyDenominator) == 0
+    /// 이로치 부화 판정(순수) — 미리 뽑은 roll 값 % 분모(부적 보유 48, 없으면 64, 거울 보유 시 추가 절반)==0. (부수효과 없이 xctest)
+    nonisolated static func rollsShiny(roll: UInt64, charmOwned: Bool, revealGlassOwned: Bool = false) -> Bool {
+        var denom = charmOwned ? ShinyCharm.shinyDenominator : PokemonOdds.shinyDenominator
+        if revealGlassOwned {
+            denom = max(1, denom / 2)
+        }
+        return roll % denom == 0
     }
 
     /// 실제 부화 로직 — isHatching 락은 호출자(hatch / hatchIfNeeded)가 소유·해제한다.
@@ -1130,7 +1481,7 @@ final class CompanionStore {
         state.eggUsage = 0
         state.eggTier = nil   // 보증은 이 부화로 소비된다(다음 알은 다시 무보증)
         // 개체 롤 — shiny(1/64)·성격(25종)은 부화 순간 확정, 진화해도 유지.
-        let isShiny = Self.rollsShiny(roll: rng.next(), charmOwned: ownsShinyCharm)
+        let isShiny = Self.rollsShiny(roll: rng.next(), charmOwned: ownsShinyCharm, revealGlassOwned: ownsRevealGlass)
         let nature = PokemonNature.allCases[Int(rng.next() % UInt64(PokemonNature.allCases.count))]
         // 메타몽 위장 롤 — common·≥2형태에 한해 1/128. .app 게이트(&& 단락 → 비앱에선 rng 미소비로
         // 기존 테스트 RNG 시퀀스 무영향). 위장/리빌 로직은 상태 기반으로 별도 테스트한다.
@@ -1257,8 +1608,15 @@ final class CompanionStore {
                 return nil
             }
             let weights = index.map { e in
-                state.hasCollectedFinal(forBaseID: e.id)
+                var w = state.hasCollectedFinal(forBaseID: e.id)
                     ? max(1, e.captureRate / 2) : max(1, e.captureRate)
+                if ownsLegendCharm && e.captureRate <= 3 {
+                    w *= LegendCharm.weightMultiplier
+                }
+                if ownsClearBell && e.captureRate <= 45 && e.captureRate > 3 {
+                    w *= 2
+                }
+                return w
             }
             let total = weights.reduce(0, +)
             var r = Int(rng.next() % UInt64(total))

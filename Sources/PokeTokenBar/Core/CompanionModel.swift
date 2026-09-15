@@ -176,13 +176,39 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     case rareCandy
     case mint
     case shinyCharm
+    case legendCharm
+    case silverWing
+    case oldSeaMap
+    case clearBell
+    case rainbowWing
+    case magmaStone
+    case soulDew
+    case jadeOrb
+    case gracidea
+    case griseousOrb
+    case libertyPass
+    case revealGlass
+    case dnaSplicers
 
     /// PokéAPI 아이템 스프라이트 파일명(.../sprites/items/{name}.png). nil = 스프라이트 없음(이모지 폴백만).
     var spriteName: String? {
         switch self {
         case .rareCandy: return "rare-candy"
-        case .mint: return nil   // PokéAPI 에 민트 스프라이트 없음(8세대 아이템) → 이모지 폴백
+        case .mint: return "mental-herb"
         case .shinyCharm: return "shiny-charm"
+        case .legendCharm: return "azure-flute"
+        case .silverWing: return "silver-wing"
+        case .oldSeaMap: return "old-sea-map"
+        case .clearBell: return "clear-bell"
+        case .rainbowWing: return "rainbow-wing"
+        case .magmaStone: return "magma-stone"
+        case .soulDew: return "soul-dew"
+        case .jadeOrb: return "jade-orb"
+        case .gracidea: return "gracidea"
+        case .griseousOrb: return "griseous-orb"
+        case .libertyPass: return "liberty-pass"
+        case .revealGlass: return "reveal-glass"
+        case .dnaSplicers: return "dna-splicers"
         }
     }
     /// 스프라이트 로딩 전/미제공/실패 시 폴백 이모지.
@@ -191,6 +217,19 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .rareCandy: return "🍬"
         case .mint: return "🌿"
         case .shinyCharm: return "✨"
+        case .legendCharm: return "🪈"
+        case .silverWing: return "🪶"
+        case .oldSeaMap: return "🗺️"
+        case .clearBell: return "🔔"
+        case .rainbowWing: return "🌈"
+        case .magmaStone: return "🌋"
+        case .soulDew: return "💧"
+        case .jadeOrb: return "🟢"
+        case .gracidea: return "🌸"
+        case .griseousOrb: return "🔮"
+        case .libertyPass: return "🎟️"
+        case .revealGlass: return "🪞"
+        case .dnaSplicers: return "🧬"
         }
     }
     /// 상점 판매가(재화 = 사용한 토큰). nil = 상점 미판매.
@@ -199,15 +238,22 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .rareCandy: return RareCandy.price
         case .mint: return Mint.price
         case .shinyCharm: return ShinyCharm.price
+        default: return nil
         }
     }
     /// 보유형(패시브) 아이템 — 소비하지 않고 보유하는 동안 상시 효과. 1회 구매(재구매 불가), 가방엔 "적용 중" 표시.
     var isPassive: Bool {
         switch self {
         case .rareCandy, .mint: return false
-        case .shinyCharm: return true
+        default: return true
         }
     }
+}
+
+/// 전설의 부적(천공의 플루트) 밸런스 상수 — 보유형(업적 달성 보상, 비매품).
+enum LegendCharm {
+    /// 보유 시 전설 포켓몬 부화 가중치 배율 (capture_rate 3 기준 출현 확률 4배 증가).
+    static let weightMultiplier = 4
 }
 
 /// 이상한 사탕 밸런스 상수.
@@ -643,6 +689,7 @@ struct CompanionState: Codable, Sendable {
     var candyGrantTier: [String: Int] = [:]
     // 사탕 지급 첫 실행 시드 완료 — 업데이트 직후 이미 100%였던 창의 소급 지급 차단.
     var candyFeatureSeeded = false
+    var questState = QuestState()
 
     init() {}
 
@@ -678,6 +725,7 @@ struct CompanionState: Codable, Sendable {
         inventory          = c.lenient([String: Int].self, forKey: .inventory, default: [:])
         candyGrantTier     = c.lenient([String: Int].self, forKey: .candyGrantTier, default: [:])
         candyFeatureSeeded = c.lenient(Bool.self, forKey: .candyFeatureSeeded, default: false)
+        questState         = c.lenient(QuestState.self, forKey: .questState, default: QuestState())
     }
 
     /// 졸업 기록 또는 현재 개체가 실제로 도달한 단계에 이 종이 포함되는가.
