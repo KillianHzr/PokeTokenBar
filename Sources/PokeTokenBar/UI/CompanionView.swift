@@ -452,6 +452,7 @@ struct EvoLineView: View {
 @MainActor
 struct CompanionHeader: View {
     let store: CompanionStore
+    @Environment(PopoverNavigation.self) private var nav
     // 연출 상태 — 부화/진화 순간 흰 플래시 + 스프링 스케일(본가 진화 신 오마주)
     @State private var flashOpacity: Double = 0
     @State private var celebScale: CGFloat = 1
@@ -525,6 +526,16 @@ struct CompanionHeader: View {
                                 .background(rarityColor(r)).foregroundStyle(.white)
                                 .clipShape(Capsule())
                         }
+                        Spacer()
+                        Button {
+                            nav.openTrainerCard()
+                        } label: {
+                            Image(systemName: "person.text.rectangle")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(store.activeTheme.accentColor)
+                        }
+                        .buttonStyle(.plain)
+                        .help(store.l.trainerCardTitle)
                     }
                     if store.hasActive {
                         // 단계 + 성격(부화 시 확정된 개체 아이덴티티)
@@ -769,12 +780,28 @@ struct CollectionView: View {
             emptyState   // 둘 다 비어 있으니 세그먼트를 그리지 않는다
         } else {
             VStack(alignment: .leading, spacing: 8) {
-                Picker("", selection: $nav.showingCollectionLog) {
-                    Text(store.l.dexTitle).tag(false)
-                    Text(store.l.catchLogTitle).tag(true)
+                HStack(spacing: 8) {
+                    Picker("", selection: $nav.showingCollectionLog) {
+                        Text(store.l.dexTitle).tag(false)
+                        Text(store.l.catchLogTitle).tag(true)
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+
+                    Button {
+                        nav.openTrainerCard()
+                    } label: {
+                        Image(systemName: "person.text.rectangle")
+                            .font(.system(size: 12, weight: .semibold))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(store.activeTheme.accentColor.opacity(0.14))
+                            .foregroundStyle(store.activeTheme.accentColor)
+                            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .help(store.l.trainerCardTitle)
                 }
-                .pickerStyle(.segmented)
-                .labelsHidden()
                 if nav.showingCollectionLog { catchLog } else { DexGridView(store: store) }
             }
             .frame(height: Self.contentHeight)
@@ -1002,6 +1029,7 @@ private struct PokemonDetailView: View {
     let store: CompanionStore
     let species: CompanionStore.DexSpecies
     let onBack: () -> Void
+    @Environment(PopoverNavigation.self) private var nav
     @State private var selectedInstanceID = ""
 
     private var individuals: [DexEntry] { store.pokemonIndividuals(speciesID: species.id) }
@@ -1017,6 +1045,15 @@ private struct PokemonDetailView: View {
                 }
                 .buttonStyle(.borderless)
                 Spacer()
+                Button {
+                    nav.openTrainerCard(speciesID: species.id)
+                } label: {
+                    Label(store.l.trainerCardTitle, systemImage: "person.text.rectangle")
+                        .font(.caption.weight(.semibold))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(store.activeTheme.accentColor)
+
                 Text("#\(species.id)").font(.caption).foregroundStyle(.secondary)
             }
             ScrollView {

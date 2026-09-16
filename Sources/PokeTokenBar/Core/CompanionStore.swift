@@ -973,7 +973,8 @@ final class CompanionStore {
     // MARK: - 카지노 (Casino)
 
     var casinoCoins: Int { state.casinoCoins }
-    var unlockedThemes: Set<String> { state.unlockedThemes }
+    /// 임시로 사용자가 모든 테마를 확인하고 피드백할 수 있도록 전체 테마 해금
+    var unlockedThemes: Set<String> { Set(AppThemeKind.allCases.map(\.rawValue)) }
     var activeTheme: AppThemeKind { AppThemeKind(rawValue: state.activeTheme) ?? .classic }
 
     /// 동전 획득 (미니게임 승리 / 잭팟 등)
@@ -1034,7 +1035,8 @@ final class CompanionStore {
 
     /// 활성 테마 설정
     func setActiveTheme(_ theme: AppThemeKind) {
-        guard state.unlockedThemes.contains(theme.rawValue) else { return }
+        guard unlockedThemes.contains(theme.rawValue) else { return }
+        state.unlockedThemes.insert(theme.rawValue)
         state.activeTheme = theme.rawValue
         save()
     }

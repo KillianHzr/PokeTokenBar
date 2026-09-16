@@ -1103,11 +1103,11 @@ struct L {
     func themeName(_ kind: AppThemeKind) -> String {
         switch kind {
         case .classic: return t("클래식", "Classic", "クラシック", "Clásico", "Classique", "Clássico", "Klassisch")
-        case .gameBoy1989: return t("게임보이 1989", "Game Boy 1989", "ゲームボーイ 1989", "Game Boy 1989", "Game Boy 1989", "Game Boy 1989", "Game Boy 1989")
         case .celadonNeon: return t("무지개 네온", "Celadon Neon", "タマムシネオン", "Azulona Neón", "Néon Céladopole", "Celadon Neon", "Prismania Neon")
         case .teamRocket: return t("로켓단 다크", "Team Rocket Dark", "ロケット団ダーク", "Team Rocket Oscuro", "Team Rocket Noir", "Equipe Rocket Escuro", "Team Rocket Dunkel")
         case .indigoPlateau: return t("석영고원 챔피언", "Indigo Plateau", "セキエイ高原", "Meseta Añil", "Plateau Indigo", "Planalto Índigo", "Indigo Plateau")
         case .masterBall: return t("마스터볼", "Master Ball", "マスターボール", "Master Ball", "Master Ball", "Master Ball", "Meisterball")
+        case .gameBoy1989: return t("게임보이 1989", "Game Boy 1989", "ゲームボーイ 1989", "Game Boy 1989", "Game Boy 1989", "Game Boy 1989", "Game Boy 1989")
         }
     }
     var newThemeUnlocked: String { t("새 테마 해금!", "New Theme Unlocked!", "新テーマ解放！", "¡Nuevo Tema Desbloqueado!", "Nouveau Thème Débloqué !", "Novo Tema Desbloqueado!", "Neues Design Freigeschaltet!") }
@@ -1118,15 +1118,15 @@ struct L {
         switch kind {
         case .classic:
             return t("기본", "Base", "基本", "Base", "Base", "Base", "Basis")
-        case .gameBoy1989:
-            return t("일반", "Common", "コモン", "Común", "Commun", "Comum", "Gewöhnlich")
         case .celadonNeon:
-            return t("고급", "Uncommon", "アンコモン", "Poco Común", "Peu commun", "Incomum", "Ungewöhnlich")
+            return t("일반", "Common", "コモン", "Común", "Commun", "Comum", "Gewöhnlich")
         case .teamRocket:
-            return t("희귀", "Rare", "レア", "Raro", "Rare", "Raro", "Selten")
+            return t("고급", "Uncommon", "アンコモン", "Poco Común", "Peu commun", "Incomum", "Ungewöhnlich")
         case .indigoPlateau:
-            return t("에픽", "Epic", "エピック", "Épico", "Épique", "Épico", "Episch")
+            return t("희귀", "Rare", "レア", "Raro", "Rare", "Raro", "Selten")
         case .masterBall:
+            return t("에픽", "Epic", "エピック", "Épico", "Épique", "Épico", "Episch")
+        case .gameBoy1989:
             return t("전설", "Legendary", "レジェンド", "Legendario", "Légendaire", "Lendário", "Legendär")
         }
     }
@@ -1140,9 +1140,28 @@ struct L {
     }
     func linesCountLabel(_ count: Int) -> String {
         switch count {
-        case 1: return t("1라인", "1 Line", "1ライン", "1 Línea", "1 Ligne", "1 Linha", "1 Linie")
+        case 1: return t("1라인", "1 Line", "1라인", "1 Línea", "1 Ligne", "1 Linha", "1 Linie")
         case 3: return t("3라인", "3 Lines", "3ライン", "3 Líneas", "3 Lignes", "3 Linhas", "3 Linien")
         default: return t("5라인", "5 Lines", "5ライン", "5 Líneas", "5 Lignes", "5 Linhas", "5 Linien")
         }
     }
+
+    // MARK: - Trainer Card
+    var trainerCard: String { t("트레이너 카드", "Trainer Card", "トレーナーカード", "Tarjeta de Entrenador", "Carte de Dresseur", "Cartão de Treinador", "Trainerkarte") }
+    var trainerCardTitle: String { t("트레이너 카드", "Trainer Card", "トレーナーカード", "Tarjeta de Entrenador", "Carte de Dresseur", "Cartão de Treinador", "Trainerkarte") }
+    var trainerCardCopyImage: String { t("이미지 복사", "Copy Image", "画像をコピー", "Copiar Imagen", "Copier l'image", "Copiar Imagem", "Bild kopieren") }
+    var trainerCardSaveImage: String { t("PNG 저장", "Save PNG", "PNGを保存", "Guardar PNG", "Enregistrer PNG", "Salvar PNG", "Als PNG speichern") }
+    var trainerCardCopied: String { t("클립보드에 복사됨!", "Copied to clipboard!", "クリップボードにコピーしました！", "¡Copiado al portapapeles!", "Copié dans le presse-papier !", "Copiado para a área de transferência!", "In Zwischenablage kopiert!") }
+    var trainerCardActiveMon: String { t("현재 파트너", "Current Companion", "現在のパートナー", "Compañero Actual", "Pokémon Actif", "Companheiro Atual", "Aktueller Begleiter") }
+    var trainerCardDexMon: String { t("도감에서 선택", "From Pokédex", "図鑑から選択", "De la Pokédex", "Depuis le Pokédex", "Da Pokédex", "Aus dem Pokédex") }
+    var trainerCardShiny: String { t("이로치", "Shiny", "色違い", "Variocolor", "Chromatique", "Brilhante", "Schillernd") }
+    var trainerCardPokemonSource: String { t("표시할 포켓몬", "Displayed Pokémon", "表示するポケモン", "Pokémon mostrado", "Pokémon affiché", "Pokémon exibido", "Angezeigtes Pokémon") }
+    var trainerCardCasinoHint: String { t("카지노에서 새 테마를 해금하여 전용 카드 디자인을 적용해 보세요!", "Unlock new themes at the Casino for exclusive Trainer Card styles!", "カジノで新しいテーマを解放して限定カードスタイルを使おう！", "¡Desbloquea nuevos temas en el Casino para estilos de tarjeta exclusivos!", "Débloquez de nouveaux thèmes au Casino pour obtenir des styles de carte exclusifs !", "Desbloqueie novos temas no Cassino para estilos de cartão exclusivos!", "Schalte neue Designs im Casino frei für exklusive Kartendesigns!") }
+    var trainerCardLifetimeTokens: String { t("누적 토큰", "Lifetime", "累計", "Total", "Cumul", "Total", "Gesamt") }
+    var trainerCardTodayTokens: String { t("오늘 토큰", "Today", "今日", "Hoy", "Aujourd'hui", "Hoje", "Heute") }
+    var trainerCardPokedexLabel: String { t("도감 등록", "Pokédex", "図鑑", "Pokédex", "Pokédex", "Pokédex", "Pokédex") }
+    var trainerCardGraduatedLabel: String { t("졸업 포켓몬", "Graduated", "殿堂入り", "Graduados", "Diplômés", "Graduados", "Absolventen") }
+    var trainerCardShiniesLabel: String { t("색이 다른", "Shinies", "色違い", "Variocolor", "Chromatiques", "Brilhantes", "Schillernd") }
+    var trainerCardCasinoCoinsLabel: String { t("카지노 코인", "Coins", "コイン", "Fichas", "Pièces", "Moedas", "Münzen") }
+    var trainerCardTrainerLabel: String { t("이름", "Name", "名前", "Nombre", "Nom", "Nome", "Name") }
 }

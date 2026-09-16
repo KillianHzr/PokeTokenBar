@@ -210,42 +210,42 @@ public enum SlotMachineEngine {
 
 public enum AppThemeKind: String, CaseIterable, Codable, Sendable {
     case classic = "classic"
-    case gameBoy1989 = "gameboy_1989"
     case celadonNeon = "celadon_neon"
     case teamRocket = "team_rocket"
     case indigoPlateau = "indigo_plateau"
     case masterBall = "master_ball"
+    case gameBoy1989 = "gameboy_1989"
 
     public var itemSprite: String {
         switch self {
         case .classic: return "poke-ball"
-        case .gameBoy1989: return "town-map"
         case .celadonNeon: return "coin-case"
         case .teamRocket: return "silph-scope"
         case .indigoPlateau: return "ss-ticket"
         case .masterBall: return "master-ball"
+        case .gameBoy1989: return "town-map"
         }
     }
 
     public var accentColor: Color {
         switch self {
         case .classic: return .accentColor
-        case .gameBoy1989: return Color(red: 0.35, green: 0.45, blue: 0.15)
         case .celadonNeon: return Color(red: 0.0, green: 0.85, blue: 0.85)
         case .teamRocket: return Color(red: 0.90, green: 0.15, blue: 0.20)
         case .indigoPlateau: return Color(red: 0.85, green: 0.65, blue: 0.15)
         case .masterBall: return Color(red: 0.70, green: 0.20, blue: 0.85)
+        case .gameBoy1989: return Color(red: 0.35, green: 0.45, blue: 0.15)
         }
     }
 
     public var secondaryAccentColor: Color {
         switch self {
         case .classic: return .orange
-        case .gameBoy1989: return Color(red: 0.20, green: 0.30, blue: 0.10)
         case .celadonNeon: return Color(red: 0.95, green: 0.30, blue: 0.85)
         case .teamRocket: return Color(red: 0.30, green: 0.30, blue: 0.35)
         case .indigoPlateau: return Color(red: 0.20, green: 0.40, blue: 0.85)
         case .masterBall: return Color(red: 0.95, green: 0.40, blue: 0.70)
+        case .gameBoy1989: return Color(red: 0.20, green: 0.30, blue: 0.10)
         }
     }
 
@@ -253,8 +253,6 @@ public enum AppThemeKind: String, CaseIterable, Codable, Sendable {
         switch self {
         case .classic:
             return .clear
-        case .gameBoy1989:
-            return Color(red: 0.55, green: 0.65, blue: 0.25).opacity(0.12)
         case .celadonNeon:
             return Color(red: 0.05, green: 0.08, blue: 0.18).opacity(0.25)
         case .teamRocket:
@@ -263,17 +261,19 @@ public enum AppThemeKind: String, CaseIterable, Codable, Sendable {
             return Color(red: 0.06, green: 0.10, blue: 0.25).opacity(0.20)
         case .masterBall:
             return Color(red: 0.18, green: 0.06, blue: 0.22).opacity(0.22)
+        case .gameBoy1989:
+            return Color(red: 0.55, green: 0.65, blue: 0.25).opacity(0.12)
         }
     }
 
     public var cardBackground: Color {
         switch self {
         case .classic: return Color.secondary.opacity(0.08)
-        case .gameBoy1989: return Color(red: 0.60, green: 0.70, blue: 0.30).opacity(0.18)
         case .celadonNeon: return Color(red: 0.05, green: 0.12, blue: 0.22).opacity(0.40)
         case .teamRocket: return Color(red: 0.15, green: 0.15, blue: 0.18).opacity(0.50)
         case .indigoPlateau: return Color(red: 0.10, green: 0.18, blue: 0.35).opacity(0.35)
         case .masterBall: return Color(red: 0.25, green: 0.10, blue: 0.30).opacity(0.40)
+        case .gameBoy1989: return Color(red: 0.60, green: 0.70, blue: 0.30).opacity(0.18)
         }
     }
 
@@ -288,11 +288,22 @@ public enum AppThemeKind: String, CaseIterable, Codable, Sendable {
     public var rarityWeight: Int {
         switch self {
         case .classic: return 0 // Default unlocked
-        case .gameBoy1989: return 40 // Common
-        case .celadonNeon: return 30 // Uncommon
-        case .teamRocket: return 18  // Rare
-        case .indigoPlateau: return 9 // Epic
-        case .masterBall: return 3   // Legendary
+        case .celadonNeon: return 38 // Common
+        case .teamRocket: return 28  // Uncommon
+        case .indigoPlateau: return 18 // Rare
+        case .masterBall: return 10  // Epic
+        case .gameBoy1989: return 4   // Legendary (rarest)
+        }
+    }
+
+    public var rarityColor: Color {
+        switch self {
+        case .classic: return .secondary
+        case .celadonNeon: return Color(red: 0.10, green: 0.85, blue: 0.70)
+        case .teamRocket: return Color(red: 0.90, green: 0.25, blue: 0.30)
+        case .indigoPlateau: return Color(red: 0.40, green: 0.60, blue: 0.95)
+        case .masterBall: return Color(red: 0.78, green: 0.30, blue: 0.88)
+        case .gameBoy1989: return Color(red: 0.95, green: 0.75, blue: 0.15) // Legendary Gold
         }
     }
 

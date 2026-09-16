@@ -233,8 +233,8 @@ private struct SlotMachineView: View {
                             .font(.caption2.weight(.bold))
                             .foregroundStyle(.yellow)
                         Text(l.themeRarityLabel(wonTheme))
-                            .font(.system(size: 8))
-                            .foregroundStyle(.secondary)
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(wonTheme.rarityColor)
                     }
                     Spacer()
                     Button(l.themeApplyAction) {
@@ -778,10 +778,10 @@ private struct ThemeRowTile: View {
                 if theme != .classic {
                     Text(l.themeRarityLabel(theme))
                         .font(.system(size: 8, weight: .bold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(theme.rarityColor)
                         .padding(.horizontal, 4)
                         .padding(.vertical, 1)
-                        .background(Color.secondary.opacity(0.12))
+                        .background(theme.rarityColor.opacity(0.15))
                         .clipShape(Capsule())
                 }
 
