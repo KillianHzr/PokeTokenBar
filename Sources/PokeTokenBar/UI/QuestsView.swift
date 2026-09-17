@@ -90,11 +90,11 @@ struct QuestsView: View {
 
                 HStack(spacing: 5) {
                     Circle()
-                        .fill(store.isStreakActiveToday ? Color.green : Color.secondary.opacity(0.5))
+                        .fill(store.isStreakActiveToday ? Color.orange : Color.secondary.opacity(0.5))
                         .frame(width: 6, height: 6)
                     Text(store.isStreakActiveToday ? l.streakActiveToday : l.streakInactiveToday)
-                        .font(.caption2)
-                        .foregroundStyle(store.isStreakActiveToday ? Color.green : Color.secondary)
+                        .font(.caption2.weight(store.isStreakActiveToday ? .semibold : .regular))
+                        .foregroundStyle(store.isStreakActiveToday ? Color.orange : Color.secondary)
                 }
             }
         }
