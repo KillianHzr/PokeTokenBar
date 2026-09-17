@@ -28,7 +28,7 @@ struct QuestsView: View {
             }
 
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 8) {
+                LazyVStack(alignment: .leading, spacing: 6, pinnedViews: [.sectionHeaders]) {
                     if selectedSegment == 0 {
                         questsContent
                     } else {
@@ -232,6 +232,7 @@ struct QuestsView: View {
         .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
     }
 
+    @ViewBuilder
     private var achievementsList: some View {
         let displayedCategories: [AchievementCategory] = {
             if let filter = selectedCategoryFilter {
@@ -244,65 +245,63 @@ struct QuestsView: View {
         let byCategory = Dictionary(grouping: allAchievements, by: \.category)
         let allClaimed = allAchievements.allSatisfy(\.isClaimed)
 
-        return LazyVStack(alignment: .leading, spacing: 14) {
-            if allClaimed {
-                HStack(spacing: 8) {
-                    Image(systemName: "trophy.fill")
-                        .foregroundStyle(.yellow)
-                    Text(l.allAchievementsCompleted)
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(.secondary)
-                }
-                .padding(10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.yellow.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+        if allClaimed {
+            HStack(spacing: 8) {
+                Image(systemName: "trophy.fill")
+                    .foregroundStyle(.yellow)
+                Text(l.allAchievementsCompleted)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.secondary)
             }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.yellow.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+        }
 
-            ForEach(displayedCategories) { category in
-                let categoryAchievements = byCategory[category] ?? []
-                let totalCount = categoryAchievements.count
-                let completedCount = categoryAchievements.filter { $0.isCompleted }.count
-                let unclaimedCount = categoryAchievements.filter { $0.isCompleted && !$0.isClaimed }.count
-                let isExpanded = !collapsedCategories.contains(category)
+        ForEach(displayedCategories) { category in
+            let categoryAchievements = byCategory[category] ?? []
+            let totalCount = categoryAchievements.count
+            let completedCount = categoryAchievements.filter { $0.isCompleted }.count
+            let unclaimedCount = categoryAchievements.filter { $0.isCompleted && !$0.isClaimed }.count
+            let isExpanded = !collapsedCategories.contains(category)
 
-                VStack(alignment: .leading, spacing: 8) {
-                    AchievementCategoryBanner(
-                        category: category,
-                        completedCount: completedCount,
-                        totalCount: totalCount,
-                        unclaimedCount: unclaimedCount,
-                        isExpanded: isExpanded,
-                        onToggle: {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                if collapsedCategories.contains(category) {
-                                    collapsedCategories.remove(category)
-                                } else {
-                                    collapsedCategories.insert(category)
-                                }
-                            }
-                        },
-                        l: l
-                    )
+            Section {
+                if isExpanded {
+                    let readyToClaim = categoryAchievements.filter { $0.isCompleted && !$0.isClaimed }
+                    let inProgress = categoryAchievements.filter { !$0.isCompleted }
+                    let claimed = categoryAchievements.filter { $0.isClaimed }
 
-                    if isExpanded {
-                        let readyToClaim = categoryAchievements.filter { $0.isCompleted && !$0.isClaimed }
-                        let inProgress = categoryAchievements.filter { !$0.isCompleted }
-                        let claimed = categoryAchievements.filter { $0.isClaimed }
-
-                        LazyVStack(alignment: .leading, spacing: 6) {
-                            ForEach(readyToClaim) { achievement in
-                                AchievementRow(store: store, achievement: achievement)
-                            }
-                            ForEach(inProgress) { achievement in
-                                AchievementRow(store: store, achievement: achievement)
-                            }
-                            ForEach(claimed) { achievement in
-                                AchievementRow(store: store, achievement: achievement)
-                                    .opacity(0.72)
-                            }
-                        }
+                    ForEach(readyToClaim) { achievement in
+                        AchievementRow(store: store, achievement: achievement)
+                    }
+                    ForEach(inProgress) { achievement in
+                        AchievementRow(store: store, achievement: achievement)
+                    }
+                    ForEach(claimed) { achievement in
+                        AchievementRow(store: store, achievement: achievement)
                     }
                 }
+            } header: {
+                AchievementCategoryBanner(
+                    category: category,
+                    completedCount: completedCount,
+                    totalCount: totalCount,
+                    unclaimedCount: unclaimedCount,
+                    isExpanded: isExpanded,
+                    onToggle: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            if collapsedCategories.contains(category) {
+                                collapsedCategories.remove(category)
+                            } else {
+                                collapsedCategories.insert(category)
+                            }
+                        }
+                    },
+                    l: l
+                )
+                .padding(.top, 4)
+                .padding(.bottom, 2)
+                .background(Color(nsColor: .windowBackgroundColor))
             }
         }
     }
@@ -538,7 +537,7 @@ private struct AchievementRow: View {
 
             HStack(spacing: 10) {
                 ProgressView(value: Double(achievement.progress), total: Double(achievement.target))
-                    .tint(.orange)
+                    .tint(achievement.isClaimed ? Color.green.opacity(0.65) : Color.orange)
                 Text("\(formatNumber(achievement.progress)) / \(formatNumber(achievement.target))")
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(.secondary)
@@ -548,17 +547,35 @@ private struct AchievementRow: View {
             }
         }
         .padding(10)
-        .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+        .background(
+            achievement.isClaimed
+                ? Color.green.opacity(0.08)
+                : Color.secondary.opacity(0.06),
+            in: RoundedRectangle(cornerRadius: 8)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(
+                    achievement.isClaimed ? Color.green.opacity(0.25) : Color.clear,
+                    lineWidth: 1
+                )
+        )
+        .opacity(achievement.isClaimed ? 0.70 : 1.0)
     }
 
     @ViewBuilder
     private var actionButton: some View {
         if achievement.isClaimed {
-            Text("✓ " + l.rewardClaimed)
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
+            HStack(spacing: 3) {
+                Image(systemName: "checkmark")
+                    .font(.caption2.weight(.bold))
+                Text(l.rewardClaimed)
+                    .font(.caption2.weight(.semibold))
+            }
+            .foregroundStyle(Color.green.opacity(0.85))
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3.5)
+            .background(Color.green.opacity(0.12), in: Capsule())
         } else if achievement.isCompleted {
             Button(l.claimReward) {
                 store.claimAchievement(achievement.type)
@@ -713,6 +730,10 @@ private struct AchievementCategoryBanner: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color(nsColor: .windowBackgroundColor))
+            )
             .background(gradient, in: RoundedRectangle(cornerRadius: 10))
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
