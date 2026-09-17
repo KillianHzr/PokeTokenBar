@@ -378,10 +378,12 @@ final class CompanionStore {
     func dexCount(_ rarity: Rarity) -> Int { dexEntries.lazy.filter { $0.rarity == rarity }.count }
 
     func addDexEntry(_ entry: DexEntry) {
+        cachedAchievements = nil
         state.dex.append(entry)
     }
 
     func addDexEntries(_ entries: [DexEntry]) {
+        cachedAchievements = nil
         state.dex.append(contentsOf: entries)
     }
 
@@ -832,7 +834,14 @@ final class CompanionStore {
     }
 
     private var ownedPokemonIDs: Set<Int> {
-        Set(dexSpecies.map(\.id))
+        var ids = Set<Int>()
+        for entry in state.dex {
+            ids.formUnion(entry.chainOrder)
+        }
+        if let active = state.active {
+            ids.formUnion(active.pathIDs.prefix(active.stageIndex + 1))
+        }
+        return ids
     }
 
     /// 소유 아이템(개수>0) — 가방 목록. 정렬은 ItemKind.allCases 순서.
@@ -1159,25 +1168,37 @@ final class CompanionStore {
         }
     }
 
+    private var cachedAchievements: [AchievementItem]?
+
     var achievements: [AchievementItem] {
-        AchievementType.allCases.map { type in
+        if let cached = cachedAchievements { return cached }
+        let calculated = computeAchievements()
+        cachedAchievements = calculated
+        return calculated
+    }
+
+    private func computeAchievements() -> [AchievementItem] {
+        let owned = ownedPokemonIDs
+        let evolvedActive = (state.active?.stageIndex ?? 0) > 0
+        let evolvedDex = state.dex.contains { $0.chainOrder.count > 1 }
+        let shinyDex = state.dex.contains { $0.isShiny }
+        let shinyActive = (state.active?.isShiny == true && state.active?.dittoDisguise == nil)
+        let unreleasedCount = state.dex.filter { !$0.isReleased }.count
+
+        return AchievementType.allCases.map { type in
             let progress: Int
             switch type {
             case .firstHatch:
                 progress = (hasActive || !state.dex.isEmpty) ? 1 : 0
             case .firstEvolve:
-                let evolvedActive = (state.active?.stageIndex ?? 0) > 0
-                let evolvedDex = state.dex.contains { $0.chainOrder.count > 1 }
                 progress = (evolvedActive || evolvedDex) ? 1 : 0
             case .firstGraduate:
-                progress = state.dex.contains { !$0.isReleased } ? 1 : 0
+                progress = unreleasedCount > 0 ? 1 : 0
             case .squad5:
-                progress = state.dex.filter { !$0.isReleased }.count
+                progress = unreleasedCount
             case .dex15, .dex30:
-                progress = dexSpecies.count
+                progress = owned.count
             case .shinyHunter:
-                let shinyDex = state.dex.contains { $0.isShiny }
-                let shinyActive = (state.active?.isShiny == true && state.active?.dittoDisguise == nil)
                 progress = (shinyDex || shinyActive) ? 1 : 0
             case .streak3, .streak7, .streak14, .streak30:
                 progress = max(state.questState.currentStreak, state.questState.bestStreak)
@@ -1195,41 +1216,29 @@ final class CompanionStore {
                 let maxCopies = counts.values.max() ?? 0
                 progress = min(2, maxCopies)
             case .legendaryBirds:
-                let birds = [144, 145, 146]
-                progress = birds.filter { ownedPokemonIDs.contains($0) }.count
+                progress = [144, 145, 146].filter { owned.contains($0) }.count
             case .kantoDuo:
-                let duo = [150, 151]
-                progress = duo.filter { ownedPokemonIDs.contains($0) }.count
+                progress = [150, 151].filter { owned.contains($0) }.count
             case .legendaryBeasts:
-                let beasts = [243, 244, 245]
-                progress = beasts.filter { ownedPokemonIDs.contains($0) }.count
+                progress = [243, 244, 245].filter { owned.contains($0) }.count
             case .towerDuo:
-                let tower = [249, 250]
-                progress = tower.filter { ownedPokemonIDs.contains($0) }.count
+                progress = [249, 250].filter { owned.contains($0) }.count
             case .legendaryTitans:
-                let titans = [377, 378, 379]
-                progress = titans.filter { ownedPokemonIDs.contains($0) }.count
+                progress = [377, 378, 379].filter { owned.contains($0) }.count
             case .eonDuo:
-                let eon = [380, 381]
-                progress = eon.filter { ownedPokemonIDs.contains($0) }.count
+                progress = [380, 381].filter { owned.contains($0) }.count
             case .weatherTrio:
-                let weather = [382, 383, 384]
-                progress = weather.filter { ownedPokemonIDs.contains($0) }.count
+                progress = [382, 383, 384].filter { owned.contains($0) }.count
             case .lakeGuardians:
-                let lake = [480, 481, 482]
-                progress = lake.filter { ownedPokemonIDs.contains($0) }.count
+                progress = [480, 481, 482].filter { owned.contains($0) }.count
             case .creationTrio:
-                let creation = [483, 484, 487]
-                progress = creation.filter { ownedPokemonIDs.contains($0) }.count
+                progress = [483, 484, 487].filter { owned.contains($0) }.count
             case .swordsOfJustice:
-                let swords = [638, 639, 640]
-                progress = swords.filter { ownedPokemonIDs.contains($0) }.count
+                progress = [638, 639, 640].filter { owned.contains($0) }.count
             case .forcesOfNature:
-                let forces = [641, 642, 645]
-                progress = forces.filter { ownedPokemonIDs.contains($0) }.count
+                progress = [641, 642, 645].filter { owned.contains($0) }.count
             case .taoDuo:
-                let tao = [643, 644]
-                progress = tao.filter { ownedPokemonIDs.contains($0) }.count
+                progress = [643, 644].filter { owned.contains($0) }.count
             case .badgeBoulder, .badgeCascade, .badgeThunder, .badgeRainbow,
                  .badgeSoul, .badgeMarsh, .badgeVolcano, .badgeEarth,
                  .badgeZephyr, .badgeHive, .badgePlain, .badgeFog,
@@ -1237,28 +1246,23 @@ final class CompanionStore {
                  .badgeDark, .badgeFairy:
                 if let badgeType = type.badgeType {
                     let speciesSet = PokemonTypeData.species(for: badgeType)
-                    progress = speciesSet.filter { ownedPokemonIDs.contains($0) }.count
+                    progress = speciesSet.intersection(owned).count
                 } else {
                     progress = 0
                 }
             case .kantoStarters:
-                let starters = [3, 6, 9]
-                progress = starters.filter { ownedPokemonIDs.contains($0) }.count
+                progress = [3, 6, 9].filter { owned.contains($0) }.count
             case .johtoStarters:
-                let starters = [154, 157, 160]
-                progress = starters.filter { ownedPokemonIDs.contains($0) }.count
+                progress = [154, 157, 160].filter { owned.contains($0) }.count
             case .hoennStarters:
-                let starters = [254, 257, 260]
-                progress = starters.filter { ownedPokemonIDs.contains($0) }.count
+                progress = [254, 257, 260].filter { owned.contains($0) }.count
             case .sinnohStarters:
-                let starters = [389, 392, 395]
-                progress = starters.filter { ownedPokemonIDs.contains($0) }.count
+                progress = [389, 392, 395].filter { owned.contains($0) }.count
             case .unovaStarters:
-                let starters = [497, 500, 503]
-                progress = starters.filter { ownedPokemonIDs.contains($0) }.count
+                progress = [497, 500, 503].filter { owned.contains($0) }.count
             case .starterMaster:
                 let allStarters = [3, 6, 9, 154, 157, 160, 254, 257, 260, 389, 392, 395, 497, 500, 503]
-                progress = allStarters.filter { ownedPokemonIDs.contains($0) }.count
+                progress = allStarters.filter { owned.contains($0) }.count
             }
             let isClaimed = state.questState.claimedAchievementIDs.contains(type.rawValue)
             return AchievementItem(type: type, progress: progress, isClaimed: isClaimed)
@@ -2011,6 +2015,7 @@ final class CompanionStore {
         state = SaveTransfer.sanitized(s)
     }
     private func save() {
+        cachedAchievements = nil
         refreshRepresentativeSubject()
         guard let data = try? JSONEncoder().encode(state) else { return }
         try? data.write(to: fileURL, options: .atomic)   // 부분 쓰기 손상 방지(펫 상태)

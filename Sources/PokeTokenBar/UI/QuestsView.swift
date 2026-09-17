@@ -28,7 +28,7 @@ struct QuestsView: View {
             }
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
+                LazyVStack(alignment: .leading, spacing: 8) {
                     if selectedSegment == 0 {
                         questsContent
                     } else {
@@ -167,7 +167,10 @@ struct QuestsView: View {
     }
 
     private var categoryFilterBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        let allAchievements = store.achievements
+        let byCategory = Dictionary(grouping: allAchievements, by: \.category)
+
+        return ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
                 let isAllSelected = selectedCategoryFilter == nil
                 Button {
@@ -177,7 +180,7 @@ struct QuestsView: View {
                 } label: {
                     HStack(spacing: 4) {
                         Text(l.allCategories)
-                        Text("(\(store.achievements.count))")
+                        Text("(\(allAchievements.count))")
                             .font(.caption2)
                             .foregroundStyle(isAllSelected ? Color.accentColor : Color.secondary)
                     }
@@ -192,7 +195,7 @@ struct QuestsView: View {
 
                 ForEach(AchievementCategory.allCases) { category in
                     let isSelected = selectedCategoryFilter == category
-                    let categoryAchievements = store.achievements.filter { $0.category == category }
+                    let categoryAchievements = byCategory[category] ?? []
                     let count = categoryAchievements.count
                     let unclaimed = categoryAchievements.filter { $0.isCompleted && !$0.isClaimed }.count
 
@@ -237,9 +240,11 @@ struct QuestsView: View {
             return AchievementCategory.allCases
         }()
 
-        let allClaimed = store.achievements.allSatisfy(\.isClaimed)
+        let allAchievements = store.achievements
+        let byCategory = Dictionary(grouping: allAchievements, by: \.category)
+        let allClaimed = allAchievements.allSatisfy(\.isClaimed)
 
-        return VStack(alignment: .leading, spacing: 14) {
+        return LazyVStack(alignment: .leading, spacing: 14) {
             if allClaimed {
                 HStack(spacing: 8) {
                     Image(systemName: "trophy.fill")
@@ -254,7 +259,7 @@ struct QuestsView: View {
             }
 
             ForEach(displayedCategories) { category in
-                let categoryAchievements = store.achievements.filter { $0.category == category }
+                let categoryAchievements = byCategory[category] ?? []
                 let totalCount = categoryAchievements.count
                 let completedCount = categoryAchievements.filter { $0.isCompleted }.count
                 let unclaimedCount = categoryAchievements.filter { $0.isCompleted && !$0.isClaimed }.count
@@ -284,7 +289,7 @@ struct QuestsView: View {
                         let inProgress = categoryAchievements.filter { !$0.isCompleted }
                         let claimed = categoryAchievements.filter { $0.isClaimed }
 
-                        VStack(alignment: .leading, spacing: 6) {
+                        LazyVStack(alignment: .leading, spacing: 6) {
                             ForEach(readyToClaim) { achievement in
                                 AchievementRow(store: store, achievement: achievement)
                             }
@@ -752,11 +757,13 @@ struct QuestIconView: View {
         .task(id: icon.rawValue) {
             guard img == nil, icon != .rareCandy else { return }
             if icon == .egg {
-                if let d = await SpriteStore.shared.eggData(), let loaded = NSImage(data: d) {
-                    img = loaded
+                if let loaded = await SpriteLoader.eggImage() {
+                    if img != loaded { img = loaded }
                 }
             } else {
-                img = await SpriteLoader.itemImage(name: icon.rawValue)
+                if let loaded = await SpriteLoader.itemImage(name: icon.rawValue) {
+                    if img != loaded { img = loaded }
+                }
             }
         }
     }
