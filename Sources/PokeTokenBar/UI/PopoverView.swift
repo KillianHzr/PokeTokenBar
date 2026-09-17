@@ -287,7 +287,7 @@ struct PopoverView: View {
         // (자동 Keychain 읽기는 팝업 방지로 여전히 안 함 — 발견성만 살린다.)
         case "claude_code": return !store.disableKeychainAccess || store.limits != nil || store.limitsAuthExpired
         case "codex": return store.codexLimits?.hasVisibleLimit == true
-        case "antigravity": return !store.disableKeychainAccess || store.antigravityLimits?.hasVisibleLimit == true || store.antigravityLimitsAuthExpired
+        case "antigravity": return !store.disableKeychainAccess || store.antigravityHasTokenFile || store.antigravityLimits?.hasVisibleLimit == true || store.antigravityLimitsAuthExpired
         default: return false
         }
     }

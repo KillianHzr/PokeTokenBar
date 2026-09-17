@@ -146,11 +146,16 @@ final class UsageStore {
         didSet {
             defaults.set(disableKeychainAccess, forKey: "disableKeychainAccess")   // 저장 누락이던 기존 버그 — 재시작 후 풀렸음
             KeychainAccessGate.isDisabled = disableKeychainAccess
-            // 세션 키가 있으면 Keychain 없이도 한도를 조회할 수 있으므로 섹션을 지우지 않는다.
+            // 세션 키/토큰 파일이 있으면 Keychain 없이도 한도를 조회할 수 있으므로 섹션을 지우지 않는다.
             if disableKeychainAccess && !sessionKeyConfigured {
                 limits = nil
                 limitsAvailable = false
-            } else {
+            }
+            if disableKeychainAccess && !antigravityLimitsProvider.hasTokenFile {
+                antigravityLimits = nil
+                antigravityLimitsAuthExpired = false
+            }
+            if !disableKeychainAccess || sessionKeyConfigured || antigravityLimitsProvider.hasTokenFile {
                 Task { await refresh() }
             }
         }
@@ -972,6 +977,10 @@ final class UsageStore {
         }
     }
 
+    var antigravityHasTokenFile: Bool {
+        antigravityLimitsProvider.hasTokenFile
+    }
+
     func refreshAntigravityLimitsFromKeychain() async {
         guard !isRefreshingAntigravityLimits else { return }
         isRefreshingAntigravityLimits = true
@@ -980,7 +989,7 @@ final class UsageStore {
     }
 
     private func refreshAntigravityLimits(allowKeychainPrompt: Bool) async {
-        if disableKeychainAccess {
+        if disableKeychainAccess && !antigravityLimitsProvider.hasTokenFile {
             antigravityLimits = nil
             antigravityLimitsAuthExpired = false
             return

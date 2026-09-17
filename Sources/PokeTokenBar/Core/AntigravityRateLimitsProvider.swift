@@ -3,7 +3,12 @@ import Security
 
 /// Antigravity 공식 한도 조회 추상화 — 실 구현 또는 테스트 스텁 주입.
 public protocol AntigravityLimitsProviding: Sendable {
+    var hasTokenFile: Bool { get }
     func fetch(allowKeychainPrompt: Bool) async throws -> AntigravityRateLimitStatus
+}
+
+extension AntigravityLimitsProviding {
+    public var hasTokenFile: Bool { false }
 }
 
 public struct AntigravityRateLimitsProvider: AntigravityLimitsProviding, Sendable {
@@ -33,6 +38,10 @@ public struct AntigravityRateLimitsProvider: AntigravityLimitsProviding, Sendabl
 
     init(tokenCache: AntigravityTokenCache) {
         self.tokenCache = tokenCache
+    }
+
+    public var hasTokenFile: Bool {
+        tokenCache.hasTokenFile
     }
 
     public func fetch(allowKeychainPrompt: Bool = false) async throws -> AntigravityRateLimitStatus {
@@ -105,12 +114,33 @@ actor AntigravityTokenCache {
         self.urlSession = urlSession
     }
 
+    nonisolated var hasTokenFile: Bool {
+        Self.readTokenFileCredential(urls: tokenFileURLs) != nil
+    }
+
     static var defaultTokenFileURLs: [URL] {
+        var urls: [URL] = []
+        if let envPath = UsageEnvironment.value("ANTIGRAVITY_TOKEN_FILE")?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !envPath.isEmpty {
+            urls.append(URL(fileURLWithPath: (envPath as NSString).expandingTildeInPath))
+        }
+        urls.append(AppStatePaths.directory().appendingPathComponent("antigravity-token.json"))
+
         let home = FileManager.default.homeDirectoryForCurrentUser
-        return [
-            home.appendingPathComponent(".gemini/jetski-standalone-oauth-token"),
-            home.appendingPathComponent(".gemini/antigravity/jetski-standalone-oauth-token"),
+        let candidates = [
+            ".gemini/antigravity-cli/antigravity-oauth-token",
+            ".gemini/antigravity-cli/jetski-standalone-oauth-token",
+            ".gemini/antigravity-ide/antigravity-oauth-token",
+            ".gemini/antigravity-ide/jetski-standalone-oauth-token",
+            ".gemini/antigravity/antigravity-oauth-token",
+            ".gemini/antigravity/jetski-standalone-oauth-token",
+            ".gemini/antigravity-oauth-token",
+            ".gemini/jetski-standalone-oauth-token",
         ]
+        for candidate in candidates {
+            urls.append(home.appendingPathComponent(candidate))
+        }
+        return urls
     }
 
     func accessToken(allowKeychainPrompt: Bool, bypassCache: Bool = false) async throws -> String {

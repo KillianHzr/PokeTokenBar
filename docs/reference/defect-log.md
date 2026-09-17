@@ -127,6 +127,18 @@ read_when:
   검증(`isSameSourceCredential`)을 통해 같은 계정의 갱신 캐시만 디스크의 만료 토큰보다 우선 유지한다.
   가드: `testAntigravityAutoPollReadsNestedTokenObject`·`testAntigravityAutoPollPicksUpNestedTokenSwitch`·`testNearExpiryAccountSwitchDoesNotFallBackToPreviousCachedAccount`·`testExpiredFileRefreshesAndSubsequentPollRetainsRefreshedToken`.
 
+- **토큰 파일 검색 경로는 지원하는 외부 에디션의 실제 저장 위치를 전수 포함해야 한다.** `LocalAntigravityUsageReader`는
+  `antigravity`, `antigravity-cli`, `antigravity-ide` 세 경로를 모두 지원하지만, `AntigravityTokenCache.defaultTokenFileURLs`는
+  `jetski-standalone-oauth-token`과 `antigravity/` 하위 경로만 탐색하여 공식 CLI(`agy`)가 기본 저장하는
+  `~/.gemini/antigravity-cli/antigravity-oauth-token`을 누락했다. 유효한 토큰 파일이 디스크에 있어도 탐색되지 않아
+  백그라운드 자동 폴이 `keychainInteractionNotAllowed`로 매 분 실패했고, 한도가 stale 상태가 되어 사용자가
+  "Actualiser(갱신)"를 누를 때마다 macOS 키체인 암호 프롬프트가 강제되었다. 또한 `disableKeychainAccess` 토글 시
+  토큰 파일 존재 여부와 무관하게 한도 조회를 중단하던 문제가 있었다.
+  해결: `defaultTokenFileURLs`에 `antigravity-cli`, `antigravity-ide`, `antigravity-oauth-token`,
+  `ANTIGRAVITY_TOKEN_FILE` 환경변수 및 앱 상태 경로를 전수 등록하고, `hasTokenFile`을 제공하여 키체인이
+  비활성화된 상태에서도 토큰 파일 기반 무프롬프트 자동 갱신을 보장한다.
+  가드: `testDefaultTokenFileURLsIncludeCLIAndIDEPaths`·`testHasTokenFileReflectsDiskPresence`·`testRegisteredNamesCoverEveryProviderOverride`.
+
 - **append-only SQLite watermark 루프를 프로바이더마다 복사하지 마라.** Cursor 와 Copilot 이
   같은 `didReset` / `highWater == 0` 규칙을 두 벌로 들고 있으면 한쪽만 고친 수정이 다른 쪽에 남는다
   (#157). 루프는 `scanIncrementalStores` 한 곳, 포맷만 콜백. 회귀는 공유 헬퍼 테스트 **그리고**
