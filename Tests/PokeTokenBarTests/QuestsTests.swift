@@ -594,25 +594,38 @@ final class QuestsTests: XCTestCase {
         XCTAssertFalse(store.achievements.first { $0.type == .elementalStones }!.isCompleted)
         XCTAssertFalse(store.achievements.first { $0.type == .allStonesUsed }!.isCompleted)
 
+        let testMon = MonState(
+            baseID: 1,
+            pathIDs: [1, 2, 3],
+            stageIndex: 0,
+            usedAtStage: 0,
+            rarity: .starter,
+            totalForms: 3
+        )
+
         // Seed stones and active companion to use
-        store.state.inventory[ItemKind.fireStone.rawValue] = 1
-        store.state.inventory[ItemKind.waterStone.rawValue] = 1
-        store.state.inventory[ItemKind.thunderStone.rawValue] = 1
-        store.setActiveForTesting(Companion(speciesID: 1, baseID: 1, currentOrderIndex: 0, chainOrder: [1, 2, 3], stage: .basic, rarity: .starter, name: "Bulbasaur"))
+        store.setInventoryForTesting([
+            ItemKind.fireStone.rawValue: 1,
+            ItemKind.waterStone.rawValue: 1,
+            ItemKind.thunderStone.rawValue: 1
+        ])
+        store.setActiveForTesting(testMon)
 
         XCTAssertTrue(store.useStone(.fireStone))
-        store.setActiveForTesting(Companion(speciesID: 1, baseID: 1, currentOrderIndex: 0, chainOrder: [1, 2, 3], stage: .basic, rarity: .starter, name: "Bulbasaur"))
+        store.setActiveForTesting(testMon)
         XCTAssertTrue(store.useStone(.waterStone))
-        store.setActiveForTesting(Companion(speciesID: 1, baseID: 1, currentOrderIndex: 0, chainOrder: [1, 2, 3], stage: .basic, rarity: .starter, name: "Bulbasaur"))
+        store.setActiveForTesting(testMon)
         XCTAssertTrue(store.useStone(.thunderStone))
 
         XCTAssertTrue(store.achievements.first { $0.type == .elementalStones }!.isCompleted)
         XCTAssertEqual(store.achievements.first { $0.type == .allStonesUsed }!.progress, 3)
 
         // Bag collector (8 items)
+        var bagItems: [String: Int] = [:]
         for kind in [ItemKind.rareCandy, .mint, .shinyCharm, .legendCharm, .silverWing, .clearBell, .rainbowWing, .magmaStone] {
-            store.state.inventory[kind.rawValue] = 1
+            bagItems[kind.rawValue] = 1
         }
+        store.setInventoryForTesting(bagItems)
         XCTAssertTrue(store.achievements.first { $0.type == .bagCollector }!.isCompleted)
     }
 
@@ -620,21 +633,24 @@ final class QuestsTests: XCTestCase {
         let store = makeStore()
 
         // Shiny starter
-        store.addDexEntry(DexEntry(baseID: 1, finalID: 3, chainOrder: [1, 2, 3], rarity: .starter, isShiny: true, caughtAt: now))
+        store.addDexEntry(DexEntry(baseID: 1, finalID: 3, chainOrder: [1, 2, 3], rarity: .starter, caughtAt: now, isShiny: true))
         XCTAssertTrue(store.achievements.first { $0.type == .shinyLegendOrStarter }!.isCompleted)
         XCTAssertEqual(store.achievements.first { $0.type == .shinyTrio }!.progress, 1)
 
         // Streaks and tokens
-        store.state.questState.bestStreak = 100
+        store.setQuestStateForTesting(bestStreak: 100)
         XCTAssertTrue(store.achievements.first { $0.type == .streak60 }!.isCompleted)
         XCTAssertTrue(store.achievements.first { $0.type == .streak100 }!.isCompleted)
 
         // Routine
-        store.state.questState.nightOwlTriggered = true
-        store.state.questState.earlyBirdTriggered = true
-        store.state.questState.maxDailyTokens = 150_000_000
+        store.setQuestStateForTesting(
+            nightOwlTriggered: true,
+            earlyBirdTriggered: true,
+            maxDailyTokens: 150_000_000
+        )
         XCTAssertTrue(store.achievements.first { $0.type == .nightOwl }!.isCompleted)
         XCTAssertTrue(store.achievements.first { $0.type == .earlyBird }!.isCompleted)
         XCTAssertTrue(store.achievements.first { $0.type == .dailyMarathon }!.isCompleted)
     }
 }
+

@@ -2072,3 +2072,33 @@ final class CompanionStore {
         try? data.write(to: fileURL, options: .atomic)   // 부분 쓰기 손상 방지(펫 상태)
     }
 }
+
+#if DEBUG
+extension CompanionStore {
+    func setInventoryForTesting(_ items: [String: Int]) {
+        for (key, value) in items {
+            state.inventory[key] = value
+        }
+        save()
+    }
+
+    func setQuestStateForTesting(
+        bestStreak: Int? = nil,
+        nightOwlTriggered: Bool? = nil,
+        earlyBirdTriggered: Bool? = nil,
+        maxDailyTokens: Int? = nil
+    ) {
+        if let bestStreak { state.questState.bestStreak = bestStreak }
+        if let nightOwlTriggered { state.questState.nightOwlTriggered = nightOwlTriggered }
+        if let earlyBirdTriggered { state.questState.earlyBirdTriggered = earlyBirdTriggered }
+        if let maxDailyTokens { state.questState.maxDailyTokens = maxDailyTokens }
+        save()
+    }
+
+    func setActiveForTesting(_ active: MonState?) {
+        state.active = active
+        save()
+    }
+}
+#endif
+
