@@ -277,7 +277,7 @@ private struct DailyQuestRow: View {
                     ItemIconView(kind: kind, size: 14)
                     Text(l.itemName(kind))
                         .font(.caption2.weight(.bold))
-                        .foregroundStyle(.purple)
+                        .foregroundStyle(Color.accentColor)
                 }
             }
             if reward.candies > 0 {
@@ -379,7 +379,7 @@ private struct WeeklyQuestRow: View {
                     ItemIconView(kind: kind, size: 14)
                     Text(l.itemName(kind))
                         .font(.caption2.weight(.bold))
-                        .foregroundStyle(.purple)
+                        .foregroundStyle(Color.accentColor)
                 }
             }
             if reward.candies > 0 {
@@ -481,7 +481,7 @@ private struct AchievementRow: View {
                     ItemIconView(kind: kind, size: 14)
                     Text(l.itemName(kind))
                         .font(.caption2.weight(.bold))
-                        .foregroundStyle(.purple)
+                        .foregroundStyle(Color.accentColor)
                 }
             }
             if reward.candies > 0 {

@@ -18,7 +18,7 @@ This PR introduces a complete quest and achievement progression system, producti
    - Completing all 15 fully evolved starters unlocks the **Starter Master** milestone, awarding 5 Rare Candies and 500M tokens.
 6. **Usable Elemental Evolution Stones (Type-Guaranteed Eggs)**:
    - 10 canonical evolution stones added as usable Bag items: Leaf Stone (Grass), Fire Stone (Fire), Water Stone (Water), Thunder Stone (Electric), Sun Stone (Psychic), Moon Stone (Fairy), Ice Stone (Ice), Dusk Stone (Dark), Dawn Stone (Fighting), and Shiny Stone (Dragon).
-   - Awarded through starter trio achievements and streak milestones (e.g. Kanto Starters -> Leaf Stone, Johto Starters -> Fire Stone, Hoenn Starters -> Water Stone, Sinnoh Starters -> Sun Stone, Unova Starters -> Moon Stone).
+   - Awarded as hyper-rare items strictly through the First Evolution achievement (Thunder Stone) and starter trio generation achievements (Kanto Starters -> Leaf Stone, Johto Starters -> Fire Stone, Hoenn Starters -> Water Stone, Sinnoh Starters -> Sun Stone, Unova Starters -> Moon Stone).
    - Consumable active items in the Bag: using a stone consumes 1 stone, sends the current active companion to the Pokédex (as released), and gives a fresh egg guaranteed to hatch a Pokémon matching the stone's type.
    - Multi-stage safety confirmation in BagView (matching the Shop egg warning): inline confirmation modal showing the companion replacement, plus a dedicated warning prompt if the current companion is shiny to prevent accidental loss.
    - Incubating eggs display a type-colored capsule badge indicating the guaranteed type (e.g. 'Guaranteed Fire' / 'Feu garanti').
