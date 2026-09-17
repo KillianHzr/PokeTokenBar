@@ -28,6 +28,24 @@ public enum QuestIcon: String, Codable, Sendable {
     case libertyPass = "liberty-pass"
     case revealGlass = "reveal-glass"
     case dnaSplicers = "dna-splicers"
+    case badgeBoulder = "badge-1"
+    case badgeCascade = "badge-2"
+    case badgeThunder = "badge-3"
+    case badgeRainbow = "badge-4"
+    case badgeSoul = "badge-5"
+    case badgeMarsh = "badge-6"
+    case badgeVolcano = "badge-7"
+    case badgeEarth = "badge-8"
+    case badgeZephyr = "badge-9"
+    case badgeHive = "badge-10"
+    case badgePlain = "badge-11"
+    case badgeFog = "badge-12"
+    case badgeStorm = "badge-13"
+    case badgeMineral = "badge-14"
+    case badgeGlacier = "badge-15"
+    case badgeRising = "badge-16"
+    case badgeDark = "badge-59"
+    case badgeFairy = "badge-48"
 
     public var fallbackEmoji: String {
         switch self {
@@ -58,6 +76,12 @@ public enum QuestIcon: String, Codable, Sendable {
         case .libertyPass: return "🎟️"
         case .revealGlass: return "🪞"
         case .dnaSplicers: return "🧬"
+        case .badgeBoulder, .badgeCascade, .badgeThunder, .badgeRainbow,
+             .badgeSoul, .badgeMarsh, .badgeVolcano, .badgeEarth,
+             .badgeZephyr, .badgeHive, .badgePlain, .badgeFog,
+             .badgeStorm, .badgeMineral, .badgeGlacier, .badgeRising,
+             .badgeDark, .badgeFairy:
+            return "★"
         }
     }
 }
@@ -236,8 +260,51 @@ public enum AchievementType: String, Codable, Sendable, CaseIterable {
     case swordsOfJustice = "ach_swords_of_justice"
     case forcesOfNature = "ach_forces_of_nature"
     case taoDuo = "ach_tao_duo"
+    case badgeBoulder = "ach_badge_boulder"
+    case badgeCascade = "ach_badge_cascade"
+    case badgeThunder = "ach_badge_thunder"
+    case badgeRainbow = "ach_badge_rainbow"
+    case badgeSoul = "ach_badge_soul"
+    case badgeMarsh = "ach_badge_marsh"
+    case badgeVolcano = "ach_badge_volcano"
+    case badgeEarth = "ach_badge_earth"
+    case badgeZephyr = "ach_badge_zephyr"
+    case badgeHive = "ach_badge_hive"
+    case badgePlain = "ach_badge_plain"
+    case badgeFog = "ach_badge_fog"
+    case badgeStorm = "ach_badge_storm"
+    case badgeMineral = "ach_badge_mineral"
+    case badgeGlacier = "ach_badge_glacier"
+    case badgeRising = "ach_badge_rising"
+    case badgeDark = "ach_badge_dark"
+    case badgeFairy = "ach_badge_fairy"
+
+    public var badgeType: PokemonType? {
+        switch self {
+        case .badgeBoulder: return .rock
+        case .badgeCascade: return .water
+        case .badgeThunder: return .electric
+        case .badgeRainbow: return .grass
+        case .badgeSoul:    return .poison
+        case .badgeMarsh:   return .psychic
+        case .badgeVolcano: return .fire
+        case .badgeEarth:   return .ground
+        case .badgeZephyr:  return .flying
+        case .badgeHive:    return .bug
+        case .badgePlain:   return .normal
+        case .badgeFog:     return .ghost
+        case .badgeStorm:   return .fighting
+        case .badgeMineral: return .steel
+        case .badgeGlacier: return .ice
+        case .badgeRising:  return .dragon
+        case .badgeDark:    return .dark
+        case .badgeFairy:   return .fairy
+        default:            return nil
+        }
+    }
 
     public var icon: QuestIcon {
+        if let badgeType { return badgeType.badgeIcon }
         switch self {
         case .firstHatch: return .egg
         case .firstEvolve: return .thunderStone
@@ -270,10 +337,12 @@ public enum AchievementType: String, Codable, Sendable, CaseIterable {
         case .swordsOfJustice: return .libertyPass
         case .forcesOfNature: return .revealGlass
         case .taoDuo: return .dnaSplicers
+        default: return .masterBall
         }
     }
 
     public var target: Int {
+        if let badgeType { return PokemonTypeData.species(for: badgeType).count }
         switch self {
         case .firstHatch: return 1
         case .firstEvolve: return 1
@@ -306,10 +375,12 @@ public enum AchievementType: String, Codable, Sendable, CaseIterable {
         case .swordsOfJustice: return 3
         case .forcesOfNature: return 3
         case .taoDuo: return 2
+        default: return 1
         }
     }
 
     public var reward: QuestReward {
+        if let badgeType { return QuestReward(item: badgeType.badgeItem.rawValue) }
         switch self {
         case .firstHatch: return QuestReward(candies: 1)
         case .firstEvolve: return QuestReward(candies: 1, tokens: 5_000_000)
@@ -342,6 +413,7 @@ public enum AchievementType: String, Codable, Sendable, CaseIterable {
         case .swordsOfJustice: return QuestReward(item: ItemKind.libertyPass.rawValue)
         case .forcesOfNature: return QuestReward(item: ItemKind.revealGlass.rawValue)
         case .taoDuo: return QuestReward(item: ItemKind.dnaSplicers.rawValue)
+        default: return QuestReward()
         }
     }
 }

@@ -53,7 +53,14 @@ actor SpriteStore {
         if let d = mem[key] { touch(key); return d }
         let file = directory.appendingPathComponent("\(key).png")
         if let d = try? Data(contentsOf: file) { remember(key, d); return d }
-        guard let url = URL(string: "\(itemBase)/\(itemName).png"),
+        let urlStr: String
+        if itemName.hasPrefix("badge-") {
+            let badgeNum = itemName.dropFirst(6)
+            urlStr = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/\(badgeNum).png"
+        } else {
+            urlStr = "\(itemBase)/\(itemName).png"
+        }
+        guard let url = URL(string: urlStr),
               let (d, resp) = try? await URLSession.shared.data(from: url),
               (resp as? HTTPURLResponse)?.statusCode == 200, !d.isEmpty else { return nil }
         try? d.write(to: file, options: .atomic)

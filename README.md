@@ -186,6 +186,31 @@ Collecting full canonical legendary groups in your Pokédex or graduating duplic
 | **Reveal Glass** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/reveal-glass.png" width="28" height="28" alt="Reveal Glass"> | **Forces of Nature** (*Tornadus, Thundurus, Landorus*) | Further multiplies shiny hatch odds (2× shiny chance, stacks with Shiny Charm for 8× total). |
 | **DNA Splicers** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dna-splicers.png" width="28" height="28" alt="DNA Splicers"> | **Tao Duo** (*Reshiram, Zekrom*) | Dramatically accelerates companion growth with a massive +50% bonus EXP from tokens. |
 
+### Type Gym Badges (All 18 Types Pokédex Mastery)
+
+Catching and registering all species of any Pokémon type across Gen 1–5 in your Pokédex unlocks that type's Gym Badge as a permanent passive Bag item. Each owned badge grants a **+20% speed boost** (increased appearance rate and faster growth threshold) to all Pokémon types weak to it, stacking cumulatively when a species is weak to multiple owned badges:
+
+| Badge | Sprite | Type | Pokédex Requirement | Target Weaknesses Boosted (+20% Speed) |
+| :--- | :---: | :---: | :--- | :--- |
+| **Boulder Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/1.png" width="28" height="28" alt="Boulder Badge"> | Rock | 47 Rock-type Pokémon | Fire, Ice, Flying, Bug |
+| **Cascade Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/2.png" width="28" height="28" alt="Cascade Badge"> | Water | 109 Water-type Pokémon | Fire, Ground, Rock |
+| **Thunder Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/3.png" width="28" height="28" alt="Thunder Badge"> | Electric | 39 Electric-type Pokémon | Water, Flying |
+| **Rainbow Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/4.png" width="28" height="28" alt="Rainbow Badge"> | Grass | 75 Grass-type Pokémon | Water, Ground, Rock |
+| **Soul Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/5.png" width="28" height="28" alt="Soul Badge"> | Poison | 57 Poison-type Pokémon | Grass, Fairy |
+| **Marsh Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/6.png" width="28" height="28" alt="Marsh Badge"> | Psychic | 68 Psychic-type Pokémon | Fighting, Poison |
+| **Volcano Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/7.png" width="28" height="28" alt="Volcano Badge"> | Fire | 48 Fire-type Pokémon | Grass, Ice, Bug, Steel |
+| **Earth Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/8.png" width="28" height="28" alt="Earth Badge"> | Ground | 58 Ground-type Pokémon | Fire, Electric, Poison, Rock, Steel |
+| **Zephyr Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/9.png" width="28" height="28" alt="Zephyr Badge"> | Flying | 82 Flying-type Pokémon | Grass, Fighting, Bug |
+| **Hive Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/10.png" width="28" height="28" alt="Hive Badge"> | Bug | 63 Bug-type Pokémon | Grass, Psychic, Dark |
+| **Plain Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/11.png" width="28" height="28" alt="Plain Badge"> | Normal | 89 Normal-type Pokémon | Normal-type species |
+| **Fog Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/12.png" width="28" height="28" alt="Fog Badge"> | Ghost | 27 Ghost-type Pokémon | Psychic, Ghost |
+| **Storm Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/13.png" width="28" height="28" alt="Storm Badge"> | Fighting | 40 Fighting-type Pokémon | Normal, Ice, Rock, Dark, Steel |
+| **Mineral Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/14.png" width="28" height="28" alt="Mineral Badge"> | Steel | 37 Steel-type Pokémon | Ice, Rock, Fairy |
+| **Glacier Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/15.png" width="28" height="28" alt="Glacier Badge"> | Ice | 29 Ice-type Pokémon | Grass, Ground, Flying, Dragon |
+| **Rising Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/16.png" width="28" height="28" alt="Rising Badge"> | Dragon | 29 Dragon-type Pokémon | Dragon |
+| **Dark Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/59.png" width="28" height="28" alt="Dark Badge"> | Dark | 39 Dark-type Pokémon | Psychic, Ghost |
+| **Fairy Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/48.png" width="28" height="28" alt="Fairy Badge"> | Fairy | 22 Fairy-type Pokémon | Fighting, Dragon, Dark |
+
 ## Also in the box
 
 - **Low Power Mode** — menu-bar animation continues at Power saver quality.

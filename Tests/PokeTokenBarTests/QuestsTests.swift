@@ -277,4 +277,62 @@ final class QuestsTests: XCTestCase {
         XCTAssertTrue(decoded.questState.claimedDailyQuestIDs.isEmpty)
         XCTAssertTrue(decoded.questState.claimedWeeklyQuestIDs.isEmpty)
     }
+
+    func testTypeBadgeAchievementsAndWeaknessSpeedBoost() {
+        let store = makeStore()
+
+        // 1. Verify 18 badge achievements exist in achievements list
+        let badgeAchievements = store.achievements.filter { $0.type.badgeType != nil }
+        XCTAssertEqual(badgeAchievements.count, 18)
+
+        // Fairy type has 22 species
+        let fairySpecies = PokemonTypeData.species(for: .fairy)
+        XCTAssertEqual(fairySpecies.count, 22)
+
+        let initialFairyAch = store.achievements.first { $0.type == .badgeFairy }!
+        XCTAssertEqual(initialFairyAch.progress, 0)
+        XCTAssertEqual(initialFairyAch.target, 22)
+        XCTAssertFalse(initialFairyAch.isCompleted)
+
+        // Add 21 fairy entries -> progress 21 (incomplete)
+        let entries21 = fairySpecies.dropFirst().map {
+            DexEntry(baseID: $0, finalID: $0, chainOrder: [$0], rarity: .common, caughtAt: now)
+        }
+        store.addDexEntries(entries21)
+        let prog21Ach = store.achievements.first { $0.type == .badgeFairy }!
+        XCTAssertEqual(prog21Ach.progress, 21)
+        XCTAssertFalse(prog21Ach.isCompleted)
+
+        // Add the last fairy entry -> progress 22 (completed!)
+        let lastFairyID = fairySpecies.first!
+        store.addDexEntry(DexEntry(baseID: lastFairyID, finalID: lastFairyID, chainOrder: [lastFairyID], rarity: .common, caughtAt: now))
+        let completedFairyAch = store.achievements.first { $0.type == .badgeFairy }!
+        XCTAssertEqual(completedFairyAch.progress, 22)
+        XCTAssertTrue(completedFairyAch.isCompleted)
+
+        // Claim fairy badge
+        XCTAssertTrue(store.claimAchievement(.badgeFairy))
+        XCTAssertEqual(store.itemCount(.fairyBadge), 1)
+
+        // Fairy is super effective against Dragon, Fighting, Dark!
+        // Dragonite (Dragon/Flying, #149): Fairy is 2.0x, Flying is neutral -> weak to Fairy!
+        XCTAssertTrue(PokemonTypeData.isWeak(to: .fairy, speciesID: 149))
+        XCTAssertEqual(store.ownedBadgeCount(weakAgainst: 149), 1)
+        XCTAssertEqual(store.typeBadgeSpeedMultiplier(forSpeciesID: 149), 1.20)
+
+        // Add all Ice species and claim Glacier badge
+        store.addDexEntries(PokemonTypeData.species(for: .ice).map {
+            DexEntry(baseID: $0, finalID: $0, chainOrder: [$0], rarity: .common, caughtAt: now)
+        })
+        XCTAssertTrue(store.claimAchievement(.badgeGlacier))
+        XCTAssertEqual(store.itemCount(.glacierBadge), 1)
+
+        // Now Dragonite is weak to BOTH Fairy Badge and Glacier Badge -> 2 effective badges!
+        XCTAssertEqual(store.ownedBadgeCount(weakAgainst: 149), 2)
+        XCTAssertEqual(store.typeBadgeSpeedMultiplier(forSpeciesID: 149), 1.40)
+
+        // Normal badge boosts Normal types
+        XCTAssertTrue(PokemonTypeData.isWeak(to: .normal, speciesID: 143))
+        XCTAssertFalse(PokemonTypeData.isWeak(to: .normal, speciesID: 6))
+    }
 }

@@ -189,9 +189,52 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     case libertyPass
     case revealGlass
     case dnaSplicers
+    case boulderBadge
+    case cascadeBadge
+    case thunderBadge
+    case rainbowBadge
+    case soulBadge
+    case marshBadge
+    case volcanoBadge
+    case earthBadge
+    case zephyrBadge
+    case hiveBadge
+    case plainBadge
+    case fogBadge
+    case stormBadge
+    case mineralBadge
+    case glacierBadge
+    case risingBadge
+    case darkBadge
+    case fairyBadge
 
-    /// PokéAPI 아이템 스프라이트 파일명(.../sprites/items/{name}.png). nil = 스프라이트 없음(이모지 폴백만).
+    var badgeType: PokemonType? {
+        switch self {
+        case .boulderBadge: return .rock
+        case .cascadeBadge: return .water
+        case .thunderBadge: return .electric
+        case .rainbowBadge: return .grass
+        case .soulBadge:    return .poison
+        case .marshBadge:   return .psychic
+        case .volcanoBadge: return .fire
+        case .earthBadge:   return .ground
+        case .zephyrBadge:  return .flying
+        case .hiveBadge:    return .bug
+        case .plainBadge:   return .normal
+        case .fogBadge:     return .ghost
+        case .stormBadge:   return .fighting
+        case .mineralBadge: return .steel
+        case .glacierBadge: return .ice
+        case .risingBadge:  return .dragon
+        case .darkBadge:    return .dark
+        case .fairyBadge:   return .fairy
+        default:            return nil
+        }
+    }
+
+    /// PokéAPI 아이템 스프라이트 파일명(.../sprites/items/{name}.png 또는 badge-{id}). nil = 스프라이트 없음.
     var spriteName: String? {
+        if let badgeType { return badgeType.badgeSpriteName }
         switch self {
         case .rareCandy: return "rare-candy"
         case .mint: return "mental-herb"
@@ -209,9 +252,10 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .libertyPass: return "liberty-pass"
         case .revealGlass: return "reveal-glass"
         case .dnaSplicers: return "dna-splicers"
+        default: return nil
         }
     }
-    /// 스프라이트 로딩 전/미제공/실패 시 폴백 이모지.
+    /// 스프라이트 로딩 전/미제공/실패 시 폴백 기호.
     var fallbackEmoji: String {
         switch self {
         case .rareCandy: return "🍬"
@@ -230,6 +274,12 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .libertyPass: return "🎟️"
         case .revealGlass: return "🪞"
         case .dnaSplicers: return "🧬"
+        case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,
+             .soulBadge, .marshBadge, .volcanoBadge, .earthBadge,
+             .zephyrBadge, .hiveBadge, .plainBadge, .fogBadge,
+             .stormBadge, .mineralBadge, .glacierBadge, .risingBadge,
+             .darkBadge, .fairyBadge:
+            return "★"
         }
     }
     /// 상점 판매가(재화 = 사용한 토큰). nil = 상점 미판매.

@@ -164,6 +164,10 @@ final class CompanionStore {
         if mon.hasGrowthBoost && ownsMagmaStone {
             base = (base * 3) / 4
         }
+        let badgeMult = typeBadgeSpeedMultiplier(forSpeciesID: mon.currentID)
+        if badgeMult > 1.0 {
+            base = max(1, Int((Double(base) / badgeMult).rounded()))
+        }
         return PokemonBalance.scaled(base, by: growthDifficulty)
     }
 
@@ -804,6 +808,24 @@ final class CompanionStore {
     var ownsRevealGlass: Bool { itemCount(.revealGlass) > 0 }
     var ownsDnaSplicers: Bool { itemCount(.dnaSplicers) > 0 }
 
+    /// 보유한 배지 중 특정 종에 효과적인 배지 개수 (약점 공격 가능 배지 또는 노말 배지의 경우 노말 종).
+    func ownedBadgeCount(weakAgainst speciesID: Int) -> Int {
+        var count = 0
+        for type in PokemonType.allCases {
+            if itemCount(type.badgeItem) > 0 && PokemonTypeData.isWeak(to: type, speciesID: speciesID) {
+                count += 1
+            }
+        }
+        return count
+    }
+
+    /// 배지로 인한 포획/성장 가속 배율 (+20% per effective badge, cumulative).
+    func typeBadgeSpeedMultiplier(forSpeciesID speciesID: Int) -> Double {
+        let count = ownedBadgeCount(weakAgainst: speciesID)
+        guard count > 0 else { return 1.0 }
+        return 1.0 + 0.20 * Double(count)
+    }
+
     private var ownedPokemonIDs: Set<Int> {
         Set(dexSpecies.map(\.id))
     }
@@ -1166,6 +1188,17 @@ final class CompanionStore {
             case .taoDuo:
                 let tao = [643, 644]
                 progress = tao.filter { ownedPokemonIDs.contains($0) }.count
+            case .badgeBoulder, .badgeCascade, .badgeThunder, .badgeRainbow,
+                 .badgeSoul, .badgeMarsh, .badgeVolcano, .badgeEarth,
+                 .badgeZephyr, .badgeHive, .badgePlain, .badgeFog,
+                 .badgeStorm, .badgeMineral, .badgeGlacier, .badgeRising,
+                 .badgeDark, .badgeFairy:
+                if let badgeType = type.badgeType {
+                    let speciesSet = PokemonTypeData.species(for: badgeType)
+                    progress = speciesSet.filter { ownedPokemonIDs.contains($0) }.count
+                } else {
+                    progress = 0
+                }
             }
             let isClaimed = state.questState.claimedAchievementIDs.contains(type.rawValue)
             return AchievementItem(type: type, progress: progress, isClaimed: isClaimed)
@@ -1615,6 +1648,10 @@ final class CompanionStore {
                 }
                 if ownsClearBell && e.captureRate <= 45 && e.captureRate > 3 {
                     w *= 2
+                }
+                let badgeMult = typeBadgeSpeedMultiplier(forSpeciesID: e.id)
+                if badgeMult > 1.0 {
+                    w = max(1, Int((Double(w) * badgeMult).rounded()))
                 }
                 return w
             }

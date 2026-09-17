@@ -930,6 +930,24 @@ struct L {
         case .libertyPass: return t("리버티티켓", "Liberty Pass", "リバティチケット", "Pase Libertad", "Passe Liberté", "Passe da Liberdade", "Gartenpass")
         case .revealGlass: return t("비추는거울", "Reveal Glass", "うつしかがみ", "Espejo Veraz", "Miroir Sacré", "Espelho Revelador", "Wahrspiegel")
         case .dnaSplicers: return t("유전자쐐기", "DNA Splicers", "いでんしのくさび", "Punta ADN", "Pointeau ADN", "Fundidor de DNA", "DNS-Keil")
+        case .boulderBadge: return t("회색배지", "Boulder Badge", "グレーバッジ", "Medalla Roca", "Badge Roche", "Insígnia da Rocha", "Felsorden")
+        case .cascadeBadge: return t("블루배지", "Cascade Badge", "ブルーバッジ", "Medalla Cascada", "Badge Cascade", "Insígnia da Cascata", "Quellorden")
+        case .thunderBadge: return t("오렌지배지", "Thunder Badge", "オレンジバッジ", "Medalla Trueno", "Badge Foudre", "Insígnia do Trovão", "Donnerorden")
+        case .rainbowBadge: return t("무지개배지", "Rainbow Badge", "レインボーバッジ", "Medalla Arcoíris", "Badge Prisme", "Insígnia do Arco-Íris", "Farborden")
+        case .soulBadge:    return t("핑크배지", "Soul Badge", "ピンクバッジ", "Medalla Alma", "Badge Âme", "Insígnia da Alma", "Seelenorden")
+        case .marshBadge:   return t("골드배지", "Marsh Badge", "ゴールドバッジ", "Medalla Pantano", "Badge Marais", "Insígnia do Pântano", "Sumpforden")
+        case .volcanoBadge: return t("진홍배지", "Volcano Badge", "クリムゾンバッジ", "Medalla Volcán", "Badge Volcan", "Insígnia do Vulcão", "Vulkanorden")
+        case .earthBadge:   return t("그린배지", "Earth Badge", "グリーンバッジ", "Medalla Tierra", "Badge Terre", "Insígnia da Terra", "Erdorden")
+        case .zephyrBadge:  return t("윙배지", "Zephyr Badge", "ウイングバッジ", "Medalla Céfiro", "Badge Zéphyr", "Insígnia do Zéfiro", "Flügelorden")
+        case .hiveBadge:    return t("인섹트배지", "Hive Badge", "インセクトバッジ", "Medalla Colmena", "Badge Essaim", "Insígnia da Colmeia", "Insektorden")
+        case .plainBadge:   return t("레귤러배지", "Plain Badge", "レギュラーバッジ", "Medalla Planicie", "Badge Plaine", "Insígnia da Planície", "Basisorden")
+        case .fogBadge:     return t("팬텀배지", "Fog Badge", "ファントムバッジ", "Medalla Niebla", "Badge Brume", "Insígnia da Névoa", "Phantomorden")
+        case .stormBadge:   return t("쇼크배지", "Storm Badge", "ショックバッジ", "Medalla Tormenta", "Badge Choc", "Insígnia da Tempestade", "Faustorden")
+        case .mineralBadge: return t("스틸배지", "Mineral Badge", "스チールバッジ", "Medalla Mineral", "Badge Minéral", "Insígnia do Mineral", "Stahlorden")
+        case .glacierBadge: return t("아이스배지", "Glacier Badge", "アイスバッジ", "Medalla Glaciar", "Badge Glacier", "Insígnia da Geada", "Eisorden")
+        case .risingBadge:  return t("라이징배지", "Rising Badge", "ライジングバッジ", "Medalla Dragón", "Badge Lever", "Insígnia do Dragão", "Drachenorden")
+        case .darkBadge:    return t("악배지", "Dark Badge", "あくバッジ", "Medalla Siniestro", "Badge Ténèbres", "Insígnia Sombria", "Unlicht-Orden")
+        case .fairyBadge:   return t("페어리배지", "Fairy Badge", "フェアリーバッジ", "Medalla Hada", "Badge Fée", "Insígnia da Fada", "Feenorden")
         }
     }
     func itemDescription(_ kind: ItemKind) -> String {
@@ -1063,6 +1081,25 @@ struct L {
                      "Tant que tu le possèdes, accélère considérablement la croissance de votre Pokémon via les tokens.",
                      "Enquanto estiver na bolsa, acelera drasticamente o crescimento do Pokémon com tokens.",
                      "Beschleunigt im Beutel das Wachstum deines Pokémon durch Token-Verbrauch drastisch.")
+        case .plainBadge:
+            return t("보유하면 노말타입 포켓몬의 출현률과 성장 속도가 20% 빨라져요 (누적 가능).",
+                     "While owned, Normal-type Pokémon appear and grow 20% faster (stacks cumulatively).",
+                     "持っていると、ノーマルタイプのポケモンの出現率と成長速度が20%早くなります（重複可能）。",
+                     "Mientras lo tengas, los Pokémon de tipo Normal aparecen y crecen un 20% más rápido (acumulable).",
+                     "Tant que tu le possèdes, les Pokémon de type Normal apparaissent et grandissent 20% plus vite (cumulable).",
+                     "Enquanto estiver na bolsa, Pokémon do tipo Normal aparecem e crescem 20% mais rápido (cumulativo).",
+                     "Erhöht im Beutel die Erscheinungs- und Wachstumsrate für Normal-Pokémon um 20% (stapelbar).")
+        case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,
+             .soulBadge, .marshBadge, .volcanoBadge, .earthBadge,
+             .zephyrBadge, .hiveBadge, .fogBadge, .stormBadge,
+             .mineralBadge, .glacierBadge, .risingBadge, .darkBadge, .fairyBadge:
+            return t("보유하면 이 배지에 약한 포켓몬의 출현률과 성장 속도가 20% 빨라져요 (누적 가능).",
+                     "While owned, Pokémon weak to this badge appear and grow 20% faster (stacks cumulatively).",
+                     "持っていると、このバッジに弱いポケモンの出現率と成長速度が20%早くなります（重複可能）。",
+                     "Mientras lo tengas, los Pokémon débiles a esta medalla aparecen y crecen un 20% más rápido (acumulable).",
+                     "Tant que tu le possèdes, les Pokémon faibles face à ce badge apparaissent et grandissent 20% plus vite (cumulable).",
+                     "Enquanto estiver na bolsa, Pokémon fracos a esta insígnia aparecem e crescem 20% mais rápido (cumulativo).",
+                     "Erhöht im Beutel die Erscheinungs- und Wachstumsrate für Pokémon mit Schwäche gegen diesen Orden um 20% (stapelbar).")
         }
     }
     /// 가방 사용 컨트롤의 효과 힌트 — 민트("성격 랜덤 변경", 사탕의 "+XP" 자리).
@@ -1092,6 +1129,7 @@ struct L {
     var libertyPassEffectHint: String { t("부화 퀘스트 2× · 적용 중", "Hatch quest 2× · active", "孵化デイリー 2× · 適用中", "Misión eclosión 2× · activo", "Quête éclosion 2× · actif", "Missão choque 2× · ativo", "Brut-Quest 2× · aktiv") }
     var revealGlassEffectHint: String { t("이로치 분모 ½ · 적용 중", "Shiny denom ½ · active", "色違い分母½ · 適用中", "Denominador shiny ½ · activo", "Dénominateur shiny ½ · actif", "Denominador shiny ½ · ativo", "Schiller-Nenner ½ · aktiv") }
     var dnaSplicersEffectHint: String { t("성장 경험치 +50% · 적용 중", "Growth EXP +50% · active", "育成EXP +50% · 適用中", "EXP crecimiento +50% · activo", "EXP croissance +50% · actif", "EXP crescimento +50% · ativo", "Wachstums-EP +50% · aktiv") }
+    var badgeEffectHint: String { t("약점 포획 속도 +20% · 적용 중", "Weakness speed +20% · active", "弱点捕獲速度 +20% · 適用中", "Vel. debilidad +20% · activo", "Vitesse faiblesse +20% · actif", "Vel. fraqueza +20% · ativo", "Schwäche-Tempo +20% · aktiv") }
     // 알 (리롤) — tier = 보증 등급 하한(nil = 보증 없는 기본 알).
     // 이름은 `rarityLabel(r) + " 알"` 식 조합으로 만들지 않는다: 한국어·영어는 맞아떨어져도 일본어에서
     // 조사가 어긋난다(レアのタマゴ vs 자연스러운 レアなタマゴ). 세 언어를 명시 트리플로 적는다.
@@ -1246,6 +1284,9 @@ struct L {
     }
 
     func achievementTitle(_ type: AchievementType) -> String {
+        if let badgeType = type.badgeType {
+            return itemName(badgeType.badgeItem)
+        }
         switch type {
         case .firstHatch: return t("첫 만남", "First Step", "はじまりの一歩", "Primer paso", "Premier Pas", "Primeiro passo", "Erster Schritt")
         case .firstEvolve: return t("눈부신 진화", "Evolution!", "かがやく進化", "¡Evolución!", "Évolution !", "Evolução!", "Entwicklung!")
@@ -1278,10 +1319,160 @@ struct L {
         case .swordsOfJustice: return t("성검사", "Swords of Justice", "聖剣士", "Espadachines Místicos", "Lames de la Justice", "Espadachins da Justiça", "Ritter der Redlichkeit")
         case .forcesOfNature: return t("자연의 화신", "Forces of Nature", "コピペ三銃士", "Fuerzas de la Naturaleza", "Fauves du Vent", "Forças da Natureza", "Kräfte der Natur")
         case .taoDuo: return t("흑백의 드래곤", "Tao Duo", "理想と真実", "Dúo Tao", "Dragons Idéal & Réalité", "Dupla Tao", "Tao-Duo")
+        default: return ""
         }
     }
 
     func achievementDescription(_ type: AchievementType) -> String {
+        if let badgeType = type.badgeType {
+            let count = PokemonTypeData.species(for: badgeType).count
+            switch badgeType {
+            case .normal:
+                return t("도감에 노말타입 포켓몬 \(count)종을 모두 등록하세요.",
+                         "Register all \(count) Normal-type Pokémon in your Pokédex.",
+                         "ノーマルタイプのポケモン\(count)種をすべて図鑑に登録する。",
+                         "Registra a los \(count) Pokémon de tipo Normal en tu Pokédex.",
+                         "Enregistrez les \(count) Pokémon de type Normal dans le Pokédex.",
+                         "Registre todos os \(count) Pokémon do tipo Normal na sua Pokédex.",
+                         "Registriere alle \(count) Normal-Pokémon im Pokédex.")
+            case .fire:
+                return t("도감에 불꽃타입 포켓몬 \(count)종을 모두 등록하세요.",
+                         "Register all \(count) Fire-type Pokémon in your Pokédex.",
+                         "ほのおタイプのポケモン\(count)種をすべて図鑑に登録する。",
+                         "Registra a los \(count) Pokémon de tipo Fuego en tu Pokédex.",
+                         "Enregistrez les \(count) Pokémon de type Feu dans le Pokédex.",
+                         "Registre todos os \(count) Pokémon do tipo Fogo na sua Pokédex.",
+                         "Registriere alle \(count) Feuer-Pokémon im Pokédex.")
+            case .water:
+                return t("도감에 물타입 포켓몬 \(count)종을 모두 등록하세요.",
+                         "Register all \(count) Water-type Pokémon in your Pokédex.",
+                         "みずタイプのポケモン\(count)種をすべて図鑑に登録する。",
+                         "Registra a los \(count) Pokémon de tipo Agua en tu Pokédex.",
+                         "Enregistrez les \(count) Pokémon de type Eau dans le Pokédex.",
+                         "Registre todos os \(count) Pokémon do tipo Água na sua Pokédex.",
+                         "Registriere alle \(count) Wasser-Pokémon im Pokédex.")
+            case .grass:
+                return t("도감에 풀타입 포켓몬 \(count)종을 모두 등록하세요.",
+                         "Register all \(count) Grass-type Pokémon in your Pokédex.",
+                         "くさタイプのポケモン\(count)種をすべて図鑑に登録する。",
+                         "Registra a los \(count) Pokémon de tipo Planta en tu Pokédex.",
+                         "Enregistrez les \(count) Pokémon de type Plante dans le Pokédex.",
+                         "Registre todos os \(count) Pokémon do tipo Planta na sua Pokédex.",
+                         "Registriere alle \(count) Pflanze-Pokémon im Pokédex.")
+            case .electric:
+                return t("도감에 전기타입 포켓몬 \(count)종을 모두 등록하세요.",
+                         "Register all \(count) Electric-type Pokémon in your Pokédex.",
+                         "でんきタイプのポケモン\(count)種をすべて図鑑に登録する。",
+                         "Registra a los \(count) Pokémon de tipo Eléctrico en tu Pokédex.",
+                         "Enregistrez les \(count) Pokémon de type Électrik dans le Pokédex.",
+                         "Registre todos os \(count) Pokémon do tipo Elétrico na sua Pokédex.",
+                         "Registriere alle \(count) Elektro-Pokémon im Pokédex.")
+            case .ice:
+                return t("도감에 얼음타입 포켓몬 \(count)종을 모두 등록하세요.",
+                         "Register all \(count) Ice-type Pokémon in your Pokédex.",
+                         "こおりタイプのポケモン\(count)種をすべて図鑑に登録する。",
+                         "Registra a los \(count) Pokémon de tipo Hielo en tu Pokédex.",
+                         "Enregistrez les \(count) Pokémon de type Glace dans le Pokédex.",
+                         "Registre todos os \(count) Pokémon do tipo Gelo na sua Pokédex.",
+                         "Registriere alle \(count) Eis-Pokémon im Pokédex.")
+            case .fighting:
+                return t("도감에 격투타입 포켓몬 \(count)종을 모두 등록하세요.",
+                         "Register all \(count) Fighting-type Pokémon in your Pokédex.",
+                         "かくとうタイプのポケモン\(count)種をすべて図鑑に登録する。",
+                         "Registra a los \(count) Pokémon de tipo Lucha en tu Pokédex.",
+                         "Enregistrez les \(count) Pokémon de type Combat dans le Pokédex.",
+                         "Registre todos os \(count) Pokémon do tipo Lutador na sua Pokédex.",
+                         "Registriere alle \(count) Kampf-Pokémon im Pokédex.")
+            case .poison:
+                return t("도감에 독타입 포켓몬 \(count)종을 모두 등록하세요.",
+                         "Register all \(count) Poison-type Pokémon in your Pokédex.",
+                         "どくタイプのポケモン\(count)種をすべて図鑑に登録する。",
+                         "Registra a los \(count) Pokémon de tipo Veneno en tu Pokédex.",
+                         "Enregistrez les \(count) Pokémon de type Poison dans le Pokédex.",
+                         "Registre todos os \(count) Pokémon do tipo Veneno na sua Pokédex.",
+                         "Registriere alle \(count) Gift-Pokémon im Pokédex.")
+            case .ground:
+                return t("도감에 땅타입 포켓몬 \(count)종을 모두 등록하세요.",
+                         "Register all \(count) Ground-type Pokémon in your Pokédex.",
+                         "じめんタイプのポケモン\(count)種をすべて図鑑に登録する。",
+                         "Registra a los \(count) Pokémon de tipo Tierra en tu Pokédex.",
+                         "Enregistrez les \(count) Pokémon de type Sol dans le Pokédex.",
+                         "Registre todos os \(count) Pokémon do tipo Terra na sua Pokédex.",
+                         "Registriere alle \(count) Boden-Pokémon im Pokédex.")
+            case .flying:
+                return t("도감에 비행타입 포켓몬 \(count)종을 모두 등록하세요.",
+                         "Register all \(count) Flying-type Pokémon in your Pokédex.",
+                         "ひこうタイプのポケモン\(count)種をすべて図鑑に登録する。",
+                         "Registra a los \(count) Pokémon de tipo Volador en tu Pokédex.",
+                         "Enregistrez les \(count) Pokémon de type Vol dans le Pokédex.",
+                         "Registre todos os \(count) Pokémon do tipo Voador na sua Pokédex.",
+                         "Registriere alle \(count) Flug-Pokémon im Pokédex.")
+            case .psychic:
+                return t("도감에 에스퍼타입 포켓몬 \(count)종을 모두 등록하세요.",
+                         "Register all \(count) Psychic-type Pokémon in your Pokédex.",
+                         "エスパータイプのポケモン\(count)種をすべて図鑑に登録する。",
+                         "Registra a los \(count) Pokémon de tipo Psíquico en tu Pokédex.",
+                         "Enregistrez les \(count) Pokémon de type Psy dans le Pokédex.",
+                         "Registre todos os \(count) Pokémon do tipo Psíquico na sua Pokédex.",
+                         "Registriere alle \(count) Psycho-Pokémon im Pokédex.")
+            case .bug:
+                return t("도감에 벌레타입 포켓몬 \(count)종을 모두 등록하세요.",
+                         "Register all \(count) Bug-type Pokémon in your Pokédex.",
+                         "むしタイプのポケモン\(count)種をすべて図鑑に登録する。",
+                         "Registra a los \(count) Pokémon de tipo Bicho en tu Pokédex.",
+                         "Enregistrez les \(count) Pokémon de type Insecte dans le Pokédex.",
+                         "Registre todos os \(count) Pokémon do tipo Inseto na sua Pokédex.",
+                         "Registriere alle \(count) Käfer-Pokémon im Pokédex.")
+            case .rock:
+                return t("도감에 바위타입 포켓몬 \(count)종을 모두 등록하세요.",
+                         "Register all \(count) Rock-type Pokémon in your Pokédex.",
+                         "いわタイプのポケモン\(count)種をすべて図鑑に登録する。",
+                         "Registra a los \(count) Pokémon de tipo Roca en tu Pokédex.",
+                         "Enregistrez les \(count) Pokémon de type Roche dans le Pokédex.",
+                         "Registre todos os \(count) Pokémon do tipo Rocha na sua Pokédex.",
+                         "Registriere alle \(count) Gestein-Pokémon im Pokédex.")
+            case .ghost:
+                return t("도감에 고스트타입 포켓몬 \(count)종을 모두 등록하세요.",
+                         "Register all \(count) Ghost-type Pokémon in your Pokédex.",
+                         "ゴーストタイプのポケモン\(count)種をすべて図鑑に登録する。",
+                         "Registra a los \(count) Pokémon de tipo Fantasma en tu Pokédex.",
+                         "Enregistrez les \(count) Pokémon de type Spectre dans le Pokédex.",
+                         "Registre todos os \(count) Pokémon do tipo Fantasma na sua Pokédex.",
+                         "Registriere alle \(count) Geist-Pokémon im Pokédex.")
+            case .dragon:
+                return t("도감에 드래곤타입 포켓몬 \(count)종을 모두 등록하세요.",
+                         "Register all \(count) Dragon-type Pokémon in your Pokédex.",
+                         "ドラゴンタイプのポケモン\(count)種をすべて図鑑に登録する。",
+                         "Registra a los \(count) Pokémon de tipo Dragón en tu Pokédex.",
+                         "Enregistrez les \(count) Pokémon de type Dragon dans le Pokédex.",
+                         "Registre todos os \(count) Pokémon do tipo Dragão na sua Pokédex.",
+                         "Registriere alle \(count) Drachen-Pokémon im Pokédex.")
+            case .steel:
+                return t("도감에 강철타입 포켓몬 \(count)종을 모두 등록하세요.",
+                         "Register all \(count) Steel-type Pokémon in your Pokédex.",
+                         "はがねタイプのポケモン\(count)種をすべて図鑑に登録する。",
+                         "Registra a los \(count) Pokémon de tipo Acero en tu Pokédex.",
+                         "Enregistrez les \(count) Pokémon de type Acier dans le Pokédex.",
+                         "Registre todos os \(count) Pokémon do tipo Aço na sua Pokédex.",
+                         "Registriere alle \(count) Stahl-Pokémon im Pokédex.")
+            case .dark:
+                return t("도감에 악타입 포켓몬 \(count)종을 모두 등록하세요.",
+                         "Register all \(count) Dark-type Pokémon in your Pokédex.",
+                         "あくタイプのポケモン\(count)種をすべて図鑑に登録する。",
+                         "Registra a los \(count) Pokémon de tipo Siniestro en tu Pokédex.",
+                         "Enregistrez les \(count) Pokémon de type Ténèbres dans le Pokédex.",
+                         "Registre todos os \(count) Pokémon do tipo Sombrio na sua Pokédex.",
+                         "Registriere alle \(count) Unlicht-Pokémon im Pokédex.")
+            case .fairy:
+                return t("도감에 페어리타입 포켓몬 \(count)종을 모두 등록하세요.",
+                         "Register all \(count) Fairy-type Pokémon in your Pokédex.",
+                         "フェアリータイプのポケモン\(count)種をすべて図鑑に登録する。",
+                         "Registra a los \(count) Pokémon de tipo Hada en tu Pokédex.",
+                         "Enregistrez les \(count) Pokémon de type Fée dans le Pokédex.",
+                         "Registre todos os \(count) Pokémon do tipo Fada na sua Pokédex.",
+                         "Registriere alle \(count) Feen-Pokémon im Pokédex.")
+            }
+        }
         switch type {
         case .firstHatch: return t("첫 포켓몬 알을 부화시키세요.", "Hatch your very first Pokémon egg.", "初めてのポケモンのタマゴを孵化させる。", "Eclosiona tu primer huevo Pokémon.", "Faites éclore votre premier œuf Pokémon.", "Choque seu primeiríssimo ovo Pokémon.", "Lasse dein allererstes Pokémon-Ei schlüpfen.")
         case .firstEvolve: return t("포켓몬을 처음으로 진화시키세요.", "Evolve a Pokémon for the first time.", "初めてポケモンを進化させる。", "Evoluciona un Pokémon por primera vez.", "Faites évoluer un Pokémon pour la première fois.", "Evolua um Pokémon pela primeira vez.", "Entwickle zum ersten Mal ein Pokémon.")
@@ -1314,6 +1505,7 @@ struct L {
         case .swordsOfJustice: return t("코바르온, 테라키온, 비리디온을 모두 도감에 등록하세요.", "Register Cobalion, Terrakion, and Virizion in your Pokédex.", "コバルオン、テラキオン、ビリジオンをすべて図鑑に登録する。", "Registra a Cobalion, Terrakion y Virizion en tu Pokédex.", "Enregistrez Cobaltium, Terrakium et Viridium dans le Pokédex.", "Registre Cobalion, Terrakion e Virizion na sua Pokédex.", "Registriere Kobalium, Terrakium und Viridium im Pokédex.")
         case .forcesOfNature: return t("토네로스, 볼트로스, 랜드로스를 모두 도감에 등록하세요.", "Register Tornadus, Thundurus, and Landorus in your Pokédex.", "トルネロス、ボルトロス、ランドロスをすべて図鑑に登録する。", "Registra a Tornadus, Thundurus y Landorus en tu Pokédex.", "Enregistrez Boréas, Fulguris et Démétéros dans le Pokédex.", "Registre Tornadus, Thundurus e Landorus na sua Pokédex.", "Registriere Boreos, Voltolos und Demeteros im Pokédex.")
         case .taoDuo: return t("레시라무와 제크로무를 모두 도감에 등록하세요.", "Register Reshiram and Zekrom in your Pokédex.", "レシラムとゼクロムを両方図鑑に登録する。", "Registra a Reshiram y Zekrom en tu Pokédex.", "Enregistrez Reshiram et Zekrom dans le Pokédex.", "Registre Reshiram e Zekrom na sua Pokédex.", "Registriere Reshiram und Zekrom im Pokédex.")
+        default: return ""
         }
     }
 }

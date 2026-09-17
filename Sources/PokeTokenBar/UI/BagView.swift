@@ -98,6 +98,12 @@ private struct ItemCard: View {
         case .libertyPass: return l.libertyPassEffectHint
         case .revealGlass: return l.revealGlassEffectHint
         case .dnaSplicers: return l.dnaSplicersEffectHint
+        case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,
+             .soulBadge, .marshBadge, .volcanoBadge, .earthBadge,
+             .zephyrBadge, .hiveBadge, .plainBadge, .fogBadge,
+             .stormBadge, .mineralBadge, .glacierBadge, .risingBadge,
+             .darkBadge, .fairyBadge:
+            return l.badgeEffectHint
         }
     }
     private func performUse() {
