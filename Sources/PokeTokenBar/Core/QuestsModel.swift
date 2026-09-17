@@ -12,6 +12,7 @@ public enum QuestIcon: String, Codable, Sendable {
     case redChain = "red-chain"
     case thunderStone = "thunder-stone"
     case leafStone = "leaf-stone"
+    case waterStone = "water-stone"
     case sunStone = "sun-stone"
     case moonStone = "moon-stone"
     case egg = "egg"
@@ -76,6 +77,7 @@ public enum QuestIcon: String, Codable, Sendable {
         case .libertyPass: return "🎟️"
         case .revealGlass: return "🪞"
         case .dnaSplicers: return "🧬"
+        case .waterStone: return "★"
         case .badgeBoulder, .badgeCascade, .badgeThunder, .badgeRainbow,
              .badgeSoul, .badgeMarsh, .badgeVolcano, .badgeEarth,
              .badgeZephyr, .badgeHive, .badgePlain, .badgeFog,
@@ -278,6 +280,12 @@ public enum AchievementType: String, Codable, Sendable, CaseIterable {
     case badgeRising = "ach_badge_rising"
     case badgeDark = "ach_badge_dark"
     case badgeFairy = "ach_badge_fairy"
+    case kantoStarters = "ach_kanto_starters"
+    case johtoStarters = "ach_johto_starters"
+    case hoennStarters = "ach_hoenn_starters"
+    case sinnohStarters = "ach_sinnoh_starters"
+    case unovaStarters = "ach_unova_starters"
+    case starterMaster = "ach_starter_master"
 
     public var badgeType: PokemonType? {
         switch self {
@@ -337,6 +345,12 @@ public enum AchievementType: String, Codable, Sendable, CaseIterable {
         case .swordsOfJustice: return .libertyPass
         case .forcesOfNature: return .revealGlass
         case .taoDuo: return .dnaSplicers
+        case .kantoStarters: return .leafStone
+        case .johtoStarters: return .fireStone
+        case .hoennStarters: return .waterStone
+        case .sinnohStarters: return .sunStone
+        case .unovaStarters: return .moonStone
+        case .starterMaster: return .masterBall
         default: return .masterBall
         }
     }
@@ -375,6 +389,8 @@ public enum AchievementType: String, Codable, Sendable, CaseIterable {
         case .swordsOfJustice: return 3
         case .forcesOfNature: return 3
         case .taoDuo: return 2
+        case .kantoStarters, .johtoStarters, .hoennStarters, .sinnohStarters, .unovaStarters: return 3
+        case .starterMaster: return 15
         default: return 1
         }
     }
@@ -413,6 +429,10 @@ public enum AchievementType: String, Codable, Sendable, CaseIterable {
         case .swordsOfJustice: return QuestReward(item: ItemKind.libertyPass.rawValue)
         case .forcesOfNature: return QuestReward(item: ItemKind.revealGlass.rawValue)
         case .taoDuo: return QuestReward(item: ItemKind.dnaSplicers.rawValue)
+        case .kantoStarters, .johtoStarters, .hoennStarters, .sinnohStarters, .unovaStarters:
+            return QuestReward(candies: 3, tokens: 50_000_000)
+        case .starterMaster:
+            return QuestReward(candies: 5, tokens: 100_000_000)
         default: return QuestReward()
         }
     }

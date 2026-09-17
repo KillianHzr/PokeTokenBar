@@ -335,4 +335,85 @@ final class QuestsTests: XCTestCase {
         XCTAssertTrue(PokemonTypeData.isWeak(to: .normal, speciesID: 143))
         XCTAssertFalse(PokemonTypeData.isWeak(to: .normal, speciesID: 6))
     }
+
+    func testStarterTrioAchievements() {
+        let store = makeStore()
+
+        // 1. Initial state check
+        let kantoAch = store.achievements.first { $0.type == .kantoStarters }!
+        XCTAssertEqual(kantoAch.progress, 0)
+        XCTAssertEqual(kantoAch.target, 3)
+        XCTAssertFalse(kantoAch.isCompleted)
+
+        let masterAch = store.achievements.first { $0.type == .starterMaster }!
+        XCTAssertEqual(masterAch.progress, 0)
+        XCTAssertEqual(masterAch.target, 15)
+        XCTAssertFalse(masterAch.isCompleted)
+
+        // 2. Add Venusaur (#3)
+        store.addDexEntry(DexEntry(baseID: 1, finalID: 3, chainOrder: [1, 2, 3], rarity: .starter, caughtAt: now))
+        XCTAssertEqual(store.achievements.first { $0.type == .kantoStarters }!.progress, 1)
+        XCTAssertEqual(store.achievements.first { $0.type == .starterMaster }!.progress, 1)
+
+        // 3. Add Charizard (#6)
+        store.addDexEntry(DexEntry(baseID: 4, finalID: 6, chainOrder: [4, 5, 6], rarity: .starter, caughtAt: now))
+        XCTAssertEqual(store.achievements.first { $0.type == .kantoStarters }!.progress, 2)
+        XCTAssertEqual(store.achievements.first { $0.type == .starterMaster }!.progress, 2)
+
+        // 4. Add Blastoise (#9) -> Completes Kanto Starters!
+        store.addDexEntry(DexEntry(baseID: 7, finalID: 9, chainOrder: [7, 8, 9], rarity: .starter, caughtAt: now))
+        let completedKanto = store.achievements.first { $0.type == .kantoStarters }!
+        XCTAssertEqual(completedKanto.progress, 3)
+        XCTAssertTrue(completedKanto.isCompleted)
+
+        // 5. Claim Kanto Starters achievement
+        let initialCandies = store.rareCandyCount
+        let initialTokens = store.availableTokens
+        XCTAssertTrue(store.claimAchievement(.kantoStarters))
+        XCTAssertEqual(store.rareCandyCount, initialCandies + 3)
+        XCTAssertEqual(store.availableTokens, initialTokens + 50_000_000)
+
+        // 6. Add Johto starters (#154, #157, #160)
+        store.addDexEntries([
+            DexEntry(baseID: 152, finalID: 154, chainOrder: [152, 153, 154], rarity: .starter, caughtAt: now),
+            DexEntry(baseID: 155, finalID: 157, chainOrder: [155, 156, 157], rarity: .starter, caughtAt: now),
+            DexEntry(baseID: 158, finalID: 160, chainOrder: [158, 159, 160], rarity: .starter, caughtAt: now)
+        ])
+        XCTAssertTrue(store.achievements.first { $0.type == .johtoStarters }!.isCompleted)
+
+        // 7. Add Hoenn starters (#254, #257, #260)
+        store.addDexEntries([
+            DexEntry(baseID: 252, finalID: 254, chainOrder: [252, 253, 254], rarity: .starter, caughtAt: now),
+            DexEntry(baseID: 255, finalID: 257, chainOrder: [255, 256, 257], rarity: .starter, caughtAt: now),
+            DexEntry(baseID: 258, finalID: 260, chainOrder: [258, 259, 260], rarity: .starter, caughtAt: now)
+        ])
+        XCTAssertTrue(store.achievements.first { $0.type == .hoennStarters }!.isCompleted)
+
+        // 8. Add Sinnoh starters (#389, #392, #395)
+        store.addDexEntries([
+            DexEntry(baseID: 387, finalID: 389, chainOrder: [387, 388, 389], rarity: .starter, caughtAt: now),
+            DexEntry(baseID: 390, finalID: 392, chainOrder: [390, 391, 392], rarity: .starter, caughtAt: now),
+            DexEntry(baseID: 393, finalID: 395, chainOrder: [393, 394, 395], rarity: .starter, caughtAt: now)
+        ])
+        XCTAssertTrue(store.achievements.first { $0.type == .sinnohStarters }!.isCompleted)
+
+        // 9. Add Unova starters (#497, #500, #503)
+        store.addDexEntries([
+            DexEntry(baseID: 495, finalID: 497, chainOrder: [495, 496, 497], rarity: .starter, caughtAt: now),
+            DexEntry(baseID: 498, finalID: 500, chainOrder: [498, 499, 500], rarity: .starter, caughtAt: now),
+            DexEntry(baseID: 501, finalID: 503, chainOrder: [501, 502, 503], rarity: .starter, caughtAt: now)
+        ])
+        XCTAssertTrue(store.achievements.first { $0.type == .unovaStarters }!.isCompleted)
+
+        // 10. Starter Master is now completed (15/15)!
+        let completedMaster = store.achievements.first { $0.type == .starterMaster }!
+        XCTAssertEqual(completedMaster.progress, 15)
+        XCTAssertTrue(completedMaster.isCompleted)
+
+        let candiesBeforeMaster = store.rareCandyCount
+        let tokensBeforeMaster = store.availableTokens
+        XCTAssertTrue(store.claimAchievement(.starterMaster))
+        XCTAssertEqual(store.rareCandyCount, candiesBeforeMaster + 5)
+        XCTAssertEqual(store.availableTokens, tokensBeforeMaster + 100_000_000)
+    }
 }

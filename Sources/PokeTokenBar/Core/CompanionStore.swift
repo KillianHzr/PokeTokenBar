@@ -1199,6 +1199,24 @@ final class CompanionStore {
                 } else {
                     progress = 0
                 }
+            case .kantoStarters:
+                let starters = [3, 6, 9]
+                progress = starters.filter { ownedPokemonIDs.contains($0) }.count
+            case .johtoStarters:
+                let starters = [154, 157, 160]
+                progress = starters.filter { ownedPokemonIDs.contains($0) }.count
+            case .hoennStarters:
+                let starters = [254, 257, 260]
+                progress = starters.filter { ownedPokemonIDs.contains($0) }.count
+            case .sinnohStarters:
+                let starters = [389, 392, 395]
+                progress = starters.filter { ownedPokemonIDs.contains($0) }.count
+            case .unovaStarters:
+                let starters = [497, 500, 503]
+                progress = starters.filter { ownedPokemonIDs.contains($0) }.count
+            case .starterMaster:
+                let allStarters = [3, 6, 9, 154, 157, 160, 254, 257, 260, 389, 392, 395, 497, 500, 503]
+                progress = allStarters.filter { ownedPokemonIDs.contains($0) }.count
             }
             let isClaimed = state.questState.claimedAchievementIDs.contains(type.rawValue)
             return AchievementItem(type: type, progress: progress, isClaimed: isClaimed)

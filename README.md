@@ -211,6 +211,19 @@ Catching and registering all species of any Pokémon type across Gen 1–5 in yo
 | **Dark Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/59.png" width="28" height="28" alt="Dark Badge"> | Dark | 39 Dark-type Pokémon | Psychic, Ghost |
 | **Fairy Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/48.png" width="28" height="28" alt="Fairy Badge"> | Fairy | 22 Fairy-type Pokémon | Fighting, Dragon, Dark |
 
+### Fully Evolved Starter Trios & Master Achievement
+
+Registering all three fully evolved starter Pokémon for any generation (Gen 1–5) in your Pokédex awards Rare Candies and a substantial token grant. Completing all 15 fully evolved starters unlocks the Starter Master milestone:
+
+| Achievement | Generation / Requirement | Reward |
+| :--- | :--- | :--- |
+| **Kanto Starters** | Venusaur, Charizard, Blastoise | 3 Rare Candies + 50M tokens |
+| **Johto Starters** | Meganium, Typhlosion, Feraligatr | 3 Rare Candies + 50M tokens |
+| **Hoenn Starters** | Sceptile, Blaziken, Swampert | 3 Rare Candies + 50M tokens |
+| **Sinnoh Starters** | Torterra, Infernape, Empoleon | 3 Rare Candies + 50M tokens |
+| **Unova Starters** | Serperior, Emboar, Samurott | 3 Rare Candies + 50M tokens |
+| **Starter Master** | All 15 fully evolved starters across Gen 1–5 | 5 Rare Candies + 100M tokens |
+
 ## Also in the box
 
 - **Low Power Mode** — menu-bar animation continues at Power saver quality.
