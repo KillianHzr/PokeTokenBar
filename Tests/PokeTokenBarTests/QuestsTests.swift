@@ -12,6 +12,18 @@ private struct QuestStubProvider: PokeProviding {
     func baseSpecies(id: Int) async throws -> BaseSpecies? { BaseSpecies(id: id, captureRate: 255) }
 }
 
+private struct StoneStubProvider: PokeProviding {
+    let entries = [
+        BaseSpecies(id: 1, captureRate: 45),   // Bulbasaur (Grass)
+        BaseSpecies(id: 4, captureRate: 45),   // Charmander (Fire)
+        BaseSpecies(id: 7, captureRate: 45),   // Squirtle (Water)
+        BaseSpecies(id: 25, captureRate: 190)  // Pikachu (Electric)
+    ]
+    func line(baseSpeciesID: Int) async throws -> EvoLine { questLine(base: baseSpeciesID) }
+    func baseSpeciesIndex() async throws -> [BaseSpecies] { entries }
+    func baseSpecies(id: Int) async throws -> BaseSpecies? { entries.first { $0.id == id } }
+}
+
 @MainActor
 final class QuestsTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1_700_000_000)
@@ -366,12 +378,14 @@ final class QuestsTests: XCTestCase {
         XCTAssertEqual(completedKanto.progress, 3)
         XCTAssertTrue(completedKanto.isCompleted)
 
-        // 5. Claim Kanto Starters achievement
+        // 5. Claim Kanto Starters achievement (awards Leaf Stone)
         let initialCandies = store.rareCandyCount
         let initialTokens = store.availableTokens
+        XCTAssertEqual(store.itemCount(.leafStone), 0)
         XCTAssertTrue(store.claimAchievement(.kantoStarters))
         XCTAssertEqual(store.rareCandyCount, initialCandies + 3)
         XCTAssertEqual(store.availableTokens, initialTokens + 50_000_000)
+        XCTAssertEqual(store.itemCount(.leafStone), 1)
 
         // 6. Add Johto starters (#154, #157, #160)
         store.addDexEntries([
@@ -380,6 +394,9 @@ final class QuestsTests: XCTestCase {
             DexEntry(baseID: 158, finalID: 160, chainOrder: [158, 159, 160], rarity: .starter, caughtAt: now)
         ])
         XCTAssertTrue(store.achievements.first { $0.type == .johtoStarters }!.isCompleted)
+        XCTAssertEqual(store.itemCount(.fireStone), 0)
+        XCTAssertTrue(store.claimAchievement(.johtoStarters))
+        XCTAssertEqual(store.itemCount(.fireStone), 1)
 
         // 7. Add Hoenn starters (#254, #257, #260)
         store.addDexEntries([
@@ -388,6 +405,9 @@ final class QuestsTests: XCTestCase {
             DexEntry(baseID: 258, finalID: 260, chainOrder: [258, 259, 260], rarity: .starter, caughtAt: now)
         ])
         XCTAssertTrue(store.achievements.first { $0.type == .hoennStarters }!.isCompleted)
+        XCTAssertEqual(store.itemCount(.waterStone), 0)
+        XCTAssertTrue(store.claimAchievement(.hoennStarters))
+        XCTAssertEqual(store.itemCount(.waterStone), 1)
 
         // 8. Add Sinnoh starters (#389, #392, #395)
         store.addDexEntries([
@@ -396,6 +416,9 @@ final class QuestsTests: XCTestCase {
             DexEntry(baseID: 393, finalID: 395, chainOrder: [393, 394, 395], rarity: .starter, caughtAt: now)
         ])
         XCTAssertTrue(store.achievements.first { $0.type == .sinnohStarters }!.isCompleted)
+        XCTAssertEqual(store.itemCount(.sunStone), 0)
+        XCTAssertTrue(store.claimAchievement(.sinnohStarters))
+        XCTAssertEqual(store.itemCount(.sunStone), 1)
 
         // 9. Add Unova starters (#497, #500, #503)
         store.addDexEntries([
@@ -404,6 +427,9 @@ final class QuestsTests: XCTestCase {
             DexEntry(baseID: 501, finalID: 503, chainOrder: [501, 502, 503], rarity: .starter, caughtAt: now)
         ])
         XCTAssertTrue(store.achievements.first { $0.type == .unovaStarters }!.isCompleted)
+        XCTAssertEqual(store.itemCount(.moonStone), 0)
+        XCTAssertTrue(store.claimAchievement(.unovaStarters))
+        XCTAssertEqual(store.itemCount(.moonStone), 1)
 
         // 10. Starter Master is now completed (15/15)!
         let completedMaster = store.achievements.first { $0.type == .starterMaster }!
@@ -415,5 +441,60 @@ final class QuestsTests: XCTestCase {
         XCTAssertTrue(store.claimAchievement(.starterMaster))
         XCTAssertEqual(store.rareCandyCount, candiesBeforeMaster + 5)
         XCTAssertEqual(store.availableTokens, tokensBeforeMaster + 100_000_000)
+    }
+
+    func testEvolutionStoneUsageAndEggTypeGuarantee() async {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("stone-test-\(UUID().uuidString).json")
+        let mon = "{\"baseID\":25,\"pathIDs\":[25],\"stageIndex\":0,\"usedAtStage\":0,"
+            + "\"rarity\":\"common\",\"totalForms\":1,\"isShiny\":false}"
+        let json = "{\"installBaselineSet\":true,\"usedSinceInstall\":10000000,\"spentTokens\":0,"
+            + "\"lastDate\":\"d\",\"active\":\(mon),\"dex\":[],\"collectedFinals\":[],"
+            + "\"inventory\":{\"fireStone\":1,\"waterStone\":2}}"
+        try? json.data(using: .utf8)!.write(to: url)
+        let store = CompanionStore(provider: StoneStubProvider(), clock: { self.now }, fileURL: url)
+
+        XCTAssertFalse(store.isEgg)
+        XCTAssertEqual(store.currentSpeciesID, 25)
+        XCTAssertTrue(store.canUseStone(.fireStone))
+        XCTAssertTrue(store.canUseStone(.waterStone))
+        XCTAssertFalse(store.canUseStone(.leafStone)) // 0 in inventory
+
+        // Use fire stone
+        let used = store.useStone(.fireStone)
+        XCTAssertTrue(used)
+        XCTAssertEqual(store.itemCount(.fireStone), 0)
+        XCTAssertTrue(store.isEgg)
+        XCTAssertEqual(store.eggTypeGuarantee, .fire)
+        XCTAssertEqual(store.state.dex.count, 1) // Pikachu archived
+        XCTAssertEqual(store.state.dex.first?.baseID, 25)
+
+        // While incubating as egg, cannot use another stone
+        XCTAssertFalse(store.canUseStone(.waterStone))
+        XCTAssertFalse(store.useStone(.waterStone))
+
+        // Progress egg to hatch threshold
+        store.state.eggUsage = store.eggHatchThreshold
+        await store.hatchIfNeeded()
+
+        // Hatched companion should be Charmander (#4) because it's Fire type
+        XCTAssertFalse(store.isEgg)
+        XCTAssertEqual(store.currentSpeciesID, 4)
+        XCTAssertNil(store.eggTypeGuarantee)
+
+        // Now use water stone
+        XCTAssertTrue(store.canUseStone(.waterStone))
+        XCTAssertTrue(store.useStone(.waterStone))
+        XCTAssertEqual(store.itemCount(.waterStone), 1)
+        XCTAssertTrue(store.isEgg)
+        XCTAssertEqual(store.eggTypeGuarantee, .water)
+
+        // Progress and hatch water egg
+        store.state.eggUsage = store.eggHatchThreshold
+        await store.hatchIfNeeded()
+
+        // Hatched companion should be Squirtle (#7) because it's Water type
+        XCTAssertFalse(store.isEgg)
+        XCTAssertEqual(store.currentSpeciesID, 7)
+        XCTAssertNil(store.eggTypeGuarantee)
     }
 }

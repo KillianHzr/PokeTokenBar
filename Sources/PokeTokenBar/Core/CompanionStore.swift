@@ -960,6 +960,43 @@ final class CompanionStore {
 
     /// 현재 알이 보증하는 등급 하한(UI 표시용). 활성 포켓몬이 있으면 알이 없으므로 nil.
     var eggGuarantee: Rarity? { state.active == nil ? state.eggTier : nil }
+    /// 현재 알이 보증하는 타입(진화의 돌 사용 UI 표시용). 활성 포켓몬이 있으면 알이 없으므로 nil.
+    var eggTypeGuarantee: PokemonType? { state.active == nil ? state.eggTypeGuarantee : nil }
+
+    /// 진화의 돌 사용 가능 — 가방에 1개 이상 있고, 교체할 활성 포켓몬이 있을 때만.
+    func canUseStone(_ kind: ItemKind) -> Bool {
+        guard kind.stoneType != nil, itemCount(kind) > 0 else { return false }
+        return hasActive
+    }
+
+    /// 진화의 돌 사용 — 현재 포켓몬을 방생하고 해당 타입 알로 교체. 돌 1개 소모.
+    @discardableResult
+    func useStone(_ kind: ItemKind) -> Bool {
+        guard canUseStone(kind), let targetType = kind.stoneType else { return false }
+        guard let currentCount = state.inventory[kind.rawValue], currentCount > 0 else { return false }
+        if currentCount <= 1 {
+            state.inventory.removeValue(forKey: kind.rawValue)
+        } else {
+            state.inventory[kind.rawValue] = currentCount - 1
+        }
+        if let a = state.active {
+            state.dex.append(releasedDexEntry(from: a))
+        }
+        state.active = nil
+        state.reconcileRepresentativeSelection()
+        activeGeneration += 1
+        currentLine = nil
+        state.eggUsage = 0
+        state.eggTier = nil
+        state.eggTypeGuarantee = targetType
+        state.pendingHatchID = nil
+        prefetchedLineID = nil
+        justGraduated = nil; justEvolvedTo = nil; eventUntil = nil
+        AppLog.write("stone used: \(kind.rawValue), guaranteed type=\(targetType.rawValue)")
+        Task { await self.ensureEggPrefetch() }
+        save()
+        return true
+    }
 
     /// 알 구매 가능 — 폐기할 활성 포켓몬이 있고 지갑이 그 티어 가격 이상일 때만.
     /// 알 상태에서도 살 수 있게 하는 안은 채택하지 않았다(기존 새 알과 게이트 통일) — 알끼리 교체하는
@@ -1526,11 +1563,22 @@ final class CompanionStore {
             save()
             return
         }
+        if let typeGuarantee = state.eggTypeGuarantee {
+            let matches = PokemonTypeData.types(forSpeciesID: line.baseID).contains(typeGuarantee)
+            if !matches {
+                AppLog.write("hatch: rolled \(line.baseID) without guaranteed type \(typeGuarantee) — discarded, re-roll next tick")
+                state.pendingHatchID = nil
+                prefetchedLineID = nil
+                save()
+                return
+            }
+        }
         currentLine = line
         // 부화 임계 초과분은 부화체 성장에 이월(낭비 없음).
         let overflow = max(0, state.eggUsage - eggHatchThreshold)
         state.eggUsage = 0
         state.eggTier = nil   // 보증은 이 부화로 소비된다(다음 알은 다시 무보증)
+        state.eggTypeGuarantee = nil
         // 개체 롤 — shiny(1/64)·성격(25종)은 부화 순간 확정, 진화해도 유지.
         let isShiny = Self.rollsShiny(roll: rng.next(), charmOwned: ownsShinyCharm, revealGlassOwned: ownsRevealGlass)
         let nature = PokemonNature.allCases[Int(rng.next() % UInt64(PokemonNature.allCases.count))]
@@ -1649,13 +1697,18 @@ final class CompanionStore {
     /// 인덱스 취득 실패(오프라인 + 캐시 없음) 시 nil → 알 유지, 다음 갱신 틱 재시도.
     private func chooseBase() async -> Int? {
         let tier = state.eggTier
+        let typeGuarantee = state.eggTypeGuarantee
         if let full = try? await provider.baseSpeciesIndex(), !full.isEmpty {
             // 등급 보증 알은 후보를 먼저 좁힌다 — capture_rate 상한이 곧 등급 하한이므로
             // (Rarity.captureRateCeiling) 전설도 자연히 포함된다("희귀 이상"에 전설이 들어가는 게 정상).
             // 좁힌 결과가 비면 보증을 못 지키므로 전체 풀로 폴백하지 말고 알을 유지한다(다음 틱 재시도).
-            let index = tier.map { t in full.filter { t.includes(captureRate: $0.captureRate) } } ?? full
+            var index = tier.map { t in full.filter { t.includes(captureRate: $0.captureRate) } } ?? full
+            if let targetType = typeGuarantee {
+                let typeSpecies = PokemonTypeData.species(for: targetType)
+                index = index.filter { typeSpecies.contains($0.id) }
+            }
             guard !index.isEmpty else {
-                AppLog.write("hatch: no candidate for guaranteed \(tier?.rawValue ?? "none") — egg kept, retry next tick")
+                AppLog.write("hatch: no candidate for guaranteed tier=\(tier?.rawValue ?? "none") type=\(typeGuarantee?.rawValue ?? "none") — egg kept, retry next tick")
                 return nil
             }
             let weights = index.map { e in
@@ -1691,7 +1744,8 @@ final class CompanionStore {
     /// line() 이 실제 capture_rate 로 계산하므로 결과 개체의 등급은 정확하다. 인덱스 복구 시 가중 선택 재개.
     private func chooseBaseViaREST() async -> Int? {
         let tier = state.eggTier
-        for attempt in 1...16 {
+        let typeGuarantee = state.eggTypeGuarantee
+        for attempt in 1...32 {
             let ids = PokemonAssets.animatedSpeciesIDs
             let id = Int(rng.next() % UInt64(ids.count)) + ids.lowerBound
             do {
@@ -1699,6 +1753,7 @@ final class CompanionStore {
                     // 등급 보증은 가중 경로와 **같은 기준**으로 여기서도 걸러야 한다 — 이 폴백만 빠지면
                     // GraphQL 인덱스 장애 때 보증이 조용히 깨진다. 못 찾으면 알 유지(구매 소멸 금지).
                     if let tier, !tier.includes(captureRate: bs.captureRate) { continue }
+                    if let typeGuarantee, !PokemonTypeData.types(forSpeciesID: bs.id).contains(typeGuarantee) { continue }
                     AppLog.write("hatch: REST fallback picked base \(id) (cap \(bs.captureRate), \(attempt) tries)")
                     return id
                 }
@@ -1708,7 +1763,7 @@ final class CompanionStore {
                 return nil   // REST 도 불가 → 알 유지, 다음 update 틱 재시도
             }
         }
-        AppLog.write("hatch: REST fallback exhausted 16 tries")
+        AppLog.write("hatch: REST fallback exhausted 32 tries")
         return nil
     }
 

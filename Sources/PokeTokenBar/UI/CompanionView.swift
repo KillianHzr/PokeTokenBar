@@ -9,6 +9,30 @@ func rarityColor(_ r: Rarity?) -> Color {
     }
 }
 
+func typeColor(_ type: PokemonType?) -> Color {
+    guard let type else { return .gray }
+    switch type {
+    case .normal:   return Color(red: 0.66, green: 0.65, blue: 0.53)
+    case .fire:     return Color(red: 0.93, green: 0.51, blue: 0.19)
+    case .water:    return Color(red: 0.40, green: 0.56, blue: 0.94)
+    case .grass:    return Color(red: 0.48, green: 0.78, blue: 0.30)
+    case .electric: return Color(red: 0.97, green: 0.82, blue: 0.17)
+    case .ice:      return Color(red: 0.59, green: 0.85, blue: 0.84)
+    case .fighting: return Color(red: 0.76, green: 0.18, blue: 0.16)
+    case .poison:   return Color(red: 0.64, green: 0.24, blue: 0.63)
+    case .ground:   return Color(red: 0.89, green: 0.75, blue: 0.40)
+    case .flying:   return Color(red: 0.66, green: 0.56, blue: 0.95)
+    case .psychic:  return Color(red: 0.98, green: 0.33, blue: 0.53)
+    case .bug:      return Color(red: 0.65, green: 0.73, blue: 0.10)
+    case .rock:     return Color(red: 0.71, green: 0.63, blue: 0.21)
+    case .ghost:    return Color(red: 0.45, green: 0.34, blue: 0.59)
+    case .dragon:   return Color(red: 0.44, green: 0.22, blue: 0.98)
+    case .steel:    return Color(red: 0.72, green: 0.72, blue: 0.81)
+    case .dark:     return Color(red: 0.44, green: 0.34, blue: 0.27)
+    case .fairy:    return Color(red: 0.85, green: 0.52, blue: 0.76)
+    }
+}
+
 /// 희귀도 캡슐을 늘어놓는 순서(귀한 것부터) — 포획 로그 요약 헤더와 도감 헤더가 공유한다.
 /// 순수 표시 순서다. 목록 정렬에는 쓰지 않는다.
 let rarityDisplayOrder: [Rarity] = [.legendary, .rare, .uncommon, .common]
@@ -557,6 +581,12 @@ struct CompanionHeader: View {
                                 Text(store.l.eggGuaranteeHint(guarantee)).font(.system(size: 8, weight: .bold))
                                     .padding(.horizontal, 5).padding(.vertical, 1)
                                     .background(rarityColor(guarantee)).foregroundStyle(.white)
+                                    .clipShape(Capsule())
+                            }
+                            if let typeGuarantee = store.eggTypeGuarantee {
+                                Text(store.l.eggTypeGuaranteeHint(typeGuarantee)).font(.system(size: 8, weight: .bold))
+                                    .padding(.horizontal, 5).padding(.vertical, 1)
+                                    .background(typeColor(typeGuarantee)).foregroundStyle(.white)
                                     .clipShape(Capsule())
                             }
                         }

@@ -207,6 +207,16 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     case risingBadge
     case darkBadge
     case fairyBadge
+    case fireStone
+    case waterStone
+    case thunderStone
+    case leafStone
+    case moonStone
+    case sunStone
+    case iceStone
+    case duskStone
+    case dawnStone
+    case shinyStone
 
     var badgeType: PokemonType? {
         switch self {
@@ -232,6 +242,23 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         }
     }
 
+    /// 진화의 돌이 보증하는 포켓몬 타입. nil = 돌이 아님.
+    var stoneType: PokemonType? {
+        switch self {
+        case .fireStone:    return .fire
+        case .waterStone:   return .water
+        case .thunderStone: return .electric
+        case .leafStone:    return .grass
+        case .iceStone:     return .ice
+        case .moonStone:    return .fairy
+        case .sunStone:     return .psychic
+        case .duskStone:    return .dark
+        case .dawnStone:    return .fighting
+        case .shinyStone:   return .dragon
+        default:            return nil
+        }
+    }
+
     /// PokéAPI 아이템 스프라이트 파일명(.../sprites/items/{name}.png 또는 badge-{id}). nil = 스프라이트 없음.
     var spriteName: String? {
         if let badgeType { return badgeType.badgeSpriteName }
@@ -252,6 +279,16 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .libertyPass: return "liberty-pass"
         case .revealGlass: return "reveal-glass"
         case .dnaSplicers: return "dna-splicers"
+        case .leafStone: return "leaf-stone"
+        case .fireStone: return "fire-stone"
+        case .waterStone: return "water-stone"
+        case .thunderStone: return "thunder-stone"
+        case .iceStone: return "ice-stone"
+        case .moonStone: return "moon-stone"
+        case .sunStone: return "sun-stone"
+        case .duskStone: return "dusk-stone"
+        case .dawnStone: return "dawn-stone"
+        case .shinyStone: return "shiny-stone"
         default: return nil
         }
     }
@@ -278,7 +315,9 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
              .soulBadge, .marshBadge, .volcanoBadge, .earthBadge,
              .zephyrBadge, .hiveBadge, .plainBadge, .fogBadge,
              .stormBadge, .mineralBadge, .glacierBadge, .risingBadge,
-             .darkBadge, .fairyBadge:
+             .darkBadge, .fairyBadge,
+             .leafStone, .fireStone, .waterStone, .thunderStone,
+             .iceStone, .moonStone, .sunStone, .duskStone, .dawnStone, .shinyStone:
             return "★"
         }
     }
@@ -294,8 +333,12 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     /// 보유형(패시브) 아이템 — 소비하지 않고 보유하는 동안 상시 효과. 1회 구매(재구매 불가), 가방엔 "적용 중" 표시.
     var isPassive: Bool {
         switch self {
-        case .rareCandy, .mint: return false
-        default: return true
+        case .rareCandy, .mint,
+             .leafStone, .fireStone, .waterStone, .thunderStone,
+             .iceStone, .moonStone, .sunStone, .duskStone, .dawnStone, .shinyStone:
+            return false
+        default:
+            return true
         }
     }
 }
@@ -711,6 +754,8 @@ struct CompanionState: Codable, Sendable {
     // ★영속이어야 한다 — 구매 시점엔 종을 못 정한다(롤에 네트워크가 필요). 보증을 상태에 적어 두고
     // 롤이 그것을 읽어야 오프라인·재시작을 건너서도 산 것을 받는다. 부화·졸업 때 nil 로 소비된다.
     var eggTier: Rarity?
+    // 알에서 특정 타입의 포켓몬이 부화하도록 보증하는 타입(진화의 돌 사용). nil = 타입 보증 없음.
+    var eggTypeGuarantee: PokemonType?
     // 알 상태에서 미리 롤해둔 부화 종(프리패칭) — 부화 순간 네트워크 딜레이 제거. 재시작에도 유지.
     var pendingHatchID: Int?
     /// 오늘 사용량 적립 기준값 — 프로바이더별로 독립 관리한다.
@@ -754,6 +799,7 @@ struct CompanionState: Codable, Sendable {
         eggUsage           = c.lenient(Int.self, forKey: .eggUsage, default: 0)
         // 모르는 rawValue 는 nil(보증 없음)로 강등 — 관대 디코딩의 안전한 방향(있지도 않은 보증을 만들지 않는다).
         eggTier            = c.lenientOptional(Rarity.self, forKey: .eggTier)
+        eggTypeGuarantee   = c.lenientOptional(PokemonType.self, forKey: .eggTypeGuarantee)
         pendingHatchID     = c.lenientOptional(Int.self, forKey: .pendingHatchID)
         if c.contains(.claimedTodayTokensByProvider) {
             claimedTodayTokensByProvider = c.lenient([String: Int].self,

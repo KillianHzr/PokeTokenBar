@@ -911,6 +911,30 @@ struct L {
     var useAfterHatch: String { t("부화 후 사용할 수 있어요", "Usable after hatching", "孵化後に使えます", "Se puede usar después de eclosionar", "Utilisable après l'éclosion", "Dá para usar depois que chocar", "Nach dem Schlüpfen verwendbar") }
     var useNeedsPokemon: String { t("사용할 포켓몬이 없어요", "No Pokémon to use it on", "使えるポケモンがいません", "No hay ningún Pokémon en quien usarlo", "Aucun Pokémon sur qui l'utiliser", "Nenhum Pokémon para usar o item", "Kein Pokémon, bei dem du es verwenden kannst") }
 
+    /// 포켓몬 타입 표시명.
+    func typeName(_ type: PokemonType) -> String {
+        switch type {
+        case .normal:   return t("노말", "Normal", "ノーマル", "Normal", "Normal", "Normal", "Normal")
+        case .fire:     return t("불꽃", "Fire", "ほのお", "Fuego", "Feu", "Fogo", "Feuer")
+        case .water:    return t("물", "Water", "みず", "Agua", "Eau", "Água", "Wasser")
+        case .grass:    return t("풀", "Grass", "くさ", "Planta", "Plante", "Planta", "Pflanze")
+        case .electric: return t("전기", "Electric", "でんき", "Eléctrico", "Électrik", "Elétrico", "Elektro")
+        case .ice:      return t("얼음", "Ice", "こおり", "Hielo", "Glace", "Gelo", "Eis")
+        case .fighting: return t("격투", "Fighting", "かくとう", "Lucha", "Combat", "Lutador", "Kampf")
+        case .poison:   return t("독", "Poison", "どく", "Veneno", "Poison", "Veneno", "Gift")
+        case .ground:   return t("땅", "Ground", "じめん", "Tierra", "Sol", "Terra", "Boden")
+        case .flying:   return t("비행", "Flying", "ひこう", "Volador", "Vol", "Voador", "Flug")
+        case .psychic:  return t("에스퍼", "Psychic", "エスパー", "Psíquico", "Psy", "Psíquico", "Psycho")
+        case .bug:      return t("벌레", "Bug", "むし", "Bicho", "Insecte", "Inseto", "Käfer")
+        case .rock:     return t("바위", "Rock", "いわ", "Roca", "Roche", "Rocha", "Gestein")
+        case .ghost:    return t("고스트", "Ghost", "ゴースト", "Fantasma", "Spectre", "Fantasma", "Geist")
+        case .dragon:   return t("드래곤", "Dragon", "ドラゴン", "Dragón", "Dragon", "Dragão", "Drache")
+        case .steel:    return t("강철", "Steel", "はがね", "Acero", "Acier", "Aço", "Stahl")
+        case .dark:     return t("악", "Dark", "あく", "Siniestro", "Ténèbres", "Sombrio", "Unlicht")
+        case .fairy:    return t("페어리", "Fairy", "フェアリー", "Hada", "Fée", "Fada", "Fee")
+        }
+    }
+
     /// 아이템 표시명 — species 처럼 공식 현지명.
     func itemName(_ kind: ItemKind) -> String {
         switch kind {
@@ -948,6 +972,16 @@ struct L {
         case .risingBadge:  return t("라이징배지", "Rising Badge", "ライジングバッジ", "Medalla Dragón", "Badge Lever", "Insígnia do Dragão", "Drachenorden")
         case .darkBadge:    return t("악배지", "Dark Badge", "あくバッジ", "Medalla Siniestro", "Badge Ténèbres", "Insígnia Sombria", "Unlicht-Orden")
         case .fairyBadge:   return t("페어리배지", "Fairy Badge", "フェアリーバッジ", "Medalla Hada", "Badge Fée", "Insígnia da Fada", "Feenorden")
+        case .leafStone:    return t("리프의돌", "Leaf Stone", "リーフのいし", "Piedra Hoja", "Pierre Plante", "Pedra da Folha", "Blattstein")
+        case .fireStone:    return t("불꽃의돌", "Fire Stone", "ほのおのいし", "Piedra Fuego", "Pierre Feu", "Pedra do Fogo", "Feuerstein")
+        case .waterStone:   return t("물의돌", "Water Stone", "みずのいし", "Piedra Agua", "Pierre Eau", "Pedra da Água", "Wasserstein")
+        case .thunderStone: return t("천둥의돌", "Thunder Stone", "かみなりのいし", "Piedra Trueno", "Pierre Foudre", "Pedra do Trovão", "Donnerstein")
+        case .sunStone:     return t("태양의돌", "Sun Stone", "たいようのいし", "Piedra Solar", "Pierre Soleil", "Pedra Solar", "Sonnenstein")
+        case .moonStone:    return t("달의돌", "Moon Stone", "つきのいし", "Piedra Lunar", "Pierre Lune", "Pedra da Lua", "Mondstein")
+        case .iceStone:     return t("얼음의돌", "Ice Stone", "こおりのいし", "Piedra Hielo", "Pierre Glace", "Pedra de Gelo", "Eisstein")
+        case .duskStone:    return t("어둠의돌", "Dusk Stone", "やみのいし", "Piedra Noche", "Pierre Nuit", "Pedra do Anoitecer", "Finsterstein")
+        case .dawnStone:    return t("각성의돌", "Dawn Stone", "めざめのいし", "Piedra Alba", "Pierre Aube", "Pedra da Alvorada", "Funkelstein")
+        case .shinyStone:   return t("빛의돌", "Shiny Stone", "ひかりのいし", "Piedra Día", "Pierre Éclat", "Pedra do Brilho", "Leuchtstein")
         }
     }
     func itemDescription(_ kind: ItemKind) -> String {
@@ -1100,10 +1134,39 @@ struct L {
                      "Tant que tu le possèdes, les Pokémon faibles face à ce badge apparaissent et grandissent 20% plus vite (cumulable).",
                      "Enquanto estiver na bolsa, Pokémon fracos a esta insígnia aparecem e crescem 20% mais rápido (cumulativo).",
                      "Erhöht im Beutel die Erscheinungs- und Wachstumsrate für Pokémon mit Schwäche gegen diesen Orden um 20% (stapelbar).")
+        case .leafStone, .fireStone, .waterStone, .thunderStone, .sunStone,
+             .moonStone, .iceStone, .duskStone, .dawnStone, .shinyStone:
+            let tn = kind.stoneType.map { typeName($0) } ?? ""
+            return t("사용하면 현재 동료를 보내고 \(tn)타입 확정 알을 새로 품어요.",
+                     "Using this replaces your companion with an egg guaranteed to be \(tn)-type.",
+                     "使うと現在の相棒とお別れし、\(tn)タイプ確定のタマゴを新しく温めます。",
+                     "Usar esta piedra reemplaza a tu compañero por un huevo garantizado de tipo \(tn).",
+                     "Utiliser cette pierre remplace ton compagnon par un œuf garanti de type \(tn).",
+                     "Usar esta pedra substitui seu companheiro por um ovo garantido do tipo \(tn).",
+                     "Beim Benutzen wird dein Begleiter durch ein Ei vom Typ \(tn) ersetzt.")
         }
     }
     /// 가방 사용 컨트롤의 효과 힌트 — 민트("성격 랜덤 변경", 사탕의 "+XP" 자리).
     var mintEffectHint: String { t("성격 랜덤 변경", "Random nature", "せいかくランダム変更", "Naturaleza aleatoria", "Nature aléatoire", "Natureza aleatória", "Zufälliges Wesen") }
+    /// 가방 사용 컨트롤의 효과 힌트 — 진화의 돌.
+    func stoneEffectHint(_ typeName: String) -> String {
+        t("\(typeName)타입 알 교체", "Guaranteed \(typeName) Egg", "\(typeName)タイプ確定タマゴ", "Huevo de \(typeName)", "Œuf \(typeName) garanti", "Ovo \(typeName) garantido", "Garantiertes \(typeName)-Ei")
+    }
+    /// 진화의 돌 사용 시 현재 포켓몬 교체 확인 문구.
+    func stoneConfirm(_ monName: String, _ stoneName: String) -> String {
+        t("\(monName)을(를) 보내고 \(stoneName)을(를) 사용할까요?",
+          "Send off \(monName) and use \(stoneName)?",
+          "\(monName) を手放して \(stoneName) を使いますか？",
+          "¿Soltar a \(monName) y usar \(stoneName)?",
+          "Laisser partir \(monName) et utiliser \(stoneName) ?",
+          "Soltar \(monName) e usar \(stoneName)?",
+          "\(monName) verabschieden und \(stoneName) einsetzen?")
+    }
+    /// 인큐베이션 중 표시하는 타입 보증 배지 — 진화의 돌로 품은 알의 확정 타입.
+    func eggTypeGuaranteeHint(_ type: PokemonType) -> String {
+        let name = typeName(type)
+        return t("\(name)타입 확정", "Guaranteed \(name)", "\(name)タイプ確定", "\(name) garantizado", "\(name) garanti", "\(name) garantido", "Garantiert \(name)")
+    }
 
     // MARK: 상점 (재화 = 사용한 토큰)
     var shop: String { t("상점", "Shop", "ショップ", "Tienda", "Boutique", "Loja", "Laden") }

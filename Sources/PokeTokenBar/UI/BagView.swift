@@ -43,7 +43,13 @@ private struct ItemCard: View {
     let nav: PopoverNavigation
     let kind: ItemKind
     let count: Int
-    @State private var confirming = false
+
+    private enum UseStage {
+        case idle
+        case confirm
+        case shinyConfirm
+    }
+    @State private var stage: UseStage = .idle
 
     var body: some View {
         let l = store.l
@@ -71,15 +77,18 @@ private struct ItemCard: View {
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
-    /// 이 아이템을 지금 쓸 수 있나 (kind 별 — 사탕은 라인 로딩 필요, 민트는 활성 포켓몬만).
+    /// 이 아이템을 지금 쓸 수 있나 (kind 별 — 사탕은 라인 로딩 필요, 민트/돌은 활성 포켓몬만).
     private var canUse: Bool {
         switch kind {
         case .rareCandy: return store.canUseRareCandy
         case .mint:      return store.canUseMint
+        case .leafStone, .fireStone, .waterStone, .thunderStone, .sunStone,
+             .moonStone, .iceStone, .duskStone, .dawnStone, .shinyStone:
+            return store.canUseStone(kind)
         default:         return false
         }
     }
-    /// 사용 컨트롤 효과 힌트 ("+XP" / "성격 랜덤 변경").
+    /// 사용 컨트롤 효과 힌트 ("+XP" / "성격 랜덤 변경" / "타입 알 교체").
     private func effectHint(_ l: L) -> String {
         switch kind {
         case .rareCandy: return "+\(TokenFormatter.compact(RareCandy.xp)) XP"
@@ -104,12 +113,21 @@ private struct ItemCard: View {
              .stormBadge, .mineralBadge, .glacierBadge, .risingBadge,
              .darkBadge, .fairyBadge:
             return l.badgeEffectHint
+        case .leafStone, .fireStone, .waterStone, .thunderStone, .sunStone,
+             .moonStone, .iceStone, .duskStone, .dawnStone, .shinyStone:
+            if let st = kind.stoneType {
+                return l.stoneEffectHint(l.typeName(st))
+            }
+            return ""
         }
     }
     private func performUse() {
         switch kind {
         case .rareCandy: _ = store.useRareCandy()
         case .mint:      _ = store.useMint()
+        case .leafStone, .fireStone, .waterStone, .thunderStone, .sunStone,
+             .moonStone, .iceStone, .duskStone, .dawnStone, .shinyStone:
+            _ = store.useStone(kind)
         default:         break
         }
     }
@@ -124,23 +142,45 @@ private struct ItemCard: View {
                 Spacer()
             }
         } else if canUse {
-            if confirming {
-                HStack(spacing: 8) {
-                    Text(l.useOnCurrent(store.displayName))
-                        .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
-                    Spacer()
-                    Button(l.use) { useNow() }
-                        .buttonStyle(.borderedProminent).controlSize(.small)
-                    Button(l.cancel) { confirming = false }
-                        .buttonStyle(.borderless).controlSize(.small)
-                }
-            } else {
+            switch stage {
+            case .idle:
                 HStack {
                     Text(effectHint(l))
                         .font(.caption2).foregroundStyle(.tertiary).monospacedDigit()
                     Spacer()
-                    Button(l.useItem) { confirming = true }
+                    Button(l.useItem) { stage = .confirm }
                         .buttonStyle(.bordered).controlSize(.small)
+                }
+            case .confirm:
+                HStack(spacing: 8) {
+                    if kind.stoneType != nil {
+                        Text(l.stoneConfirm(store.displayName, l.itemName(kind)))
+                            .font(.caption2).foregroundStyle(.secondary).lineLimit(2)
+                    } else {
+                        Text(l.useOnCurrent(store.displayName))
+                            .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                    Spacer()
+                    Button(l.use) {
+                        if kind.stoneType != nil && store.currentIsShiny {
+                            stage = .shinyConfirm
+                        } else {
+                            useNow()
+                        }
+                    }
+                    .buttonStyle(.borderedProminent).controlSize(.small)
+                    Button(l.cancel) { stage = .idle }
+                        .buttonStyle(.borderless).controlSize(.small)
+                }
+            case .shinyConfirm:
+                HStack(spacing: 8) {
+                    Text(l.freshEggShinyWarning)
+                        .font(.caption2.weight(.semibold)).foregroundStyle(.orange).lineLimit(2)
+                    Spacer()
+                    Button(l.freshEggDiscardShiny) { useNow() }
+                        .buttonStyle(.borderedProminent).controlSize(.small).tint(.orange)
+                    Button(l.cancel) { stage = .idle }
+                        .buttonStyle(.borderless).controlSize(.small)
                 }
             }
         } else {
@@ -150,9 +190,9 @@ private struct ItemCard: View {
         }
     }
 
-    /// 사용 → 항상 Home 탭으로 전환(진화/졸업 연출·"+XP"·성격 변경 토스트는 Home 의 CompanionHeader 에서 재생).
+    /// 사용 → 항상 Home 탭으로 전환(진화/졸업 연출·"+XP"·성격 변경 토스트, 또는 새 알은 Home 에서 확인).
     private func useNow() {
-        confirming = false
+        stage = .idle
         performUse()
         nav.tab = .home
     }
