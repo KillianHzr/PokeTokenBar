@@ -230,6 +230,26 @@ public struct WeeklyQuestItem: Identifiable, Sendable {
     }
 }
 
+public enum AchievementCategory: String, Codable, Sendable, CaseIterable, Identifiable {
+    case adventure = "adventure"
+    case starters = "starters"
+    case legendaries = "legendaries"
+    case gymBadges = "gym_badges"
+    case productivity = "productivity"
+
+    public var id: String { rawValue }
+
+    public var icon: QuestIcon {
+        switch self {
+        case .adventure: return .pokeBall
+        case .starters: return .egg
+        case .legendaries: return .masterBall
+        case .gymBadges: return .badgeRainbow
+        case .productivity: return .redChain
+        }
+    }
+}
+
 public enum AchievementType: String, Codable, Sendable, CaseIterable {
     case firstHatch = "ach_first_hatch"
     case firstEvolve = "ach_first_evolve"
@@ -308,6 +328,26 @@ public enum AchievementType: String, Codable, Sendable, CaseIterable {
         case .badgeDark:    return .dark
         case .badgeFairy:   return .fairy
         default:            return nil
+        }
+    }
+
+    public var category: AchievementCategory {
+        if badgeType != nil { return .gymBadges }
+        switch self {
+        case .kantoStarters, .johtoStarters, .hoennStarters, .sinnohStarters, .unovaStarters, .starterMaster:
+            return .starters
+        case .duplicateLegendary, .legendaryBirds, .kantoDuo, .legendaryBeasts, .towerDuo,
+             .legendaryTitans, .eonDuo, .weatherTrio, .lakeGuardians, .creationTrio,
+             .swordsOfJustice, .forcesOfNature, .taoDuo:
+            return .legendaries
+        case .streak3, .streak7, .streak14, .streak30,
+             .tokens100M, .tokens1B, .tokens5B, .tokens10B, .limitBreaker:
+            return .productivity
+        case .firstHatch, .firstEvolve, .firstGraduate, .squad5,
+             .dex15, .dex30, .shinyHunter, .candyUser, .shopSpender:
+            return .adventure
+        default:
+            return .adventure
         }
     }
 
@@ -453,6 +493,7 @@ public struct AchievementItem: Identifiable, Sendable {
     public let target: Int
     public let isCompleted: Bool
     public let isClaimed: Bool
+    public var category: AchievementCategory { type.category }
 
     public init(type: AchievementType, progress: Int, isClaimed: Bool) {
         self.type = type

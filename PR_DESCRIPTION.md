@@ -23,6 +23,7 @@ This PR introduces a complete quest and achievement progression system, producti
    - Multi-stage safety confirmation in BagView (matching the Shop egg warning): inline confirmation modal showing the companion replacement, plus a dedicated warning prompt if the current companion is shiny to prevent accidental loss.
    - Incubating eggs display a type-colored capsule badge indicating the guaranteed type (e.g. 'Guaranteed Fire' / 'Feu garanti').
 7. **Bag & Quest UI**:
+   - Categorized achievement progression with rich themed banners (Starters, Legendary & Mythical, Gym Badges, Adventure & Training, Streaks & Productivity), interactive expand/collapse toggles, progress counters, unclaimed reward badges, and horizontal category filter chips.
    - Distinct sections separating active vs completed/claimed quests and achievements.
    - Batch claim buttons for quests and achievements tabs.
    - Official PokéAPI pixel-art sprites for all 31 passive items, 10 evolution stones, and badges with dynamic network fetching and local disk caching.

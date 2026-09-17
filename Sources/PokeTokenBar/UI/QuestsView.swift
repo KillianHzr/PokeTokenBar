@@ -5,6 +5,8 @@ struct QuestsView: View {
     let store: CompanionStore
     let nav: PopoverNavigation
     @State private var selectedSegment = 0
+    @State private var selectedCategoryFilter: AchievementCategory? = nil
+    @State private var collapsedCategories: Set<AchievementCategory> = []
 
     private var l: L { store.l }
 
@@ -21,6 +23,10 @@ struct QuestsView: View {
 
             actionBar
 
+            if selectedSegment == 1 {
+                categoryFilterBar
+            }
+
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
                     if selectedSegment == 0 {
@@ -31,7 +37,7 @@ struct QuestsView: View {
                 }
                 .padding(.bottom, 6)
             }
-            .frame(height: 440)
+            .frame(height: selectedSegment == 1 ? 405 : 440)
         }
     }
 
@@ -160,39 +166,137 @@ struct QuestsView: View {
         }
     }
 
-    private var achievementsList: some View {
-        let activeAchievements = store.achievements.filter { !$0.isClaimed }
-            .sorted { ($0.isCompleted && !$1.isCompleted) }
-        let claimedAchievements = store.achievements.filter { $0.isClaimed }
+    private var categoryFilterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                let isAllSelected = selectedCategoryFilter == nil
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        selectedCategoryFilter = nil
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(l.allCategories)
+                        Text("(\(store.achievements.count))")
+                            .font(.caption2)
+                            .foregroundStyle(isAllSelected ? Color.accentColor : Color.secondary)
+                    }
+                    .font(.caption.weight(isAllSelected ? .semibold : .regular))
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 4)
+                    .background(isAllSelected ? Color.accentColor.opacity(0.18) : Color.secondary.opacity(0.08))
+                    .foregroundStyle(isAllSelected ? Color.accentColor : Color.secondary)
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
 
-        return VStack(alignment: .leading, spacing: 10) {
-            if activeAchievements.isEmpty {
-                HStack(spacing: 6) {
+                ForEach(AchievementCategory.allCases) { category in
+                    let isSelected = selectedCategoryFilter == category
+                    let categoryAchievements = store.achievements.filter { $0.category == category }
+                    let count = categoryAchievements.count
+                    let unclaimed = categoryAchievements.filter { $0.isCompleted && !$0.isClaimed }.count
+
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            selectedCategoryFilter = (selectedCategoryFilter == category ? nil : category)
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(l.achievementCategoryTitle(category))
+                            if unclaimed > 0 {
+                                Circle()
+                                    .fill(Color.orange)
+                                    .frame(width: 6, height: 6)
+                            } else {
+                                Text("(\(count))")
+                                    .font(.caption2)
+                                    .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                            }
+                        }
+                        .font(.caption.weight(isSelected ? .semibold : .regular))
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 4)
+                        .background(isSelected ? Color.accentColor.opacity(0.18) : Color.secondary.opacity(0.08))
+                        .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                        .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 2)
+            .padding(.vertical, 2)
+        }
+        .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+    }
+
+    private var achievementsList: some View {
+        let displayedCategories: [AchievementCategory] = {
+            if let filter = selectedCategoryFilter {
+                return [filter]
+            }
+            return AchievementCategory.allCases
+        }()
+
+        let allClaimed = store.achievements.allSatisfy(\.isClaimed)
+
+        return VStack(alignment: .leading, spacing: 14) {
+            if allClaimed {
+                HStack(spacing: 8) {
                     Image(systemName: "trophy.fill")
                         .foregroundStyle(.yellow)
                     Text(l.allAchievementsCompleted)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.vertical, 4)
-            } else {
-                ForEach(activeAchievements) { achievement in
-                    AchievementRow(store: store, achievement: achievement)
-                }
-            }
-
-            if !claimedAchievements.isEmpty {
-                Divider().padding(.vertical, 4)
-                HStack {
-                    Text("\(l.completedAchievements) (\(claimedAchievements.count))")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(.secondary)
-                    Spacer()
                 }
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.yellow.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+            }
 
-                ForEach(claimedAchievements) { achievement in
-                    AchievementRow(store: store, achievement: achievement)
-                        .opacity(0.75)
+            ForEach(displayedCategories) { category in
+                let categoryAchievements = store.achievements.filter { $0.category == category }
+                let totalCount = categoryAchievements.count
+                let completedCount = categoryAchievements.filter { $0.isCompleted }.count
+                let unclaimedCount = categoryAchievements.filter { $0.isCompleted && !$0.isClaimed }.count
+                let isExpanded = !collapsedCategories.contains(category)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    AchievementCategoryBanner(
+                        category: category,
+                        completedCount: completedCount,
+                        totalCount: totalCount,
+                        unclaimedCount: unclaimedCount,
+                        isExpanded: isExpanded,
+                        onToggle: {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                if collapsedCategories.contains(category) {
+                                    collapsedCategories.remove(category)
+                                } else {
+                                    collapsedCategories.insert(category)
+                                }
+                            }
+                        },
+                        l: l
+                    )
+
+                    if isExpanded {
+                        let readyToClaim = categoryAchievements.filter { $0.isCompleted && !$0.isClaimed }
+                        let inProgress = categoryAchievements.filter { !$0.isCompleted }
+                        let claimed = categoryAchievements.filter { $0.isClaimed }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            ForEach(readyToClaim) { achievement in
+                                AchievementRow(store: store, achievement: achievement)
+                            }
+                            ForEach(inProgress) { achievement in
+                                AchievementRow(store: store, achievement: achievement)
+                            }
+                            ForEach(claimed) { achievement in
+                                AchievementRow(store: store, achievement: achievement)
+                                    .opacity(0.72)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -501,6 +605,117 @@ private struct AchievementRow: View {
         .padding(.horizontal, 6)
         .padding(.vertical, 2)
         .background(Color.secondary.opacity(0.12), in: Capsule())
+    }
+}
+
+@MainActor
+private struct AchievementCategoryBanner: View {
+    let category: AchievementCategory
+    let completedCount: Int
+    let totalCount: Int
+    let unclaimedCount: Int
+    let isExpanded: Bool
+    let onToggle: () -> Void
+    let l: L
+
+    private var colors: (Color, Color) {
+        switch category {
+        case .starters:
+            return (Color(red: 0.12, green: 0.68, blue: 0.45), Color.teal)
+        case .legendaries:
+            return (Color.purple, Color(red: 0.90, green: 0.40, blue: 0.65))
+        case .gymBadges:
+            return (Color.orange, Color.yellow)
+        case .productivity:
+            return (Color.red, Color.orange)
+        case .adventure:
+            return (Color.accentColor, Color.indigo)
+        }
+    }
+
+    private var gradient: LinearGradient {
+        LinearGradient(
+            colors: [colors.0.opacity(0.24), colors.1.opacity(0.08)],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+    }
+
+    var body: some View {
+        Button(action: onToggle) {
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(colors.0.opacity(0.22))
+                        .frame(width: 34, height: 34)
+                    QuestIconView(icon: category.icon, size: 22)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(l.achievementCategoryTitle(category))
+                            .font(.callout.weight(.bold))
+                            .foregroundStyle(.primary)
+
+                        if unclaimedCount > 0 {
+                            Text("+\(unclaimedCount)")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 1.5)
+                                .background(Color.orange, in: Capsule())
+                        }
+                    }
+
+                    Text(l.achievementCategorySubtitle(category))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                HStack(spacing: 6) {
+                    if completedCount == totalCount && totalCount > 0 {
+                        HStack(spacing: 3) {
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundStyle(.yellow)
+                            Text("\(completedCount)/\(totalCount)")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(.yellow)
+                                .monospacedDigit()
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.yellow.opacity(0.18), in: Capsule())
+                        .overlay(Capsule().stroke(Color.yellow.opacity(0.4), lineWidth: 1))
+                    } else {
+                        Text("\(completedCount)/\(totalCount)")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Color.secondary.opacity(0.12), in: Capsule())
+                    }
+
+                    Image(systemName: "chevron.right")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.secondary)
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(gradient, in: RoundedRectangle(cornerRadius: 10))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(colors.0.opacity(0.32), lineWidth: 1)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 

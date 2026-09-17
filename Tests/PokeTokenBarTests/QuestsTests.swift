@@ -497,4 +497,25 @@ final class QuestsTests: XCTestCase {
         XCTAssertEqual(store.currentSpeciesID, 7)
         XCTAssertNil(store.eggTypeGuarantee)
     }
+
+    func testAchievementCategories() {
+        let store = makeStore()
+        for category in AchievementCategory.allCases {
+            let inCat = store.achievements.filter { $0.type.category == category }
+            XCTAssertFalse(inCat.isEmpty, "Category \(category.rawValue) should not be empty")
+        }
+        XCTAssertEqual(store.achievements.filter { $0.type.category == .starters }.count, 6)
+        XCTAssertEqual(store.achievements.filter { $0.type.category == .legendaries }.count, 13)
+        XCTAssertEqual(store.achievements.filter { $0.type.category == .gymBadges }.count, 18)
+        XCTAssertEqual(store.achievements.filter { $0.type.category == .productivity }.count, 9)
+        XCTAssertEqual(store.achievements.filter { $0.type.category == .adventure }.count, 9)
+        XCTAssertEqual(store.achievements.count, 55)
+
+        let l = store.l
+        for category in AchievementCategory.allCases {
+            XCTAssertFalse(l.achievementCategoryTitle(category).isEmpty)
+            XCTAssertFalse(l.achievementCategorySubtitle(category).isEmpty)
+        }
+        XCTAssertFalse(l.allCategories.isEmpty)
+    }
 }

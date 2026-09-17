@@ -1298,6 +1298,37 @@ struct L {
     var allDailyQuestsCompleted: String { t("오늘의 모든 일일 퀘스트를 완료했습니다!", "All daily quests completed for today!", "今日のクエストをすべて完了しました！", "¡Misiones de hoy completadas!", "Toutes les quêtes quotidiennes sont terminées !", "Todas as missões de hoje concluídas!", "Alle täglichen Quests abgeschlossen!") }
     var allWeeklyQuestsCompleted: String { t("이번 주의 모든 주간 퀘스트를 완료했습니다!", "All weekly quests completed for this week!", "今週のウィークリークエストをすべて完了しました！", "¡Todas las misiones semanales completadas!", "Toutes les quêtes hebdomadaires sont terminées !", "Todas as missões semanais foram concluídas!", "Alle wöchentlichen Quests abgeschlossen!") }
     var allAchievementsCompleted: String { t("모든 업적을 달성했습니다!", "All achievements unlocked!", "すべての実績を達成しました！", "¡Todos los logros desbloqueados!", "Tous les succès sont débloqués !", "Todas as conquistas concluídas!", "Alle Erfolge abgeschlossen!") }
+    var allCategories: String { t("전체", "All", "すべて", "Todos", "Tous", "Todos", "Alle") }
+
+    func achievementCategoryTitle(_ category: AchievementCategory) -> String {
+        switch category {
+        case .adventure:
+            return t("모험 & 훈련", "Adventure & Training", "冒険と育成", "Aventura y Entrenamiento", "Aventure & Entraînement", "Aventura e Treinamento", "Abenteuer & Training")
+        case .starters:
+            return t("스타터 파트너", "Starter Partners", "最初のパートナー", "Compañeros Iniciales", "Partenaires de départ", "Iniciais Regionais", "Starter-Partner")
+        case .legendaries:
+            return t("전설 & 환상", "Legendary & Mythical", "伝説・幻のポケモン", "Legendarios y Míticos", "Légendaires & Fabuleux", "Lendários e Míticos", "Legendär & Mystisch")
+        case .gymBadges:
+            return t("체육관 관장 배지", "Gym Badges", "ジムバッジ", "Medallas de Gimnasio", "Badges d'Arène", "Insígnias de Ginásio", "Arena-Orden")
+        case .productivity:
+            return t("연속 기록 & 토큰", "Streaks & Tokens", "継続記録とトークン", "Rachas y Tokens", "Séries & Productivité", "Sequências e Tokens", "Streaks & Tokens")
+        }
+    }
+
+    func achievementCategorySubtitle(_ category: AchievementCategory) -> String {
+        switch category {
+        case .adventure:
+            return t("첫 발걸음, 진화, 도감 완성 및 반짝이", "First steps, evolutions, Pokédex milestones, and shinies", "最初の一歩、進化、図鑑登録、色違い", "Primeros pasos, evoluciones, Pokédex y variocolores", "Premiers pas, évolutions, Pokédex et chromatiques", "Primeiros passos, evoluções, Pokédex e brilhantes", "Erste Schritte, Entwicklungen, Pokédex und Shinys")
+        case .starters:
+            return t("각 지방의 스타터 삼총사 및 스타터 마스터", "Regional starter trios and Starter Master", "各地方の御三家とスターターマスター", "Tríos iniciales regionales y Maestro Inicial", "Trios de starters régionaux et Maître des Starters", "Tríos de iniciais de cada região e Mestre Inicial", "Regionale Starter-Trios und Starter-Meister")
+        case .legendaries:
+            return t("전설의 새, 야수, 거인, 신화 속 포켓몬들", "Legendary birds, beasts, titans, and mythical deities", "伝説の鳥、三獣、巨人、神話のポケモンたち", "Aves legendarias, bestias, titanes y deidades míticas", "Oiseaux légendaires, fauves, titans et mythes anciens", "Aves lendárias, feras, titãs e divindades antigas", "Legendäre Vögel, Bestien, Titanen und Urzeit-Mythen")
+        case .gymBadges:
+            return t("18가지 포켓몬 타입을 정복하고 모든 배지를 획득하세요", "Master all 18 elemental types and collect gym badges", "全18タイプを極めてジムバッジを集めよう", "Domina los 18 tipos elementales y reúne las medallas", "Maîtrisez les 18 types élémentaires et décrochez les badges", "Domine os 18 tipos elementares e conquiste as insígnias", "Meistere alle 18 Elementartypen und sammle alle Orden")
+        case .productivity:
+            return t("매일 이어가는 스트릭과 대규모 토큰 사용 마일스톤", "Daily coding streaks and massive token burn milestones", "毎日の継続ストリークと大量トークン消費マイルストーン", "Rachas diarias de programación e hitos de tokens", "Séries quotidiennes de code et grands paliers de tokens", "Sequências diárias de código e marcos de uso de tokens", "Tägliche Coding-Streaks und große Token-Meilensteine")
+        }
+    }
 
     func weeklyQuestTitle(_ type: WeeklyQuestType) -> String {
         switch type {
