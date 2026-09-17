@@ -47,6 +47,11 @@ public enum QuestIcon: String, Codable, Sendable {
     case badgeRising = "badge-16"
     case badgeDark = "badge-59"
     case badgeFairy = "badge-48"
+    case legendCharm = "legend-charm"
+    case iceStone = "ice-stone"
+    case duskStone = "dusk-stone"
+    case dawnStone = "dawn-stone"
+    case shinyStone = "shiny-stone"
 
     public var fallbackEmoji: String {
         switch self {
@@ -77,7 +82,7 @@ public enum QuestIcon: String, Codable, Sendable {
         case .libertyPass: return "🎟️"
         case .revealGlass: return "🪞"
         case .dnaSplicers: return "🧬"
-        case .waterStone: return "★"
+        case .waterStone, .legendCharm, .iceStone, .duskStone, .dawnStone, .shinyStone: return "★"
         case .badgeBoulder, .badgeCascade, .badgeThunder, .badgeRainbow,
              .badgeSoul, .badgeMarsh, .badgeVolcano, .badgeEarth,
              .badgeZephyr, .badgeHive, .badgePlain, .badgeFog,
@@ -306,6 +311,25 @@ public enum AchievementType: String, Codable, Sendable, CaseIterable {
     case sinnohStarters = "ach_sinnoh_starters"
     case unovaStarters = "ach_unova_starters"
     case starterMaster = "ach_starter_master"
+    case eeveeKantoTrio = "ach_eevee_kanto_trio"
+    case eeveeJohtoDuo = "ach_eevee_johto_duo"
+    case eeveeSinnohDuo = "ach_eevee_sinnoh_duo"
+    case eeveeMaster = "ach_eevee_master"
+    case firstFossil = "ach_first_fossil"
+    case fossilCollector = "ach_fossil_collector"
+    case fossilMaster = "ach_fossil_master"
+    case elementalStones = "ach_elemental_stones"
+    case allStonesUsed = "ach_all_stones_used"
+    case bagCollector = "ach_bag_collector"
+    case shinyTrio = "ach_shiny_trio"
+    case shinySquad = "ach_shiny_squad"
+    case shinyLegendOrStarter = "ach_shiny_legend_starter"
+    case streak60 = "ach_streak_60"
+    case streak100 = "ach_streak_100"
+    case tokens25B = "ach_tokens_25b"
+    case dailyMarathon = "ach_daily_marathon"
+    case nightOwl = "ach_night_owl"
+    case earlyBird = "ach_early_bird"
 
     public var badgeType: PokemonType? {
         switch self {
@@ -341,10 +365,15 @@ public enum AchievementType: String, Codable, Sendable, CaseIterable {
              .swordsOfJustice, .forcesOfNature, .taoDuo:
             return .legendaries
         case .streak3, .streak7, .streak14, .streak30,
-             .tokens100M, .tokens1B, .tokens5B, .tokens10B, .limitBreaker:
+             .tokens100M, .tokens1B, .tokens5B, .tokens10B, .limitBreaker,
+             .streak60, .streak100, .tokens25B, .dailyMarathon, .nightOwl, .earlyBird:
             return .productivity
         case .firstHatch, .firstEvolve, .firstGraduate, .squad5,
-             .dex15, .dex30, .shinyHunter, .candyUser, .shopSpender:
+             .dex15, .dex30, .shinyHunter, .candyUser, .shopSpender,
+             .eeveeKantoTrio, .eeveeJohtoDuo, .eeveeSinnohDuo, .eeveeMaster,
+             .firstFossil, .fossilCollector, .fossilMaster,
+             .elementalStones, .allStonesUsed, .bagCollector,
+             .shinyTrio, .shinySquad, .shinyLegendOrStarter:
             return .adventure
         default:
             return .adventure
@@ -391,6 +420,25 @@ public enum AchievementType: String, Codable, Sendable, CaseIterable {
         case .sinnohStarters: return .sunStone
         case .unovaStarters: return .moonStone
         case .starterMaster: return .masterBall
+        case .eeveeKantoTrio: return .waterStone
+        case .eeveeJohtoDuo: return .duskStone
+        case .eeveeSinnohDuo: return .iceStone
+        case .eeveeMaster: return .leafStone
+        case .firstFossil: return .ultraBall
+        case .fossilCollector: return .magmaStone
+        case .fossilMaster: return .masterBall
+        case .elementalStones: return .thunderStone
+        case .allStonesUsed: return .shinyStone
+        case .bagCollector: return .greatBall
+        case .shinyTrio: return .shinyCharm
+        case .shinySquad: return .ultraBall
+        case .shinyLegendOrStarter: return .masterBall
+        case .streak60: return .ultraBall
+        case .streak100: return .legendCharm
+        case .tokens25B: return .masterBall
+        case .dailyMarathon: return .rareCandy
+        case .nightOwl: return .duskStone
+        case .earlyBird: return .sunStone
         default: return .masterBall
         }
     }
@@ -431,6 +479,25 @@ public enum AchievementType: String, Codable, Sendable, CaseIterable {
         case .taoDuo: return 2
         case .kantoStarters, .johtoStarters, .hoennStarters, .sinnohStarters, .unovaStarters: return 3
         case .starterMaster: return 15
+        case .eeveeKantoTrio: return 3
+        case .eeveeJohtoDuo: return 2
+        case .eeveeSinnohDuo: return 2
+        case .eeveeMaster: return 7
+        case .firstFossil: return 1
+        case .fossilCollector: return 4
+        case .fossilMaster: return 9
+        case .elementalStones: return 3
+        case .allStonesUsed: return 10
+        case .bagCollector: return 8
+        case .shinyTrio: return 3
+        case .shinySquad: return 6
+        case .shinyLegendOrStarter: return 1
+        case .streak60: return 60
+        case .streak100: return 100
+        case .tokens25B: return 25_000_000_000
+        case .dailyMarathon: return 100_000_000
+        case .nightOwl: return 1
+        case .earlyBird: return 1
         default: return 1
         }
     }
@@ -481,6 +548,44 @@ public enum AchievementType: String, Codable, Sendable, CaseIterable {
             return QuestReward(item: ItemKind.moonStone.rawValue)
         case .starterMaster:
             return QuestReward(candies: 5, tokens: 500_000_000)
+        case .eeveeKantoTrio:
+            return QuestReward(item: ItemKind.waterStone.rawValue)
+        case .eeveeJohtoDuo:
+            return QuestReward(item: ItemKind.duskStone.rawValue)
+        case .eeveeSinnohDuo:
+            return QuestReward(item: ItemKind.iceStone.rawValue)
+        case .eeveeMaster:
+            return QuestReward(candies: 3, tokens: 100_000_000)
+        case .firstFossil:
+            return QuestReward(candies: 1, tokens: 15_000_000)
+        case .fossilCollector:
+            return QuestReward(item: ItemKind.magmaStone.rawValue)
+        case .fossilMaster:
+            return QuestReward(candies: 5, tokens: 200_000_000)
+        case .elementalStones:
+            return QuestReward(item: ItemKind.fireStone.rawValue)
+        case .allStonesUsed:
+            return QuestReward(candies: 4, tokens: 150_000_000)
+        case .bagCollector:
+            return QuestReward(tokens: 25_000_000)
+        case .shinyTrio:
+            return QuestReward(item: ItemKind.shinyCharm.rawValue)
+        case .shinySquad:
+            return QuestReward(candies: 3, tokens: 150_000_000)
+        case .shinyLegendOrStarter:
+            return QuestReward(candies: 5, tokens: 300_000_000)
+        case .streak60:
+            return QuestReward(candies: 3, tokens: 100_000_000)
+        case .streak100:
+            return QuestReward(item: ItemKind.legendCharm.rawValue)
+        case .tokens25B:
+            return QuestReward(candies: 5, tokens: 250_000_000)
+        case .dailyMarathon:
+            return QuestReward(candies: 2, tokens: 50_000_000)
+        case .nightOwl:
+            return QuestReward(item: ItemKind.moonStone.rawValue)
+        case .earlyBird:
+            return QuestReward(item: ItemKind.sunStone.rawValue)
         default: return QuestReward()
         }
     }
@@ -517,6 +622,10 @@ public struct QuestState: Codable, Sendable, Equatable {
     public var weeklyTokens: Int = 0
     public var totalCandiesUsed: Int = 0
     public var limitsHitCount: Int = 0
+    public var usedStoneKinds: Set<String> = []
+    public var maxDailyTokens: Int = 0
+    public var nightOwlTriggered: Bool = false
+    public var earlyBirdTriggered: Bool = false
 
     public init() {}
 
@@ -534,5 +643,9 @@ public struct QuestState: Codable, Sendable, Equatable {
         weeklyTokens = (try? c.decode(Int.self, forKey: .weeklyTokens)) ?? 0
         totalCandiesUsed = (try? c.decode(Int.self, forKey: .totalCandiesUsed)) ?? 0
         limitsHitCount = (try? c.decode(Int.self, forKey: .limitsHitCount)) ?? 0
+        usedStoneKinds = (try? c.decode(Set<String>.self, forKey: .usedStoneKinds)) ?? []
+        maxDailyTokens = (try? c.decode(Int.self, forKey: .maxDailyTokens)) ?? 0
+        nightOwlTriggered = (try? c.decode(Bool.self, forKey: .nightOwlTriggered)) ?? false
+        earlyBirdTriggered = (try? c.decode(Bool.self, forKey: .earlyBirdTriggered)) ?? false
     }
 }

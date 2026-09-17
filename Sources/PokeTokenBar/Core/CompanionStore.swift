@@ -1006,6 +1006,7 @@ final class CompanionStore {
         state.pendingHatchID = nil
         prefetchedLineID = nil
         justGraduated = nil; justEvolvedTo = nil; eventUntil = nil
+        state.questState.usedStoneKinds.insert(kind.rawValue)
         AppLog.write("stone used: \(kind.rawValue), guaranteed type=\(targetType.rawValue)")
         Task { await self.ensureEggPrefetch() }
         save()
@@ -1263,6 +1264,48 @@ final class CompanionStore {
             case .starterMaster:
                 let allStarters = [3, 6, 9, 154, 157, 160, 254, 257, 260, 389, 392, 395, 497, 500, 503]
                 progress = allStarters.filter { owned.contains($0) }.count
+            case .eeveeKantoTrio:
+                progress = [134, 135, 136].filter { owned.contains($0) }.count
+            case .eeveeJohtoDuo:
+                progress = [196, 197].filter { owned.contains($0) }.count
+            case .eeveeSinnohDuo:
+                progress = [470, 471].filter { owned.contains($0) }.count
+            case .eeveeMaster:
+                progress = [134, 135, 136, 196, 197, 470, 471].filter { owned.contains($0) }.count
+            case .firstFossil:
+                let fossils = [139, 141, 142, 346, 348, 409, 411, 565, 567]
+                progress = min(1, fossils.filter { owned.contains($0) }.count)
+            case .fossilCollector:
+                let fossils = [139, 141, 142, 346, 348, 409, 411, 565, 567]
+                progress = fossils.filter { owned.contains($0) }.count
+            case .fossilMaster:
+                let fossils = [139, 141, 142, 346, 348, 409, 411, 565, 567]
+                progress = fossils.filter { owned.contains($0) }.count
+            case .elementalStones:
+                progress = ["fireStone", "waterStone", "thunderStone"].filter { state.questState.usedStoneKinds.contains($0) }.count
+            case .allStonesUsed:
+                let allStones = [ItemKind.fireStone, .waterStone, .thunderStone, .leafStone, .moonStone, .sunStone, .iceStone, .duskStone, .dawnStone, .shinyStone].map(\.rawValue)
+                progress = allStones.filter { state.questState.usedStoneKinds.contains($0) }.count
+            case .bagCollector:
+                progress = state.inventory.keys.count
+            case .shinyTrio, .shinySquad:
+                let shinyDex = state.dex.filter(\.isShiny).count
+                let shinyActive = state.active?.isShiny == true ? 1 : 0
+                progress = shinyDex + shinyActive
+            case .shinyLegendOrStarter:
+                let shinyDexSpecial = state.dex.contains { $0.isShiny && ($0.rarity == .starter || $0.rarity == .legendary) }
+                let shinyActiveSpecial = state.active?.isShiny == true && (state.active?.rarity == .starter || state.active?.rarity == .legendary)
+                progress = (shinyDexSpecial || shinyActiveSpecial) ? 1 : 0
+            case .streak60, .streak100:
+                progress = max(state.questState.currentStreak, state.questState.bestStreak)
+            case .tokens25B:
+                progress = state.usedSinceInstall
+            case .dailyMarathon:
+                progress = state.questState.maxDailyTokens
+            case .nightOwl:
+                progress = state.questState.nightOwlTriggered ? 1 : 0
+            case .earlyBird:
+                progress = state.questState.earlyBirdTriggered ? 1 : 0
             }
             let isClaimed = state.questState.claimedAchievementIDs.contains(type.rawValue)
             return AchievementItem(type: type, progress: progress, isClaimed: isClaimed)
@@ -1396,6 +1439,14 @@ final class CompanionStore {
 
         if todayTokens > 0 {
             state.questState.weeklyActiveDays.insert(todayDate)
+            state.questState.maxDailyTokens = max(state.questState.maxDailyTokens, todayTokens)
+            let currentHour = Calendar.current.component(.hour, from: Date())
+            if currentHour >= 1 && currentHour < 5 {
+                state.questState.nightOwlTriggered = true
+            }
+            if currentHour < 7 {
+                state.questState.earlyBirdTriggered = true
+            }
         }
         if weekTotal > 0 {
             state.questState.weeklyTokens = max(state.questState.weeklyTokens, weekTotal)

@@ -507,9 +507,9 @@ final class QuestsTests: XCTestCase {
         XCTAssertEqual(store.achievements.filter { $0.type.category == .starters }.count, 6)
         XCTAssertEqual(store.achievements.filter { $0.type.category == .legendaries }.count, 13)
         XCTAssertEqual(store.achievements.filter { $0.type.category == .gymBadges }.count, 18)
-        XCTAssertEqual(store.achievements.filter { $0.type.category == .productivity }.count, 9)
-        XCTAssertEqual(store.achievements.filter { $0.type.category == .adventure }.count, 9)
-        XCTAssertEqual(store.achievements.count, 55)
+        XCTAssertEqual(store.achievements.filter { $0.type.category == .productivity }.count, 15)
+        XCTAssertEqual(store.achievements.filter { $0.type.category == .adventure }.count, 22)
+        XCTAssertEqual(store.achievements.count, 74)
 
         let l = store.l
         for category in AchievementCategory.allCases {
@@ -517,5 +517,124 @@ final class QuestsTests: XCTestCase {
             XCTAssertFalse(l.achievementCategorySubtitle(category).isEmpty)
         }
         XCTAssertFalse(l.allCategories.isEmpty)
+    }
+
+    func testEeveeAchievements() {
+        let store = makeStore()
+        let kanto = store.achievements.first { $0.type == .eeveeKantoTrio }!
+        let master = store.achievements.first { $0.type == .eeveeMaster }!
+        XCTAssertEqual(kanto.target, 3)
+        XCTAssertEqual(master.target, 7)
+        XCTAssertFalse(kanto.isCompleted)
+
+        // Add Vaporeon (134), Jolteon (135), Flareon (136)
+        store.addDexEntries([
+            DexEntry(baseID: 133, finalID: 134, chainOrder: [133, 134], rarity: .rare, caughtAt: now),
+            DexEntry(baseID: 133, finalID: 135, chainOrder: [133, 135], rarity: .rare, caughtAt: now),
+            DexEntry(baseID: 133, finalID: 136, chainOrder: [133, 136], rarity: .rare, caughtAt: now)
+        ])
+        XCTAssertTrue(store.achievements.first { $0.type == .eeveeKantoTrio }!.isCompleted)
+        XCTAssertEqual(store.achievements.first { $0.type == .eeveeMaster }!.progress, 3)
+
+        // Claim Kanto Eevees -> awards water stone
+        XCTAssertEqual(store.itemCount(.waterStone), 0)
+        XCTAssertTrue(store.claimAchievement(.eeveeKantoTrio))
+        XCTAssertEqual(store.itemCount(.waterStone), 1)
+
+        // Add Espeon (196), Umbreon (197), Leafeon (470), Glaceon (471)
+        store.addDexEntries([
+            DexEntry(baseID: 133, finalID: 196, chainOrder: [133, 196], rarity: .rare, caughtAt: now),
+            DexEntry(baseID: 133, finalID: 197, chainOrder: [133, 197], rarity: .rare, caughtAt: now),
+            DexEntry(baseID: 133, finalID: 470, chainOrder: [133, 470], rarity: .rare, caughtAt: now),
+            DexEntry(baseID: 133, finalID: 471, chainOrder: [133, 471], rarity: .rare, caughtAt: now)
+        ])
+        XCTAssertTrue(store.achievements.first { $0.type == .eeveeJohtoDuo }!.isCompleted)
+        XCTAssertTrue(store.achievements.first { $0.type == .eeveeSinnohDuo }!.isCompleted)
+        XCTAssertTrue(store.achievements.first { $0.type == .eeveeMaster }!.isCompleted)
+
+        let initialCandies = store.rareCandyCount
+        let initialTokens = store.availableTokens
+        XCTAssertTrue(store.claimAchievement(.eeveeMaster))
+        XCTAssertEqual(store.rareCandyCount, initialCandies + 3)
+        XCTAssertEqual(store.availableTokens, initialTokens + 100_000_000)
+    }
+
+    func testFossilAchievements() {
+        let store = makeStore()
+        let first = store.achievements.first { $0.type == .firstFossil }!
+        let master = store.achievements.first { $0.type == .fossilMaster }!
+        XCTAssertEqual(first.target, 1)
+        XCTAssertEqual(master.target, 9)
+
+        // Add Omastar (139)
+        store.addDexEntry(DexEntry(baseID: 138, finalID: 139, chainOrder: [138, 139], rarity: .rare, caughtAt: now))
+        XCTAssertTrue(store.achievements.first { $0.type == .firstFossil }!.isCompleted)
+        XCTAssertEqual(store.achievements.first { $0.type == .fossilCollector }!.progress, 1)
+
+        // Add Kabutops (141), Aerodactyl (142), Cradily (346), Armaldo (348), Rampardos (409), Bastiodon (411), Carracosta (565), Archeops (567)
+        store.addDexEntries([
+            DexEntry(baseID: 140, finalID: 141, chainOrder: [140, 141], rarity: .rare, caughtAt: now),
+            DexEntry(baseID: 142, finalID: 142, chainOrder: [142], rarity: .rare, caughtAt: now),
+            DexEntry(baseID: 345, finalID: 346, chainOrder: [345, 346], rarity: .rare, caughtAt: now),
+            DexEntry(baseID: 347, finalID: 348, chainOrder: [347, 348], rarity: .rare, caughtAt: now),
+            DexEntry(baseID: 408, finalID: 409, chainOrder: [408, 409], rarity: .rare, caughtAt: now),
+            DexEntry(baseID: 410, finalID: 411, chainOrder: [410, 411], rarity: .rare, caughtAt: now),
+            DexEntry(baseID: 564, finalID: 565, chainOrder: [564, 565], rarity: .rare, caughtAt: now),
+            DexEntry(baseID: 566, finalID: 567, chainOrder: [566, 567], rarity: .rare, caughtAt: now)
+        ])
+        XCTAssertTrue(store.achievements.first { $0.type == .fossilCollector }!.isCompleted)
+        XCTAssertTrue(store.achievements.first { $0.type == .fossilMaster }!.isCompleted)
+
+        XCTAssertTrue(store.claimAchievement(.fossilCollector))
+        XCTAssertEqual(store.itemCount(.magmaStone), 1)
+    }
+
+    func testStoneAndBagAchievements() {
+        let store = makeStore()
+        XCTAssertFalse(store.achievements.first { $0.type == .elementalStones }!.isCompleted)
+        XCTAssertFalse(store.achievements.first { $0.type == .allStonesUsed }!.isCompleted)
+
+        // Seed stones and active companion to use
+        store.state.inventory[ItemKind.fireStone.rawValue] = 1
+        store.state.inventory[ItemKind.waterStone.rawValue] = 1
+        store.state.inventory[ItemKind.thunderStone.rawValue] = 1
+        store.setActiveForTesting(Companion(speciesID: 1, baseID: 1, currentOrderIndex: 0, chainOrder: [1, 2, 3], stage: .basic, rarity: .starter, name: "Bulbasaur"))
+
+        XCTAssertTrue(store.useStone(.fireStone))
+        store.setActiveForTesting(Companion(speciesID: 1, baseID: 1, currentOrderIndex: 0, chainOrder: [1, 2, 3], stage: .basic, rarity: .starter, name: "Bulbasaur"))
+        XCTAssertTrue(store.useStone(.waterStone))
+        store.setActiveForTesting(Companion(speciesID: 1, baseID: 1, currentOrderIndex: 0, chainOrder: [1, 2, 3], stage: .basic, rarity: .starter, name: "Bulbasaur"))
+        XCTAssertTrue(store.useStone(.thunderStone))
+
+        XCTAssertTrue(store.achievements.first { $0.type == .elementalStones }!.isCompleted)
+        XCTAssertEqual(store.achievements.first { $0.type == .allStonesUsed }!.progress, 3)
+
+        // Bag collector (8 items)
+        for kind in [ItemKind.rareCandy, .mint, .shinyCharm, .legendCharm, .silverWing, .clearBell, .rainbowWing, .magmaStone] {
+            store.state.inventory[kind.rawValue] = 1
+        }
+        XCTAssertTrue(store.achievements.first { $0.type == .bagCollector }!.isCompleted)
+    }
+
+    func testShinyAndProductivityAchievements() {
+        let store = makeStore()
+
+        // Shiny starter
+        store.addDexEntry(DexEntry(baseID: 1, finalID: 3, chainOrder: [1, 2, 3], rarity: .starter, isShiny: true, caughtAt: now))
+        XCTAssertTrue(store.achievements.first { $0.type == .shinyLegendOrStarter }!.isCompleted)
+        XCTAssertEqual(store.achievements.first { $0.type == .shinyTrio }!.progress, 1)
+
+        // Streaks and tokens
+        store.state.questState.bestStreak = 100
+        XCTAssertTrue(store.achievements.first { $0.type == .streak60 }!.isCompleted)
+        XCTAssertTrue(store.achievements.first { $0.type == .streak100 }!.isCompleted)
+
+        // Routine
+        store.state.questState.nightOwlTriggered = true
+        store.state.questState.earlyBirdTriggered = true
+        store.state.questState.maxDailyTokens = 150_000_000
+        XCTAssertTrue(store.achievements.first { $0.type == .nightOwl }!.isCompleted)
+        XCTAssertTrue(store.achievements.first { $0.type == .earlyBird }!.isCompleted)
+        XCTAssertTrue(store.achievements.first { $0.type == .dailyMarathon }!.isCompleted)
     }
 }
