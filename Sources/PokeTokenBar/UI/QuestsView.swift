@@ -43,23 +43,88 @@ struct QuestsView: View {
 
     private var streakBanner: some View {
         HStack(spacing: 12) {
-            QuestIconView(icon: .redChain, size: 34)
-            VStack(alignment: .leading, spacing: 2) {
+            ZStack {
+                Circle()
+                    .fill(
+                        store.isStreakActiveToday
+                            ? LinearGradient(
+                                colors: [Color.orange.opacity(0.28), Color.red.opacity(0.16)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                            : LinearGradient(
+                                colors: [Color.secondary.opacity(0.12), Color.secondary.opacity(0.05)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                    )
+                    .frame(width: 36, height: 36)
+
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(
+                        store.isStreakActiveToday
+                            ? LinearGradient(colors: [Color.orange, Color.red], startPoint: .top, endPoint: .bottom)
+                            : LinearGradient(colors: [Color.secondary, Color.secondary.opacity(0.6)], startPoint: .top, endPoint: .bottom)
+                    )
+            }
+
+            VStack(alignment: .leading, spacing: 3) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(l.streakTitle(days: store.currentStreak))
                         .font(.callout.weight(.bold))
                     Spacer()
-                    Text(l.bestStreakTitle(days: store.bestStreak))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                    HStack(spacing: 4) {
+                        Image(systemName: "trophy.fill")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(Color.yellow)
+                        Text(l.bestStreakTitle(days: store.bestStreak))
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.secondary.opacity(0.10), in: Capsule())
                 }
-                Text(store.isStreakActiveToday ? l.streakActiveToday : l.streakInactiveToday)
-                    .font(.caption)
-                    .foregroundStyle(store.isStreakActiveToday ? Color.green : Color.secondary)
+
+                HStack(spacing: 5) {
+                    Circle()
+                        .fill(store.isStreakActiveToday ? Color.green : Color.secondary.opacity(0.5))
+                        .frame(width: 6, height: 6)
+                    Text(store.isStreakActiveToday ? l.streakActiveToday : l.streakInactiveToday)
+                        .font(.caption2)
+                        .foregroundStyle(store.isStreakActiveToday ? Color.green : Color.secondary)
+                }
             }
         }
-        .padding(10)
-        .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+        .padding(.horizontal, 11)
+        .padding(.vertical, 9)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(
+                    store.isStreakActiveToday
+                        ? LinearGradient(
+                            colors: [Color.orange.opacity(0.09), Color.accentColor.opacity(0.03)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                        : LinearGradient(
+                            colors: [Color.secondary.opacity(0.06), Color.secondary.opacity(0.02)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(
+                    store.isStreakActiveToday
+                        ? Color.orange.opacity(0.24)
+                        : Color.secondary.opacity(0.14),
+                    lineWidth: 1
+                )
+        )
     }
 
     @ViewBuilder

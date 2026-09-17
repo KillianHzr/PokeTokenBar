@@ -1284,7 +1284,7 @@ struct L {
         t("최고 기록: \(days)일", "Best: \(days) days", "最高記録: \(days)日", "Récord: \(days) días", "Record : \(days) jours", "Recorde: \(days) dias", "Rekord: \(days) Tage")
     }
     var streakActiveToday: String {
-        t("오늘 코딩 완료 🔥", "Streak extended today 🔥", "今日コーディング完了 🔥", "¡Racha activa hoy! 🔥", "Série validée aujourd'hui 🔥", "Sequência ativa hoje 🔥", "Streak heute aktiv 🔥")
+        t("오늘 코딩 완료", "Streak extended today", "今日コーディング完了", "¡Racha activa hoy!", "Série validée aujourd'hui", "Sequência ativa hoje", "Streak heute aktiv")
     }
     var streakInactiveToday: String {
         t("오늘 토큰을 쓰면 연속 기록이 이어져요", "Burn tokens today to keep your streak alive", "今日トークンを使うと継続します", "Usa tokens hoy para mantener tu racha", "Consommez des tokens pour continuer la série", "Use tokens hoje para manter a sequência", "Verbrauche heute Tokens, um den Streak zu halten")
