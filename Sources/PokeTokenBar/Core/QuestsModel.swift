@@ -399,23 +399,23 @@ public enum AchievementType: String, Codable, Sendable, CaseIterable {
         if let badgeType { return QuestReward(item: badgeType.badgeItem.rawValue) }
         switch self {
         case .firstHatch: return QuestReward(candies: 1)
-        case .firstEvolve: return QuestReward(candies: 1, tokens: 5_000_000, item: ItemKind.thunderStone.rawValue)
+        case .firstEvolve: return QuestReward(item: ItemKind.thunderStone.rawValue)
         case .firstGraduate: return QuestReward(candies: 1, tokens: 10_000_000)
         case .squad5: return QuestReward(candies: 2, tokens: 25_000_000)
         case .dex15: return QuestReward(candies: 3, tokens: 50_000_000)
         case .dex30: return QuestReward(candies: 5, tokens: 100_000_000)
         case .shinyHunter: return QuestReward(candies: 3, tokens: 50_000_000)
-        case .streak3: return QuestReward(tokens: 2_000_000, item: ItemKind.fireStone.rawValue)
-        case .streak7: return QuestReward(candies: 1, tokens: 5_000_000, item: ItemKind.leafStone.rawValue)
-        case .streak14: return QuestReward(candies: 2, tokens: 15_000_000, item: ItemKind.thunderStone.rawValue)
-        case .streak30: return QuestReward(candies: 3, tokens: 30_000_000, item: ItemKind.sunStone.rawValue)
+        case .streak3: return QuestReward(item: ItemKind.fireStone.rawValue)
+        case .streak7: return QuestReward(item: ItemKind.leafStone.rawValue)
+        case .streak14: return QuestReward(item: ItemKind.thunderStone.rawValue)
+        case .streak30: return QuestReward(item: ItemKind.sunStone.rawValue)
         case .tokens100M: return QuestReward(tokens: 5_000_000)
         case .tokens1B: return QuestReward(candies: 1, tokens: 25_000_000)
         case .tokens5B: return QuestReward(candies: 2, tokens: 50_000_000)
         case .tokens10B: return QuestReward(candies: 3, tokens: 100_000_000)
         case .candyUser: return QuestReward(tokens: 10_000_000)
         case .shopSpender: return QuestReward(tokens: 25_000_000)
-        case .limitBreaker: return QuestReward(candies: 1, tokens: 5_000_000, item: ItemKind.moonStone.rawValue)
+        case .limitBreaker: return QuestReward(item: ItemKind.moonStone.rawValue)
         case .duplicateLegendary: return QuestReward(item: ItemKind.legendCharm.rawValue)
         case .legendaryBirds: return QuestReward(item: ItemKind.silverWing.rawValue)
         case .kantoDuo: return QuestReward(item: ItemKind.oldSeaMap.rawValue)
@@ -430,17 +430,17 @@ public enum AchievementType: String, Codable, Sendable, CaseIterable {
         case .forcesOfNature: return QuestReward(item: ItemKind.revealGlass.rawValue)
         case .taoDuo: return QuestReward(item: ItemKind.dnaSplicers.rawValue)
         case .kantoStarters:
-            return QuestReward(candies: 3, tokens: 50_000_000, item: ItemKind.leafStone.rawValue)
+            return QuestReward(item: ItemKind.leafStone.rawValue)
         case .johtoStarters:
-            return QuestReward(candies: 3, tokens: 50_000_000, item: ItemKind.fireStone.rawValue)
+            return QuestReward(item: ItemKind.fireStone.rawValue)
         case .hoennStarters:
-            return QuestReward(candies: 3, tokens: 50_000_000, item: ItemKind.waterStone.rawValue)
+            return QuestReward(item: ItemKind.waterStone.rawValue)
         case .sinnohStarters:
-            return QuestReward(candies: 3, tokens: 50_000_000, item: ItemKind.sunStone.rawValue)
+            return QuestReward(item: ItemKind.sunStone.rawValue)
         case .unovaStarters:
-            return QuestReward(candies: 3, tokens: 50_000_000, item: ItemKind.moonStone.rawValue)
+            return QuestReward(item: ItemKind.moonStone.rawValue)
         case .starterMaster:
-            return QuestReward(candies: 5, tokens: 100_000_000)
+            return QuestReward(candies: 5, tokens: 500_000_000)
         default: return QuestReward()
         }
     }

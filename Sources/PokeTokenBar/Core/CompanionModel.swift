@@ -52,8 +52,8 @@ enum AppLanguage: String, Codable, Sendable, CaseIterable {
 }
 
 /// 희귀도 — PokéAPI capture_rate / is_legendary 로 판정.
-enum Rarity: String, Codable, Sendable {
-    case common, uncommon, rare, legendary
+enum Rarity: String, Codable, Sendable, CaseIterable {
+    case common, uncommon, rare, legendary, starter
     /// 등급 크기(높을수록 희귀) — 두 `Rarity` 를 비교하기 위한 순위.
     /// **목록 정렬용이 아니다**: 포획 로그는 기록 시각순, 도감은 도감 번호순이고 희귀도는 필터로만 좁힌다.
     /// 유일한 소비자는 프리미엄 알의 보증 관문(`hatch` 의 `line.rarity.sortRank < tier.sortRank`) —
@@ -63,7 +63,7 @@ enum Rarity: String, Codable, Sendable {
         switch self {
         case .common:    return 0
         case .uncommon:  return 1
-        case .rare:      return 2
+        case .rare, .starter: return 2
         case .legendary: return 3
         }
     }
@@ -77,7 +77,7 @@ enum Rarity: String, Codable, Sendable {
     /// 필터에는 자연스럽게 포함된다("고급 이상"·"희귀 이상" 규칙이 그대로 성립).
     var captureRateCeiling: Int? {
         switch self {
-        case .rare:      return 45
+        case .rare, .starter: return 45
         case .uncommon:  return 120
         case .common:    return 255
         case .legendary: return nil
@@ -108,7 +108,7 @@ enum PokemonBalance {
         switch rarity {
         case .common:    return    750_000_000
         case .uncommon:  return  1_875_000_000
-        case .rare:      return  3_000_000_000
+        case .rare, .starter: return  3_000_000_000
         case .legendary: return  6_000_000_000
         }
     }

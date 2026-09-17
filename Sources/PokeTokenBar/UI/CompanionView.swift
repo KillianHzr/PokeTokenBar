@@ -4,6 +4,7 @@ func rarityColor(_ r: Rarity?) -> Color {
     switch r {
     case .uncommon: return .green
     case .rare: return .blue
+    case .starter: return .cyan
     case .legendary: return .orange
     default: return .gray
     }

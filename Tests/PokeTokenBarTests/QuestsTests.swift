@@ -383,8 +383,8 @@ final class QuestsTests: XCTestCase {
         let initialTokens = store.availableTokens
         XCTAssertEqual(store.itemCount(.leafStone), 0)
         XCTAssertTrue(store.claimAchievement(.kantoStarters))
-        XCTAssertEqual(store.rareCandyCount, initialCandies + 3)
-        XCTAssertEqual(store.availableTokens, initialTokens + 50_000_000)
+        XCTAssertEqual(store.rareCandyCount, initialCandies)
+        XCTAssertEqual(store.availableTokens, initialTokens)
         XCTAssertEqual(store.itemCount(.leafStone), 1)
 
         // 6. Add Johto starters (#154, #157, #160)
@@ -440,7 +440,7 @@ final class QuestsTests: XCTestCase {
         let tokensBeforeMaster = store.availableTokens
         XCTAssertTrue(store.claimAchievement(.starterMaster))
         XCTAssertEqual(store.rareCandyCount, candiesBeforeMaster + 5)
-        XCTAssertEqual(store.availableTokens, tokensBeforeMaster + 100_000_000)
+        XCTAssertEqual(store.availableTokens, tokensBeforeMaster + 500_000_000)
     }
 
     func testEvolutionStoneUsageAndEggTypeGuarantee() async {
@@ -473,7 +473,7 @@ final class QuestsTests: XCTestCase {
         XCTAssertFalse(store.useStone(.waterStone))
 
         // Progress egg to hatch threshold
-        store.state.eggUsage = store.eggHatchThreshold
+        store.setEggUsageForTesting(store.eggHatchThreshold)
         await store.hatchIfNeeded()
 
         // Hatched companion should be Charmander (#4) because it's Fire type
@@ -489,7 +489,7 @@ final class QuestsTests: XCTestCase {
         XCTAssertEqual(store.eggTypeGuarantee, .water)
 
         // Progress and hatch water egg
-        store.state.eggUsage = store.eggHatchThreshold
+        store.setEggUsageForTesting(store.eggHatchThreshold)
         await store.hatchIfNeeded()
 
         // Hatched companion should be Squirtle (#7) because it's Water type

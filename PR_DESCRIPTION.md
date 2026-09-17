@@ -14,8 +14,8 @@ This PR introduces a complete quest and achievement progression system, producti
    - **Cumulative Weakness Boost Mechanic**: Earning a type badge grants a passive item in the Bag that makes Pokémon types weak to this badge appear more frequently in eggs and grow 20% faster (reducing required growth thresholds by 20% per effective badge, stacking cumulatively). For the Plain Badge (since no type is defensively weak to Normal), it boosts all Normal-type Pokémon.
 5. **Fully Evolved Starter Trios & Master Achievement**:
    - Achievements for registering all 3 fully evolved starter Pokémon in your Pokédex for each generation (Gen 1–5): Kanto Starters, Johto Starters, Hoenn Starters, Sinnoh Starters, and Unova Starters.
-   - Each generation trio awards 3 Rare Candies and 50M tokens.
-   - Completing all 15 fully evolved starters unlocks the **Starter Master** milestone, awarding 5 Rare Candies and 100M tokens.
+   - Each generation trio awards that generation's evolution stone (Leaf Stone for Kanto, Fire Stone for Johto, Water Stone for Hoenn, Sun Stone for Sinnoh, Moon Stone for Unova).
+   - Completing all 15 fully evolved starters unlocks the **Starter Master** milestone, awarding 5 Rare Candies and 500M tokens.
 6. **Usable Elemental Evolution Stones (Type-Guaranteed Eggs)**:
    - 10 canonical evolution stones added as usable Bag items: Leaf Stone (Grass), Fire Stone (Fire), Water Stone (Water), Thunder Stone (Electric), Sun Stone (Psychic), Moon Stone (Fairy), Ice Stone (Ice), Dusk Stone (Dark), Dawn Stone (Fighting), and Shiny Stone (Dragon).
    - Awarded through starter trio achievements and streak milestones (e.g. Kanto Starters -> Leaf Stone, Johto Starters -> Fire Stone, Hoenn Starters -> Water Stone, Sinnoh Starters -> Sun Stone, Unova Starters -> Moon Stone).

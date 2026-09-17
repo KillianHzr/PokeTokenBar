@@ -149,12 +149,17 @@ final class CompanionStore {
     }
 
     /// 난이도를 반영한 알 부화 임계.
-    private var eggHatchThreshold: Int {
+    var eggHatchThreshold: Int {
         var threshold = PokemonBalance.scaled(PokemonBalance.eggHatchThreshold, by: growthDifficulty)
         if ownsSilverWing {
             threshold = max(1_000_000, threshold / 2)
         }
         return threshold
+    }
+
+    /// 테스트용 알 사용량 주입.
+    func setEggUsageForTesting(_ usage: Int) {
+        state.eggUsage = usage
     }
 
     /// 난이도를 반영한 단계 임계. **`PokemonBalance.phaseThreshold` 를 직접 부르지 않는다** —
