@@ -24,9 +24,11 @@ enum SaveSnapshotManager {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "2.5.0"
     }
 
-    /// Directory where local snapshots are stored: `<stateDir>/snapshots/`
-    static func snapshotsDirectory(for stateFileURL: URL) -> URL {
-        let dir = stateFileURL.deletingLastPathComponent().appendingPathComponent("snapshots")
+    /// Directory where local snapshots are stored: `<stateDir>/.snapshots/<stateFileName>/`
+    static func snapshotsDirectory(for stateURL: URL) -> URL {
+        let dir = stateURL.deletingLastPathComponent()
+            .appendingPathComponent(".snapshots")
+            .appendingPathComponent(stateURL.lastPathComponent, isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }
@@ -170,5 +172,11 @@ enum SaveSnapshotManager {
     /// Returns the most recent valid snapshot, if any.
     static func latestSnapshot(for stateFileURL: URL) -> SaveSnapshot? {
         listSnapshots(for: stateFileURL).first
+    }
+
+    /// Loads the latest valid snapshot as CompanionState, if available.
+    static func loadLatestValidSnapshot(for stateFileURL: URL) -> CompanionState? {
+        guard let latest = latestSnapshot(for: stateFileURL) else { return nil }
+        return loadState(from: latest.fileURL)
     }
 }
