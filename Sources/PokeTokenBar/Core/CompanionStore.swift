@@ -96,7 +96,6 @@ final class CompanionStore {
         migratePokemonProfilesIfNeeded()
         refreshRepresentativeSubject()
         refreshSnapshots()
-        autoSnapshotIfNeeded()
         if state.active != nil { displayState = .idle }
     }
 
@@ -606,6 +605,7 @@ final class CompanionStore {
         displayState = computeState(burnTier: burnTier, limitWarning: limitWarning,
                                     hasUsageData: hasUsageData, today: todayTokens)
         save()
+        autoSnapshotIfNeeded()
     }
 
     /// 토큰 증분을 현재 포켓몬에 적용 — 임계 도달 시 진화/졸업.
@@ -1410,15 +1410,22 @@ final class CompanionStore {
         return snapshot
     }
 
+    private var automaticSnapshotInterval: TimeInterval {
+        SaveSnapshotManager.minAutoSnapshotInterval
+    }
+
     func autoSnapshotIfNeeded(now: Date? = nil) {
         let timestamp = now ?? clock()
-        guard state.usedSinceInstall > 0 || !state.dex.isEmpty || state.active != nil else { return }
-        if let last = lastAutoSnapshotDate {
-            guard timestamp.timeIntervalSince(last) >= SaveSnapshotManager.minAutoSnapshotInterval else { return }
-        } else if let latest = SaveSnapshotManager.latestSnapshot(for: fileURL) {
-            lastAutoSnapshotDate = latest.date
-            guard timestamp.timeIntervalSince(latest.date) >= SaveSnapshotManager.minAutoSnapshotInterval else { return }
+        let newest = availableSnapshots.first
+
+        guard newest == nil ||
+              timestamp.timeIntervalSince(newest!.date) >= automaticSnapshotInterval
+        else {
+            return
         }
+
+        guard state.usedSinceInstall > 0 || !state.dex.isEmpty || state.active != nil else { return }
+
         _ = try? createManualSnapshot(now: timestamp)
     }
 
@@ -1577,17 +1584,22 @@ final class CompanionStore {
     private func load() {
         guard let data = try? Data(contentsOf: fileURL) else { return }   // 파일 없음 = 신규 설치
         guard let s = try? JSONDecoder().decode(CompanionState.self, from: data) else {
-            // 디코드 실패(전면 손상/미래 스키마) → .corrupt 로 보존한 뒤 자동 복구 또는 fresh 로 시작.
+            // 디코드 실패(전면 손상/미래 스키마) → 원본을 .corrupt 로 백업 후 유효한 스냅샷으로 복구 시도.
             let backup = fileURL.appendingPathExtension("corrupt")
             try? FileManager.default.removeItem(at: backup)
-            try? FileManager.default.moveItem(at: fileURL, to: backup)
-            AppLog.write("companion state decode failed — original backed up to \(backup.lastPathComponent)")
-            if let latest = SaveSnapshotManager.latestSnapshot(for: fileURL),
-               let recovered = SaveSnapshotManager.loadState(from: latest.fileURL) {
+            do {
+                try FileManager.default.moveItem(at: fileURL, to: backup)
+                AppLog.write("companion state decode failed — original backed up to \(backup.lastPathComponent)")
+            } catch {
+                AppLog.write("failed to move corrupt state file to \(backup.lastPathComponent): \(error)")
+            }
+
+            if let recovered = SaveSnapshotManager.loadLatestValidSnapshot(for: fileURL) {
                 state = SaveTransfer.sanitized(recovered)
-                AppLog.write("automatically recovered companion state from snapshot: \(latest.id)")
+                AppLog.write("automatically recovered companion state from snapshot")
                 save()
             } else {
+                state = CompanionState()
                 AppLog.write("no snapshot available, starting fresh")
             }
             return
@@ -1601,6 +1613,5 @@ final class CompanionStore {
         refreshRepresentativeSubject()
         guard let data = try? JSONEncoder().encode(state) else { return }
         try? data.write(to: fileURL, options: .atomic)   // 부분 쓰기 손상 방지(펫 상태)
-        autoSnapshotIfNeeded()
     }
 }
