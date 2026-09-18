@@ -53,10 +53,12 @@ final class DexSearchAndFilterTests: XCTestCase {
             ]
         )
 
-        let store = CompanionStore(provider: MockPokeProvider(), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: 42))
-        store.state.dex = [entryBulbasaur, entryPikachu, entryMewtwo]
-        store.state.language = .en
-        return store
+        var state = CompanionState()
+        state.dex = [entryBulbasaur, entryPikachu, entryMewtwo]
+        state.language = .en
+        try? JSONEncoder().encode(state).write(to: url)
+
+        return CompanionStore(provider: MockPokeProvider(), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: 42))
     }
 
     func testDexSpeciesSearchByIDAndName() {
@@ -140,14 +142,16 @@ final class DexSearchAndFilterTests: XCTestCase {
         let nameAsc = store.filteredDexSpecies(sort: .nameAsc)
         let names = nameAsc.map(\.name)
         for i in 0..<(names.count - 1) {
-            XCTAssertLessThanOrEqual(names[i].localizedCompare(names[i + 1]), .orderedSame)
+            let result = names[i].localizedCompare(names[i + 1])
+            XCTAssertTrue(result == .orderedAscending || result == .orderedSame)
         }
 
         // Name Desc
         let nameDesc = store.filteredDexSpecies(sort: .nameDesc)
         let descNames = nameDesc.map(\.name)
         for i in 0..<(descNames.count - 1) {
-            XCTAssertGreaterThanOrEqual(descNames[i].localizedCompare(descNames[i + 1]), .orderedSame)
+            let result = descNames[i].localizedCompare(descNames[i + 1])
+            XCTAssertTrue(result == .orderedDescending || result == .orderedSame)
         }
 
         // Rarity Desc
@@ -208,7 +212,6 @@ final class DexSearchAndFilterTests: XCTestCase {
     }
 
     func testSortOptionLabelsExistInAllLanguages() {
-        let store = createTestStore()
         let languages: [AppLanguage] = [.ko, .en, .ja, .es, .fr, .pt, .de]
 
         for lang in languages {
