@@ -1557,11 +1557,14 @@ final class ClaudeSessionIDTests: XCTestCase {
         // The cache keys blobs by the enumerated path (/var resolves to /private/var): take it the same way.
         let key = try XCTUnwrap(FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil)?
             .compactMap { $0 as? URL }.first { $0.lastPathComponent == "sess-1.jsonl" }).path
-        let snapshot: [String: Any] = ["claude": [key: [
-            "mtime": try XCTUnwrap(values.contentModificationDate).timeIntervalSinceReferenceDate,
-            "size": try XCTUnwrap(values.fileSize),
-            "entries": entries,
-        ]]]
+        let snapshot: [String: Any] = [
+            "claudeParserVersion": 1,
+            "claude": [key: [
+                "mtime": try XCTUnwrap(values.contentModificationDate).timeIntervalSinceReferenceDate,
+                "size": try XCTUnwrap(values.fileSize),
+                "entries": entries,
+            ]],
+        ]
         let cacheFile = root.appendingPathComponent("usage-cache.json")
         try JSONSerialization.data(withJSONObject: snapshot).write(to: cacheFile)
         XCTAssertFalse(String(decoding: try Data(contentsOf: cacheFile), as: UTF8.self).contains("sessionID"))

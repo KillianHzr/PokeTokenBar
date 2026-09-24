@@ -42,13 +42,14 @@ final class ClaudeReportedCostTests: XCTestCase {
     /// The regression: a model with no price-table rate used to aggregate as unavailable ("$—")
     /// even though Claude had already priced it in the same file.
     func testUnpricedModelUsesReportedCost() {
-        XCTAssertNil(ModelPricing.estimatedCost(model: "claude-opus-5", input: 10, output: 10,
+        let model = "claude-future-unpriced-model"
+        XCTAssertNil(ModelPricing.estimatedCost(model: model, input: 10, output: 10,
                                                 cacheWrite: 0, cacheRead: 0),
-                     "precondition: the table has no claude-opus-5 rate")
+                     "precondition: the table has no rate for the fixture model")
 
         let entries = parse([
-            assistant(id: "a", model: "claude-opus-5", ts: "2026-09-15T10:00:00.000Z", input: 100, output: 50),
-            costState(["claude-opus-5[1m]": 12.5]),
+            assistant(id: "a", model: model, ts: "2026-09-15T10:00:00.000Z", input: 100, output: 50),
+            costState(["\(model)[1m]": 12.5]),
         ])
         let b = bucket(entries)
 
@@ -130,7 +131,7 @@ final class ClaudeReportedCostTests: XCTestCase {
         XCTAssertTrue(pb.costCoverage.estimated)
 
         let unpriced = parse([
-            assistant(id: "a", model: "claude-opus-5", ts: "2026-09-15T10:00:00.000Z", input: 1_000_000),
+            assistant(id: "a", model: "claude-future-unpriced-model", ts: "2026-09-15T10:00:00.000Z", input: 1_000_000),
         ])
         let ub = bucket(unpriced)
         XCTAssertEqual(ub.cost, 0)
