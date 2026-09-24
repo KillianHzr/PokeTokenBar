@@ -12,7 +12,6 @@ final class DexSearchAndFilterTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1_700_000_000)
 
     private func createTestStore() -> CompanionStore {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("dex-search-\(UUID().uuidString).json")
         let entryBulbasaur = DexEntry(
             id: "entry-1",
             baseID: 1,
@@ -53,8 +52,13 @@ final class DexSearchAndFilterTests: XCTestCase {
             ]
         )
 
+        return makeStore(dex: [entryBulbasaur, entryPikachu, entryMewtwo])
+    }
+
+    private func makeStore(dex: [DexEntry]) -> CompanionStore {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("dex-search-\(UUID().uuidString).json")
         var state = CompanionState()
-        state.dex = [entryBulbasaur, entryPikachu, entryMewtwo]
+        state.dex = dex
         state.language = .en
         try? JSONEncoder().encode(state).write(to: url)
 
@@ -72,6 +76,10 @@ final class DexSearchAndFilterTests: XCTestCase {
         let byHashID = store.filteredDexSpecies(query: "#150")
         XCTAssertEqual(byHashID.count, 1)
         XCTAssertEqual(byHashID.first?.id, 150)
+
+        // Partial number, with or without the # prefix
+        XCTAssertEqual(store.filteredDexSpecies(query: "15").map(\.id), [150])
+        XCTAssertEqual(store.filteredDexEntries(query: "#15").map(\.id), ["entry-3"])
 
         // Search by English name
         let byName = store.filteredDexSpecies(query: "Venusaur")
@@ -98,6 +106,35 @@ final class DexSearchAndFilterTests: XCTestCase {
         // Empty query matches all
         let all = store.filteredDexSpecies(query: "")
         XCTAssertEqual(all.count, store.dexSpecies.count)
+    }
+
+    /// Regression: both screens used `localizedCaseInsensitiveContains`, which keeps accents, so
+    /// "flabebe" missed Flabébé although the PR promised diacritic-insensitive name search.
+    func testNameSearchIgnoresCaseAndDiacriticsInPokedexAndCatchLog() {
+        let flabebe = DexEntry(
+            id: "entry-flabebe",
+            baseID: 669,
+            finalID: 669,
+            chainOrder: [669],
+            rarity: .common,
+            caughtAt: Date(timeIntervalSince1970: 1_700_000_400),
+            names: [669: ["ko": "플라베베", "en": "Flabébé", "fr": "Flabébé"]]
+        )
+        let pikachu = DexEntry(
+            id: "entry-pikachu",
+            baseID: 25,
+            finalID: 25,
+            chainOrder: [25],
+            rarity: .rare,
+            caughtAt: Date(timeIntervalSince1970: 1_700_000_500),
+            names: [25: ["ko": "피카츄", "en": "Pikachu", "fr": "Pikachu"]]
+        )
+        let store = makeStore(dex: [flabebe, pikachu])
+
+        for query in ["flabebe", "FLABEBE", "Flabébé", "flabébe"] {
+            XCTAssertEqual(store.filteredDexSpecies(query: query).map(\.id), [669], "Pokédex: \(query)")
+            XCTAssertEqual(store.filteredDexEntries(query: query).map(\.id), ["entry-flabebe"], "Catch Log: \(query)")
+        }
     }
 
     func testDexSpeciesFilterByShinyAndRarity() {

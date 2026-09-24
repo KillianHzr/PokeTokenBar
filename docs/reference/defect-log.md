@@ -680,6 +680,12 @@ read_when:
   리터럴 안의 `//` 를 주석으로 오인하면 진짜 결함을 놓친다(역검증에서 이 케이스로 반증함).
   새 프로바이더 UI 를 붙일 땐 같은 부류의 형제 문구(여기선 `claudeAuthExpiredTitle/Hint`)를 먼저 찾아
   문안 구조까지 맞춘다 — 문구만 새로 지으면 같은 화면에서 두 안내가 다른 말투로 갈린다.
+- **`localizedCaseInsensitiveContains` ignores case, not diacritics.** Pokédex and Catch Log search
+  promised accent-insensitive names but each screen had its own matcher built on it, so "flabebe"
+  missed Flabébé; the tests only searched ASCII names. Name search goes through the one shared
+  `CompanionStore.DexSearchMatcher` (`.caseInsensitive` + `.diacriticInsensitive`), and any new
+  searchable list reuses it instead of adding a matcher. Guard:
+  `testNameSearchIgnoresCaseAndDiacriticsInPokedexAndCatchLog` queries both screens.
 
 ## 에너지 (상시 표시 애니메이션)
 

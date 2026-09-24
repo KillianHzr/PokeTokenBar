@@ -504,64 +504,37 @@ final class CompanionStore {
         return "#\(targetID)"
     }
 
-    /// Checks whether a DexSpecies matches a search query by ID or localized name.
-    func dexSpeciesMatches(_ species: DexSpecies, query: String) -> Bool {
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return true }
+    /// The one search rule shared by the Pokédex grid and the Catch Log, so the two screens cannot
+    /// drift apart. A query matches a Pokédex number (`25` or `#25`) or part of any stored name
+    /// in any language, ignoring case and diacritics ("flabebe" finds Flabébé).
+    struct DexSearchMatcher: Sendable {
+        private let query: String
+        private let number: Int?
 
-        let cleanQuery = trimmed.hasPrefix("#") ? String(trimmed.dropFirst()) : trimmed
-        if let num = Int(cleanQuery), species.id == num {
-            return true
+        /// `nil` for a blank query, which filters nothing out.
+        init?(_ rawQuery: String) {
+            let trimmed = rawQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return nil }
+            query = trimmed
+            number = Int(trimmed.hasPrefix("#") ? String(trimmed.dropFirst()) : trimmed)
         }
 
-        if species.name.localizedCaseInsensitiveContains(trimmed) {
-            return true
+        func matches(_ species: DexSpecies) -> Bool {
+            matches(ids: [species.id], names: [species.name] + (species.names.map { Array($0.values) } ?? []))
         }
 
-        if "#\(species.id)".localizedCaseInsensitiveContains(trimmed) {
-            return true
+        /// An individual matches through any species of its chain, like its evolution line in the log row.
+        func matches(_ entry: DexEntry) -> Bool {
+            matches(ids: [entry.baseID, entry.finalID] + entry.chainOrder,
+                    names: entry.names?.values.flatMap(\.values) ?? [])
         }
 
-        if let names = species.names {
-            for name in names.values {
-                if name.localizedCaseInsensitiveContains(trimmed) {
-                    return true
-                }
-            }
+        private func matches(ids: [Int], names: [String]) -> Bool {
+            if let number, ids.contains(number) { return true }
+            // Partial numbers keep working: "25" also finds #125, "#25" finds #25 and #250.
+            if ids.contains(where: { "#\($0)".contains(query) }) { return true }
+            return names.contains { $0.range(of: query, options: [.caseInsensitive, .diacriticInsensitive]) != nil }
         }
-
-        return false
-    }
-
-    /// Checks whether a DexEntry matches a search query by ID, chain species, or localized names.
-    func dexEntryMatches(_ entry: DexEntry, query: String) -> Bool {
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return true }
-
-        let cleanQuery = trimmed.hasPrefix("#") ? String(trimmed.dropFirst()) : trimmed
-        if let num = Int(cleanQuery) {
-            if entry.chainOrder.contains(num) || entry.finalID == num || entry.baseID == num {
-                return true
-            }
-        }
-
-        for id in entry.chainOrder {
-            if "#\(id)".localizedCaseInsensitiveContains(trimmed) || "\(id)".localizedCaseInsensitiveContains(trimmed) {
-                return true
-            }
-        }
-
-        if let namesDict = entry.names {
-            for (_, langNames) in namesDict {
-                for name in langNames.values {
-                    if name.localizedCaseInsensitiveContains(trimmed) {
-                        return true
-                    }
-                }
-            }
-        }
-
-        return false
     }
 
     /// Filters and sorts DexSpecies for the Pokédex grid.
@@ -578,9 +551,8 @@ final class CompanionStore {
         if shinyOnly {
             result = result.filter { $0.isShiny }
         }
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmed.isEmpty {
-            result = result.filter { dexSpeciesMatches($0, query: trimmed) }
+        if let matcher = DexSearchMatcher(query) {
+            result = result.filter { matcher.matches($0) }
         }
         return sortDexSpecies(result, by: sort)
     }
@@ -626,9 +598,8 @@ final class CompanionStore {
         if shinyOnly {
             result = result.filter { $0.isShiny }
         }
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmed.isEmpty {
-            result = result.filter { dexEntryMatches($0, query: trimmed) }
+        if let matcher = DexSearchMatcher(query) {
+            result = result.filter { matcher.matches($0) }
         }
         return sortDexEntries(result, by: sort)
     }
