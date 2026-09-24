@@ -1612,8 +1612,11 @@ final class CompanionStore {
         todayDate: String = "",
         hasUsageData: Bool = false
     ) throws {
-        _ = try? createManualSnapshot()
+        // Read and validate the selected snapshot before taking the safety snapshot: at the retention
+        // limit, that extra file prunes the oldest one, which may be the snapshot being restored.
+        // A snapshot that no longer decodes also fails here, before anything is written or pruned.
         let envelope = try SaveSnapshotManager.loadEnvelope(from: snapshot.fileURL)
+        _ = try? createManualSnapshot()
         try applySave(envelope,
                       todayTokensByProvider: todayTokensByProvider,
                       todayDate: todayDate,

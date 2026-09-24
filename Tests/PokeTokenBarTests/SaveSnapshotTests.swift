@@ -157,6 +157,60 @@ final class SaveSnapshotTests: XCTestCase {
         XCTAssertTrue(snapshots.contains { $0.lifetimeTokens == 90_000 && $0.dexCount == 4 })
     }
 
+    func testRestoreOldestSnapshotAtRetentionLimit() throws {
+        let url = tempURL("restore-oldest-at-limit")
+        let clock = MutableClock(baseNow)
+
+        // Fill the retention limit exactly; the oldest entry carries distinct progress.
+        for i in 0..<SaveSnapshotManager.maxSnapshotsToKeep {
+            let state = sampleState(tokens: 10_000 + i * 1_000, dexCount: i + 1)
+            try SaveSnapshotManager.createSnapshot(state: state, for: url, date: baseNow.addingTimeInterval(Double(i * 3600)))
+        }
+
+        let current = sampleState(tokens: 99_000, dexCount: 12)
+        try JSONEncoder().encode(current).write(to: url)
+        clock.now = baseNow.addingTimeInterval(Double(SaveSnapshotManager.maxSnapshotsToKeep * 3600))
+        let store = CompanionStore(provider: OfflineProvider(), clock: { clock.now }, fileURL: url)
+        XCTAssertEqual(store.availableSnapshots.count, SaveSnapshotManager.maxSnapshotsToKeep)
+        let oldest = try XCTUnwrap(store.availableSnapshots.last)
+        XCTAssertEqual(oldest.lifetimeTokens, 10_000)
+
+        // The pre-restore safety snapshot is the 11th file and prunes the selected one.
+        try store.restoreSnapshot(oldest)
+
+        XCTAssertEqual(store.state.usedSinceInstall, 10_000)
+        XCTAssertEqual(store.state.dex.count, 1)
+        XCTAssertEqual(store.availableSnapshots.count, SaveSnapshotManager.maxSnapshotsToKeep)
+        XCTAssertTrue(store.availableSnapshots.contains { $0.lifetimeTokens == 99_000 && $0.dexCount == 12 })
+    }
+
+    func testRestoreUnreadableSnapshotLeavesStateAndSnapshotsUntouched() throws {
+        let url = tempURL("restore-unreadable")
+        let clock = MutableClock(baseNow)
+
+        for i in 0..<SaveSnapshotManager.maxSnapshotsToKeep {
+            let state = sampleState(tokens: 10_000 + i * 1_000, dexCount: i + 1)
+            try SaveSnapshotManager.createSnapshot(state: state, for: url, date: baseNow.addingTimeInterval(Double(i * 3600)))
+        }
+
+        let current = sampleState(tokens: 99_000, dexCount: 12)
+        try JSONEncoder().encode(current).write(to: url)
+        clock.now = baseNow.addingTimeInterval(Double(SaveSnapshotManager.maxSnapshotsToKeep * 3600))
+        let store = CompanionStore(provider: OfflineProvider(), clock: { clock.now }, fileURL: url)
+        let selected = try XCTUnwrap(store.availableSnapshots.first)
+        let before = store.availableSnapshots.map(\.id)
+
+        // The listed file goes bad before the user confirms the restore.
+        try Data("corrupted invalid json".utf8).write(to: selected.fileURL)
+
+        XCTAssertThrowsError(try store.restoreSnapshot(selected))
+        XCTAssertEqual(store.state.usedSinceInstall, 99_000)
+        XCTAssertEqual(store.state.dex.count, 12)
+        // No safety snapshot was written, so nothing valid was pruned for a restore that never happened.
+        let after = SaveSnapshotManager.listSnapshots(for: url).map(\.id)
+        XCTAssertEqual(Set(after), Set(before).subtracting([selected.id]))
+    }
+
     func testCorruptSnapshotFileIsSkippedGracefully() throws {
         let url = tempURL("corruptsnapshot")
         let dir = SaveSnapshotManager.snapshotsDirectory(for: url)
