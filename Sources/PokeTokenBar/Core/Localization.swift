@@ -165,6 +165,56 @@ struct L {
     var evolutionScrollNext: String { t("다음 진화 보기", "Show next evolutions", "次の進化を見る", "Ver evoluciones siguientes", "Voir les évolutions suivantes", "Ver próximas evoluções", "Nächste Entwicklungen anzeigen") }
 
     var back: String { t("뒤로", "Back", "戻る", "Atrás", "Retour", "Voltar", "Zurück") }
+
+    // MARK: Usage recap
+    var recapOpen: String { t("사용량 돌아보기", "Usage recap", "使用量のふりかえり", "Resumen de uso", "Récap d'utilisation", "Resumo de uso", "Nutzungsrückblick") }
+    var recapTokensUnit: String { t("토큰", "tokens", "トークン", "tokens", "tokens", "tokens", "Tokens") }
+    func recapScopeName(_ scope: RecapScope) -> String {
+        switch scope {
+        case .week: t("주간", "Week", "週", "Semana", "Semaine", "Semana", "Woche")
+        case .month: t("월간", "Month", "月", "Mes", "Mois", "Mês", "Monat")
+        case .year: t("연간", "Year", "年", "Año", "Année", "Ano", "Jahr")
+        }
+    }
+    /// Shown under a running period, whose chip compares the same number of days.
+    func recapCompareSoFar(_ scope: RecapScope) -> String {
+        switch scope {
+        case .week: t("지난주 같은 기간과 비교", "Compared with the same days last week", "先週の同じ期間と比較",
+                      "Comparado con los mismos días de la semana pasada", "Comparé aux mêmes jours de la semaine dernière",
+                      "Comparado com os mesmos dias da semana passada", "Verglichen mit denselben Tagen der Vorwoche")
+        case .month: t("지난달 같은 기간과 비교", "Compared with the same days last month", "先月の同じ期間と比較",
+                       "Comparado con los mismos días del mes pasado", "Comparé aux mêmes jours du mois dernier",
+                       "Comparado com os mesmos dias do mês passado", "Verglichen mit denselben Tagen des Vormonats")
+        case .year: t("작년 같은 기간과 비교", "Compared with the same days last year", "昨年の同じ期間と比較",
+                      "Comparado con los mismos días del año pasado", "Comparé aux mêmes jours de l'an dernier",
+                      "Comparado com os mesmos dias do ano passado", "Verglichen mit denselben Tagen des Vorjahres")
+        }
+    }
+    var recapPrevious: String { t("이전", "Previous", "前へ", "Anterior", "Précédent", "Anterior", "Vorherige") }
+    var recapNext: String { t("다음", "Next", "次へ", "Siguiente", "Suivant", "Próximo", "Nächste") }
+    var recapBestDay: String { t("최고의 날", "Best day", "最高の日", "Mejor día", "Meilleur jour", "Melhor dia", "Bester Tag") }
+    var recapActiveDays: String { t("활동한 날", "Active days", "稼働日", "Días activos", "Jours actifs", "Dias ativos", "Aktive Tage") }
+    var recapBestStreak: String { t("최장 연속", "Best streak", "最長連続", "Mejor racha", "Meilleure série", "Melhor sequência", "Beste Serie") }
+    var recapGraduates: String { t("졸업", "Graduated", "卒業", "Graduados", "Diplômés", "Formados", "Abschlüsse") }
+    var recapNoData: String { t("기록 없음", "no data", "記録なし", "sin datos", "pas de données", "sem dados", "keine Daten") }
+    func recapDays(_ count: Int) -> String {
+        t("\(count)일", "\(count)d", "\(count)日", "\(count) d", "\(count) j", "\(count) d", "\(count) T")
+    }
+    func recapBestDayLine(_ day: String, _ tokens: String) -> String {
+        t("최고의 날은 \(day) — \(tokens) 토큰.",
+          "Your best day was \(day) — \(tokens) tokens.",
+          "最高の日は \(day)、\(tokens) トークン。",
+          "Tu mejor día fue el \(day): \(tokens) tokens.",
+          "Ton meilleur jour, c'était \(day) : \(tokens) tokens.",
+          "Seu melhor dia foi \(day): \(tokens) tokens.",
+          "Dein bester Tag war \(day) — \(tokens) Tokens.")
+    }
+    var recapNoGraduates: String {
+        t("이 기간에 졸업한 포켓몬이 없어요.", "No graduation in this period.", "この期間の卒業はありません。",
+          "Ninguna graduación en este periodo.", "Aucun diplômé sur cette période.",
+          "Nenhuma formatura neste período.", "Kein Abschluss in diesem Zeitraum.")
+    }
+
     var generalSectionTitle: String { t("일반", "General", "一般", "General", "Général", "Geral", "Allgemein") }
     var menuBarSectionTitle: String { t("메뉴바에 표시", "Show in menu bar", "メニューバーに表示", "Mostrar en la barra de menús", "Afficher dans la barre des menus", "Mostrar na barra de menus", "In der Menüleiste anzeigen") }
     var advancedSectionTitle: String { t("고급", "Advanced", "詳細", "Avanzado", "Avancé", "Avançado", "Erweitert") }
@@ -551,6 +601,141 @@ struct L {
           "Importado — Pokédex \(dex) · \(tokens) acumulados",
           "Importiert – \(dex) im Pokédex · \(tokens) insgesamt")
     }
+
+    // MARK: 스냅샷 백업 (설정 → 자동 백업)
+    var snapshotsSectionTitle: String {
+        t("자동 백업 (스냅샷)",
+          "Automatic Backups (Snapshots)",
+          "自動バックアップ（スナップショット）",
+          "Copias automáticas (Instantáneas)",
+          "Sauvegardes automatiques (Instantanés)",
+          "Backups automáticos (Instantâneos)",
+          "Automatische Sicherungen (Snapshots)")
+    }
+    var createSnapshotButton: String {
+        t("스냅샷 만들기",
+          "Create snapshot",
+          "スナップショットを作成",
+          "Crear instantánea",
+          "Créer un instantané",
+          "Criar instantâneo",
+          "Snapshot erstellen")
+    }
+    var createSnapshotHint: String {
+        t("진행 상태의 로컬 복원 지점을 즉시 저장해요 (최근 10개 보존)",
+          "Saves an instant local restore point of your progress (keeps up to 10)",
+          "現在の進行状況の復元ポイントを即座に保存します（最新10件を保持）",
+          "Guarda un punto de restauración local de tu progreso (mantiene hasta 10)",
+          "Enregistre un point de restauration local de ta progression (jusqu'à 10 conservés)",
+          "Salva um ponto de restauração local do seu progresso (mantém até 10)",
+          "Speichert einen lokalen Wiederherstellungspunkt deines Fortschritts (behält bis zu 10)")
+    }
+    var snapshotCreatedToast: String {
+        t("스냅샷이 생성되었습니다",
+          "Snapshot created",
+          "スナップショットを作成しました",
+          "Instantánea creada",
+          "Instantané créé",
+          "Instantâneo criado",
+          "Snapshot erstellt")
+    }
+    var restoreSnapshotButton: String {
+        t("복원",
+          "Restore",
+          "復元",
+          "Restaurar",
+          "Restaurer",
+          "Restaurar",
+          "Wiederherstellen")
+    }
+    var restoreConfirmTitle: String {
+        t("이 스냅샷으로 복원할까요?",
+          "Restore this snapshot?",
+          "このスナップショットに復元しますか？",
+          "¿Restaurar esta instantánea?",
+          "Restaurer cet instantané ?",
+          "Restaurar este instantâneo?",
+          "Diesen Snapshot wiederherstellen?")
+    }
+    func restoreConfirmBody(snapshotDate: String, snapshotDex: Int, snapshotTokens: String,
+                            currentDex: Int, currentTokens: String) -> String {
+        t("""
+          복원할 스냅샷: 도감 \(snapshotDex)마리 · 누적 \(snapshotTokens)
+          저장 시각: \(snapshotDate)
+          현재 상태: 도감 \(currentDex)마리 · 누적 \(currentTokens)
+
+          현재 상태는 새 스냅샷으로 자동 백업된 뒤 복원됩니다.
+          """,
+          """
+          Target snapshot: \(snapshotDex) in Pokédex · \(snapshotTokens) lifetime
+          Created: \(snapshotDate)
+          Current state: \(currentDex) in Pokédex · \(currentTokens) lifetime
+
+          Your current state will be backed up as a new snapshot before restoring.
+          """,
+          """
+          復元するスナップショット: 図鑑 \(snapshotDex)匹 · 累計 \(snapshotTokens)
+          作成日時: \(snapshotDate)
+          現在の状態: 図鑑 \(currentDex)匹 · 累計 \(currentTokens)
+
+          現在の状態は復元前に新しいスナップショットとしてバックアップされます。
+          """,
+          """
+          Instantánea a restaurar: Pokédex \(snapshotDex) · \(snapshotTokens) acumulados
+          Creada: \(snapshotDate)
+          Estado actual: Pokédex \(currentDex) · \(currentTokens) acumulados
+
+          Tu estado actual se guardará como una nueva instantánea antes de restaurar.
+          """,
+          """
+          Instantané à restaurer : Pokédex \(snapshotDex) · \(snapshotTokens) cumulés
+          Créé le : \(snapshotDate)
+          État actuel : Pokédex \(currentDex) · \(currentTokens) cumulés
+
+          Ton état actuel sera sauvegardé dans un nouvel instantané avant la restauration.
+          """,
+          """
+          Instantâneo a restaurar: Pokédex \(snapshotDex) · \(snapshotTokens) acumulados
+          Criado: \(snapshotDate)
+          Estado atual: Pokédex \(currentDex) · \(currentTokens) acumulados
+
+          Seu estado atual será salvo como um novo instantâneo antes de restaurar.
+          """,
+          """
+          Wiederherzustellender Snapshot: \(snapshotDex) im Pokédex · \(snapshotTokens) insgesamt
+          Erstellt: \(snapshotDate)
+          Aktueller Stand: \(currentDex) im Pokédex · \(currentTokens) insgesamt
+
+          Dein aktueller Stand wird vor der Wiederherstellung als neuer Snapshot gesichert.
+          """)
+    }
+    func restoreDoneMessage(dex: Int, tokens: String) -> String {
+        t("복원되었습니다 — 도감 \(dex)마리 · 누적 \(tokens)",
+          "Restored — \(dex) in Pokédex · \(tokens) lifetime",
+          "復元しました — 図鑑 \(dex)匹 · 累計 \(tokens)",
+          "Restaurado — Pokédex \(dex) · \(tokens) acumulados",
+          "Restauré — Pokédex \(dex) · \(tokens) cumulés",
+          "Restaurado — Pokédex \(dex) · \(tokens) acumulados",
+          "Wiederhergestellt – \(dex) im Pokédex · \(tokens) insgesamt")
+    }
+    var noSnapshotsYet: String {
+        t("아직 저장된 스냅샷이 없습니다",
+          "No snapshots saved yet",
+          "保存されたスナップショットはまだありません",
+          "Aún no hay instantáneas guardadas",
+          "Aucun instantané enregistré pour l'instant",
+          "Nenhum instantâneo salvo ainda",
+          "Noch keine Snapshots gespeichert")
+    }
+    func snapshotDexAndTokens(dex: Int, tokens: String) -> String {
+        t("도감 \(dex)마리 · 누적 \(tokens)",
+          "Pokédex \(dex) · \(tokens) lifetime",
+          "図鑑 \(dex)匹 · 累計 \(tokens)",
+          "Pokédex \(dex) · \(tokens) acumulados",
+          "Pokédex \(dex) · \(tokens) cumulés",
+          "Pokédex \(dex) · \(tokens) acumulados",
+          "Pokédex \(dex) · \(tokens) insgesamt")
+    }
     var importErrorNotSaveFile: String {
         t("PokeTokenBar 세이브 파일이 아니에요.",
           "That isn't a PokeTokenBar save file.",
@@ -807,6 +992,9 @@ struct L {
         case .rarityDesc: return sortRarity
         }
     }
+    var dexNormalLabel: String { t("일반", "Normal", "通常", "Normal", "Normal", "Normal", "Normal") }
+    var dexAppearance: String { t("모습", "Appearance", "姿", "Aspecto", "Apparence", "Aparência", "Aussehen") }
+    var dexAppearancePreview: String { t("수집한 모습 · 종 정보", "Collected appearance · species reference", "収集した姿・種情報", "Aspecto coleccionado · datos de especie", "Apparence collectionnée · données de l’espèce", "Aparência coletada · dados da espécie", "Gesammeltes Aussehen · Speziesdaten") }
     // MARK: Pokémon 상세
     var loadingPokemonDetails: String { t("포켓몬 정보를 불러오는 중…", "Loading Pokémon details…", "ポケモン情報を読み込み中…", "Cargando detalles del Pokémon…", "Chargement des détails du Pokémon…", "Carregando detalhes do Pokémon…", "Pokémon-Details werden geladen…") }
     var pokemonDetailsUnavailable: String { t("포켓몬 정보를 불러오지 못했어요.", "Pokémon details could not be loaded.", "ポケモン情報を読み込めませんでした。", "No se pudieron cargar los detalles.", "Impossible de charger les détails.", "Não foi possível carregar os detalhes.", "Pokémon-Details konnten nicht geladen werden.") }

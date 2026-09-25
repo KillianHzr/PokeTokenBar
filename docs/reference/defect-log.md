@@ -25,6 +25,21 @@ read_when:
 
 ## 판정·데이터
 
+- **Species ownership is not an individual's appearance.** A species-level shiny flag means
+  at least one shiny was collected; using it for the selected individual's badge mislabeled
+  normal catches, and earlier evolution pages offered no way to choose their normal appearance.
+  Track normal and shiny ownership separately, let detail pages select an owned appearance,
+  and keep the selected profile, sprite, and badge consistent. Catch-log rows must always use
+  their own persisted color. Existing tests checked aggregate ownership and reload predicates,
+  while the catch-log rendering fixture contained only normal individuals; they did not exercise
+  mixed-color records together. Cover both acquisition orders and native rendering with distinct
+  synthetic sprite colors, without modifying user saves or bundling third-party artwork.
+  Native appearance tests must wait for the expected rendered sprite with a bounded deadline,
+  then assert both expected pixels and absence of the previous color. A fixed 100ms sleep passed
+  locally but sampled the previous sprite in macOS 15 CI: the header had updated while the
+  sprite's independent SwiftUI `.task(id:)` had not finished rendering. Keep transition-index
+  diagnostics and prove a permanently stale sprite still fails after the readiness deadline.
+
 - **Localized metadata names must not replace persistent API identifiers.** The dex rendered
   ability, move, and type slugs directly, while existing tests covered species names and profile
   metadata rather than these visible labels. All five detail-view name sites now use a shared
@@ -123,6 +138,18 @@ read_when:
   `CursorUsageAPI.intValue` 도 같은 포화 후 `makeEntry` 합에서 트랩한다
   (`testParseCursorUsageEventClampsHugeTokenCounts`). Kiro 타임스탬프의 `Int64(Double)` 도
   `Int64.max` 를 넘는 유한값에서 트랩한다. 상한은 더하는 추출기마다 같이 건다.
+
+- **기간 비교의 "데이터가 있는가"는 그 구간의 *가장 오래된* 날로 판정한다.** 사용량 요약이 지난주
+  대비를 낼지 말지를 지난 구간의 **첫 날(=가장 최근 날)** 로 판정했더니, 원장이 구간 중간부터 시작해도
+  비교가 성립했다 — 빠진 날들은 0 으로 합산돼 실측 delta 가 +200% 로 부풀었다(가드의 목적이던 "신규
+  설치가 없던 주 대비 급등을 주장하는" 바로 그 증상). 누락분을 0 으로 세는 합계 위에 커버리지 게이트를
+  올릴 땐, 게이트 기준점이 **합계의 모든 날을 덮는지** 확인한다(`testAHalfCoveredPreviousPeriodIsNotAComparison`).
+  같은 맥락에서 손편집 가능한 `UserDefaults` 를 원장으로 쓰면 키 검증도 **길이가 아니라 파싱**으로
+  한다 — `"0000-00-00"` 처럼 날짜가 아니면서 모든 실제 날짜보다 작게 정렬되는 키는 커버리지를 위조한다.
+  그리고 "0 인가, 모르는가"는 행의 유무로 추론하지 말고 **커버리지 시작일을 따로 저장**한다
+  (`UsageLedger.coveredSince`) — 행은 사용량이 있는 날에만 생기므로, 첫 행 날짜로 커버리지를 추정하면
+  조용했던 기간과 기록 이전 기간이 구별되지 않는다. 오래된 행을 잘라낼 땐 커버리지도 함께 올린다
+  (`testPruningForgetsTheCoverageItDrops`).
 
 ## 외부 로그·사용량 소스
 
@@ -266,6 +293,9 @@ read_when:
   지출을 여러 파일에 남기거나 시각을 다시 찍는다. 규칙: ① dedup 키는 *턴 자체* 의 전역 유일 id(파일·세션 경로를
   섞지 마라 — 복사본이 별건이 된다) ② 시각은 *기록* 시각이 아니라 *턴* 시각(fork 는 봉투 timestamp 를 새로
   찍는다 → 주/월 합계가 포크 시점으로 몰린다) ③ 부모에 접혀 들어오는 자식(서브에이전트) 세션은 제외.
+  다중 계정 귀속에서는 dedup 된 턴이 발견된 **모든 세션 id를 보존**하고, 턴 시각 이전의 프롬프트가 있는
+  원본 세션을 우선한다. 분기 세션의 미래 프롬프트로 과거 턴을 귀속하지 않는다. 회귀 가드는 같은 턴의
+  원본·분기 복사본을 양쪽 입력 순서로 넣어 합계 1회와 동일한 원본 계정 귀속을 함께 단언한다.
 - **로그 루트는 한 곳이 아니다.** Claude 사용 로그는 CLI 기본 위치 말고도 `CLAUDE_CONFIG_DIR`(콤마 다중),
   XDG 스타일 `~/.config/claude/projects`, 그리고 Claude Desktop 임베디드 세션(`local-agent-mode-sessions`/
   `claude-code-sessions` 아래 세션마다 자체 `.claude/projects`)에 남는다. 루트 추가는
@@ -403,6 +433,14 @@ read_when:
   부류이긴 하다(실기기 Claude jsonl 863개, 최대 90MB). 회귀 가드: `CodexLargeRolloutPerformanceTests` —
   **opt-in(`POKETOKENBAR_RUN_LARGE_PERF=1` / `scripts/perf-codex-large-rollout.sh`)이라 CI 는 돌리지 않는다.**
   자동으로 막히지 않으므로 이 부류를 건드리면 직접 돌린다. (#184)
+
+- **2단계 갱신에서 파생 상태는 그 값을 *채우는* 단계 뒤에 기록한다.** 사용량 요약의 일별 원장을
+  `snapshots = newSnapshots`(phase 1) 직후에 저장했더니, `monthDaily` 는 `fetchEnrichment`(phase 2)
+  에서만 채워져 **설치 후 첫 갱신이 통째로 빈 요약**을 만들었다. 두 번째 갱신부터는 phase 1 이 이전
+  스냅샷의 `prevMonthDaily` 를 이어받아 우연히 채워지므로, 단위 테스트도 손으로 앱을 열어보는 확인도
+  통과한다 — 틀리는 건 첫 갱신 한 번뿐이라 눈에 띄지 않는다(개발 앱 defaults 에 키가 안 생긴 걸 보고
+  발견). refresh 파이프라인에 새 파생 상태를 붙일 땐 그 입력이 phase 1/2 중 어디서 채워지는지 먼저
+  확인하고, 회귀 가드는 **첫 refresh 한 번**으로 검증한다(`testTheFirstRefreshAlreadyFillsTheLedger`).
 
 ## 빌드·도구체인
 
@@ -797,6 +835,14 @@ read_when:
   넣어 보고, 로컬 장부만 새 기기 기준으로 다시 잡는다(`SaveTransfer.rebasedForThisDevice`). 회귀 가드:
   `testTransferDayTokensStillCountAfterRebase` — 재정렬 없는 대조군을 같이 돌려 결함 조건이 살아 있는지도
   함께 확인한다(테스트가 트리거 브랜치를 실제로 밟는지 보증).
+- **Read a rotated file into memory before any write that can prune it.** Snapshot restore took
+  the pre-restore safety snapshot first; at exactly `maxSnapshotsToKeep` files that 11th snapshot
+  pruned the oldest one, so restoring the oldest entry read a deleted file. The restore test only
+  used two snapshots, below the retention limit where pruning never runs. Load and validate the
+  selected snapshot first, then write the safety snapshot and apply the in-memory data; an
+  unreadable selection must fail before anything is written or pruned.
+  Guards: `testRestoreOldestSnapshotAtRetentionLimit`,
+  `testRestoreUnreadableSnapshotLeavesStateAndSnapshotsUntouched`.
 
 ## 렌더 기하 (스프라이트·이미지)
 
