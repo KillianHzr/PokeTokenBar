@@ -607,7 +607,7 @@ struct CompanionHeader: View {
                         }
                         // 첫 실행(적립 0) — 정적 알 앞에서 "고장났나" 오해 방지용 한 줄 안내
                         if !store.eggStarted {
-                            Text(store.l.eggFirstRunHint)
+                            Text(store.l.eggFirstRunHint(TokenFormatter.compact(store.eggHatchThreshold)))
                                 .font(.caption2).foregroundStyle(.tertiary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -620,7 +620,7 @@ struct CompanionHeader: View {
                 // 폭을 안 주면 분기 라인(이브이)이 넘쳐 팝오버 콘텐츠 전체가 좌우로 잘린다.
                 EvoLineView(nodes: store.lineNodes, mysteryLabel: store.l.unknownNextEvolution,
                             language: store.language, shiny: store.currentIsShiny,
-                            maxWidth: PopoverMetrics.contentWidth, unownForm: store.currentUnownForm)
+                            maxWidth: PopoverMetrics.scrollContentWidth, unownForm: store.currentUnownForm)
             }
             if let g = store.justGraduated {
                 Text(store.l.graduated(g))
@@ -978,8 +978,10 @@ struct CollectionView: View {
                                 DexEntryRow(store: store, entry: entry)
                             }
                         }
+                        .reservesScrollerLane()
                     }
                     .frame(maxHeight: .infinity)
+                    // 필터·검색·정렬 변경 시 새 결과를 처음부터 보여준다.
                     .onChange(of: selectedRarity) {
                         withAnimation(.easeInOut(duration: 0.2)) { proxy.scrollTo("dexTop", anchor: .top) }
                     }
@@ -1306,6 +1308,7 @@ struct PokemonDetailView: View {
                     }
                 }
                 .padding(.bottom, 8)
+                .reservesScrollerLane()
             }
         }
         .task {
@@ -1559,6 +1562,7 @@ private struct DexSpeciesCell: View {
     let isRepresentative: Bool
     let unownFormCount: Int
     let onTap: () -> Void
+    @State private var isHovered = false
 
     /// 로그(56)보다 작다 — 24칸 격자에 이름까지 담아야 한다. 원본 96×96 픽셀아트를
     /// interpolation(.none) 으로 축소하므로 이 크기에서도 식별에 문제없다.
@@ -1612,8 +1616,20 @@ private struct DexSpeciesCell: View {
                         .strokeBorder(Color.accentColor, lineWidth: 1.5)
                 }
             }
+            // 호버 = 클릭 가능 피드백. 확대는 격자 간격 안에 머무는 폭으로만.
+            // 그림자는 카드 모양에만 — 칸 전체에 `.shadow` 를 걸면 번호·이름·스프라이트 글자마다 그림자가 진다.
+            .background {
+                if isHovered {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color(nsColor: .windowBackgroundColor))
+                        .shadow(color: .black.opacity(0.25), radius: 4, y: 2)
+                }
+            }
+            .scaleEffect(isHovered ? 1.04 : 1)
+            .animation(.easeOut(duration: 0.12), value: isHovered)
         }
         .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
         .help(tooltip)
         .accessibilityLabel(tooltip)
         .contextMenu {
@@ -1646,8 +1662,9 @@ private struct DexSpeciesCell: View {
                     .accessibilityHidden(true)
             }
         }
-            .font(.system(size: 8, weight: .medium))
-            .foregroundStyle(.secondary)
+            // 번호 색 = 희귀도 — "전체" 보기에서도 칸마다 희귀도가 보인다.
+            .font(.system(size: 8, weight: .semibold))
+            .foregroundStyle(rarityColor(species.rarity))
             .padding(.horizontal, 2)
             .background(.regularMaterial, in: Capsule())
     }
@@ -1727,7 +1744,7 @@ private struct DexEntryRow: View {
             EvoLineView(nodes: entry.chainOrder.map { EvoLineItem(.species($0), .done) },
                         mysteryLabel: store.l.unknownNextEvolution, language: store.language, thumb: 56,
                         shiny: entry.isShiny, names: names,
-                        maxWidth: PopoverMetrics.contentWidth - Self.cardPadding * 2, unownForm: entry.unownForm)
+                        maxWidth: PopoverMetrics.scrollContentWidth - Self.cardPadding * 2, unownForm: entry.unownForm)
             if let caughtAt = entry.caughtAt {
                 Text(caughtAt, style: .relative).font(.system(size: 9)).foregroundStyle(.tertiary)
             }

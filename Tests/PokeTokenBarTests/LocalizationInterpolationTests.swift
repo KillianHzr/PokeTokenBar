@@ -51,12 +51,15 @@ final class LocalizationInterpolationTests: XCTestCase {
             expect(lang, "additionalClaudeAccountsFound", l.additionalClaudeAccountsFound(73), "73")
             expect(lang, "additionalClaudeAccountsDetected", l.additionalClaudeAccountsDetected(a), a)
             expect(lang, "additionalAccountExpiredHint", l.additionalAccountExpiredHint(a), a)
+            expect(lang, "accountSessionKeyLabel", l.accountSessionKeyLabel(a), a)
             expect(lang, "unattributedClaudeUsage", l.unattributedClaudeUsage(a), a)
             expect(lang, "trackedAccountToolTip", l.trackedAccountToolTip(a), a)
             expect(lang, "codexWindow(h)", l.codexWindow(420), "7")     // 420 min → 7 h / 420분 → 7시간
             expect(lang, "codexWindow(m)", l.codexWindow(37), "37")
             expect(lang, "percentRemaining", l.percentRemaining(a), a)
             expect(lang, "paceHint", l.paceHint(a), a)
+            expect(lang, "paceDelta(+)", l.paceDelta(4242) ?? "", "4242")
+            expect(lang, "paceDelta(-)", l.paceDelta(-4242) ?? "", "4242")
             expect(lang, "limitRefreshHTTPError(401)", l.limitRefreshHTTPError(401), "401")
             expect(lang, "limitRefreshHTTPError(404)", l.limitRefreshHTTPError(404), "404")
 
@@ -88,6 +91,7 @@ final class LocalizationInterpolationTests: XCTestCase {
             // Companion progress & status / 컴패니언 진행 · 상태
             expect(lang, "stage", l.stage(4242, 1717), "4242", "1717")
             expect(lang, "eggToHatch", l.eggToHatch(a), a)
+            expect(lang, "eggFirstRunHint", l.eggFirstRunHint(a), a)
             expect(lang, "toNextEvolution", l.toNextEvolution(a), a)
             expect(lang, "toGraduation", l.toGraduation(a), a)
             expect(lang, "growthBoost", l.growthBoost(4242), "4242")
@@ -101,7 +105,7 @@ final class LocalizationInterpolationTests: XCTestCase {
 
             // System notifications / 시스템 알림
             expect(lang, "notifHatchBody", l.notifHatchBody(a), a)
-            expect(lang, "notifShinyHatchBody", l.notifShinyHatchBody(a), a)
+            expect(lang, "notifShinyHatchBody", l.notifShinyHatchBody(a, odds: 4242), a, "4242")
             expect(lang, "notifEvolveBody", l.notifEvolveBody(a), a)
             expect(lang, "notifDittoRevealBody", l.notifDittoRevealBody(a), a)
             expect(lang, "notifShinyDittoRevealBody", l.notifShinyDittoRevealBody(a), a)

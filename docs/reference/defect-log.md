@@ -68,6 +68,18 @@ read_when:
   now covers usage labels, hidden control labels, selected-language backup dates, and Gen-V
   `light-ball-egg`/`form-change` methods alongside native rendering in all supported languages.
 
+- **Balance numbers in copy come from the runtime value, never a literal.** The shiny hatch
+  notification said "(1/64)" in every language after the Shiny Charm made the real odds 1/48, and
+  the first-run egg hint kept "~5M tokens" after the growth slider could move the hatch point
+  (fixed separately).
+  The copy was written before the modifiers existed, and `LocalizationInterpolationTests` only
+  checks that placeholders survive, so a number with no placeholder was never compared with the
+  value the game uses. Pass the value the logic uses (`CompanionStore.shinyDenominator`, the
+  difficulty-scaled threshold) into the string. When a message describes an earlier roll whose
+  inputs are not saved, such as a Ditto reveal after hatch, leave the number out rather than guess.
+  When adding a modifier (charm, difficulty, boost), grep `Localization.swift` for the constants
+  it changes. `ShinyCharmTests` checks the notification odds with and without the charm.
+
 - **Cost availability is not a numeric zero.** Codex providers overwrote priced totals with zero
   while leaving cost UI enabled; earlier tests asserted that subscription policy instead of
   comparing the public provider result with priced log entries. Preserve explicit source zero,
@@ -724,6 +736,28 @@ read_when:
   `CompanionStore.DexSearchMatcher` (`.caseInsensitive` + `.diacriticInsensitive`), and any new
   searchable list reuses it instead of adding a matcher. Guard:
   `testNameSearchIgnoresCaseAndDiacriticsInPokedexAndCatchLog` queries both screens.
+
+- **팝오버 세로 `ScrollView` 는 콘텐츠 안쪽에 스크롤러 레인을 비운다 — `.reservesScrollerLane()`.**
+  홈 탭을 `ScrollView` + 고정 520pt 로 감싸자(상점·가방·도감과 같은 높이), 오른쪽 끝에 붙은 수치(오늘 비용·Peak·추이 막대
+  "오늘" 칸)를 스크롤러가 가렸다. 두 경로가 있다: ① 얇은 오버레이 스크롤러(기본)는 스크롤 중 콘텐츠
+  위에 뜬다 — 상점·가방·도감 카드의 "구매" 버튼 끝도 같다. ② "스크롤 막대 항상 표시"에선 SwiftUI 가
+  **넘칠 때만** legacy 거터(~15pt)를 예약하는데, 홈 콘텐츠가 520pt 보다 짧으면(실측 477.5pt) 거터 없이
+  332pt 전폭으로 깔리고 빈 트랙이 그 위에 그려진다.
+  **왜 못 걸렀나:** 고정 높이 변경은 "팝오버가 화면 밖으로 넘친다"만 검증했고, 스크롤러와 콘텐츠의 겹침은 어떤
+  테스트도 보지 않았다. 오버레이 스크롤러는 스크롤할 때만 보여 정지 스크린샷에도 안 잡힌다.
+  **수정:** 스크롤바를 숨기지 않는다(`.scrollIndicators(.never)` 는 스크롤 위치 단서를 없애고,
+  사용자가 고른 "항상 표시" 설정을 무시한다). 대신 스크롤 콘텐츠에 trailing 12pt 를 항상 비운다
+  (`PopoverMetrics.scrollerInset`) — 스크롤 여부와 무관하게 비워 탭 간 폭이 같다. 설정은 자체 16pt
+  패딩이 있어 제외.
+  **함정:** `.contentMargins(.trailing, _, for: .scrollContent)` 는 안 된다 — AppKit 이 오버레이
+  스크롤러를 콘텐츠 인셋만큼 안쪽으로 옮겨 여전히 텍스트 위에 뜬다(렌더로 확인). 반드시 콘텐츠 **안쪽**
+  패딩이어야 한다. 또 스크롤 안에서 폭을 고정하는 자식은 `scrollContentWidth` 를 써야 한다 — 제안 폭보다
+  넓은 자식 하나가 열 전체를 다시 전폭으로 넓힌다(`frame(width:)`·`minWidth` 332 자식으로 재현).
+  진화 라인의 현재 셀 폭(홈 310pt·도감 302pt)으로는 이 범위에 안 들어 실제 오버플로는 없지만, 페이징
+  폭·페이드가 실제 보이는 폭과 맞도록 `scrollContentWidth` 로 바꿨다.
+  **회귀 가드:** `ScrollerLaneTests` 가 `Sources/PokeTokenBar/UI` 의 모든 세로 `ScrollView` 가 자기
+  클로저 안에서 `.reservesScrollerLane()` 을 쓰는지 괄호 매칭으로 검사한다(주석·문자열 제외, 바깥에 붙인
+  패딩은 스크롤러까지 밀어 불인정). 다섯 곳 각각을 빼면 해당 `파일:줄` 로 실패하는 것을 확인했다.
 
 ## 에너지 (상시 표시 애니메이션)
 
