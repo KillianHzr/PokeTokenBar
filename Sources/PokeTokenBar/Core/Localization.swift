@@ -338,11 +338,20 @@ struct L {
           "Busca os limites oficiais sem avisos do Keychain. Cole o valor de DevTools → Application → Cookies → claude.ai → sessionKey.",
           "Ruft offizielle Limits ohne Keychain-Pop-up ab. Füge den Wert aus DevTools → Application → Cookies → claude.ai → sessionKey ein.")
     }
-    var sessionKeyDefaultAccountOnly: String {
-        t("기본 Claude 계정(~/.claude)에만 적용됩니다.", "Applies to the default Claude account (~/.claude) only.",
-          "デフォルトの Claude アカウント（~/.claude）にのみ適用されます。", "Solo se aplica a la cuenta de Claude predeterminada (~/.claude).",
-          "Ne concerne que le compte Claude principal (~/.claude).", "Aplica-se apenas à conta padrão do Claude (~/.claude).",
-          "Gilt nur für das Standard-Claude-Konto (~/.claude).")
+    var sessionKeyPerAccountNote: String {
+        t("기본 Claude 계정(~/.claude)에 적용됩니다. 다른 계정은 아래에서 각자 키를 넣을 수 있어요.",
+          "Applies to the default Claude account (~/.claude). Each other account can have its own key below.",
+          "デフォルトの Claude アカウント（~/.claude）に適用されます。ほかのアカウントは下でそれぞれキーを設定できます。",
+          "Se aplica a la cuenta de Claude predeterminada (~/.claude). Cada una de las otras cuentas puede tener su propia clave abajo.",
+          "Concerne le compte Claude principal (~/.claude). Chaque autre compte peut avoir sa propre clé ci-dessous.",
+          "Aplica-se à conta padrão do Claude (~/.claude). Cada uma das outras contas pode ter a própria chave abaixo.",
+          "Gilt für das Standard-Claude-Konto (~/.claude). Jedes weitere Konto kann unten einen eigenen Schlüssel haben.")
+    }
+    /// An additional account's own key row: the account's tab title, or its folder before its limits load.
+    func accountSessionKeyLabel(_ account: String) -> String {
+        t("\(account) 세션 키", "Session key for \(account)", "\(account) のセッションキー",
+          "Clave de sesión de \(account)", "Clé de session de \(account)", "Chave de sessão de \(account)",
+          "Sitzungsschlüssel für \(account)")
     }
     /// 평문 보관을 숨기지 않는다 — 사용자가 무엇을 맡기는지, 어떻게 취소하는지 알아야 한다.
     var sessionKeyStorageNote: String {
