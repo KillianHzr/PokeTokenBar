@@ -809,6 +809,14 @@ read_when:
   넣어 보고, 로컬 장부만 새 기기 기준으로 다시 잡는다(`SaveTransfer.rebasedForThisDevice`). 회귀 가드:
   `testTransferDayTokensStillCountAfterRebase` — 재정렬 없는 대조군을 같이 돌려 결함 조건이 살아 있는지도
   함께 확인한다(테스트가 트리거 브랜치를 실제로 밟는지 보증).
+- **Read a rotated file into memory before any write that can prune it.** Snapshot restore took
+  the pre-restore safety snapshot first; at exactly `maxSnapshotsToKeep` files that 11th snapshot
+  pruned the oldest one, so restoring the oldest entry read a deleted file. The restore test only
+  used two snapshots, below the retention limit where pruning never runs. Load and validate the
+  selected snapshot first, then write the safety snapshot and apply the in-memory data; an
+  unreadable selection must fail before anything is written or pruned.
+  Guards: `testRestoreOldestSnapshotAtRetentionLimit`,
+  `testRestoreUnreadableSnapshotLeavesStateAndSnapshotsUntouched`.
 
 ## 렌더 기하 (스프라이트·이미지)
 
