@@ -503,7 +503,7 @@ read_when:
 - **크기 상한이 없는 사용자 파일을 통째로 읽지 마라.** `String(contentsOf:)` 가 파일 크기만큼, 뒤따르는
   `split` 이 다시 그만큼 저장소를 만든다. 라인 단위 `autoreleasepool`(#94)은 `JSONSerialization` 객체는
   배출해도 **원본 문자열과 split 저장소는 못 놓는다** — 실사용에서 21 GiB Codex rollout 하나가 앱 풋프린트를
-  20 GiB 까지 밀어올렸다. 전환은 `FileHandle` 청크 스트림(`forEachCodexLine`)이고 두 가지가 핵심이다:
+  20 GiB 까지 밀어올렸다. 전환은 `FileHandle` 청크 스트림(`forEachJSONLLine`)이고 두 가지가 핵심이다:
   ① **개행 분할은 바이트 `0x0A` 로** — UTF-8 연속 바이트는 모두 ≥`0x80` 이라 개행이 멀티바이트 시퀀스
   안에 들어갈 수 없어 청크 경계에서 문자가 깨지지 않는다. ② **청크마다 `autoreleasepool` 경계를 둔다** —
   `FileHandle` 이 bridge 한 `Data` backing 이 바깥 풀까지 살아남아, 청크가 작아도 파일 전체를 읽을 때까지
@@ -512,11 +512,29 @@ read_when:
   peak RSS 416→66 MiB, 파싱 14.25→2.16s, 엔트리 출력은 바이트 동일. **prefilter 는 표현에 달렸다** —
   `String.contains` 는 grapheme 스캔이라 넣으면 느려지고, 같은 판정을 `Data.range` 바이트 탐색으로 하면
   이득이다("파싱 줄 수를 줄이면 빨라진다"가 표현에 따라 참·거짓이 갈리는 자리). 아직 통째로 읽는 곳:
-  `parseClaudeFile`·`parseGrokFile`(`String(contentsOf:)`), `parseGeminiFile`(`Data(contentsOf:)`).
-  **의도적 보류다** — 근거 없는 일괄 전환은 #94 를 반복하므로 프로바이더별 실측 뒤에 바꾼다. 도달 가능한
-  부류이긴 하다(실기기 Claude jsonl 863개, 최대 90MB). 회귀 가드: `CodexLargeRolloutPerformanceTests` —
+  `parseGrokFile`·`parsePiFile`·`parseOmpFile`·`parseKimiWireFile`·`kiroCLIJSONLEntries`·`kiroV3JSONLEntries`
+  (`String(contentsOf:)`), `parseGeminiFile`(`Data(contentsOf:)`). (`parseClaudeFile` 은 아래 항목에서 전환.)
+  **의도적 보류다** — 근거 없는 일괄 전환은 #94 를 반복하므로 프로바이더별 실측 뒤에 바꾼다.
+  회귀 가드: `CodexLargeRolloutPerformanceTests`·`ClaudeLargeTranscriptPerformanceTests`.
   **opt-in(`POKETOKENBAR_RUN_LARGE_PERF=1` / `scripts/perf-codex-large-rollout.sh`)이라 CI 는 돌리지 않는다.**
   자동으로 막히지 않으므로 이 부류를 건드리면 직접 돌린다. (#184)
+
+- **A whole-file parser's cost is per refresh, not per file, while a session is live.** The cache skips a
+  file only when its mtime and size are unchanged, and an open Claude Code session changes between every
+  refresh, so it is re-parsed whole each time, by up to three callers per refresh (`fetchDaily`,
+  `fetchEnrichment`, the usage summary). Once that takes longer than the refresh interval, `refresh()`
+  coalesces the overlap into `refreshPending` and starts again as soon as it ends: one core stays at 100%
+  with no error or log line. Real case: a 252 MB live session (refresh every 60 s), the app sat at 96% CPU
+  for hours. Byte streaming (`forEachJSONLLine` + `Data.range` prefilter) took that file from 19.5 s to
+  2.9 s per pass (release, best of 3, same loaded machine), and the cold parse of all 173 real transcripts
+  from 102 s to 16 s, with byte-identical entries (`SWIFT_DETERMINISTIC_HASHING=1`: without it,
+  `dedupKeepMax` order varies per process and `applyReportedCost` rounds `explicitCost` differently in the
+  last digits, run to run, old code included).
+  Why the #184 deferral did not catch it: it was judged on memory with the largest file then on disk (90 MB),
+  but a live session keeps growing, and the metric that matters is **parse time of the largest live file
+  against the refresh interval**. When measuring another provider's parser before converting it, measure
+  that. Guards: `testClaudeTranscriptLineAcrossChunkBoundaryParses` (CI) and the opt-in
+  `ClaudeLargeTranscriptPerformanceTests` (256 MiB within 6 s).
 
 - **2단계 갱신에서 파생 상태는 그 값을 *채우는* 단계 뒤에 기록한다.** 사용량 요약의 일별 원장을
   `snapshots = newSnapshots`(phase 1) 직후에 저장했더니, `monthDaily` 는 `fetchEnrichment`(phase 2)

@@ -415,9 +415,8 @@ enum LocalUsageReader {
         return String(model[..<cut])
     }
 
-    static func parseClaudeCostStateLine(_ line: String) -> ClaudeCostState? {
-        guard let data = line.data(using: .utf8),
-              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+    static func parseClaudeCostStateLine(_ line: Data) -> ClaudeCostState? {
+        guard let obj = try? JSONSerialization.jsonObject(with: line) as? [String: Any],
               (obj["type"] as? String) == "cost-state",
               let usage = obj["modelUsage"] as? [String: Any] else { return nil }
         var state = ClaudeCostState()
@@ -462,28 +461,35 @@ enum LocalUsageReader {
     }
 
     /// Claude 파일 하나를 파싱(파일 내 dedup). 캐시가 파일 단위로 호출.
+    /// A live session is re-parsed whole on every refresh it changed in, and grows to hundreds of MB,
+    /// so it is streamed as bytes like Codex: `String` split/contains walk graphemes and took about 20 s
+    /// on a 252 MB session, longer than the refresh interval, which kept one core busy for good.
     static func parseClaudeFile(_ url: URL, fmt: DateFormatter) -> [Entry] {
-        guard let text = try? String(contentsOf: url, encoding: .utf8) else { return [] }
         let session = claudeSessionID(forTranscript: url)
         var out: [Entry] = []
         var costState: ClaudeCostState?
-        for line in text.split(separator: "\n", omittingEmptySubsequences: true) {
-            // Cumulative ledger: the last record in the file wins.
-            if line.contains("\"cost-state\"") {
+        do {
+            try forEachJSONLLine(in: url) { line in
+                // Cumulative ledger: the last record in the file wins.
+                if line.range(of: claudeCostStateMarker) != nil {
+                    autoreleasepool {
+                        if let s = parseClaudeCostStateLine(line) { costState = s }
+                    }
+                    return
+                }
+                guard line.range(of: claudeUsageMarker) != nil,
+                      line.range(of: claudeAssistantMarker) != nil else { return }
+                // 라인마다 autoreleasepool — JSONSerialization 이 만드는 autoreleased NSDictionary/NSString 가
+                // 수천 파일·수만 라인에 걸쳐 배출 없이 누적돼 콜드 파싱 피크를 키우던 것을 즉시 배출.
                 autoreleasepool {
-                    if let s = parseClaudeCostStateLine(String(line)) { costState = s }
-                }
-                continue
-            }
-            guard line.contains("\"usage\""), line.contains("\"assistant\"") else { continue }
-            // 라인마다 autoreleasepool — JSONSerialization 이 만드는 autoreleased NSDictionary/NSString 가
-            // 수천 파일·수만 라인에 걸쳐 배출 없이 누적돼 콜드 파싱 피크를 키우던 것을 즉시 배출.
-            autoreleasepool {
-                if var e = parseClaudeLine(String(line), fmt: fmt) {
-                    e.sessionID = session
-                    out.append(e)
+                    if var e = parseClaudeLine(line, fmt: fmt) {
+                        e.sessionID = session
+                        out.append(e)
+                    }
                 }
             }
+        } catch {
+            return []
         }
         let deduped = dedupKeepMax(out)
         guard let costState else { return deduped }
@@ -518,9 +524,12 @@ enum LocalUsageReader {
         return dedupKeepMax(all)
     }
 
-    private static func parseClaudeLine(_ line: String, fmt: DateFormatter) -> Entry? {
-        guard let data = line.data(using: .utf8),
-              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+    private static let claudeCostStateMarker = Data("\"cost-state\"".utf8)
+    private static let claudeUsageMarker = Data("\"usage\"".utf8)
+    private static let claudeAssistantMarker = Data("\"assistant\"".utf8)
+
+    private static func parseClaudeLine(_ line: Data, fmt: DateFormatter) -> Entry? {
+        guard let obj = try? JSONSerialization.jsonObject(with: line) as? [String: Any],
               (obj["type"] as? String) == "assistant",
               let msg = obj["message"] as? [String: Any],
               let usage = msg["usage"] as? [String: Any],
@@ -750,7 +759,7 @@ enum LocalUsageReader {
         // A missing model keeps tokens, but remains unpriced until a turn_context identifies it.
         var model = "codex"
         do {
-            try forEachCodexLine(in: url) { line in
+            try forEachJSONLLine(in: url) { line in
                 autoreleasepool {   // JSONSerialization 의 autoreleased 객체를 라인마다 배출(콜드 파싱 피크 억제)
                     // Data.range 는 바이트 탐색이라 String.contains 의 grapheme 스캔과 달리
                     // 비대상 라인을 값싼 비용으로 건너뛸 수 있다. 대형 rollout 의 대부분은
@@ -811,7 +820,7 @@ enum LocalUsageReader {
 
     /// 대형 JSONL 을 파일 크기와 무관한 메모리로 순회한다. 완성된 한 줄만
     /// 소유하므로 피크는 파일 전체가 아니라 가장 긴 라인 + 청크 크기에 비례한다.
-    private static func forEachCodexLine(in url: URL, body: (Data) -> Void) throws {
+    private static func forEachJSONLLine(in url: URL, body: (Data) -> Void) throws {
         let handle = try FileHandle(forReadingFrom: url)
         defer { try? handle.close() }
 

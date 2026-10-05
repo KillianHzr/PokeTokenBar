@@ -149,7 +149,7 @@ final class CodexLargeRolloutPerformanceTests: XCTestCase {
     }
 }
 
-private final class PeakResidentSampler: @unchecked Sendable {
+final class PeakResidentSampler: @unchecked Sendable {
     private let lock = NSLock()
     private var peak: UInt64 = 0
     private var shouldStop = false

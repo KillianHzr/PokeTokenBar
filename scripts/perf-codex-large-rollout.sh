@@ -14,7 +14,7 @@ swift build --scratch-path "$SCRATCH_PATH" -c release
 
 POKETOKENBAR_RUN_LARGE_PERF=1 /usr/bin/time -l \
   swift test --scratch-path "$SCRATCH_PATH" -c release \
-  --filter 'CodexLargeRolloutPerformanceTests/testCodexLargeRolloutStaysWithinMemoryBudget'
+  --filter 'CodexLargeRolloutPerformanceTests/testCodexLargeRolloutStaysWithinMemoryBudget|ClaudeLargeTranscriptPerformanceTests'
 
 swift test --scratch-path "$SCRATCH_PATH" --filter 'LocalUsageReaderTests|LocalUsageCacheTests'
 swift test --scratch-path "$SCRATCH_PATH"

@@ -120,6 +120,52 @@ final class LocalUsageReaderTests: XCTestCase {
         XCTAssertNil(LocalUsageReader.daily(entries: entries, localDay: "2000-01-01"))
     }
 
+    /// Transcripts are streamed in 1 MiB chunks. A usage line crossing a chunk boundary, with the
+    /// boundary inside a multibyte character, must parse like any other, the cost ledger must still
+    /// apply, and the last line needs no newline (a live session is read while it is being written).
+    func testClaudeTranscriptLineAcrossChunkBoundaryParses() throws {
+        let chunk = 1024 * 1024
+        let ts = "2026-06-30T10:00:00.000Z"
+        let straddling = #"{"type":"assistant","requestId":"R1","timestamp":"\#(ts)","message":{"id":"A","model":"claude-opus-4-8","content":[{"type":"text","text":"café prêt"}],"usage":{"input_tokens":100,"output_tokens":20,"cache_creation_input_tokens":0,"cache_read_input_tokens":1000}}}"#
+        let accent = try XCTUnwrap(Array(straddling.utf8).firstIndex(of: 0xC3))
+        // Size the preceding line so byte `chunk` is the second byte of "é".
+        let head = #"{"type":"user","message":{"content":""#, tail = #""}}"#
+        let fillerBytes = chunk - accent - 2
+        let filler = head + String(repeating: "x", count: fillerBytes - head.utf8.count - tail.utf8.count) + tail
+        let cost = #"{"type":"cost-state","modelUsage":{"claude-opus-4-8[1m]":{"costUSD":3.0}},"hasUnknownModelCost":false}"#
+        let lines = [
+            filler,
+            straddling,
+            claudeLine(id: "B", req: "R2", model: "claude-sonnet-4-6", ts: ts, i: 50, o: 10, cw: 0, cr: 0),
+            cost,
+            claudeLine(id: "C", req: "R3", model: "claude-opus-4-8", ts: ts, i: 300, o: 60, cw: 0, cr: 0),
+        ]
+        let dir = tempDir()
+        write(lines, to: dir)
+        let url = dir.appendingPathComponent("s.jsonl")
+        let bytes = try Data(contentsOf: url)
+        XCTAssertTrue((0x80...0xBF).contains(bytes[chunk]),
+                      "the chunk boundary must split a character, or this test cannot catch a regression")
+        XCTAssertNotEqual(bytes.last, 0x0A, "the last line must have no trailing newline")
+
+        let entries = LocalUsageReader.parseClaudeFile(url, fmt: LocalUsageReader.localDayFormatter())
+
+        XCTAssertEqual(entries.map(\.id).sorted(), ["A|R1", "B|R2", "C|R3"])
+        let a = try XCTUnwrap(entries.first { $0.id == "A|R1" })
+        XCTAssertEqual([a.input, a.output, a.cacheRead], [100, 20, 1000])
+        let opusCost = entries.filter { $0.model == "claude-opus-4-8" }.reduce(0) { $0 + ($1.explicitCost ?? 0) }
+        XCTAssertEqual(opusCost, 3.0, accuracy: 1e-9, "the cost ledger read past the boundary still applies")
+    }
+
+    /// A transcript can disappear between the directory scan and the read (Claude Code prunes old
+    /// sessions): the parse yields nothing instead of failing the refresh.
+    func testClaudeTranscriptThatCannotBeOpenedYieldsNoEntries() {
+        let missing = tempDir().appendingPathComponent("pruned-session.jsonl")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: missing.path))
+
+        XCTAssertTrue(LocalUsageReader.parseClaudeFile(missing, fmt: LocalUsageReader.localDayFormatter()).isEmpty)
+    }
+
     // MARK: Claude 스캔 루트 (CLI 기본 + CLAUDE_CONFIG_DIR + Claude Desktop 임베디드 세션)
 
     /// Desktop 세션 스토어는 `<store>/<uuid>/<uuid>/local_<uuid>/.claude/projects` 처럼 UUID 단계가
