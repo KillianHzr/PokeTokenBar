@@ -1702,8 +1702,25 @@ struct L {
                      "Таинственный камень, необходимый для эволюции некоторых покемонов.")
         }
     }
+
     /// 가방 사용 컨트롤의 효과 힌트 — 민트("성격 랜덤 변경", 사탕의 "+XP" 자리).
     var mintEffectHint: String { t("성격 랜덤 변경", "Random nature", "せいかくランダム変更", "Naturaleza aleatoria", "Nature aléatoire", "Natureza aleatória", "Zufälliges Wesen", "Случайный характер") }
+
+    func stoneConfirm(_ monName: String, _ stoneName: String) -> String {
+        t("\(KoreanParticle.object.attach(to: monName)) 놓아주고 \(KoreanParticle.object.attach(to: stoneName)) 사용할까요?",
+          "Send off \(monName) and use \(stoneName)?",
+          "\(monName) を手放して \(stoneName) を使いますか？",
+          "¿Soltar a \(monName) y usar \(stoneName)?",
+          "Laisser partir \(monName) et utiliser \(stoneName) ?",
+          "Soltar \(monName) e usar \(stoneName)?",
+          "\(monName) verabschieden und \(stoneName) einsetzen?",
+          "Отпустить \(monName) и использовать \(stoneName)?")
+    }
+    /// 인큐베이션 중 표시하는 타입 보증 배지: 진화의 돌로 품은 알의 확정 타입.
+    func eggTypeGuaranteeHint(_ type: PokemonType) -> String {
+        let name = typeName(type)
+        return t("\(name)타입 확정", "Guaranteed \(name)", "\(name)タイプ確定", "\(name) garantizado", "\(name) garanti", "\(name) garantido", "Garantiert \(name)", "Гарантированный тип: \(name)")
+    }
 
     // MARK: 상점 (재화 = 사용한 토큰)
     var shop: String { t("상점", "Shop", "ショップ", "Tienda", "Boutique", "Loja", "Laden", "Магазин") }
