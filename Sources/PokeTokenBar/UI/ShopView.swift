@@ -7,8 +7,6 @@ import SwiftUI
 struct ShopView: View {
     let store: CompanionStore
     let nav: PopoverNavigation
-    /// Collector sections start folded: 38 cards would bury the regular items.
-    @State private var expandedGroups: Set<CollectorGroup> = []
 
     var body: some View {
         let l = store.l
@@ -16,34 +14,23 @@ struct ShopView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
                 walletHeader(l)
-                // shopEntries = 판매 아이템 + 알 3종(보증 없음·고급 이상·희귀 이상)을 가격 오름차순으로
-                // 병합한 단일 목록. 알은 항상 포함되고(즉시 액션이라 ItemKind 가 아님), 알 상태에선
-                // EggCard 가 구매만 비활성으로 보여준다.
+                // shopEntries = 판매 아이템 + 알 3종(보증 없음·고급 이상·희귀 이상) + 해금된 진화의 돌
                 ForEach(store.shopEntries, id: \.self) { entry in
                     switch entry {
                     case .item(let kind):
-                        ShopItemCard(store: store, kind: kind)
+                        if kind.stoneType != nil {
+                            StoneCard(store: store, nav: nav, kind: kind)
+                        } else {
+                            ShopItemCard(store: store, kind: kind)
+                        }
                     case .egg(let tier):
                         EggCard(store: store, nav: nav, tier: tier)
                     }
-                }
-                Text(l.collectorHint)
-                    .font(.caption2).foregroundStyle(.tertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 6)
-                ForEach(CollectorGroup.allCases, id: \.self) { group in
-                    CollectorSection(store: store, nav: nav, group: group, expanded: expandedBinding(group))
                 }
             }
             .reservesScrollerLane()
         }
         .frame(height: 520)
-    }
-
-    private func expandedBinding(_ group: CollectorGroup) -> Binding<Bool> {
-        Binding(
-            get: { expandedGroups.contains(group) },
-            set: { if $0 { expandedGroups.insert(group) } else { expandedGroups.remove(group) } })
     }
 
     private func walletHeader(_ l: L) -> some View {
@@ -78,17 +65,11 @@ private struct ShopItemCard: View {
     private var selectedQuantity: Int { min(quantity, maxQuantity) }
     /// 보유형은 1회 구매라 수량 선택이 없다. 2개 이상 살 수 있을 때만 Stepper 노출.
     private var showsQuantity: Bool { !kind.isPassive && store.maxBuyCount(kind) > 1 }
-    /// Not yet on sale: the Pokédex goal is missing. An owned passive is past that question.
-    private var isLocked: Bool {
-        !(kind.isPassive && store.itemCount(kind) > 0) && !store.isUnlocked(kind)
-    }
-
     var body: some View {
         let l = store.l
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top, spacing: 10) {
                 ItemIconView(kind: kind, size: 30)
-                    .grayscale(isLocked ? 1 : 0).opacity(isLocked ? 0.5 : 1)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(l.itemName(kind)).font(.callout.weight(.semibold))
@@ -114,9 +95,6 @@ private struct ShopItemCard: View {
                 // 바깥 Spacer 없음 — 이름 줄의 Spacer 가 남는 폭을 전부 받아 Stepper 를 카드 오른쪽 끝에
                 // 붙인다(가방 ItemCard 와 같은 구조). 둘 다 두면 남는 폭을 나눠 가져 Stepper 가 가운데에 뜬다.
             }
-            if kind.unlock != nil {
-                UnlockRequirementView(store: store, kind: kind, compact: !isLocked)
-            }
             buyControls(l)
         }
         .padding(10)
@@ -141,8 +119,6 @@ private struct ShopItemCard: View {
                 Text(l.ownedAlready).font(.caption2.weight(.semibold)).foregroundStyle(.green)
                 Spacer()
             }
-        } else if isLocked {
-            LockedPriceRow(store: store, price: price)
         } else if confirming {
             HStack(spacing: 8) {
                 Text(l.buyConfirm(quantityName(l)))
@@ -176,165 +152,7 @@ private struct ShopItemCard: View {
     }
 }
 
-/// One foldable shop section of collector items, with how many are unlocked.
-@MainActor
-private struct CollectorSection: View {
-    let store: CompanionStore
-    let nav: PopoverNavigation
-    let group: CollectorGroup
-    @Binding var expanded: Bool
 
-    var body: some View {
-        let l = store.l
-        let items = store.collectorItems(in: group)
-        let registered = store.registeredSpeciesIDs
-        let unlocked = items.filter { store.isUnlocked($0, registered: registered) }.count
-        VStack(alignment: .leading, spacing: 10) {
-            Button {
-                withAnimation(.easeInOut(duration: 0.15)) { expanded.toggle() }
-            } label: {
-                HStack(spacing: 8) {
-                    ItemIconView(kind: group.iconItem, size: 22)
-                    Text(l.collectorGroupTitle(group)).font(.callout.weight(.semibold))
-                    Spacer()
-                    Text(l.collectorUnlockedCount(unlocked, of: items.count))
-                        .font(.caption2).foregroundStyle(.secondary).monospacedDigit()
-                    Image(systemName: "chevron.right")
-                        .font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
-                        .rotationEffect(.degrees(expanded ? 90 : 0))
-                }
-                .padding(10)
-                .frame(maxWidth: .infinity)
-                .background(Color.secondary.opacity(0.10))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            if expanded {
-                ForEach(items, id: \.self) { kind in
-                    if kind.stoneType != nil {
-                        StoneCard(store: store, nav: nav, kind: kind)
-                    } else {
-                        ShopItemCard(store: store, kind: kind)
-                    }
-                }
-            }
-        }
-    }
-}
-
-private extension CollectorGroup {
-    /// Item drawn on the section header.
-    var iconItem: ItemKind {
-        switch self {
-        case .evolutionStones: return .fireStone
-        case .legendaryArtifacts: return .legendCharm
-        case .gymBadges: return .boulderBadge
-        }
-    }
-}
-
-/// Pokédex goal of a collector item: its Pokémon (greyed until registered) with a counter, or a progress
-/// bar for the long type lists of the gym badges. Once the item is unlocked the goal stays visible in a
-/// `compact` line (smaller sprites, a check, no box), limited to the goal that was met.
-@MainActor
-private struct UnlockRequirementView: View {
-    let store: CompanionStore
-    let kind: ItemKind
-    var compact = false
-
-    /// Above this many species a sprite row no longer fits the card: show a bar instead.
-    private static let spriteRowLimit = 9
-
-    var body: some View {
-        let l = store.l
-        let content = VStack(alignment: .leading, spacing: compact ? 2 : 4) {
-            switch kind.unlock {
-            case .duplicateLegendary:
-                let copies = min(store.graduatedLegendaryCopies, 2)
-                counterRow(l.duplicateLegendaryGoal, count: copies, needed: 2, met: copies >= 2)
-            case .species:
-                let goals = store.unlockProgress(of: kind)
-                // Compact: only the goal that unlocked the item (all of them if none is met, e.g. an owned
-                // item bought before the goal existed).
-                let shown = compact && goals.contains(where: \.isMet) ? goals.filter(\.isMet) : goals
-                ForEach(Array(shown.enumerated()), id: \.offset) { index, progress in
-                    if index > 0 {
-                        Text(l.unlockOr).font(.caption2).foregroundStyle(.tertiary)
-                    }
-                    goalView(progress, l)
-                }
-            case nil:
-                EmptyView()
-            }
-        }
-        if compact {
-            content
-        } else {
-            content
-                .padding(8)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.secondary.opacity(0.06))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-        }
-    }
-
-    @ViewBuilder
-    private func goalView(_ progress: CompanionStore.GoalProgress, _ l: L) -> some View {
-        let goal = progress.goal
-        if goal.species.count > Self.spriteRowLimit {
-            VStack(alignment: .leading, spacing: 3) {
-                counterRow(kind.badgeType.map(l.typeGoal) ?? "", count: progress.count, needed: goal.needed,
-                           met: progress.isMet)
-                if !compact {
-                    ProgressView(value: Double(progress.count), total: Double(max(1, goal.needed)))
-                        .controlSize(.small)
-                }
-            }
-        } else {
-            VStack(alignment: .leading, spacing: 2) {
-                if goal.needed < goal.species.count {
-                    Text(l.anyOfGoal(goal.needed)).font(.caption2).foregroundStyle(compact ? .tertiary : .secondary)
-                }
-                HStack(spacing: compact ? 2 : 3) {
-                    if compact && progress.isMet { checkmark }
-                    ForEach(goal.species, id: \.self) { id in
-                        let has = progress.registered.contains(id)
-                        SpriteView(speciesID: id, size: spriteSize(count: goal.species.count))
-                            .grayscale(has ? 0 : 1).opacity(has ? 1 : 0.35)
-                            .help("#\(id)")
-                    }
-                    Spacer(minLength: 4)
-                    counter(progress.count, needed: goal.needed)
-                }
-            }
-        }
-    }
-
-    private func spriteSize(count: Int) -> CGFloat {
-        compact ? (count > 6 ? 16 : 18) : (count > 6 ? 24 : 30)
-    }
-
-    /// Only on a met goal: an item can be owned without its goal (bought before the goal existed).
-    private var checkmark: some View {
-        Image(systemName: "checkmark.circle.fill").font(.caption2).foregroundStyle(.green)
-    }
-
-    private func counter(_ count: Int, needed: Int) -> some View {
-        Text("\(count)/\(needed)")
-            .font(.caption2.weight(.semibold)).foregroundStyle(compact ? .tertiary : .secondary).monospacedDigit()
-    }
-
-    private func counterRow(_ text: String, count: Int, needed: Int, met: Bool) -> some View {
-        HStack(spacing: 4) {
-            if compact && met { checkmark }
-            Text(text).font(.caption2).foregroundStyle(compact ? .tertiary : .secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 4)
-            counter(count, needed: needed)
-        }
-    }
-}
 
 /// 알 카드 — 구매 = 즉시 현재 포켓몬 폐기 후 새 알로. `tier` 는 보증 등급 하한(nil = 보증 없는 기본 알).
 /// 인라인 2단계 확인: 일반은 1회, 이로치면 한 번 더(사고 폐기 방지). 성공하면 Home 으로 전환해 새 알을 보여준다.
@@ -467,7 +285,7 @@ private struct ReleaseForEggControls: View {
 }
 
 /// Evolution stone card: bought like an egg. The current Pokémon is sent off right away for an egg of
-/// the stone's type; the stone never goes to the Bag. Locked until its Pokédex goal is met.
+/// the stone's type; the stone never goes to the Bag. Stones only appear in the shop once unlocked.
 @MainActor
 private struct StoneCard: View {
     let store: CompanionStore
@@ -475,14 +293,12 @@ private struct StoneCard: View {
     let kind: ItemKind
 
     private var price: Int { store.price(of: kind) ?? 0 }
-    private var isLocked: Bool { !store.isUnlocked(kind) }
 
     var body: some View {
         let l = store.l
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top, spacing: 10) {
                 ItemIconView(kind: kind, size: 30)
-                    .grayscale(isLocked ? 1 : 0).opacity(isLocked ? 0.5 : 1)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(l.itemName(kind)).font(.callout.weight(.semibold))
@@ -493,7 +309,7 @@ private struct StoneCard: View {
                     Text(l.itemDescription(kind))
                         .font(.caption).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    if store.hasActive && !isLocked {
+                    if store.hasActive {
                         Text(l.eggReleaseNote)
                             .font(.caption2).foregroundStyle(.tertiary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -501,36 +317,14 @@ private struct StoneCard: View {
                 }
                 Spacer()
             }
-            UnlockRequirementView(store: store, kind: kind, compact: !isLocked)
-            if isLocked {
-                LockedPriceRow(store: store, price: price)
-            } else {
-                ReleaseForEggControls(store: store, nav: nav, price: price, canBuy: store.canBuyStone(kind),
-                                      confirmText: l.stoneConfirm(store.displayName, l.itemName(kind))) {
-                    store.buyStone(kind)
-                }
+            UnlockRequirementView(store: store, kind: kind, compact: true)
+            ReleaseForEggControls(store: store, nav: nav, price: price, canBuy: store.canBuyStone(kind),
+                                  confirmText: l.stoneConfirm(store.displayName, l.itemName(kind))) {
+                store.buyStone(kind)
             }
         }
         .padding(10)
         .background(Color.secondary.opacity(0.06))
         .clipShape(RoundedRectangle(cornerRadius: 10))
-    }
-}
-
-/// Price and lock of a collector item whose Pokédex goal is not met yet.
-@MainActor
-private struct LockedPriceRow: View {
-    let store: CompanionStore
-    let price: Int
-
-    var body: some View {
-        let l = store.l
-        HStack {
-            Text("\(l.shopPriceLabel) \(TokenFormatter.compact(price))")
-                .font(.caption2).foregroundStyle(.tertiary).monospacedDigit()
-            Spacer()
-            Label(l.lockedLabel, systemImage: "lock.fill")
-                .font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
-        }
     }
 }

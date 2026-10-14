@@ -1733,6 +1733,45 @@ struct L {
     var shopPriceLabel: String { t("가격", "Price", "価格", "Precio", "Prix", "Preço", "Preis", "Цена") }
     var ownedAlready: String { t("보유 중", "Owned", "所持済み", "En posesión", "Possédé", "Já tem", "Im Beutel", "Уже есть") }
 
+    // MARK: 업적 (체육관 배지 및 전설의 유물)
+    var achievements: String { t("업적", "Achievements", "実績", "Logros", "Succès", "Conquistas", "Erfolge", "Достижения") }
+    var achievementsTitle: String { achievements }
+    var claim: String { t("받기", "Claim", "受け取る", "Reclamar", "Récupérer", "Resgatar", "Einlösen", "Забрать") }
+    var claimed: String { t("획득함", "Claimed", "獲得済み", "Conseguido", "Obtenu", "Resgatado", "Erhalten", "Получено") }
+    func readyToClaimNotice(_ count: Int) -> String {
+        t("받을 수 있는 업적이 \(count)개 있어요!",
+          "\(count) achievement(s) ready to claim!",
+          "受け取り可能な実績が \(count) 件あります！",
+          "¡\(count) logro(s) listos para reclamar!",
+          "\(count) succès prêt(s) à être récupéré(s) !",
+          "\(count) conquista(s) pronta(s) para resgatar!",
+          "\(count) Erfolg(e) bereit zum Einlösen!",
+          "Можно забрать наград: \(count)!")
+    }
+    func achievementsProgress(_ count: Int, _ total: Int) -> String {
+        t("\(total)개 중 \(count)개 완료",
+          "\(count) of \(total) completed",
+          "\(total)個中\(count)個達成",
+          "\(count) de \(total) completados",
+          "\(count) sur \(total) complétés",
+          "\(count) de \(total) concluídos",
+          "\(count) von \(total) abgeschlossen",
+          "\(count) из \(total) получено")
+    }
+    var notifAchievementClaimedTitle: String {
+        t("🏆 업적 달성!", "🏆 Achievement Unlocked!", "🏆 実績達成！", "🏆 ¡Logro completado!", "🏆 Succès débloqué !", "🏆 Conquista desbloqueada!", "🏆 Erfolg freigeschaltet!", "🏆 Достижение получено!")
+    }
+    func notifAchievementClaimedBody(_ name: String) -> String {
+        t("\(KoreanParticle.object.attach(to: name)) 가방에 획득했어요.",
+          "Obtained \(name) in your bag.",
+          "\(name) をバッグに獲得しました。",
+          "¡Obtuviste \(name) en tu bolsa!",
+          "\(name) a été ajouté à votre sac.",
+          "Você obteve \(name) na sua bolsa.",
+          "\(name) wurde deinem Beutel hinzugefügt.",
+          "«\(name)» добавлен в ваш инвентарь.")
+    }
+
     /// Collector sections of the shop (items unlocked by the Pokédex).
     func collectorGroupTitle(_ group: CollectorGroup) -> String {
         switch group {

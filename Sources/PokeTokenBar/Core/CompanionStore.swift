@@ -1238,10 +1238,17 @@ final class CompanionStore {
     var availableTokens: Int { max(0, state.usedSinceInstall - state.spentTokens) }
 
     /// 상점 판매 아이템 — shopPrice 있는 것만. 가격 저렴한 순, 단 구매 완료한 보유형은 맨 아래로.
-    /// Collector items have their own sections (`collectorItems(in:)`), so they stay out of this list.
+    /// 진화의 돌은 도감 목표를 달성해 잠금 해제(isUnlocked)되었을 때만 일반 상점 목록에 노출된다.
     var purchasableItems: [ItemKind] {
-        ItemKind.allCases
-            .filter { $0.shopPrice != nil && $0.collectorGroup == nil }
+        let registered = registeredSpeciesIDs
+        return ItemKind.allCases
+            .filter { kind in
+                guard kind.shopPrice != nil else { return false }
+                if kind.stoneType != nil {
+                    return isUnlocked(kind, registered: registered)
+                }
+                return kind.collectorGroup == nil
+            }
             .sorted { a, b in
                 // 구매 완료한 보유형(이로치 부적 등)은 맨 아래로 — 재구매 불가라 위에 있을 이유가 없다.
                 let aDone = a.isPassive && itemCount(a) > 0
@@ -1366,12 +1373,42 @@ final class CompanionStore {
         }
     }
 
-    /// One collector section of the shop: items on sale first, then locked ones, then passives already
-    /// owned. `ItemKind.allCases` order inside each group.
-    func collectorItems(in group: CollectorGroup) -> [ItemKind] {
+    // MARK: 업적 (체육관 배지 및 전설의 유물)
+
+    /// All items claimed through achievements (Gym Badges + Legendary Artifacts).
+    static let achievementItems: [ItemKind] = ItemKind.allCases.filter(\.isAchievement)
+
+    /// Number of achievements ready to be claimed.
+    var unclaimedAchievementsCount: Int {
+        let registered = registeredSpeciesIDs
+        return Self.achievementItems.filter { isUnlocked($0, registered: registered) && itemCount($0) == 0 }.count
+    }
+
+    /// Number of claimed achievements.
+    var claimedAchievementsCount: Int {
+        Self.achievementItems.filter { itemCount($0) > 0 }.count
+    }
+
+    /// Total number of achievements.
+    var totalAchievementsCount: Int {
+        Self.achievementItems.count
+    }
+
+    /// Claim an achievement reward once unlocked, adding it to the bag for free.
+    @discardableResult
+    func claimAchievement(_ kind: ItemKind) -> Bool {
+        guard kind.isAchievement, isUnlocked(kind), itemCount(kind) == 0 else { return false }
+        state.inventory[kind.rawValue, default: 0] = 1
+        save()
+        notifyCompanionEvent(l.notifAchievementClaimedTitle, l.notifAchievementClaimedBody(l.itemName(kind)))
+        return true
+    }
+
+    /// Items for a specific achievement section, sorted: claimable first, then in-progress, then claimed.
+    func achievementItems(in group: CollectorGroup) -> [ItemKind] {
         let registered = registeredSpeciesIDs
         func rank(_ kind: ItemKind) -> Int {
-            if kind.isPassive && itemCount(kind) > 0 { return 2 }
+            if itemCount(kind) > 0 { return 2 }
             return isUnlocked(kind, registered: registered) ? 0 : 1
         }
         let items = ItemKind.allCases.filter { $0.collectorGroup == group }
@@ -1379,6 +1416,11 @@ final class CompanionStore {
         return items.enumerated()
             .sorted { (ranks[$0.element]!, $0.offset) < (ranks[$1.element]!, $1.offset) }
             .map(\.element)
+    }
+
+    /// Alias for backward compatibility with existing tests and collector group listings.
+    func collectorItems(in group: CollectorGroup) -> [ItemKind] {
+        achievementItems(in: group)
     }
 
     // 사탕 전용 래퍼 — 기존 호출부/테스트 호환.

@@ -325,7 +325,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
             return "★"
         }
     }
-    /// 상점 판매가(재화 = 사용한 토큰). nil = 상점 미판매.
+    /// 상점 판매가(재화 = 사용한 토큰). nil = 상점 미판매(업적 보상 등).
     var shopPrice: Int? {
         switch self {
         case .rareCandy: return RareCandy.price
@@ -334,18 +334,8 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .leafStone, .fireStone, .waterStone, .thunderStone, .sunStone,
              .moonStone, .duskStone, .iceStone, .dawnStone, .shinyStone:
             return CollectorPrice.evolutionStone
-        case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,
-             .soulBadge, .marshBadge, .volcanoBadge, .earthBadge,
-             .zephyrBadge, .hiveBadge, .plainBadge, .fogBadge,
-             .stormBadge, .mineralBadge, .glacierBadge, .risingBadge,
-             .darkBadge, .fairyBadge:
-            return CollectorPrice.gymBadge
-        case .soulDew, .jadeOrb: return 6_000_000_000
-        case .silverWing, .magmaStone, .griseousOrb: return 8_000_000_000
-        case .oldSeaMap, .clearBell, .gracidea: return 10_000_000_000
-        case .rainbowWing, .libertyPass: return 12_000_000_000
-        case .revealGlass: return 15_000_000_000
-        case .legendCharm, .dnaSplicers: return 20_000_000_000
+        default:
+            return nil
         }
     }
     /// 보유형(패시브) 아이템 — 소비하지 않고 보유하는 동안 상시 효과. 1회 구매(재구매 불가), 가방엔 "적용 중" 표시.
@@ -360,7 +350,12 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         }
     }
 
-    /// Shop section of an item that unlocks through the Pokédex. nil = always on sale in the main list.
+    /// Whether this item is claimed as an achievement rather than bought in the shop.
+    var isAchievement: Bool {
+        collectorGroup == .gymBadges || collectorGroup == .legendaryArtifacts
+    }
+
+    /// Group of an item that unlocks through the Pokédex. nil = always on sale in the main list.
     var collectorGroup: CollectorGroup? {
         if badgeType != nil { return .gymBadges }
         if stoneType != nil { return .evolutionStones }
@@ -439,12 +434,9 @@ enum ItemUnlock: Equatable, Sendable {
     case duplicateLegendary
 }
 
-/// Collector item prices. The Pokédex goal is the first gate, the price the second: every item costs
-/// more than the 4B Rare Egg, the most expensive regular purchase. Passive artifacts are priced by how much
-/// they speed up the game; stones are consumables bought again for each typed egg.
+/// Evolution stone prices. Stones are consumables bought to hatch typed eggs.
 enum CollectorPrice {
     static let evolutionStone = 5_000_000_000
-    static let gymBadge = 8_000_000_000
 }
 
 /// Azure Flute balance constant (passive collector item).

@@ -57,56 +57,56 @@ final class CollectorItemsTests: XCTestCase {
 
     // MARK: Catalogue
 
-    func testCollectorItemsAreSplitIntoThreeShopSections() {
+    func testCollectorItemsAndAchievements() {
         let s = store()
         XCTAssertEqual(s.collectorItems(in: .evolutionStones).count, 10)
         XCTAssertEqual(s.collectorItems(in: .legendaryArtifacts).count, 13)
         XCTAssertEqual(s.collectorItems(in: .gymBadges).count, 18)
         XCTAssertEqual(s.purchasableItems, [.mint, .rareCandy, .shinyCharm],
-                       "the regular shop list keeps only the always-on-sale items")
+                       "locked stones do not appear in the regular shop list")
+
+        // Once a stone is unlocked, it appears in purchasableItems
+        let withFire = store(dex: entries([154, 157, 160]))
+        XCTAssertTrue(withFire.isUnlocked(.fireStone))
+        XCTAssertTrue(withFire.purchasableItems.contains(.fireStone))
     }
 
-    func testEveryCollectorItemHasAPriceAndAPokedexCondition() {
+    func testItemsHaveAppropriatePricesAndUnlockConditions() {
         for kind in ItemKind.allCases {
             if kind.collectorGroup == nil {
                 XCTAssertNil(kind.unlock, "\(kind) is always on sale")
+                XCTAssertNotNil(kind.shopPrice, "\(kind) must have a price")
+            } else if kind.stoneType != nil {
+                XCTAssertNotNil(kind.unlock, "\(kind) stone is unlocked by the Pokédex")
+                XCTAssertNotNil(kind.shopPrice, "\(kind) stone is bought in the shop")
+                XCTAssertEqual(kind.shopPrice, CollectorPrice.evolutionStone)
             } else {
-                XCTAssertNotNil(kind.unlock, "\(kind) must be locked behind the Pokédex")
-                XCTAssertNotNil(kind.shopPrice, "\(kind) must be sold in the shop")
-                XCTAssertGreaterThan(kind.shopPrice ?? 0, FreshEgg.price(guaranteeing: .rare),
-                                     "\(kind) is priced above the most expensive egg")
+                XCTAssertNotNil(kind.unlock, "\(kind) achievement is unlocked by the Pokédex")
+                XCTAssertNil(kind.shopPrice, "\(kind) achievement is free to claim, not bought")
+                XCTAssertTrue(kind.isAchievement)
             }
         }
     }
 
-    // MARK: Lock gate
+    // MARK: Achievement claim gate
 
-    func testLockedItemCannotBeBoughtEvenWithEnoughTokens() {
-        let s = store(used: rich, dex: entries([144, 145], rarity: .legendary))
+    func testLockedAchievementCannotBeClaimed() {
+        let s = store(dex: entries([144, 145], rarity: .legendary))
         XCTAssertFalse(s.isUnlocked(.silverWing))
-        XCTAssertFalse(s.canBuy(.silverWing))
-        XCTAssertFalse(s.buy(.silverWing))
+        XCTAssertFalse(s.claimAchievement(.silverWing))
         XCTAssertEqual(s.itemCount(.silverWing), 0)
         XCTAssertEqual(s.state.spentTokens, 0)
     }
 
-    func testCompletingTheGroupUnlocksThePurchase() throws {
-        let s = store(used: rich, dex: entries([144, 145, 146], rarity: .legendary))
+    func testCompletingTheGroupUnlocksTheAchievement() {
+        let s = store(dex: entries([144, 145, 146], rarity: .legendary))
         XCTAssertTrue(s.isUnlocked(.silverWing))
-        XCTAssertTrue(s.canBuy(.silverWing))
-        let price = try XCTUnwrap(s.price(of: .silverWing))
-        XCTAssertTrue(s.buy(.silverWing))
+        XCTAssertEqual(s.unclaimedAchievementsCount, 1)
+        XCTAssertTrue(s.claimAchievement(.silverWing))
         XCTAssertEqual(s.itemCount(.silverWing), 1)
-        XCTAssertEqual(s.state.spentTokens, price)
-        XCTAssertFalse(s.canBuy(.silverWing), "passive items are bought once")
-    }
-
-    func testUnlockedItemStillNeedsEnoughTokens() throws {
-        let price = try XCTUnwrap(ItemKind.silverWing.shopPrice)
-        let s = store(used: price - 1, dex: entries([144, 145, 146], rarity: .legendary))
-        XCTAssertTrue(s.isUnlocked(.silverWing))
-        XCTAssertFalse(s.canBuy(.silverWing))
-        XCTAssertFalse(s.buy(.silverWing))
+        XCTAssertEqual(s.state.spentTokens, 0, "achievements are free to claim")
+        XCTAssertFalse(s.claimAchievement(.silverWing), "claimed achievements cannot be claimed again")
+        XCTAssertEqual(s.unclaimedAchievementsCount, 0)
     }
 
     /// Every stage of a graduated chain counts, and so does a released Pokémon: the Pokédex keeps both.
