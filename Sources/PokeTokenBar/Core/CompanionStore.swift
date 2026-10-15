@@ -373,7 +373,7 @@ final class CompanionStore {
 
     /// 시간순(과거 졸업분부터 현재 키우는 개체까지)으로 중복 포획된 개체들의 ID 집합.
     var duplicateCatchEntryIDs: Set<String> {
-        var seen = Set<DexCatchKey>()
+        var seenGraduatedSpecies = Set<DexSpeciesKey>()
         var duplicates = Set<String>()
 
         let graduated = state.dex.enumerated().sorted { a, b in
@@ -391,11 +391,26 @@ final class CompanionStore {
 
         let allEntries = activeDexEntry.map { graduated + [$0] } ?? graduated
         for e in allEntries {
-            let key = DexCatchKey(e)
-            if seen.contains(key) {
-                duplicates.insert(e.id)
+            let reachedSpeciesSeen = e.chainOrder.allSatisfy { id in
+                seenGraduatedSpecies.contains(DexSpeciesKey(speciesID: id, form: e.form))
+            }
+
+            if e.isReleased || isActiveDexEntry(e) {
+                let uncollected = hasUncollectedEvolutions(
+                    from: e.finalID,
+                    form: e.form,
+                    collectedSpecies: seenGraduatedSpecies
+                )
+                if reachedSpeciesSeen && !uncollected {
+                    duplicates.insert(e.id)
+                }
             } else {
-                seen.insert(key)
+                if reachedSpeciesSeen {
+                    duplicates.insert(e.id)
+                }
+                for id in e.chainOrder {
+                    seenGraduatedSpecies.insert(DexSpeciesKey(speciesID: id, form: e.form))
+                }
             }
         }
         return duplicates
@@ -471,14 +486,69 @@ final class CompanionStore {
         }
     }
 
-    private struct DexCatchKey: Hashable {
-        let baseID: Int
+    private struct DexSpeciesKey: Hashable {
+        let speciesID: Int
         let form: PokemonForm?
 
-        init(_ entry: DexEntry) {
-            self.baseID = entry.baseID
-            self.form = PokemonForm.resolved(baseID: entry.baseID, form: entry.form)
+        init(speciesID: Int, form: PokemonForm?) {
+            self.speciesID = speciesID
+            self.form = PokemonForm.resolved(speciesID: speciesID, form: form)
         }
+    }
+
+    /// Known branching evolution lines mapping a species to its reachable final evolution IDs.
+    static func branchingFinals(for speciesID: Int) -> [Int]? {
+        switch speciesID {
+        case 43, 44:
+            return [45, 182]        // Oddish, Gloom -> Vileplume, Bellossom
+        case 60, 61:
+            return [62, 186]        // Poliwag, Poliwhirl -> Poliwrath, Politoed
+        case 79:
+            return [80, 199]        // Slowpoke -> Slowbro, Slowking
+        case 133:
+            return [134, 135, 136, 196, 197, 470, 471, 700] // Eevee -> Vaporeon, Jolteon, Flareon, Espeon, Umbreon, Leafeon, Glaceon, Sylveon
+        case 236:
+            return [106, 107, 237]  // Tyrogue -> Hitmonlee, Hitmonchan, Hitmontop
+        case 265:
+            return [267, 269]       // Wurmple -> Beautifly, Dustox
+        case 266:
+            return [267]            // Silcoon -> Beautifly
+        case 268:
+            return [269]            // Cascoon -> Dustox
+        case 280, 281:
+            return [282, 475]       // Ralts, Kirlia -> Gardevoir, Gallade
+        case 290:
+            return [291, 292]       // Nincada -> Ninjask, Shedinja
+        case 361:
+            return [362, 478]       // Snorunt -> Glalie, Froslass
+        case 366:
+            return [367, 368]       // Clamperl -> Huntail, Gorebyss
+        case 412:
+            return [413, 414]       // Burmy -> Wormadam, Mothim
+        default:
+            return nil
+        }
+    }
+
+    private func hasUncollectedEvolutions(
+        from speciesID: Int,
+        form: PokemonForm?,
+        collectedSpecies: Set<DexSpeciesKey>
+    ) -> Bool {
+        if let currentLine, (currentLine.baseID == speciesID || currentLine.tree.node(withID: speciesID) != nil) {
+            let finals = currentLine.tree.node(withID: speciesID)?.finalIDs ?? currentLine.tree.finalIDs
+            if finals.count > 1 || finals != [speciesID] {
+                return finals.contains { finalID in
+                    !collectedSpecies.contains(DexSpeciesKey(speciesID: finalID, form: form))
+                }
+            }
+        }
+        if let finals = Self.branchingFinals(for: speciesID) {
+            return finals.contains { finalID in
+                !collectedSpecies.contains(DexSpeciesKey(speciesID: finalID, form: form))
+            }
+        }
+        return false
     }
 
     /// 종 하나가 모으는 것 — 누적 전용. 병렬 딕셔너리를 여러 개 두면 키 집합이 서로 어긋날 수 있고
