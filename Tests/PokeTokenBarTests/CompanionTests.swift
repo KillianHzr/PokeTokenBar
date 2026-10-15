@@ -1167,24 +1167,46 @@ final class CompanionStoreTests: XCTestCase {
             [265, 266, 267])
     }
 
-    func testLineNodesHidesUnresolvedWurmpleBranchAsSingleMystery() async {
+    func testLineNodesShowsUnresolvedWurmpleBranchAsBranchCandidates() async {
         let s = store(wurmpleLine)
         await s.hatch(baseID: 265)
 
         XCTAssertEqual(s.lineNodes, [
             EvoLineItem(.species(265), .current),
-            EvoLineItem(.mystery, .future),
+            EvoLineItem(.branch([
+                BranchEvolutionItem(speciesID: 266, isCollected: false),
+                BranchEvolutionItem(speciesID: 268, isCollected: false),
+            ]), .future),
         ])
     }
 
-    func testLineNodesShowsKnownPrefixBeforeDownstreamBranchAsMystery() async {
+    func testLineNodesShowsKnownPrefixBeforeDownstreamBranchAsBranchCandidates() async {
         let s = store(delayedBranchLine)
         await s.hatch(baseID: 43)
 
         XCTAssertEqual(s.lineNodes, [
             EvoLineItem(.species(43), .current),
             EvoLineItem(.species(44), .future),
-            EvoLineItem(.mystery, .future),
+            EvoLineItem(.branch([
+                BranchEvolutionItem(speciesID: 45, isCollected: false),
+                BranchEvolutionItem(speciesID: 182, isCollected: false),
+            ]), .future),
+        ])
+    }
+
+    func testLineNodesMarksCollectedBranchItems() async throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("poke-\(UUID().uuidString).json")
+        let json = #"{"installBaselineSet":true,"usedSinceInstall":5,"claimedTodayTokens":5,"lastDate":"d","active":null,"dex":[{"baseID":265,"finalID":266,"chainOrder":[265,266],"rarity":"common"}],"collectedFinals":["265:266"],"language":"ko"}"#
+        try Data(json.utf8).write(to: url)
+        let s = CompanionStore(provider: StubProvider(value: wurmpleLine), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 1))
+        await s.hatch(baseID: 265)
+
+        XCTAssertEqual(s.lineNodes, [
+            EvoLineItem(.species(265), .current),
+            EvoLineItem(.branch([
+                BranchEvolutionItem(speciesID: 266, isCollected: true),
+                BranchEvolutionItem(speciesID: 268, isCollected: false),
+            ]), .future),
         ])
     }
 
@@ -1218,6 +1240,37 @@ final class CompanionStoreTests: XCTestCase {
         }
         XCTAssertEqual(Set(finals).count, 3)   // 같은 base 재부화 시 매번 다른 분기
         XCTAssertEqual(Set(finals), [11, 12, 13])
+    }
+
+    func testBranchingProtectionNeverSelectsCollectedWhileUncollectedExists() async throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("poke-\(UUID().uuidString).json")
+        // 11 is collected
+        let json = #"{"installBaselineSet":true,"usedSinceInstall":5,"claimedTodayTokens":5,"lastDate":"d","active":null,"dex":[],"collectedFinals":["10:11"],"language":"ko"}"#
+        try Data(json.utf8).write(to: url)
+        let evo = PokemonBalance.phaseThreshold(rarity: .common, totalForms: 2, stageIndex: 0)
+        let grad = PokemonBalance.phaseThreshold(rarity: .common, totalForms: 2, stageIndex: 1)
+
+        let s = CompanionStore(provider: StubProvider(value: branch3), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 42))
+
+        // First hatch must pick 12 or 13, never 11
+        await s.hatch(baseID: 10)
+        let firstHatch = try XCTUnwrap(s.state.active?.plannedPathIDs[1])
+        XCTAssertTrue(firstHatch == 12 || firstHatch == 13, "Should not pick 11 while 12 and 13 are uncollected (got \(firstHatch))")
+        s.applyUsage(evo)
+        s.applyUsage(grad)
+
+        // Second hatch must pick the remaining uncollected branch
+        await s.hatch(baseID: 10)
+        let secondHatch = try XCTUnwrap(s.state.active?.plannedPathIDs[1])
+        let remaining = (firstHatch == 12) ? 13 : 12
+        XCTAssertEqual(secondHatch, remaining, "Must pick remaining uncollected branch")
+        s.applyUsage(evo)
+        s.applyUsage(grad)
+
+        // Now all 11, 12, 13 are collected: third hatch can pick any branch
+        await s.hatch(baseID: 10)
+        let thirdHatch = try XCTUnwrap(s.state.active?.plannedPathIDs[1])
+        XCTAssertTrue([11, 12, 13].contains(thirdHatch))
     }
 
     func testRepeatGrowthIsDecidedFromTheCollectedBaseNotThePlannedFinal() async throws {
