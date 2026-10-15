@@ -51,6 +51,8 @@ final class UpdateChecker {
     /// Newer commit the user chose to skip. Hidden from the banner, still shown in Settings.
     private(set) var skipped: Available?
     private(set) var isUpdating = false
+    private(set) var updateError: String?
+    private var updateStatusTask: Task<Void, Never>?
 
     let currentCommit: String
     let currentVersion: String
@@ -69,7 +71,7 @@ final class UpdateChecker {
         let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
 
         self.currentCommit = currentCommit ?? (embeddedCommit != nil && !embeddedCommit!.isEmpty && embeddedCommit != "unknown" ? embeddedCommit! : "dev")
-        self.currentVersion = currentVersion ?? shortVersion ?? "2.5.5"
+        self.currentVersion = currentVersion ?? (embeddedCommit != nil && !embeddedCommit!.isEmpty && embeddedCommit != "unknown" ? String(embeddedCommit!.prefix(7)) : (shortVersion ?? "2.5.5"))
         self.clock = clock
         self.defaults = defaults
         self.fetchLatest = fetchLatest ?? { await Self.liveLatestCommit(repo: "KillianHzr/PokeTokenLBI") }
@@ -197,13 +199,32 @@ final class UpdateChecker {
         }
     }
 
+    func startMonitoringUpdateStatus() {
+        updateStatusTask?.cancel()
+        updateStatusTask = Task { @MainActor [weak self] in
+            let statusURL = AppStatePaths.directory().appendingPathComponent("update-status")
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                guard let self, self.isUpdating else { break }
+                if let content = try? String(contentsOf: statusURL, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines) {
+                    if content.hasPrefix("error") {
+                        self.isUpdating = false
+                        self.updateError = content
+                        break
+                    }
+                }
+            }
+        }
+    }
+
     /// 업데이트 적용: 분리(detached) 스크립트로 git pull/reset + rebuild + reopen.
     func applyUpdate() {
         guard updateTarget != nil, !isUpdating else { return }
         isUpdating = true
+        updateError = nil
         Task { @MainActor in
             Self.launchDetachedUpgrade()
-            NSApp.terminate(nil)
+            self.startMonitoringUpdateStatus()
         }
     }
 
@@ -219,28 +240,35 @@ final class UpdateChecker {
         return false
     }
 
-    /// 앱이 종료된 뒤 repo fetch + build-app.sh + reopen을 수행하는 분리(detached) 스크립트.
+    /// 백그라운드에서 repo fetch + build-app.sh + reopen을 수행하는 분리(detached) 스크립트.
     nonisolated static let detachedUpgradeScript = """
-    for i in $(seq 1 40); do kill -0 "$1" 2>/dev/null || break; sleep 0.5; done
     export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
 
     APP_SUPPORT="$HOME/Library/Application Support/PokeTokenBar"
     SRC_DIR="$APP_SUPPORT/src"
     LOG_FILE="$HOME/Library/Logs/PokeTokenLBI-update.log"
+    STATUS_FILE="$APP_SUPPORT/update-status"
     mkdir -p "$APP_SUPPORT"
     mkdir -p "$(dirname "$LOG_FILE")"
+    echo "running" > "$STATUS_FILE"
     echo "=== Update started at $(date) ===" >> "$LOG_FILE"
+
+    fail() {
+      echo "error: $1" > "$STATUS_FILE"
+      echo "Update failed: $1" >> "$LOG_FILE"
+      exit 1
+    }
 
     if [ ! -d "$SRC_DIR/.git" ]; then
       echo "Cloning repository..." >> "$LOG_FILE"
-      git clone "https://github.com/KillianHzr/PokeTokenLBI.git" "$SRC_DIR" >> "$LOG_FILE" 2>&1
+      git clone "https://github.com/KillianHzr/PokeTokenLBI.git" "$SRC_DIR" >> "$LOG_FILE" 2>&1 || fail "clone failed"
     fi
 
-    cd "$SRC_DIR" || exit 1
+    cd "$SRC_DIR" || fail "cd failed"
     echo "Fetching and resetting to origin/main..." >> "$LOG_FILE"
-    git fetch origin main >> "$LOG_FILE" 2>&1
-    git reset --hard origin/main >> "$LOG_FILE" 2>&1
-    git clean -fd >> "$LOG_FILE" 2>&1
+    git fetch origin main >> "$LOG_FILE" 2>&1 || fail "fetch failed"
+    git reset --hard origin/main >> "$LOG_FILE" 2>&1 || fail "reset failed"
+    git clean -fd >> "$LOG_FILE" 2>&1 || fail "clean failed"
 
     PATCH_FILE="$APP_SUPPORT/local.patch"
     if [ -f "$PATCH_FILE" ]; then
@@ -249,7 +277,11 @@ final class UpdateChecker {
     fi
 
     echo "Building app..." >> "$LOG_FILE"
-    PTB_NATIVE_ARCH_ONLY=1 ./scripts/build-app.sh >> "$LOG_FILE" 2>&1
+    PTB_NATIVE_ARCH_ONLY=1 ./scripts/build-app.sh >> "$LOG_FILE" 2>&1 || fail "build failed"
+
+    # Terminate the running instance ($1) right before reopening the new app
+    kill "$1" 2>/dev/null || true
+    for i in $(seq 1 40); do kill -0 "$1" 2>/dev/null || break; sleep 0.5; done
 
     echo "Re-opening app..." >> "$LOG_FILE"
     TARGET_APP="/Applications/PokeTokenLBI.app"
@@ -258,6 +290,7 @@ final class UpdateChecker {
       open "$2" 2>/dev/null && break
       sleep 1
     done
+    echo "success" > "$STATUS_FILE"
     echo "=== Update finished at $(date) ===" >> "$LOG_FILE"
     """
 
