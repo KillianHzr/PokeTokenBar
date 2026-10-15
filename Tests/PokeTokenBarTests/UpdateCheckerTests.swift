@@ -244,4 +244,18 @@ final class UpdateCheckerTests: XCTestCase {
         XCTAssertNil(upToDateChecker.available)
         XCTAssertEqual(upToDateChecker.settingsNotice, .current)
     }
+
+    func testDetachedUpgradeScriptWritesStatusFile() {
+        let script = UpdateChecker.detachedUpgradeScript
+        XCTAssertTrue(script.contains("STATUS_FILE=\"$APP_SUPPORT/update-status\""), "must define STATUS_FILE")
+        XCTAssertTrue(script.contains("echo \"running\" > \"$STATUS_FILE\""), "must record running state")
+        XCTAssertTrue(script.contains("echo \"success\" > \"$STATUS_FILE\""), "must record success state")
+    }
+
+    @MainActor
+    func testIsUpdatingState() {
+        let checker = UpdateChecker(currentCommit: "1111111", defaults: isolatedDefaults())
+        XCTAssertFalse(checker.isUpdating)
+        XCTAssertNil(checker.updateError)
+    }
 }
