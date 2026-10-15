@@ -292,7 +292,7 @@ final class CompanionStore {
                 let branchItems = node.children.map { ch in
                     BranchEvolutionItem(
                         speciesID: ch.speciesID,
-                        isCollected: isBranchNodeCollected(ch, baseID: a.baseID)
+                        isCollected: isEvolutionCollected(speciesID: ch.speciesID, baseID: a.baseID)
                     )
                 }
                 out.append(EvoLineItem(.branch(branchItems), .future))
@@ -1018,9 +1018,11 @@ final class CompanionStore {
         return false
     }
 
-    /// 분기 노드 또는 해당 노드의 모든 최종체가 이미 수집되었는지 여부.
+    /// 분기 노드의 모든 최종체가 이미 수집되었는지 여부. (단일 진화 종인 경우 해당 종 자체의 수집 여부)
     func isBranchNodeCollected(_ node: EvoNode, baseID: Int) -> Bool {
-        if isEvolutionCollected(speciesID: node.speciesID, baseID: baseID) { return true }
+        if node.children.isEmpty {
+            return isEvolutionCollected(speciesID: node.speciesID, baseID: baseID)
+        }
         return node.finalIDs.allSatisfy { isEvolutionCollected(speciesID: $0, baseID: baseID) }
     }
 
