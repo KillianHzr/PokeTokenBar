@@ -482,7 +482,7 @@ final class CompanionStore {
 
         init(_ entry: DexEntry) {
             self.baseID = entry.baseID
-            self.form = PokemonForm.resolved(speciesID: entry.baseID, form: entry.form)
+            self.form = PokemonForm.resolved(baseID: entry.baseID, form: entry.form)
         }
     }
 
