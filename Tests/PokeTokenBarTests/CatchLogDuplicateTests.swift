@@ -364,4 +364,103 @@ final class CatchLogDuplicateTests: XCTestCase {
             XCTAssertFalse(l.dexDuplicate.isEmpty)
         }
     }
+
+    func testAlternateFormsTrackedIndividuallyAcrossEvolutions() {
+        // Shellos (422) -> Gastrodon (423) with West vs East forms
+        let west = DexEntry(
+            id: "gastrodon-west",
+            baseID: 422,
+            finalID: 423,
+            chainOrder: [422, 423],
+            rarity: .common,
+            caughtAt: baseDate,
+            form: PokemonForm("west")
+        )
+        let east = DexEntry(
+            id: "gastrodon-east",
+            baseID: 422,
+            finalID: 423,
+            chainOrder: [422, 423],
+            rarity: .common,
+            caughtAt: baseDate.addingTimeInterval(3600),
+            form: PokemonForm("east")
+        )
+        let secondWest = DexEntry(
+            id: "gastrodon-west-2",
+            baseID: 422,
+            finalID: 423,
+            chainOrder: [422, 423],
+            rarity: .common,
+            caughtAt: baseDate.addingTimeInterval(7200),
+            form: PokemonForm("west")
+        )
+        let store = makeStore(dex: [west, east, secondWest])
+
+        XCTAssertFalse(store.isDuplicateCatch(west), "First West Sea Gastrodon should not be duplicate")
+        XCTAssertFalse(store.isDuplicateCatch(east), "First East Sea Gastrodon should NOT be duplicate even though species 422/423 was graduated in West form")
+        XCTAssertTrue(store.isDuplicateCatch(secondWest), "Second West Sea Gastrodon should be marked duplicate")
+    }
+
+    func testRotomFormsTrackedIndividually() {
+        let normal = DexEntry(
+            id: "rotom-normal",
+            baseID: 479,
+            finalID: 479,
+            chainOrder: [479],
+            rarity: .rare,
+            caughtAt: baseDate,
+            form: PokemonForm("normal")
+        )
+        let heat = DexEntry(
+            id: "rotom-heat",
+            baseID: 479,
+            finalID: 479,
+            chainOrder: [479],
+            rarity: .rare,
+            caughtAt: baseDate.addingTimeInterval(100),
+            form: PokemonForm("heat")
+        )
+        let secondHeat = DexEntry(
+            id: "rotom-heat-2",
+            baseID: 479,
+            finalID: 479,
+            chainOrder: [479],
+            rarity: .rare,
+            caughtAt: baseDate.addingTimeInterval(200),
+            form: PokemonForm("heat")
+        )
+        let store = makeStore(dex: [normal, heat, secondHeat])
+
+        XCTAssertFalse(store.isDuplicateCatch(normal), "Normal Rotom should not be duplicate")
+        XCTAssertFalse(store.isDuplicateCatch(heat), "Heat Rotom should NOT be duplicate of Normal Rotom")
+        XCTAssertTrue(store.isDuplicateCatch(secondHeat), "Second Heat Rotom should be marked duplicate")
+    }
+
+    func testReleasedAlternateFormNotDuplicateIfThatFormUncollected() {
+        // Player graduated Gastrodon West
+        let west = DexEntry(
+            id: "gastrodon-west",
+            baseID: 422,
+            finalID: 423,
+            chainOrder: [422, 423],
+            rarity: .common,
+            caughtAt: baseDate,
+            form: PokemonForm("west")
+        )
+        // Player hatches Shellos East and releases it at stage 0
+        let releasedEast = DexEntry(
+            id: "shellos-east-released",
+            baseID: 422,
+            finalID: 422,
+            chainOrder: [422],
+            rarity: .common,
+            caughtAt: baseDate.addingTimeInterval(100),
+            releasedAt: baseDate.addingTimeInterval(100),
+            form: PokemonForm("east")
+        )
+        let store = makeStore(dex: [west, releasedEast])
+
+        XCTAssertFalse(store.isDuplicateCatch(west))
+        XCTAssertFalse(store.isDuplicateCatch(releasedEast), "Released East Shellos must NOT be duplicate because East form was never graduated")
+    }
 }
