@@ -8,6 +8,7 @@ APP_NAME="PokeTokenLBI"
 BUILD_DIR="build"
 APP="$BUILD_DIR/$APP_NAME.app"
 GIT_COMMIT_SHA="$(git rev-parse HEAD 2>/dev/null || echo 'unknown')"
+GIT_COMMIT_DATE="$(git log -1 --format='%cd' --date=format:'%Y-%m-%d %H:%M' 2>/dev/null || date '+%Y-%m-%d %H:%M')"
 
 # Apply optional local patch (for private personal tweaks not committed to git)
 LOCAL_PATCH="${PTB_LOCAL_PATCH:-$HOME/Library/Application Support/PokeTokenBar/local.patch}"
@@ -54,6 +55,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleShortVersionString</key><string>$VERSION</string>
     <key>CFBundleVersion</key><string>$VERSION</string>
     <key>PTBCommitSHA</key><string>$GIT_COMMIT_SHA</string>
+    <key>PTBCommitDate</key><string>$GIT_COMMIT_DATE</string>
     <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>LSUIElement</key><true/>
