@@ -204,4 +204,106 @@ final class ScreenshotGenTests: XCTestCase {
             Text(TokenFormatter.cost(cost)).font(.caption).foregroundStyle(.secondary)
         }
     }
+
+    @MainActor
+    func testGenerateCatchLogDuplicateScreenshots() throws {
+        guard let directory = ProcessInfo.processInfo.environment["PTB_SCREENSHOT_DIR"] else {
+            throw XCTSkip("PTB_SCREENSHOT_DIR not set")
+        }
+        let outDir = URL(fileURLWithPath: directory)
+        try FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
+
+        func row(rarity: Rarity, released: Bool, duplicate: Bool, chain: [(Int, String)], time: String) -> some View {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 5) {
+                    Badge(rarity.rawValue.uppercased(), tint: .rarity(rarity), size: 10)
+                    if released {
+                        Badge("RELÂCHÉ", tint: .secondary, style: .tinted, size: 10)
+                    }
+                    if duplicate {
+                        Text("DOUBLON")
+                            .font(.system(size: 10, weight: .bold))
+                            .padding(.horizontal, 5).padding(.vertical, 1)
+                            .background(Color.secondary.opacity(0.14))
+                            .foregroundStyle(Color.secondary)
+                            .clipShape(Capsule())
+                    }
+                    Spacer()
+                }
+                HStack(spacing: 12) {
+                    ForEach(Array(chain.enumerated()), id: \.offset) { idx, item in
+                        HStack(spacing: 6) {
+                            if idx > 0 {
+                                Image(systemName: "arrow.right")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundStyle(.tertiary)
+                            }
+                            VStack(spacing: 2) {
+                                Text("#\(item.0)")
+                                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                                Text(item.1)
+                                    .font(.system(size: 11, weight: .medium))
+                            }
+                        }
+                    }
+                    Spacer()
+                }
+                .padding(.vertical, 4)
+                Text(time).font(.system(size: 11)).foregroundStyle(.secondary)
+            }
+            .padding(8)
+            .background(Color.secondary.opacity(0.06))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+
+        func makeCard(isBefore: Bool) -> some View {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(isBefore ? "Catch Log — Avant le correctif (bugs doublons)" : "Catch Log — Après le correctif (TokenDex parity)")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.primary)
+
+                // Row 1: Jolteon (Eevee -> Jolteon, after Vaporeon was graduated)
+                row(rarity: .common, released: false, duplicate: isBefore, chain: [(133, "Évoli"), (135, "Voltali")], time: "il y a 30 min")
+
+                // Row 2: Vaporeon (Eevee -> Vaporeon)
+                row(rarity: .common, released: false, duplicate: false, chain: [(133, "Évoli"), (134, "Aquali")], time: "il y a 2 h")
+
+                // Row 3: Graduated Raichu (after earlier Pikachu was released at egg purchase)
+                row(rarity: .rare, released: false, duplicate: isBefore, chain: [(25, "Pikachu"), (26, "Raichu")], time: "il y a 4 h")
+
+                // Row 4: Released Pikachu (released at egg purchase)
+                row(rarity: .rare, released: true, duplicate: false, chain: [(25, "Pikachu")], time: "il y a 6 h")
+            }
+            .padding(14)
+            .frame(width: 360)
+            .background(Color(red: 41 / 255, green: 41 / 255, blue: 42 / 255))
+            .environment(\.colorScheme, .dark)
+        }
+
+        func captureView<V: View>(_ view: V) throws -> Data {
+            let host = NSHostingController(rootView: view)
+            host.view.setFrameSize(NSSize(width: 360, height: host.view.fittingSize.height))
+            let window = NSWindow(contentRect: host.view.frame, styleMask: [.borderless], backing: .buffered, defer: false)
+            window.appearance = NSAppearance(named: .darkAqua)
+            window.contentView = host.view
+            host.view.layoutSubtreeIfNeeded()
+            window.displayIfNeeded()
+            let bounds = host.view.bounds
+            let rep = try XCTUnwrap(NSBitmapImageRep(
+                bitmapDataPlanes: nil,
+                pixelsWide: Int(bounds.width) * 2, pixelsHigh: Int(bounds.height) * 2,
+                bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+            rep.size = bounds.size
+            host.view.cacheDisplay(in: bounds, to: rep)
+            return try XCTUnwrap(rep.representation(using: .png, properties: [:]))
+        }
+
+        let beforeData = try captureView(makeCard(isBefore: true))
+        try beforeData.write(to: outDir.appendingPathComponent("before.png"))
+
+        let afterData = try captureView(makeCard(isBefore: false))
+        try afterData.write(to: outDir.appendingPathComponent("after.png"))
+    }
 }
