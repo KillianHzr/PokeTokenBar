@@ -158,30 +158,30 @@ final class CatchLogDuplicateTests: XCTestCase {
     func testUnownFormsTrackedIndividually() {
         let unownA1 = DexEntry(
             id: "unown-a1",
-            baseID: UnownForm.speciesID,
-            finalID: UnownForm.speciesID,
-            chainOrder: [UnownForm.speciesID],
+            baseID: PokemonForm.unownSpeciesID,
+            finalID: PokemonForm.unownSpeciesID,
+            chainOrder: [PokemonForm.unownSpeciesID],
             rarity: .rare,
             caughtAt: baseDate,
-            unownForm: .a
+            form: .a
         )
         let unownB = DexEntry(
             id: "unown-b",
-            baseID: UnownForm.speciesID,
-            finalID: UnownForm.speciesID,
-            chainOrder: [UnownForm.speciesID],
+            baseID: PokemonForm.unownSpeciesID,
+            finalID: PokemonForm.unownSpeciesID,
+            chainOrder: [PokemonForm.unownSpeciesID],
             rarity: .rare,
             caughtAt: baseDate.addingTimeInterval(100),
-            unownForm: .b
+            form: .b
         )
         let unownA2 = DexEntry(
             id: "unown-a2",
-            baseID: UnownForm.speciesID,
-            finalID: UnownForm.speciesID,
-            chainOrder: [UnownForm.speciesID],
+            baseID: PokemonForm.unownSpeciesID,
+            finalID: PokemonForm.unownSpeciesID,
+            chainOrder: [PokemonForm.unownSpeciesID],
             rarity: .rare,
             caughtAt: baseDate.addingTimeInterval(200),
-            unownForm: .a
+            form: .a
         )
         let store = makeStore(dex: [unownA1, unownB, unownA2])
 

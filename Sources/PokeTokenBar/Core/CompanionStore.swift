@@ -473,11 +473,11 @@ final class CompanionStore {
 
     private struct DexCatchKey: Hashable {
         let baseID: Int
-        let unownForm: UnownForm?
+        let form: PokemonForm?
 
         init(_ entry: DexEntry) {
             self.baseID = entry.baseID
-            self.unownForm = UnownForm.resolved(speciesID: entry.baseID, form: entry.unownForm)
+            self.form = PokemonForm.resolved(baseID: entry.baseID, form: entry.form)
         }
     }
 
