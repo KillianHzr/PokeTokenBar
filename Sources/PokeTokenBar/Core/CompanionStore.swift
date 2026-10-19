@@ -2017,7 +2017,8 @@ final class CompanionStore {
 
     /// 부화 종 선정 — 하드코딩 풀 없이 PokéAPI 1~5세대 base 전체(329종)에서 가중 선택.
     ///   ① base 인덱스(id + capture_rate)를 GraphQL 1쿼리로 취득(30일 디스크 캐시 → 보통 0콜)
-    ///   ② 가중치 = 공식 capture_rate 그대로(캐터피 255 vs 뮤츠 3 = 85:1, 전설군 ≈ 0.77%)
+    ///   ② 가중치 = 공식 capture_rate(캐터피 255 vs 뮤츠 3 = 85:1). 단 알로 얻을 수 없는 전설·환상은
+    ///      capture_rate 와 무관하게 뮤츠급 3(`BaseSpecies.hatchWeight`) → 전설군 ≈ 0.39%
     ///      단, 이미 수집한 base 는 가중치 ½(미수집 부스트 — 재부화/shiny 사냥은 열어둠)
     ///   ③ 누적 가중치에서 정확히 1롤 — 루프/재롤 없음, 시간 상한 확정적
     /// 인덱스 취득 실패(오프라인 + 캐시 없음) 시 nil → 알 유지, 다음 갱신 틱 재시도.
@@ -2033,7 +2034,7 @@ final class CompanionStore {
                 return nil
             }
             let weights = index.map { e in
-                CollectionWeight.adjusted(e.captureRate, isCollected: state.hasCollectedFinal(forBaseID: e.id))
+                CollectionWeight.adjusted(e.hatchWeight, isCollected: state.hasCollectedFinal(forBaseID: e.id))
             }
             let total = weights.reduce(0, +)
             var r = Int(rng.next() % UInt64(total))
