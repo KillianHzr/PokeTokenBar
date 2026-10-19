@@ -724,6 +724,11 @@ struct L {
           "Snapshot erstellen",
           "Создать снимок")
     }
+    func snapshotHistoryState(expanded: Bool) -> String {
+        expanded
+            ? t("펼쳐짐", "Expanded", "展開", "Expandido", "Développé", "Expandido", "Erweitert", "Развёрнуто")
+            : t("접힘", "Collapsed", "折りたたみ", "Contraído", "Réduit", "Recolhido", "Eingeklappt", "Свёрнуто")
+    }
     var createSnapshotHint: String {
         t("진행 상태의 로컬 복원 지점을 즉시 저장해요 (최근 10개 보존)",
           "Saves an instant local restore point of your progress (keeps up to 10)",
@@ -1070,16 +1075,25 @@ struct L {
     var catchLogTitle: String { t("포획 로그", "Catch log", "捕獲ログ", "Registro de capturas", "Journal de captures", "Registro de capturas", "Fangprotokoll", "Журнал поимок") }
     /// 도감 총계는 개체가 아니라 종 수 — 로그의 dexTotal("총 N마리")과 단위가 다르다.
     func dexSpeciesTotal(_ n: Int) -> String { t("\(n)종", "\(n) species", "\(n)種", "\(n) especies", "\(n) espèces", "\(n) espécies", "\(n) Spezies", "Видов: \(n)") }
-    func unownFormsCollected(_ count: Int) -> String {
-        t("안농 글자 \(count)/28", "Unown forms \(count)/28", "アンノーン \(count)/28文字",
-          "Formas Unown \(count)/28", "Formes Zarbi \(count)/28", "Formas Unown \(count)/28",
-          "Icognito-Formen \(count)/28",
-          "Формы Unown: \(count)/28")
+    func formsCollected(_ count: Int, of total: Int) -> String {
+        t("폼 \(count)/\(total)", "Forms \(count)/\(total)", "フォルム \(count)/\(total)",
+          "Formas \(count)/\(total)", "Formes \(count)/\(total)", "Formas \(count)/\(total)",
+          "Formen \(count)/\(total)",
+          "Формы: \(count)/\(total)")
     }
-    var unownChooseForm: String {
-        t("글자 선택", "Choose form", "フォルムを選択", "Elegir forma", "Choisir une forme", "Escolher forma", "Form auswählen", "Выбрать форму")
+    var chooseForm: String {
+        t("폼 선택", "Choose form", "フォルムを選択", "Elegir forma", "Choisir une forme", "Escolher forma", "Form auswählen", "Выбрать форму")
     }
-    var unownNotCollected: String {
+    /// Usual look of a species whose official data names no form (Castform, Rotom, Kyurem, Genesect).
+    var normalForm: String {
+        t("노말폼", "Normal Form", "ノーマルフォルム", "Forma Normal", "Forme Normale", "Forma Normal", "Normalform", "Обычная форма")
+    }
+    var defaultFormDataNote: String {
+        t("정보는 기본 폼 기준", "Data uses the default form", "データは基本フォルムに基づきます",
+          "Datos de la forma predeterminada", "Données de la forme par défaut", "Dados da forma padrão",
+          "Daten der Standardform", "Данные обычной формы")
+    }
+    var formNotCollected: String {
         t("미수집", "Not collected", "未収集", "Sin conseguir", "Non collectionnée", "Não coletada", "Noch nicht gesammelt", "Не собрано")
     }
     func dexPageLabel(_ page: Int, _ total: Int) -> String {
@@ -1090,6 +1104,8 @@ struct L {
     var dexRaising: String { t("키우는 중", "Raising", "育成中", "Criando", "En élevage", "Treinando", "In Aufzucht", "Растёт") }
     /// 포획 로그에서 졸업분과 놓아준 개체를 가르는 표식. 종은 도감에 남고 개체 기록만 이 뱃지를 단다.
     var dexReleased: String { t("놓아줌", "Released", "逃がした", "Liberado", "Relâché", "Solto", "Freigelassen", "Отпущен") }
+    /// 포획 로그에서 이전에 이미 잡았던 진화 라인(또는 안농 폼)의 중복 포획 개체임을 나타내는 뱃지.
+    var dexDuplicate: String { t("중복", "Duplicate", "重複", "Duplicado", "Doublon", "Duplicado", "Duplikat", "Дубликат") }
     var rarityCommon: String { t("일반", "Common", "ノーマル", "Común", "Commun", "Comum", "Gewöhnlich", "Обычный") }
     var rarityUncommon: String { t("고급", "Uncommon", "アンコモン", "Poco común", "Peu commun", "Incomum", "Ungewöhnlich", "Необычный") }
     var rarityRare: String { t("희귀", "Rare", "レア", "Raro", "Rare", "Raro", "Selten", "Редкий") }
@@ -1109,6 +1125,7 @@ struct L {
     var sortDateDesc: String { t("최근 잡은 순", "Most Recent", "最近捕獲", "Más recientes", "Plus récents", "Mais recentes", "Neueste zuerst", "Сначала новые") }
     var sortDateAsc: String { t("오래된 순", "Oldest First", "古い順", "Más antiguos", "Plus anciens", "Mais antigos", "Älteste zuerst", "Сначала старые") }
     var filterShinyOnly: String { t("이로치만", "Shiny only", "色違いのみ", "Solo variocolor", "Chromatique uniquement", "Apenas Shiny", "Nur schillernde", "Только шайни") }
+    var filterEvolutionFamily: String { t("진화 라인 포함", "Evolution family", "進化ラインを含める", "Línea evolutiva", "Famille d'évolution", "Linha evolutiva", "Entwicklungsreihe", "Линия эволюции") }
     var noSearchResults: String { t("검색 결과가 없어요", "No Pokémon found", "見つかりませんでした", "No se encontraron Pokémon", "Aucun Pokémon trouvé", "Nenhum Pokémon encontrado", "Keine Pokémon gefunden", "Покемоны не найдены") }
     var clearFilters: String { t("필터 초기화", "Reset filters", "フィルターを解除", "Restablecer filtros", "Réinitialiser les filtres", "Redefinir filtros", "Filter zurücksetzen", "Сбросить фильтры") }
     func label(for option: CompanionStore.DexSortOption) -> String {
@@ -1391,23 +1408,31 @@ struct L {
     var updateButton: String { t("업데이트", "Update", "更新", "Actualizar", "Mettre à jour", "Instalar", "Aktualisieren", "Обновить") }
     var skipThisVersion: String { t("이 버전 건너뛰기", "Skip this version", "このバージョンをスキップ", "Omitir esta versión", "Ignorer cette version", "Ignorar esta versão", "Diese Version überspringen", "Пропустить эту версию") }
     func skippedVersion(_ version: String) -> String {
-        t("v\(version)을 건너뛰었어요",
-          "You skipped v\(version)",
-          "v\(version) をスキップしました",
-          "Omitiste la v\(version)",
-          "Tu as ignoré la v\(version)",
-          "Você ignorou a v\(version)",
-          "Du hast v\(version) übersprungen",
-          "Вы пропустили v\(version)")
+        let prefix = version.contains(".") ? "v" : ""
+        return t("\(prefix)\(version)을 건너뛰었어요",
+          "You skipped \(prefix)\(version)",
+          "\(prefix)\(version) をスキップしました",
+          "Omitiste la \(prefix)\(version)",
+          "Tu as ignoré la \(prefix)\(version)",
+          "Você ignorou a \(prefix)\(version)",
+          "Du hast \(prefix)\(version) übersprungen",
+          "Вы пропустили \(prefix)\(version)")
     }
     var showSkippedAgain: String { t("다시 알리기", "Show again", "もう一度表示", "Mostrar de nuevo", "Afficher à nouveau", "Mostrar de novo", "Wieder anzeigen", "Показать снова") }
     var updating: String { t("업데이트 중…", "Updating…", "更新中…", "Actualizando…", "Mise à jour…", "Atualizando…", "Wird aktualisiert…", "Обновление…") }
+    var updatingToolTip: String { t("업데이트 진행 중… (재빌드)", "Update in progress… (rebuilding)", "アップデート進行中… (再ビルド)", "Actualización en curso… (recompilando)", "Mise à jour en cours… (recompilation)", "Atualização em andamento… (recompilando)", "Aktualisierung läuft… (Neukompilierung)", "Идет обновление… (пересборка)") }
     var updateSectionTitle: String { t("업데이트", "Updates", "アップデート", "Actualizaciones", "Mises à jour", "Atualizações", "Aktualisierungen", "Обновления") }
     var updateNotificationsLabel: String { t("업데이트 알림", "Update notifications", "アップデート通知", "Notificaciones de actualización", "Notifications de mise à jour", "Notificações de atualização", "Hinweise auf Aktualisierungen", "Уведомления об обновлениях") }
     var checkForUpdatesLabel: String { t("업데이트 확인", "Check for updates", "アップデートを確認", "Buscar actualizaciones", "Rechercher des mises à jour", "Buscar atualizações", "Nach Aktualisierungen suchen", "Проверять обновления") }
     var checkNowButton: String { t("지금 확인", "Check now", "今すぐ確認", "Comprobar ahora", "Vérifier maintenant", "Buscar agora", "Jetzt prüfen", "Проверить сейчас") }
-    func updateFound(_ version: String) -> String { t("새 버전 v\(version) 있어요", "Version \(version) is available", "バージョン \(version) が利用可能です", "La versión \(version) está disponible", "La version \(version) est disponible", "A versão \(version) está disponível", "Version \(version) ist verfügbar", "Доступна версия \(version)") }
-    func upToDate(_ version: String) -> String { t("최신 버전이에요 (v\(version))", "You're on the latest (v\(version))", "最新です (v\(version))", "Tienes la última versión (v\(version))", "Tu as la dernière version (v\(version))", "Você está na última versão (v\(version))", "Du hast die neueste Version (v\(version))", "У вас последняя версия (v\(version))") }
+    func updateFound(_ version: String) -> String {
+        let prefix = version.contains(".") ? "v" : ""
+        return t("새 버전 \(prefix)\(version) 있어요", "Version \(prefix)\(version) is available", "バージョン \(prefix)\(version) が利用可能です", "La versión \(prefix)\(version) está disponible", "La version \(prefix)\(version) est disponible", "A versão \(prefix)\(version) está disponível", "Version \(prefix)\(version) ist verfügbar", "Доступна версия \(prefix)\(version)")
+    }
+    func upToDate(_ version: String) -> String {
+        let prefix = version.contains(".") ? "v" : ""
+        return t("최신 버전이에요 (\(prefix)\(version))", "You're on the latest (\(prefix)\(version))", "最新です (\(prefix)\(version))", "Tienes la última versión (\(prefix)\(version))", "Tu as la dernière version (\(prefix)\(version))", "Você está na última versão (\(prefix)\(version))", "Du hast die neueste Version (\(prefix)\(version))", "У вас последняя версия (\(prefix)\(version))")
+    }
 
     // MARK: 알림
     var notifCritical: String { t("한도 임박", "Limit imminent", "上限切迫", "Límite inminente", "Limite imminente", "Limite iminente", "Limit fast erreicht", "Лимит почти исчерпан") }

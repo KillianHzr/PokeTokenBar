@@ -17,6 +17,7 @@ struct SettingsView: View {
     @State private var launchAtLoginError: Error?
     @State private var reportFailed = false
     @State private var advancedExpanded = false
+    @State private var snapshotsExpanded = false
     /// startExpanded 를 @State 초기값으로 못 쓴다 — 뷰가 재사용되면 초기화가 다시 안 돌아
     /// 두 번째 진입부터 접힌 채로 열린다. onAppear 에서 1회 반영한다.
     @State private var didApplyStartExpanded = false
@@ -54,6 +55,40 @@ struct SettingsView: View {
         Host.current().localizedName ?? ProcessInfo.processInfo.hostName
     }
 
+    /// 현재 앱 커밋 SHA (풀 해시)
+    private static var fullCommitSHA: String? {
+        if let sha = Bundle.main.object(forInfoDictionaryKey: "PTBCommitSHA") as? String,
+           !sha.isEmpty, sha != "unknown" {
+            return sha
+        }
+        return nil
+    }
+
+    /// 현재 앱 커밋 SHA (짧은 7자리)
+    private static var commitSHA: String? {
+        fullCommitSHA.map { String($0.prefix(7)) }
+    }
+
+    /// 현재 앱 커밋 일시 (예: 2026-10-14 17:12)
+    private static var commitDate: String? {
+        if let date = Bundle.main.object(forInfoDictionaryKey: "PTBCommitDate") as? String,
+           !date.isEmpty {
+            return date
+        }
+        return nil
+    }
+
+    /// 푸터에 표시할 커밋 / 버전 문자열 (예: "017ae26 (2026-10-14 17:12)")
+    private static var commitDisplay: String {
+        if let sha = commitSHA {
+            if let date = commitDate {
+                return "\(sha) (\(date))"
+            }
+            return sha
+        }
+        return "v\(appVersion)"
+    }
+
     /// 현재 앱 버전 — 업데이트 적용 여부 확인용으로 설정창 하단에 표기.
     private static var appVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
@@ -85,15 +120,15 @@ struct SettingsView: View {
                 }
                 .onAppear {
                     companion.refreshSnapshots()
+                    snapshotsExpanded = false
                     guard !didApplyStartExpanded else { return }
                     didApplyStartExpanded = true
                     if startExpanded {
                         advancedExpanded = true
                         Task { @MainActor in
                             try? await Task.sleep(nanoseconds: 80_000_000)
-                            withAnimation(.easeInOut(duration: 0.25)) {
-                                proxy.scrollTo("advancedSettingsSection", anchor: .top)
-                            }
+                            // Initial navigation must reveal the repair field without waiting for an animation.
+                            proxy.scrollTo("advancedSettingsSection", anchor: .top)
                             sessionKeyFocused = true
                         }
                     }
@@ -128,9 +163,13 @@ struct SettingsView: View {
 
     private var footer: some View {
         HStack(spacing: 5) {
-            Text("v\(Self.appVersion)")
+            if let sha = Self.fullCommitSHA {
+                footerLink(Self.commitDisplay, "https://github.com/KillianHzr/PokeTokenLBI/commit/\(sha)")
+            } else {
+                Text(Self.commitDisplay)
+            }
             Text("·")
-            footerLink("GitHub", "https://github.com/chattymin/PokeTokenBar")
+            footerLink("GitHub", "https://github.com/KillianHzr/PokeTokenLBI")
             Text("·")
             footerLink(l.website, "https://chattymin.github.io/PokeTokenBar/")
             Text("·")
@@ -356,6 +395,16 @@ struct SettingsView: View {
     private func updateGroup(_ store: UsageStore) -> some View {
         @Bindable var store = store
         settingsSection(l.updateSectionTitle) {
+            if updater.isUpdating {
+                groupRow {
+                    HStack(spacing: 8) {
+                        ProgressView().controlSize(.small)
+                        Text(l.updating).font(.caption).foregroundStyle(.secondary)
+                        Spacer()
+                    }
+                }
+                Divider()
+            }
             toggleRow(l.updateNotificationsLabel, $store.updateNotificationsEnabled)
             Divider()
             groupRow {
@@ -375,13 +424,19 @@ struct SettingsView: View {
                         Text(l.checkNowButton)
                     }
                 }
-                .disabled(isCheckingUpdate)
+                .disabled(isCheckingUpdate || updater.isUpdating)
             }
             // 확인 결과 — 알림을 꺼둔 사용자도 여기서 새 버전을 알고 바로 적용할 수 있게 업데이트 버튼을 함께 노출.
             if didCheckUpdate, !isCheckingUpdate {
                 Divider()
                 groupRow {
-                    if case .offer(let version) = updater.settingsNotice {
+                    if updater.isUpdating {
+                        HStack(spacing: 6) {
+                            ProgressView().controlSize(.small)
+                            Text(l.updating).font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                    } else if case .offer(let version) = updater.settingsNotice {
                         Text(l.updateFound(version)).font(.caption).foregroundStyle(.orange)
                         Spacer()
                         Button(l.updateButton) { updater.applyUpdate() }.controlSize(.small)
@@ -397,7 +452,12 @@ struct SettingsView: View {
                             }
                         }
                     } else {
-                        Text(l.upToDate(Self.appVersion)).font(.caption).foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(l.upToDate(Self.commitSHA ?? Self.appVersion)).font(.caption).foregroundStyle(.secondary)
+                            if let date = Self.commitDate {
+                                Text(date).font(.caption2).foregroundStyle(.tertiary)
+                            }
+                        }
                         Spacer()
                     }
                 }
@@ -436,22 +496,30 @@ struct SettingsView: View {
     @ViewBuilder
     private func snapshotsSection(_ store: UsageStore) -> some View {
         groupRow {
-            VStack(alignment: .leading, spacing: 1) {
-                Text(l.snapshotsSectionTitle)
-                Text(l.createSnapshotHint).font(.caption2).foregroundStyle(.tertiary)
-            }
+            Text(l.createSnapshotHint).font(.caption2).foregroundStyle(.tertiary)
             Spacer()
             Button(l.createSnapshotButton) { takeManualSnapshot() }
         }
-        if companion.availableSnapshots.isEmpty {
-            groupRow {
-                Text(l.noSnapshotsYet).font(.caption2).foregroundStyle(.tertiary)
-                Spacer()
-            }
-        } else {
-            ForEach(companion.availableSnapshots) { snapshot in
-                Divider()
-                snapshotRow(snapshot, store: store)
+        Divider()
+        SnapshotHistoryButton(isExpanded: $snapshotsExpanded, title: l.snapshotsSectionTitle,
+                              stateDescription: l.snapshotHistoryState(expanded: snapshotsExpanded))
+            .frame(maxWidth: .infinity)
+            .frame(height: 20)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+        if snapshotsExpanded {
+            VStack(spacing: 0) {
+                if companion.availableSnapshots.isEmpty {
+                    groupRow {
+                        Text(l.noSnapshotsYet).font(.caption2).foregroundStyle(.tertiary)
+                        Spacer()
+                    }
+                } else {
+                    ForEach(companion.availableSnapshots) { snapshot in
+                        Divider()
+                        snapshotRow(snapshot, store: store)
+                    }
+                }
             }
         }
     }
@@ -461,7 +529,8 @@ struct SettingsView: View {
         groupRow {
             HStack(spacing: 8) {
                 if let speciesID = snapshot.currentSpeciesID {
-                    SpriteView(speciesID: speciesID, size: 28, shiny: snapshot.currentIsShiny)
+                    SpriteView(speciesID: speciesID, size: 28, shiny: snapshot.currentIsShiny,
+                               form: snapshot.currentForm)
                         .frame(width: 28, height: 28)
                 } else {
                     SpriteView(speciesID: nil, size: 28)
@@ -1112,5 +1181,41 @@ struct SettingsView: View {
         alert.addButton(withTitle: l.close)
         NSApp.activate(ignoringOtherApps: true)
         alert.runModal()
+    }
+}
+
+/// A native button keeps the full history header keyboard-accessible and clickable.
+@MainActor
+private struct SnapshotHistoryButton: NSViewRepresentable {
+    @Binding var isExpanded: Bool
+    let title: String
+    let stateDescription: String
+
+    func makeCoordinator() -> Coordinator { Coordinator(isExpanded: $isExpanded) }
+
+    func makeNSView(context: Context) -> NSButton {
+        let button = NSButton(title: title, target: context.coordinator, action: #selector(Coordinator.toggle))
+        button.isBordered = false
+        button.alignment = .left
+        button.imagePosition = .imageLeading
+        button.contentTintColor = .secondaryLabelColor
+        button.setAccessibilityIdentifier("snapshotHistory")
+        return button
+    }
+
+    func updateNSView(_ button: NSButton, context: Context) {
+        context.coordinator.isExpanded = $isExpanded
+        button.title = title
+        button.image = NSImage(systemSymbolName: isExpanded ? "chevron.down" : "chevron.right",
+                               accessibilityDescription: nil)
+        button.setAccessibilityLabel(title)
+        button.setAccessibilityValue(stateDescription)
+    }
+
+    @MainActor
+    final class Coordinator: NSObject {
+        var isExpanded: Binding<Bool>
+        init(isExpanded: Binding<Bool>) { self.isExpanded = isExpanded }
+        @objc func toggle() { isExpanded.wrappedValue.toggle() }
     }
 }

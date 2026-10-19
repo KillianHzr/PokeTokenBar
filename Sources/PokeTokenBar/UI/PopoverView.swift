@@ -122,22 +122,28 @@ struct PopoverView: View {
 
     @ViewBuilder
     private var updateBanner: some View {
-        if let update = updater.available, store.updateNotificationsEnabled {
+        if updater.isUpdating {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text(l.updating).font(.caption).fontWeight(.medium)
+                    Spacer()
+                }
+            }
+            .padding(8)
+            .background(Color.accentColor.opacity(0.12))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        } else if let update = updater.available, store.updateNotificationsEnabled {
             VStack(alignment: .leading, spacing: 6) {
                 Text(l.updateAvailable(update.version, current: updater.currentVersion))
                     .font(.caption)
                     .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 8) {
                     Spacer()
-                    if updater.isUpdating {
-                        Text(l.updating).font(.caption2).foregroundStyle(.secondary)
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Button(l.skipThisVersion) { updater.skipCurrent() }
-                            .buttonStyle(.borderless).controlSize(.small).foregroundStyle(.secondary)
-                        Button(l.updateButton) { updater.applyUpdate() }
-                            .buttonStyle(.borderedProminent).controlSize(.small)
-                    }
+                    Button(l.skipThisVersion) { updater.skipCurrent() }
+                        .buttonStyle(.borderless).controlSize(.small).foregroundStyle(.secondary)
+                    Button(l.updateButton) { updater.applyUpdate() }
+                        .buttonStyle(.borderedProminent).controlSize(.small)
                 }
             }
             .padding(8)
