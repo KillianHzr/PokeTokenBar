@@ -41,7 +41,7 @@ PokeTokenBar turns the AI coding tokens you're already burning — Claude Code, 
 3. ⚡ **Evolve.** Keep coding and it grows through its actual evolution tree (1/2/3 stages, branching), with a little flash celebration at each step.
 4. 🎓 **Graduate & collect.** Final form + threshold permanently archives it in your **Pokédex** — rarer takes longer (≈3 days common → ≈24 days legendary at heavy use) — and a fresh egg arrives.
 5. 🍬 **Max out, get a candy.** Fill a 5-hour or weekly usage limit and you earn **Rare Candy** — spend it from the **Bag** to grow your current Pokémon.
-6. 🛒 **Spend at the Shop.** Every token you've used is spendable currency — buy **Rare Candy**, a **Mint** that re-rolls your Pokémon's nature, a **Shiny Charm** that permanently raises your shiny odds, or an egg to send off your current companion and start over. Eggs come in three grades: a plain **Pokémon Egg**, an **Uncommon Egg** guaranteed to hatch Uncommon or better, and a **Rare Egg** guaranteed to hatch Rare or better. Collector items (evolution stones, legendary artifacts and gym badges) go on sale once your Pokédex holds the Pokémon they ask for.
+6. 🛒 **Spend at the Shop.** Every token you've used is spendable currency — buy **Rare Candy**, a **Mint** that re-rolls your Pokémon's nature, a **Shiny Charm** that permanently raises your shiny odds, or an egg to send off your current companion and start over. Eggs come in three grades: a plain **Pokémon Egg**, an **Uncommon Egg** guaranteed to hatch Uncommon or better, and a **Rare Egg** guaranteed to hatch Rare or better. Once your Pokédex holds the Pokémon they ask for, **evolution stones** go on sale, and **legendary artifacts** and **gym badges** can be claimed for free from the **Achievements** tab.
 
 ## Tour
 
@@ -162,11 +162,11 @@ Reset countdowns include the clock time, and the colored percentage stays aligne
 
 ## Collector items
 
-Below the regular items, the **Shop** tab has three folded sections of collector items. Each one stays **locked** until you register the Pokémon it asks for in your Pokédex: graduated or released Pokémon count, and so do the stages your current Pokémon has reached. A locked card shows those Pokémon, greyed out until registered; once unlocked, the card keeps the goal as a small reminder. Prices below are at the default shop difficulty.
+Each collector item stays **locked** until you register the Pokémon it asks for in your Pokédex: graduated or released Pokémon count, and so do the stages your current Pokémon has reached. Evolution stones then go on sale in the **Shop**. Legendary artifacts and gym badges are claimed for free from the **Achievements** tab, whose title counts the rewards ready to claim. There, a locked card shows the Pokémon it needs, greyed out until registered; once claimed, the card keeps the goal as a small reminder.
 
 ### Evolution Stones
 
-A stone is bought like an egg: the purchase sends off your current companion right away (it stays in the Pokédex as released) for a fresh egg guaranteed to hatch a Pokémon of the stone's type. It never goes to the Bag. Each stone costs **5B** and can be bought again once the egg has hatched.
+A stone is bought like an egg: the purchase sends off your current companion right away (it stays in the Pokédex as released) for a fresh egg guaranteed to hatch a Pokémon of the stone's type. It never goes to the Bag. A stone shows up in the Shop only once unlocked, costs **5B** at the default shop difficulty, and can be bought again once the egg has hatched.
 
 | Stone | Sprite | Egg type | Unlocks with |
 | :--- | :---: | :---: | :--- |
@@ -183,29 +183,29 @@ A stone is bought like an egg: the purchase sends off your current companion rig
 
 ### Legendary Artifacts
 
-Bought once, active for as long as they sit in the Bag.
+Claimed once from the **Achievements** tab, active for as long as they sit in the Bag.
 
-| Artifact | Sprite | Unlocks with | Effect | Price |
-| :--- | :---: | :--- | :--- | ---: |
-| **Azure Flute** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/azure-flute.png" width="28" height="28" alt="Azure Flute"> | The same legendary Pokémon graduated twice | Legendary Pokémon hatch 4× as often | 20B |
-| **Silver Wing** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/silver-wing.png" width="28" height="28" alt="Silver Wing"> | Articuno, Zapdos, Moltres | Halves the tokens an egg needs to hatch | 8B |
-| **Old Sea Map** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/old-sea-map.png" width="28" height="28" alt="Old Sea Map"> | Mewtwo, Mew | +20% growth from token usage | 10B |
-| **Clear Bell** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/clear-bell.png" width="28" height="28" alt="Clear Bell"> | Raikou, Entei, Suicune | Rare-tier Pokémon hatch 2× as often | 10B |
-| **Rainbow Wing** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rainbow-wing.png" width="28" height="28" alt="Rainbow Wing"> | Lugia, Ho-Oh | 25% off every shop purchase | 12B |
-| **Magma Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/magma-stone.png" width="28" height="28" alt="Magma Stone"> | Regirock, Regice, Registeel, **or** any 4 fossil Pokémon¹ | Lines you already graduated need 25% less growth | 8B |
-| **Soul Dew** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/soul-dew.png" width="28" height="28" alt="Soul Dew"> | Latias, Latios | Rare Candy gives 50% more EXP | 6B |
-| **Jade Orb** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/jade-orb.png" width="28" height="28" alt="Jade Orb"> | Kyogre, Groudon, Rayquaza | An extra 20% off eggs | 6B |
-| **Gracidea** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/gracidea.png" width="28" height="28" alt="Gracidea"> | Uxie, Mesprit, Azelf | Every Rare Candy you get comes with one more | 10B |
-| **Griseous Orb** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/griseous-orb.png" width="28" height="28" alt="Griseous Orb"> | Dialga, Palkia, Giratina | Ghost- and Dragon-type Pokémon hatch 2× as often | 8B |
-| **Liberty Pass** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/liberty-pass.png" width="28" height="28" alt="Liberty Pass"> | Cobalion, Terrakion, Virizion | Lines you never graduated need 25% less growth | 12B |
-| **Reveal Glass** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/reveal-glass.png" width="28" height="28" alt="Reveal Glass"> | Tornadus, Thundurus, Landorus | Doubles the shiny odds (stacks with the Shiny Charm) | 15B |
-| **DNA Splicers** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dna-splicers.png" width="28" height="28" alt="DNA Splicers"> | Reshiram, Zekrom | +50% growth from token usage | 20B |
+| Artifact | Sprite | Unlocks with | Effect |
+| :--- | :---: | :--- | :--- |
+| **Azure Flute** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/azure-flute.png" width="28" height="28" alt="Azure Flute"> | The same legendary Pokémon graduated twice | Legendary Pokémon hatch 4× as often |
+| **Silver Wing** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/silver-wing.png" width="28" height="28" alt="Silver Wing"> | Articuno, Zapdos, Moltres | Halves the tokens an egg needs to hatch |
+| **Old Sea Map** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/old-sea-map.png" width="28" height="28" alt="Old Sea Map"> | Mewtwo, Mew | +20% growth from token usage |
+| **Clear Bell** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/clear-bell.png" width="28" height="28" alt="Clear Bell"> | Raikou, Entei, Suicune | Rare-tier Pokémon hatch 2× as often |
+| **Rainbow Wing** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rainbow-wing.png" width="28" height="28" alt="Rainbow Wing"> | Lugia, Ho-Oh | 25% off every shop purchase |
+| **Magma Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/magma-stone.png" width="28" height="28" alt="Magma Stone"> | Regirock, Regice, Registeel, **or** any 4 fossil Pokémon¹ | Lines you already graduated need 25% less growth |
+| **Soul Dew** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/soul-dew.png" width="28" height="28" alt="Soul Dew"> | Latias, Latios | Rare Candy gives 50% more EXP |
+| **Jade Orb** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/jade-orb.png" width="28" height="28" alt="Jade Orb"> | Kyogre, Groudon, Rayquaza | An extra 20% off eggs |
+| **Gracidea** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/gracidea.png" width="28" height="28" alt="Gracidea"> | Uxie, Mesprit, Azelf | Every Rare Candy you get comes with one more |
+| **Griseous Orb** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/griseous-orb.png" width="28" height="28" alt="Griseous Orb"> | Dialga, Palkia, Giratina | Ghost- and Dragon-type Pokémon hatch 2× as often |
+| **Liberty Pass** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/liberty-pass.png" width="28" height="28" alt="Liberty Pass"> | Cobalion, Terrakion, Virizion | Lines you never graduated need 25% less growth |
+| **Reveal Glass** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/reveal-glass.png" width="28" height="28" alt="Reveal Glass"> | Tornadus, Thundurus, Landorus | Doubles the shiny odds (stacks with the Shiny Charm) |
+| **DNA Splicers** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dna-splicers.png" width="28" height="28" alt="DNA Splicers"> | Reshiram, Zekrom | +50% growth from token usage |
 
 ¹ Omastar, Kabutops, Aerodactyl, Cradily, Armaldo, Rampardos, Bastiodon, Carracosta, Archeops.
 
 ### Gym Badges
 
-Register every Gen 1 to 5 Pokémon of a type to unlock its badge, **8B** each. While owned, a badge makes the Pokémon weak to its type hatch 20% more often and grow 20% faster, stacking when a Pokémon is weak to several owned badges.
+Register every Gen 1 to 5 Pokémon of a type to unlock its badge, then claim it from the **Achievements** tab. While owned, a badge makes the Pokémon weak to its type hatch 20% more often and grow 20% faster, stacking when a Pokémon is weak to several owned badges.
 
 | Badge | Sprite | Type | Unlocks with | Boosts Pokémon weak to it |
 | :--- | :---: | :---: | :--- | :--- |

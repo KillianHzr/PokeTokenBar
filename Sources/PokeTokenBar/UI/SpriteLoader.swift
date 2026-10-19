@@ -10,8 +10,8 @@ actor SpriteStore {
     /// Keys the server answered without a sprite (404…), so they are not requested again this session.
     /// A request that failed to reach the server (offline) is not recorded: it must be retried later.
     private var failedKeys: Set<String> = []
-    // Raw PNG/GIF LRU cap: the Pokédex page (24 cells), the shop collector sections (38 items plus the
-    // Pokémon they ask for) and the bag must not thrash each other. SpriteLoader keeps its own NSImage cache.
+    // Raw PNG/GIF LRU cap: the Pokédex page (24 cells), the Achievements list (31 items plus the Pokémon
+    // they ask for) and the bag must not thrash each other. SpriteLoader keeps its own NSImage cache.
     private let memLimit = 256
     nonisolated let directory: URL
 

@@ -1808,19 +1808,6 @@ struct L {
             return t("체육관 배지", "Gym Badges", "ジムバッジ", "Medallas de gimnasio", "Badges d'arène", "Insígnias de ginásio", "Arenaorden", "Значки гимов")
         }
     }
-    func collectorUnlockedCount(_ unlocked: Int, of total: Int) -> String {
-        t("\(unlocked)/\(total) 해금", "\(unlocked)/\(total) unlocked", "\(unlocked)/\(total) 解放", "\(unlocked)/\(total) desbloqueados", "\(unlocked)/\(total) débloqués", "\(unlocked)/\(total) desbloqueados", "\(unlocked)/\(total) freigeschaltet", "\(unlocked)/\(total) открыто")
-    }
-    var collectorHint: String {
-        t("필요한 포켓몬을 도감에 등록하면 구매할 수 있어요.",
-          "Register the Pokémon shown on a card in your Pokédex to unlock it.",
-          "カードのポケモンを図鑑に登録すると購入できます。",
-          "Registra en tu Pokédex los Pokémon de cada carta para desbloquearla.",
-          "Enregistre dans ton Pokédex les Pokémon indiqués sur une carte pour la débloquer.",
-          "Registre na Pokédex os Pokémon de cada carta para desbloqueá-la.",
-          "Registriere die Pokémon einer Karte im Pokédex, um sie freizuschalten.",
-          "Зарегистрируйте покемонов из карточки в покедексе, чтобы открыть её.")
-    }
     var lockedLabel: String { t("잠김", "Locked", "ロック中", "Bloqueado", "Verrouillé", "Bloqueado", "Gesperrt", "Закрыто") }
     var unlockOr: String { t("또는", "or", "または", "o", "ou", "ou", "oder", "или") }
     func typeGoal(_ type: PokemonType) -> String {

@@ -1038,6 +1038,16 @@ read_when:
   (`questionmark.circle` 키체인 도움말, 검색 지우기 `xmark.circle.fill`)는 채워진 원형 글리프라 라벨
   프레임이 이미 아이콘 전체라 제외.
 
+- **A popover tab inside the fixed 520 pt frame lets its scroll area take the remaining height.**
+  `AchievementsView` gave its list a fixed 460 pt under a header, the claim banner and a segmented
+  picker, all inside the 520 pt tab frame. The stack was taller than the frame: the list ended at
+  534.5 pt and ran under the footer, and the header sat tight under the tab bar. Only the PR renders
+  showed it: the collector tests check which items the list returns, and no test laid the tab out.
+  The list now has no height of its own, like Collection, Settings and Bag, whose scroll areas
+  already flex (the sweep of `.frame(height:)` under `UI/` found no other fixed child inside a fixed
+  tab). `AchievementsRenderingTests` lays the tab out with the claim banner on and keeps the category
+  picker and the list vertically inside the frame; putting the 460 pt back fails it (list maxY 534.5).
+
 ## 에너지 (상시 표시 애니메이션)
 
 - **절전용 정지 상태는 짝 알림 하나에만 복구를 맡기지 마라.** `screensDidSleep` 이 폴링 타이머를 끄고

@@ -407,7 +407,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     }
 }
 
-/// Shop sections for the items unlocked by the Pokédex, in display order.
+/// Groups of the items unlocked by the Pokédex: stones are sold in the Shop, the other two are claimed in Achievements.
 enum CollectorGroup: String, CaseIterable, Sendable {
     case evolutionStones, legendaryArtifacts, gymBadges
 }

@@ -43,7 +43,7 @@ struct AchievementsView: View {
                 }
                 .reservesScrollerLane()
             }
-            .frame(height: 460)
+            // No height of its own: the list takes what the header, banner and picker leave of the 520 pt.
         }
         .frame(height: 520)
     }

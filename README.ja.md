@@ -42,7 +42,7 @@ PokeTokenBar は、あなたがすでに使っている AI コーディングト
 3. ⚡ **進化。** コーディングを続けると実際の進化ツリー（1/2/3段階、分岐）に沿って育ち、各段階で小さな演出が流れます。
 4. 🎓 **卒業 & 収集。** 最終進化 + 閾値で **図鑑** に永久保存されます — レアなほど時間がかかり（ヘビーユーザーで common ≈3日 → legendary ≈24日）— 新しいタマゴが届きます。
 5. 🍬 **上限を使い切ってごほうび。** 5時間または週間の使用量上限を使い切ると **ふしぎなアメ** がもらえます — 新しい **バッグ** タブから使って、いまのポケモンを育てましょう。
-6. 🛒 **ショップで使う。** これまで使ったトークンがそのまま通貨です — 新しい **ショップ** タブで **ふしぎなアメ**、せいかくをランダムに引き直す **ミント**、色違い確率を永続的に上げる **光るお守り**、いまのパートナーを手放してやり直すタマゴを購入できます。タマゴは3種類 — 通常の **ポケモンのタマゴ**、アンコモン以上が確定で孵る **アンコモンのタマゴ**、レア以上が確定で孵る **レアのタマゴ**。ショップの下のほうにあるコレクションアイテム(しんかのいし・でんせつのどうぐ・ジムバッジ)は、必要なポケモンを図鑑に登録すると購入できます。
+6. 🛒 **ショップで使う。** これまで使ったトークンがそのまま通貨です — 新しい **ショップ** タブで **ふしぎなアメ**、せいかくをランダムに引き直す **ミント**、色違い確率を永続的に上げる **光るお守り**、いまのパートナーを手放してやり直すタマゴを購入できます。タマゴは3種類 — 通常の **ポケモンのタマゴ**、アンコモン以上が確定で孵る **アンコモンのタマゴ**、レア以上が確定で孵る **レアのタマゴ**。必要なポケモンを図鑑に登録すると、**しんかのいし**はショップで購入でき、**でんせつのどうぐ**と**ジムバッジ**は**実績**タブで無料で受け取れます。
 
 ## ツアー
 
@@ -163,11 +163,11 @@ Pi は複数のモデルを一つのセッションログに流すことがあ�
 
 ## コレクションアイテム
 
-**ショップ** タブの通常アイテムの下に、折りたたまれたコレクションアイテムのセクションが3つあります。どのアイテムも、必要なポケモンを図鑑に登録するまで**ロック**されています。卒業させたポケモンと手放したポケモン、いま育てているポケモンがすでに到達した段階が登録として数えられます。ロック中のカードには必要なポケモンが表示され、未登録のポケモンはグレーで表示されます。解放後もカードに条件が小さく残ります。価格はショップ難易度の初期設定のものです。
+どのコレクションアイテムも、必要なポケモンを図鑑に登録するまで**ロック**されています。卒業させたポケモンと手放したポケモン、いま育てているポケモンがすでに到達した段階が登録として数えられます。解放されたしんかのいしは**ショップ**で購入できます。でんせつのどうぐとジムバッジは**実績**タブで無料で受け取り、タブ名には受け取れる報酬の数が表示されます。実績タブのロック中のカードには必要なポケモンが表示され、未登録のポケモンはグレーで表示されます。受け取った後もカードに条件が小さく残ります。
 
 ### しんかのいし
 
-石はタマゴと同じように購入します。購入した瞬間にいまのポケモンを手放し(図鑑には手放した記録として残ります)、石のタイプが確定で孵るタマゴを受け取ります。バッグには入りません。石は1個 **5B** で、タマゴが孵ればまた購入できます。
+石はタマゴと同じように購入します。購入した瞬間にいまのポケモンを手放し(図鑑には手放した記録として残ります)、石のタイプが確定で孵るタマゴを受け取ります。バッグには入りません。石は解放後にのみショップに並び、ショップ難易度の初期設定で1個 **5B**、タマゴが孵ればまた購入できます。
 
 | 石 | スプライト | タマゴのタイプ | 解放条件 |
 | :--- | :---: | :---: | :--- |
@@ -184,29 +184,29 @@ Pi は複数のモデルを一つのセッションログに流すことがあ�
 
 ### でんせつのどうぐ
 
-一度購入すれば、バッグにある間ずっと効果が続きます。
+**実績**タブで一度受け取れば、バッグにある間ずっと効果が続きます。
 
-| どうぐ | スプライト | 解放条件 | 効果 | 価格 |
-| :--- | :---: | :--- | :--- | ---: |
-| **てんかいのふえ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/azure-flute.png" width="28" height="28" alt="てんかいのふえ"> | 同じ伝説のポケモンを2回卒業 | 伝説のポケモンが4倍生まれやすくなる | 20B |
-| **ぎんいろのはね** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/silver-wing.png" width="28" height="28" alt="ぎんいろのはね"> | フリーザー、サンダー、ファイヤー | タマゴの孵化に必要なトークンが半分になる | 8B |
-| **ふるびたかいず** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/old-sea-map.png" width="28" height="28" alt="ふるびたかいず"> | ミュウツー、ミュウ | トークン消費による成長 +20% | 10B |
-| **とうめいなスズ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/clear-bell.png" width="28" height="28" alt="とうめいなスズ"> | ライコウ、エンテイ、スイクン | レアのポケモンが2倍生まれやすくなる | 10B |
-| **にじいろのはね** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rainbow-wing.png" width="28" height="28" alt="にじいろのはね"> | ルギア、ホウオウ | ショップの全商品が25%引き | 12B |
-| **かざんのおきいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/magma-stone.png" width="28" height="28" alt="かざんのおきいし"> | レジロック、レジアイス、レジスチル **または** 化石ポケモンのうち4匹¹ | 卒業済みのラインの成長必要量が25%減 | 8B |
-| **こころのしずく** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/soul-dew.png" width="28" height="28" alt="こころのしずく"> | ラティアス、ラティオス | ふしぎなアメの経験値 +50% | 6B |
-| **もえぎいろのたま** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/jade-orb.png" width="28" height="28" alt="もえぎいろのたま"> | カイオーガ、グラードン、レックウザ | タマゴがさらに20%引き | 6B |
-| **グラシデアのはな** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/gracidea.png" width="28" height="28" alt="グラシデアのはな"> | ユクシー、エムリット、アグノム | ふしぎなアメを手に入れるたびに1個多くもらえる | 10B |
-| **はっきんだま** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/griseous-orb.png" width="28" height="28" alt="はっきんだま"> | ディアルガ、パルキア、ギラティナ | ゴースト・ドラゴンタイプのポケモンが2倍生まれやすくなる | 8B |
-| **リバティチケット** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/liberty-pass.png" width="28" height="28" alt="リバティチケット"> | コバルオン、テラキオン、ビリジオン | まだ卒業させていないラインの成長必要量が25%減 | 12B |
-| **うつしかがみ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/reveal-glass.png" width="28" height="28" alt="うつしかがみ"> | トルネロス、ボルトロス、ランドロス | 色違い確率2倍(光るお守りと重複) | 15B |
-| **いでんしのくさび** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dna-splicers.png" width="28" height="28" alt="いでんしのくさび"> | レシラム、ゼクロム | トークン消費による成長 +50% | 20B |
+| どうぐ | スプライト | 解放条件 | 効果 |
+| :--- | :---: | :--- | :--- |
+| **てんかいのふえ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/azure-flute.png" width="28" height="28" alt="てんかいのふえ"> | 同じ伝説のポケモンを2回卒業 | 伝説のポケモンが4倍生まれやすくなる |
+| **ぎんいろのはね** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/silver-wing.png" width="28" height="28" alt="ぎんいろのはね"> | フリーザー、サンダー、ファイヤー | タマゴの孵化に必要なトークンが半分になる |
+| **ふるびたかいず** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/old-sea-map.png" width="28" height="28" alt="ふるびたかいず"> | ミュウツー、ミュウ | トークン消費による成長 +20% |
+| **とうめいなスズ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/clear-bell.png" width="28" height="28" alt="とうめいなスズ"> | ライコウ、エンテイ、スイクン | レアのポケモンが2倍生まれやすくなる |
+| **にじいろのはね** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rainbow-wing.png" width="28" height="28" alt="にじいろのはね"> | ルギア、ホウオウ | ショップの全商品が25%引き |
+| **かざんのおきいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/magma-stone.png" width="28" height="28" alt="かざんのおきいし"> | レジロック、レジアイス、レジスチル **または** 化石ポケモンのうち4匹¹ | 卒業済みのラインの成長必要量が25%減 |
+| **こころのしずく** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/soul-dew.png" width="28" height="28" alt="こころのしずく"> | ラティアス、ラティオス | ふしぎなアメの経験値 +50% |
+| **もえぎいろのたま** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/jade-orb.png" width="28" height="28" alt="もえぎいろのたま"> | カイオーガ、グラードン、レックウザ | タマゴがさらに20%引き |
+| **グラシデアのはな** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/gracidea.png" width="28" height="28" alt="グラシデアのはな"> | ユクシー、エムリット、アグノム | ふしぎなアメを手に入れるたびに1個多くもらえる |
+| **はっきんだま** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/griseous-orb.png" width="28" height="28" alt="はっきんだま"> | ディアルガ、パルキア、ギラティナ | ゴースト・ドラゴンタイプのポケモンが2倍生まれやすくなる |
+| **リバティチケット** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/liberty-pass.png" width="28" height="28" alt="リバティチケット"> | コバルオン、テラキオン、ビリジオン | まだ卒業させていないラインの成長必要量が25%減 |
+| **うつしかがみ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/reveal-glass.png" width="28" height="28" alt="うつしかがみ"> | トルネロス、ボルトロス、ランドロス | 色違い確率2倍(光るお守りと重複) |
+| **いでんしのくさび** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dna-splicers.png" width="28" height="28" alt="いでんしのくさび"> | レシラム、ゼクロム | トークン消費による成長 +50% |
 
 ¹ オムスター、カブトプス、プテラ、ユレイドル、アーマルド、ラムパルド、トリデプス、アバゴーラ、アーケオス。
 
 ### ジムバッジ
 
-第1〜5世代のあるタイプのポケモンをすべて図鑑に登録すると、そのタイプのバッジが解放されます。1個 **8B**。持っている間、そのタイプに弱いポケモンが20%生まれやすくなり、20%早く育ちます。複数のバッジに弱いポケモンには効果が重なります。
+第1〜5世代のあるタイプのポケモンをすべて図鑑に登録すると、そのタイプのバッジが解放され、**実績**タブで受け取れます。持っている間、そのタイプに弱いポケモンが20%生まれやすくなり、20%早く育ちます。複数のバッジに弱いポケモンには効果が重なります。
 
 | バッジ | スプライト | タイプ | 解放条件 | 効果を受けるポケモン |
 | :--- | :---: | :---: | :--- | :--- |
