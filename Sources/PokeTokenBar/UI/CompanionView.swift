@@ -1424,7 +1424,7 @@ private struct DexGridView: View {
 
     /// `returnAnchor` = the species whose detail page was just closed. The grid opens on its page,
     /// set here rather than in `onAppear`, which would flash page 1 for a frame first.
-    init(store: CompanionStore, searchText: String, shinyOnly: Bool,
+    init(store: CompanionStore, searchText: String, shinyOnly: Bool, evolutionFamily: Bool,
          sortOption: CompanionStore.DexSortOption, selectedRarity: Binding<Rarity?>,
          returnAnchor: String?,
          onSelectSpecies: @escaping (CompanionStore.DexSpecies) -> Void,
@@ -1432,6 +1432,7 @@ private struct DexGridView: View {
         self.store = store
         self.searchText = searchText
         self.shinyOnly = shinyOnly
+        self.evolutionFamily = evolutionFamily
         self.sortOption = sortOption
         _selectedRarity = selectedRarity
         self.onSelectSpecies = onSelectSpecies
