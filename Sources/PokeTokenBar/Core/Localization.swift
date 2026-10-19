@@ -724,6 +724,11 @@ struct L {
           "Snapshot erstellen",
           "Создать снимок")
     }
+    func snapshotHistoryState(expanded: Bool) -> String {
+        expanded
+            ? t("펼쳐짐", "Expanded", "展開", "Expandido", "Développé", "Expandido", "Erweitert", "Развёрнуто")
+            : t("접힘", "Collapsed", "折りたたみ", "Contraído", "Réduit", "Recolhido", "Eingeklappt", "Свёрнуто")
+    }
     var createSnapshotHint: String {
         t("진행 상태의 로컬 복원 지점을 즉시 저장해요 (최근 10개 보존)",
           "Saves an instant local restore point of your progress (keeps up to 10)",
@@ -1082,6 +1087,11 @@ struct L {
     /// Usual look of a species whose official data names no form (Castform, Rotom, Kyurem, Genesect).
     var normalForm: String {
         t("노말폼", "Normal Form", "ノーマルフォルム", "Forma Normal", "Forme Normale", "Forma Normal", "Normalform", "Обычная форма")
+    }
+    var defaultFormDataNote: String {
+        t("정보는 기본 폼 기준", "Data uses the default form", "データは基本フォルムに基づきます",
+          "Datos de la forma predeterminada", "Données de la forme par défaut", "Dados da forma padrão",
+          "Daten der Standardform", "Данные обычной формы")
     }
     var formNotCollected: String {
         t("미수집", "Not collected", "未収集", "Sin conseguir", "Non collectionnée", "Não coletada", "Noch nicht gesammelt", "Не собрано")

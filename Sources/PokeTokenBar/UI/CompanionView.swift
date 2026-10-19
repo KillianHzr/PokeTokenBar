@@ -165,6 +165,15 @@ struct SpriteView: View {
         guard next != subject else { return }
         subject = next
     }
+    private func loadStaticImage(for id: Int) async {
+        let loaded = await SpriteLoader.image(speciesID: id, animated: false, shiny: shiny, store: spriteStore,
+                                              form: resolvedForm)
+        if let next = subject.applyingLoad(loaded, for: id, cancelled: Task.isCancelled,
+                                           shiny: shiny, form: resolvedForm) {
+            apply(next)
+        }
+    }
+
     /// 정적 스프라이트를 다시 불러야 하는가 — 종이 바뀌었거나 **이로치 여부가 뒤집혔을 때**.
     /// 순수·테스트용(`GIFDecoder.capFrameRate` 와 같은 이유). 종만 비교하던 과거 판정은 도감의 이로치 토글에서
     /// .task 가 다시 돌아도 "이미 그 종을 로드했다"로 판정해 색이 안 바뀌는 회귀를 낳았다.
@@ -236,20 +245,14 @@ struct SpriteView: View {
             }
             // Request animation before a missing static PNG can hold playback behind a network fetch.
             if animated && frames.isEmpty {
-                let decoded = await SpriteLoader.animationFrames(speciesID: id, shiny: shiny, store: spriteStore,
-                                                                 form: resolvedForm)
+                let decoded = await SpriteLoader.recoveringAnimationFrames(
+                    speciesID: id, shiny: shiny, store: spriteStore, form: resolvedForm,
+                    onUnavailable: { await loadStaticImage(for: id) })
                 guard !Task.isCancelled else { return }
                 frames = GIFDecoder.capFrameRate(Self.framesToApply(decoded, cancelled: false), floor: minFrameDelay)
-            }
-            // A normal-color cache fallback is only a placeholder, including on initial render.
-            // The async loader returns an exact cached image immediately or requests the shiny variant.
-            if frames.isEmpty {
-                let loaded = await SpriteLoader.image(speciesID: id, animated: false, shiny: shiny, store: spriteStore,
-                                                      form: resolvedForm)
-                if let next = subject.applyingLoad(loaded, for: id, cancelled: Task.isCancelled,
-                                                   shiny: shiny, form: resolvedForm) {
-                    apply(next)
-                }
+            } else if frames.isEmpty {
+                // Nonanimated views still fetch the exact PNG variant once.
+                await loadStaticImage(for: id)
             }
             guard !frames.isEmpty, !Task.isCancelled else { return }
             // delay 기반 프레임 advance. .task 취소 시(speciesID 변경/뷰 소멸) 루프 종료 — 누수 없음
@@ -717,6 +720,11 @@ struct CompanionHeader: View {
                     }
                     if store.hasActive, let id = store.currentSpeciesID, let details = store.pokemonDetailsByID[id] {
                         TypeBadges(types: details.types, language: store.language)
+                        if !PokemonForm.isDefault(store.currentForm, speciesID: id) {
+                            Text(store.l.defaultFormDataNote)
+                                .font(.caption2).foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                     if store.hasActive {
                         // 단계 + 성격(부화 시 확정된 개체 아이덴티티)
@@ -960,6 +968,13 @@ struct CollectionView: View {
     @State private var evolutionFamily = false
     @State private var dexSort: CompanionStore.DexSortOption = .numberAsc
     @State private var logSort: CompanionStore.CatchLogSortOption = .recentFirst
+    /// The species whose detail page was just closed. The detail page replaces the grid, so Back
+    /// rebuilds it; this makes it reopen on that species' page instead of page 1. Used once, and set
+    /// only when Back lands on the grid: the grid's appearance is what clears it.
+    @State private var dexReturnAnchor: String?
+    /// Same for the catch log: the row (`DexEntry.id`) that opened the detail page, scrolled back
+    /// into view when Back rebuilds the log. Used once.
+    @State private var logReturnAnchor: String?
 
     /// 도감·로그 공통 높이 — 상점·가방과 같은 520. 세그먼트를 전환할 때도, 탭을 넘나들 때도
     /// 팝오버가 리사이즈되지 않는다.
@@ -994,7 +1009,11 @@ struct CollectionView: View {
             emptyState
         } else if let id = nav.dexDetailCollectionID,
                   let species = store.dexSpecies.first(where: { $0.collectionID == id }) {
-            PokemonDetailView(store: store, species: species) { nav.dexDetailCollectionID = nil }
+            PokemonDetailView(store: store, species: species) {
+                // Back to the log would leave it for the next switch to the grid.
+                if !nav.showingCollectionLog { dexReturnAnchor = id }
+                nav.dexDetailCollectionID = nil
+            }
                 .id(species.collectionID)
                 .frame(height: Self.contentHeight)
         } else {
@@ -1018,9 +1037,12 @@ struct CollectionView: View {
                         evolutionFamily: evolutionFamily,
                         sortOption: dexSort,
                         selectedRarity: $selectedRarity,
+                        returnAnchor: dexReturnAnchor,
                         onSelectSpecies: { sp in nav.dexDetailCollectionID = sp.collectionID },
                         onResetFilters: resetFilters
                     )
+                    // The grid kept its own copy of the anchor; a later rebuild (segment switch) starts on page 1.
+                    .onAppear { dexReturnAnchor = nil }
                 }
             }
             .frame(height: Self.contentHeight)
@@ -1169,6 +1191,7 @@ struct CollectionView: View {
                             ForEach(visibleEntries) { entry in
                                 // Keeps the segment, so Back from the detail page returns to the log.
                                 DexEntryRow(store: store, entry: entry, dexLinks: dexLinks) {
+                                    logReturnAnchor = entry.id
                                     navigation.dexDetailCollectionID = $0
                                 }
                             }
@@ -1176,6 +1199,16 @@ struct CollectionView: View {
                         .reservesScrollerLane()
                     }
                     .frame(maxHeight: .infinity)
+                    .task {
+                        guard let anchor = logReturnAnchor else { return }
+                        logReturnAnchor = nil
+                        // The first scroll is placed with estimated heights for the lazy rows. The
+                        // rows it reveals are measured afterwards and push the target off its spot
+                        // (a row short on CI), so scroll again once they have been laid out.
+                        proxy.scrollTo(anchor, anchor: .center)
+                        try? await Task.sleep(for: .milliseconds(50))
+                        proxy.scrollTo(anchor, anchor: .center)
+                    }
                     // 필터·검색·정렬 변경 시 새 결과를 처음부터 보여준다.
                     .onChange(of: selectedRarity) {
                         withAnimation(.easeInOut(duration: 0.2)) { proxy.scrollTo("dexTop", anchor: .top) }
@@ -1321,6 +1354,13 @@ struct DexScrollPager {
         min(max(0, current + step), max(0, pageCount - 1))
     }
 
+    /// The page that shows `id` — where Back from a detail page lands. 0 when `id` is nil or
+    /// filtered out, the same page a fresh grid opens on.
+    static func page(containing id: String?, in ids: [String], pageSize: Int) -> Int {
+        guard let id, let index = ids.firstIndex(of: id) else { return 0 }
+        return index / pageSize
+    }
+
     private static func direction(_ deltaY: CGFloat) -> Int {
         deltaY < 0 ? 1 : (deltaY > 0 ? -1 : 0)
     }
@@ -1369,7 +1409,11 @@ private struct DexGridView: View {
     let onSelectSpecies: (CompanionStore.DexSpecies) -> Void
     let onResetFilters: () -> Void
 
-    @State private var page = 0
+    /// nil = the page that shows `returnAnchor` (Back from a detail page). Paging or filtering sets it.
+    @State private var page: Int?
+    /// The species whose detail page was just closed. Only picks the page; nothing is selected.
+    /// State, not a `let`: the parent clears its copy once the grid appears, which must not move the page.
+    @State private var returnAnchor: String?
     /// 선택한 칸 — 하단 줄에 희귀도를 띄우고, 이로치를 잡은 종이면 스프라이트를 그 색으로 바꾼다.
     @State private var selectedID: String?
 
@@ -1377,6 +1421,23 @@ private struct DexGridView: View {
     private static let rows = 4
     private static let pageSize = columns * rows      // 16
     private static let spacing: CGFloat = 4
+
+    /// `returnAnchor` = the species whose detail page was just closed. The grid opens on its page,
+    /// set here rather than in `onAppear`, which would flash page 1 for a frame first.
+    init(store: CompanionStore, searchText: String, shinyOnly: Bool,
+         sortOption: CompanionStore.DexSortOption, selectedRarity: Binding<Rarity?>,
+         returnAnchor: String?,
+         onSelectSpecies: @escaping (CompanionStore.DexSpecies) -> Void,
+         onResetFilters: @escaping () -> Void) {
+        self.store = store
+        self.searchText = searchText
+        self.shinyOnly = shinyOnly
+        self.sortOption = sortOption
+        _selectedRarity = selectedRarity
+        self.onSelectSpecies = onSelectSpecies
+        self.onResetFilters = onResetFilters
+        _returnAnchor = State(initialValue: returnAnchor)
+    }
 
     var body: some View {
         let all = store.dexSpecies
@@ -1388,7 +1449,9 @@ private struct DexGridView: View {
             sort: sortOption
         )
         let pageCount = max(1, (visible.count + Self.pageSize - 1) / Self.pageSize)
-        let current = min(page, pageCount - 1)
+        let current = min(page ?? DexScrollPager.page(containing: returnAnchor, in: visible.map(\.collectionID),
+                                                      pageSize: Self.pageSize),
+                          pageCount - 1)
         let slice = Array(visible.dropFirst(current * Self.pageSize).prefix(Self.pageSize))
 
         VStack(alignment: .leading, spacing: 6) {
@@ -1707,6 +1770,11 @@ struct PokemonDetailView: View {
                 if let details = store.pokemonDetailsByID[species.id] {
                     TypeBadges(types: details.types, language: store.language, size: 11,
                                horizontalPadding: 7, verticalPadding: 2)
+                    if !PokemonForm.isDefault(species.form, speciesID: species.id) {
+                        Text(store.l.defaultFormDataNote)
+                            .font(.caption2).foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 if displayedShiny { Text("✨ \(store.l.dexShinyLabel)").font(.callout) }
                 if let individual, store.isActiveDexEntry(individual) { Text(store.l.dexRaising).font(.callout).foregroundStyle(Color.accentColor) }
