@@ -63,6 +63,15 @@ read_when:
   capture_rate again fails both assertions), `LegendaryHatchWeightTests` (ignoring egg groups fails 2 of
   3 tests on Phione) and `testBaseIndexCachedWithoutTheFlagIsNotReused`.
 
+- **An item boost must read the same weight as the roll it boosts.** After the roll moved to
+  `BaseSpecies.hatchWeight`, the Azure Flute (x4 for legendaries) and Clear Bell (x2 for rares) in
+  `hatchWeight(for:)` still tiered species by `capture_rate` (3 or less, then 4 to 45): Mew, Celebi,
+  Rayquaza and Shaymin got the bell's rare boost and missed the flute. The item test's only legendary
+  was Mewtwo (3), so no test put a legendary with a high capture rate through the item tiers. Both
+  tiers now read `hatchWeight`. Sweep: the egg-tier filter still reads `captureRateCeiling` on purpose
+  (see the entry above); the Griseous Orb and badges read types, not rates. Guard:
+  `testAzureFluteAndClearBellTierLegendariesByHatchWeight`.
+
 - **A model-price test needs an independent bucket-level oracle.** Sonnet 5.5 copied Sonnet 5's
   cache-read rate ($0.20/MTok) although its official rate is $0.10; source-unpriced Claude logs
   therefore doubled that bucket's estimate. The standard-row test repeated the wrong literal,

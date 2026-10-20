@@ -314,6 +314,21 @@ final class CollectorItemsTests: XCTestCase {
         XCTAssertEqual(bell.hatchWeight(for: rattata), plain.hatchWeight(for: rattata))
     }
 
+    /// Mew has the Kanto starters' capture rate (45) but rolls like Mewtwo, so it belongs to the flute's
+    /// tier, not the bell's. Phione keeps its rare-like roll (30) and stays the bell's.
+    func testAzureFluteAndClearBellTierLegendariesByHatchWeight() {
+        let mew = BaseSpecies(id: 151, captureRate: 45, isUnbreedableLegendary: true)
+        let phione = BaseSpecies(id: 489, captureRate: 30)
+        let plain = store()
+        let flute = store(inventory: [ItemKind.legendCharm.rawValue: 1])
+        let bell = store(inventory: [ItemKind.clearBell.rawValue: 1])
+        XCTAssertEqual(plain.hatchWeight(for: mew), PokemonOdds.legendaryHatchWeight)
+        XCTAssertEqual(flute.hatchWeight(for: mew), plain.hatchWeight(for: mew) * LegendCharm.weightMultiplier)
+        XCTAssertEqual(bell.hatchWeight(for: mew), plain.hatchWeight(for: mew), "legendaries are the flute's")
+        XCTAssertEqual(bell.hatchWeight(for: phione), plain.hatchWeight(for: phione) * 2)
+        XCTAssertEqual(flute.hatchWeight(for: phione), plain.hatchWeight(for: phione))
+    }
+
     func testRainbowWingAndJadeOrbDiscounts() throws {
         let plain = store()
         let wing = store(inventory: [ItemKind.rainbowWing.rawValue: 1])

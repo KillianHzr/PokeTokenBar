@@ -2242,12 +2242,14 @@ final class CompanionStore {
 
     /// Roll weight of one base species: its hatch weight (halved once its line is collected), then the
     /// boosts of the items owned. Split out of `chooseBase` so each boost can be tested without a roll.
+    /// The Azure Flute and Clear Bell tiers read the hatch weight too, not the capture rate: Mew, Celebi,
+    /// Rayquaza and Shaymin have a capture rate of 45 but roll like Mewtwo.
     func hatchWeight(for e: BaseSpecies) -> Int {
         var w = CollectionWeight.adjusted(e.hatchWeight, isCollected: state.hasCollectedFinal(forBaseID: e.id))
-        if ownsLegendCharm && e.captureRate <= 3 {
+        if ownsLegendCharm && e.hatchWeight <= PokemonOdds.legendaryHatchWeight {
             w *= LegendCharm.weightMultiplier
         }
-        if ownsClearBell && e.captureRate <= 45 && e.captureRate > 3 {
+        if ownsClearBell && e.hatchWeight <= 45 && e.hatchWeight > PokemonOdds.legendaryHatchWeight {
             w *= 2
         }
         if ownsGriseousOrb && PokemonTypeData.types(forSpeciesID: e.id).contains(where: { $0 == .ghost || $0 == .dragon }) {
