@@ -31,7 +31,7 @@ PokeTokenBar turns the AI coding tokens you're already burning — Claude Code, 
 - Track official **5-hour / weekly** limits with reset countdowns and a burn-rate forecast for when you'll hit them.
 
 <div align="center">
-<img src="assets/screenshot-home.png" width="420" alt="Popover home — companion, today's tokens, official limits">
+<img src="assets/screenshot-home.png" width="420" alt="Popover home — companion, today's tokens, daily chart">
 </div>
 
 ## How it works
@@ -41,7 +41,7 @@ PokeTokenBar turns the AI coding tokens you're already burning — Claude Code, 
 3. ⚡ **Evolve.** Keep coding and it grows through its actual evolution tree (1/2/3 stages, branching), with a little flash celebration at each step.
 4. 🎓 **Graduate & collect.** Final form + threshold permanently archives it in your **Pokédex** — rarer takes longer (≈3 days common → ≈24 days legendary at heavy use) — and a fresh egg arrives.
 5. 🍬 **Max out, get a candy.** Fill a 5-hour or weekly usage limit and you earn **Rare Candy** — spend it from the **Bag** to grow your current Pokémon.
-6. 🛒 **Spend at the Shop.** Every token you've used is spendable currency — buy **Rare Candy**, a **Mint** that re-rolls your Pokémon's nature, a **Shiny Charm** that permanently raises your shiny odds, or an egg to send off your current companion and start over. Eggs come in three grades: a plain **Pokémon Egg**, an **Uncommon Egg** guaranteed to hatch Uncommon or better, and a **Rare Egg** guaranteed to hatch Rare or better.
+6. 🛒 **Spend at the Shop.** Every token you've used is spendable currency — buy **Rare Candy**, a **Mint** that re-rolls your Pokémon's nature, a **Shiny Charm** that permanently raises your shiny odds, or an egg to send off your current companion and start over. Eggs come in three grades: a plain **Pokémon Egg**, an **Uncommon Egg** guaranteed to hatch Uncommon or better, and a **Rare Egg** guaranteed to hatch Rare or better. Once your Pokédex holds the Pokémon they ask for, **evolution stones**, **legendary artifacts** and **gym badges** can be claimed for free from the **Achievements** tab.
 
 ## Tour
 
@@ -64,21 +64,28 @@ An animated Gen-V sprite lives next to today's total tokens (compact, e.g. <code
 <td width="45%" align="center"><img src="assets/shiny-banner.gif" width="340" alt="Normal vs shiny"></td>
 <td width="55%" valign="middle">
 <h3>✨ Once in a rare while — Shiny</h3>
-Shiny hatches keep their distinct colors through every evolution — menu bar, home card, evolution line. In the Pokédex a ✨ sits next to the dex number, and tapping the cell swaps in the shiny colors. A dedicated notification makes sure you don't miss the moment.
+Shiny hatches keep their distinct colors through every evolution — menu bar, home card, evolution line. In the Pokédex, species you own shiny show their shiny colors and a ✨ marker; the detail page lets you switch between owned normal and shiny appearances. Unown keeps its A icon in the grid, with letter and color choices in its details. A dedicated notification makes sure you don't miss the moment.
 </td>
 </tr>
 <tr>
 <td width="55%" valign="middle">
 <h3>A Pokédex worth filling</h3>
-The <b>Pokédex</b> folds every species you've owned into one cell — 16 per page in a 4×4 grid, with larger sprites and names, and a ✨ on the ones you own shiny. Search by name or number, filter by rarity or shiny appearance, and change the sort order in both views. The <b>Catch log</b> keeps the individuals: newest first, each with its full evolution line, rarity, nature, and capture date.
+The <b>Pokédex</b> folds every species you've owned into one cell — 16 per page in a 4×4 grid. Search by name or number, filter by rarity or shiny appearance, and change the sort order. Turn pages with the scroll wheel or trackpad, or use the larger arrow hit areas. Click a collected Pokémon on Home, its evolution line, or the <b>Catch log</b> to open its details; Back returns to its Pokédex page or the log row you opened. The log keeps each individual's full evolution line, rarity, nature, and capture date.
 </td>
 <td width="45%" align="center"><img src="assets/screenshot-collection-pokedex.png" width="300" alt="Pokédex — one cell per species"><br><br><img src="assets/screenshot-collection-catchlog.png" width="300" alt="Catch log — one row per Pokémon raised"></td>
+</tr>
+<tr>
+<td width="45%" align="center"><img src="assets/screenshot-pokemon-forms.png" width="300" alt="Rotom form picker and form-specific individuals"><br><small>Production UI rendered locally with sample Pokémon.</small></td>
+<td width="55%" valign="middle">
+<h3>Collect more than one look</h3>
+Collect Rotom appliances, Shaymin's Land and Sky Formes, Deerling seasons, Unown letters, and other supported Gen 1–5 forms. The Pokédex shows your form count and the individuals in each form. Choose an owned form as your menu-bar and floating-pet representative. An East Sea Shellos keeps its appearance when it becomes Gastrodon, and forms stay in saves and exports. Types, stats, abilities, and moves use the default form’s data.
+</td>
 </tr>
 <tr>
 <td width="45%" align="center"><img src="assets/settings.png" width="300" alt="Settings"></td>
 <td width="55%" valign="middle">
 <h3>Tune it your way</h3>
-Menu-bar items, refresh interval (1–15 min or manual), launch at login, a Keychain opt-out that just hides the limits section, limit alerts with warning/critical thresholds, and companion event notifications. Full <b>KO / EN / JA / ES / FR / PT / DE</b> UI and Pokémon names.
+Menu-bar items, refresh interval (1–15 min or manual), launch at login, a Keychain opt-out that just hides the limits section, limit alerts with warning/critical thresholds, and companion event notifications. Full <b>KO / EN / JA / ES / FR / PT / DE / RU</b> UI; Pokémon, type, ability, and move names use your language when available and otherwise fall back to English.
 </td>
 </tr>
 <tr>
@@ -92,7 +99,7 @@ Max out a 5-hour or weekly usage limit and you're handed a <b>Rare Candy</b> —
 <td width="45%" align="center"><img src="assets/screenshot-shop.png" width="300" alt="Token Shop — Mint, Rare Candy, Pokémon Egg, Uncommon Egg, Shiny Charm, Rare Egg"></td>
 <td width="55%" valign="middle">
 <h3>🛒 A shop that runs on your usage</h3>
-The tokens you've already used are your currency. Spend them in the new <b>Shop</b> tab on <b>Rare Candy</b> to grow your current Pokémon, a <b>Mint</b> to re-roll its nature, a <b>Shiny Charm</b> that permanently raises your shiny hatch odds, or an egg to send off your companion and start over. Eggs come in three grades — a plain <b>Pokémon Egg</b>, an <b>Uncommon Egg</b> that always hatches Uncommon or better, and a <b>Rare Egg</b> that always hatches Rare or better. Legendaries stay in the pool for both graded eggs, so a guaranteed hatch can still surprise you.
+The tokens you've already used are your currency. Buy several consumables at once with a quantity selector and total-price preview: <b>Rare Candy</b> grows your Pokémon, and a <b>Mint</b> re-rolls its nature. A <b>Shiny Charm</b> permanently raises your shiny hatch odds. Eggs send off your companion and start over: a plain <b>Pokémon Egg</b>, an <b>Uncommon Egg</b> guaranteed to hatch Uncommon or better, or a <b>Rare Egg</b> guaranteed to hatch Rare or better. Legendaries stay in both graded pools. An empty Bag links straight to the Shop.
 </td>
 </tr>
 <tr>
@@ -134,14 +141,14 @@ Open a species in the <b>Pokédex</b> to inspect each individual: level, gender,
 <td width="45%" align="center"><img src="assets/screenshot-difficulty.png" width="300" alt="Choose your growth pace"></td>
 <td width="55%" valign="middle">
 <h3>Choose your growth pace</h3>
-Set growth thresholds and shop prices independently from <b>10% to 200%</b>. Dragging only edits a draft; press <b>Save</b> to apply it. Changing growth difficulty preserves your current stage progress instead of triggering an evolution. A hatch from an evolution line you have already graduated grows <b>2× faster</b>.
+Set growth thresholds and shop prices independently from <b>10% to 200%</b>, with Easy/Hard and Cheap/Expensive labels at the slider ends. Dragging only edits a draft; press <b>Save</b> to apply it. Changing growth difficulty preserves your current stage progress instead of triggering an evolution. A hatch from an evolution line you have already graduated grows <b>2× faster</b>. Hover the hatch or growth bar on Home to see used tokens, the target, and progress as a percentage.
 </td>
 </tr>
 <tr>
 <td width="45%" align="center"><img src="assets/screenshot-daily-trend.png" width="300" alt="Your month, day by day"></td>
 <td width="55%" valign="middle">
 <h3>Your month, day by day</h3>
-A compact daily chart below the weekly and monthly totals shows the current month through today. The chart combines all tools; hover a bar for that day’s tokens and, when enabled, cost.
+The daily chart keeps every date in the calendar month in place, with future dates left blank. When you use two or more tools this month, each day's bar stacks their usage in separate colors with a legend. Hover for that day's total and per-tool tokens and cost when enabled. Weekly and monthly history, plus the recap shortcut, stay visible even when today's usage is zero.
 </td>
 </tr>
 <tr>
@@ -153,8 +160,77 @@ Reset countdowns include the clock time, and the colored percentage stays aligne
 </tr>
 </table>
 
+## Collector items
+
+Each collector item stays **locked** until you register the Pokémon it asks for in your Pokédex: graduated or released Pokémon count, and so do the stages your current Pokémon has reached. Every collector item is then claimed for free from the **Achievements** tab, whose title counts the rewards ready to claim. There, a locked card shows the Pokémon it needs, greyed out until registered; once claimed, the card keeps the goal as a small reminder.
+
+### Evolution Stones
+
+Claiming a stone's achievement puts **5** of that stone in the Bag, next to the other consumables. Using one sends off your current companion right away (it stays in the Pokédex as released) for a fresh egg guaranteed to hatch a Pokémon of the stone's type, so a stone waits until there is a companion to send off. Each stone achievement is claimed once, and stones are not sold in the Shop.
+
+| Stone | Sprite | Egg type | Unlocks with |
+| :--- | :---: | :---: | :--- |
+| **Leaf Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/leaf-stone.png" width="28" height="28" alt="Leaf Stone"> | Grass | Venusaur, Charizard, Blastoise |
+| **Fire Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/fire-stone.png" width="28" height="28" alt="Fire Stone"> | Fire | Meganium, Typhlosion, Feraligatr |
+| **Water Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/water-stone.png" width="28" height="28" alt="Water Stone"> | Water | Sceptile, Blaziken, Swampert, **or** Vaporeon, Jolteon, Flareon |
+| **Thunder Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/thunder-stone.png" width="28" height="28" alt="Thunder Stone"> | Electric | Raichu, Jolteon, Eelektross |
+| **Sun Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sun-stone.png" width="28" height="28" alt="Sun Stone"> | Psychic | Torterra, Infernape, Empoleon |
+| **Moon Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/moon-stone.png" width="28" height="28" alt="Moon Stone"> | Fairy | Serperior, Emboar, Samurott |
+| **Dusk Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dusk-stone.png" width="28" height="28" alt="Dusk Stone"> | Dark | Espeon, Umbreon |
+| **Ice Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/ice-stone.png" width="28" height="28" alt="Ice Stone"> | Ice | Leafeon, Glaceon |
+| **Dawn Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dawn-stone.png" width="28" height="28" alt="Dawn Stone"> | Fighting | Gallade, Froslass |
+| **Shiny Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/shiny-stone.png" width="28" height="28" alt="Shiny Stone"> | Dragon | Dragonite, Salamence, Rayquaza |
+
+### Legendary Artifacts
+
+Claimed once from the **Achievements** tab, active for as long as they sit in the Bag.
+
+| Artifact | Sprite | Unlocks with | Effect |
+| :--- | :---: | :--- | :--- |
+| **Azure Flute** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/azure-flute.png" width="28" height="28" alt="Azure Flute"> | The same legendary Pokémon graduated twice | Legendary Pokémon hatch 4× as often |
+| **Silver Wing** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/silver-wing.png" width="28" height="28" alt="Silver Wing"> | Articuno, Zapdos, Moltres | Halves the tokens an egg needs to hatch |
+| **Old Sea Map** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/old-sea-map.png" width="28" height="28" alt="Old Sea Map"> | Mewtwo, Mew | +20% growth from token usage |
+| **Clear Bell** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/clear-bell.png" width="28" height="28" alt="Clear Bell"> | Raikou, Entei, Suicune | Rare-tier Pokémon hatch 2× as often |
+| **Rainbow Wing** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rainbow-wing.png" width="28" height="28" alt="Rainbow Wing"> | Lugia, Ho-Oh | 25% off every shop purchase |
+| **Magma Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/magma-stone.png" width="28" height="28" alt="Magma Stone"> | Regirock, Regice, Registeel, **or** any 4 fossil Pokémon¹ | Lines you already graduated need 25% less growth |
+| **Soul Dew** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/soul-dew.png" width="28" height="28" alt="Soul Dew"> | Latias, Latios | Rare Candy gives 50% more EXP |
+| **Jade Orb** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/jade-orb.png" width="28" height="28" alt="Jade Orb"> | Kyogre, Groudon, Rayquaza | An extra 20% off eggs |
+| **Gracidea** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/gracidea.png" width="28" height="28" alt="Gracidea"> | Uxie, Mesprit, Azelf | Every Rare Candy you get comes with one more |
+| **Griseous Orb** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/griseous-orb.png" width="28" height="28" alt="Griseous Orb"> | Dialga, Palkia, Giratina | Ghost- and Dragon-type Pokémon hatch 2× as often |
+| **Liberty Pass** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/liberty-pass.png" width="28" height="28" alt="Liberty Pass"> | Cobalion, Terrakion, Virizion | Lines you never graduated need 25% less growth |
+| **Reveal Glass** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/reveal-glass.png" width="28" height="28" alt="Reveal Glass"> | Tornadus, Thundurus, Landorus | Doubles the shiny odds (stacks with the Shiny Charm) |
+| **DNA Splicers** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dna-splicers.png" width="28" height="28" alt="DNA Splicers"> | Reshiram, Zekrom | +50% growth from token usage |
+
+¹ Omastar, Kabutops, Aerodactyl, Cradily, Armaldo, Rampardos, Bastiodon, Carracosta, Archeops.
+
+### Gym Badges
+
+Register every Gen 1 to 5 Pokémon of a type to unlock its badge, then claim it from the **Achievements** tab. While owned, a badge makes the Pokémon weak to its type hatch 20% more often and grow 20% faster, stacking when a Pokémon is weak to several owned badges.
+
+| Badge | Sprite | Type | Unlocks with | Boosts Pokémon weak to it |
+| :--- | :---: | :---: | :--- | :--- |
+| **Boulder Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/1.png" width="28" height="28" alt="Boulder Badge"> | Rock | All 47 Rock-type Pokémon | Fire, Ice, Flying, Bug |
+| **Cascade Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/2.png" width="28" height="28" alt="Cascade Badge"> | Water | All 109 Water-type Pokémon | Fire, Ground, Rock |
+| **Thunder Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/3.png" width="28" height="28" alt="Thunder Badge"> | Electric | All 39 Electric-type Pokémon | Water, Flying |
+| **Rainbow Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/4.png" width="28" height="28" alt="Rainbow Badge"> | Grass | All 75 Grass-type Pokémon | Water, Ground, Rock |
+| **Soul Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/5.png" width="28" height="28" alt="Soul Badge"> | Poison | All 57 Poison-type Pokémon | Grass, Fairy |
+| **Marsh Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/6.png" width="28" height="28" alt="Marsh Badge"> | Psychic | All 68 Psychic-type Pokémon | Fighting, Poison |
+| **Volcano Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/7.png" width="28" height="28" alt="Volcano Badge"> | Fire | All 48 Fire-type Pokémon | Grass, Ice, Bug, Steel |
+| **Earth Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/8.png" width="28" height="28" alt="Earth Badge"> | Ground | All 58 Ground-type Pokémon | Fire, Electric, Poison, Rock, Steel |
+| **Zephyr Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/9.png" width="28" height="28" alt="Zephyr Badge"> | Flying | All 82 Flying-type Pokémon | Grass, Fighting, Bug |
+| **Hive Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/10.png" width="28" height="28" alt="Hive Badge"> | Bug | All 63 Bug-type Pokémon | Grass, Psychic, Dark |
+| **Plain Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/11.png" width="28" height="28" alt="Plain Badge"> | Normal | All 89 Normal-type Pokémon | Normal (no type is weak to Normal) |
+| **Fog Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/12.png" width="28" height="28" alt="Fog Badge"> | Ghost | All 27 Ghost-type Pokémon | Psychic, Ghost |
+| **Storm Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/13.png" width="28" height="28" alt="Storm Badge"> | Fighting | All 40 Fighting-type Pokémon | Normal, Ice, Rock, Dark, Steel |
+| **Mineral Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/14.png" width="28" height="28" alt="Mineral Badge"> | Steel | All 37 Steel-type Pokémon | Ice, Rock, Fairy |
+| **Glacier Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/15.png" width="28" height="28" alt="Glacier Badge"> | Ice | All 29 Ice-type Pokémon | Grass, Ground, Flying, Dragon |
+| **Rising Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/16.png" width="28" height="28" alt="Rising Badge"> | Dragon | All 29 Dragon-type Pokémon | Dragon |
+| **Dark Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/59.png" width="28" height="28" alt="Dark Badge"> | Dark | All 39 Dark-type Pokémon | Psychic, Ghost |
+| **Fairy Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/48.png" width="28" height="28" alt="Fairy Badge"> | Fairy | All 22 Fairy-type Pokémon | Fighting, Dragon, Dark |
+
 ## Also in the box
 
+- **Menu-bar shortcuts** — right-click or Control-click for today's summary, Refresh, Pokédex, Settings, floating-pet visibility, and Quit.
 - **Low Power Mode** — menu-bar animation continues at Power saver quality.
 - **Reconnect refresh** — usage and limits refresh when the network comes back.
 - **Representative Pokémon** — pin any owned Pokédex species to the menu bar and optional floating pet, independently of the companion you're raising. While pinned, the menu bar stops following egg, hatch, and evolution changes; raising progress remains visible on Home.
@@ -166,14 +242,16 @@ Reset countdowns include the clock time, and the colored percentage stays aligne
 - **Several Claude accounts** — Claude Code logins kept in their own config folder (`CLAUDE_CONFIG_DIR`) each get a tab under the official limits, with their own gauges, Rare Candy, alerts, and today/month tokens. `~/.claude-*` folders and an exported `CLAUDE_CONFIG_DIR` are found automatically; add others in Settings → Advanced. The menu bar percentage, companion mood, and forecast follow the account you used last (Settings → General → Tracked Claude account). Each account can take its own claude.ai session key (Settings → Advanced), so its limits keep refreshing without the Keychain.
 - **Burn-rate forecast** — projects when the current 5h window hits 100%.
 - **In-app updates** — one-click update check; current version shown in Settings.
-- **Usage recap** — a Pokédex-style recap of any week, month or year you step back to (total, meters, comparison with the previous period, day for day while it is still running, best day, best streak, graduations). History is kept locally for this year and the last.
+- **Usage recap** — a Pokédex-style recap of any week, month, or year (total, meters, comparison, best day, best streak, graduations). Hover a meter for its date and full token count, and jump back to This week / This month / This year in one click. History is kept locally for this year and the last.
 
-- **Local save backups** — automatic snapshots and corruption recovery, with a restore screen in Settings.
-- **Pokémon forms** — collect the alternate forms of generation 1–5 species (Unown letters, Rotom appliances, Arceus types, Deerling seasons…) and inspect the forms you own in the Pokédex.
+- **Local save backups** — automatic snapshots and corruption recovery, with a restore screen in Settings. Backup history starts collapsed; expand it to browse snapshots. **Create snapshot** stays available outside the list.
+- **Pokémon forms** — collect Gen 1–5 alternate forms, inspect form-specific individuals, and pin an owned form to the menu bar and floating pet. An individual's form follows evolution and stays in saves and exports; existing Unown letter saves remain readable. See the [form catalog](docs/reference/pokemon-forms.md).
 - **Bulk Rare Candy** — use several candies at once and preview the growth before spending.
 - **Quota pace** — gauge markers show the elapsed share of a limit window; six color tiers indicate usage pace, and menu-bar limit percentages use the same colors.
 
 <img src="assets/screenshot-usage-recap.png" width="360" alt="Usage recap for a selected period">
+
+<small>The Home, Settings, form, Shop, Bag, difficulty, daily-chart, and recap images above are local renders of the production UI with sample data.</small>
 
 ## Works with
 
