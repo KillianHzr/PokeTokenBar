@@ -50,7 +50,7 @@ struct UnlockRequirementView: View {
         let goal = progress.goal
         if goal.species.count > Self.spriteRowLimit {
             VStack(alignment: .leading, spacing: 3) {
-                counterRow(kind.badgeType.map(l.typeGoal) ?? "", count: progress.count, needed: goal.needed,
+                counterRow(longGoalLabel(goal, l), count: progress.count, needed: goal.needed,
                            met: progress.isMet)
                 if !compact {
                     ProgressView(value: Double(progress.count), total: Double(max(1, goal.needed)))
@@ -74,6 +74,19 @@ struct UnlockRequirementView: View {
                     counter(progress.count, needed: goal.needed)
                 }
             }
+        }
+    }
+
+    /// Label of a goal too long for a sprite row: a badge's type list, or one of the named groups.
+    private func longGoalLabel(_ goal: SpeciesGoal, _ l: L) -> String {
+        if let type = kind.badgeType {
+            return l.badgeGoal(type, generation: PokemonTypeData.badgeGeneration(for: type))
+        }
+        switch goal.species {
+        case SpeciesGoal.fossils: return l.fossilsGoal(goal.needed)
+        case SpeciesGoal.ultraBeasts: return l.ultraBeastsGoal(goal.needed)
+        case SpeciesGoal.paradoxes: return l.paradoxesGoal(goal.needed)
+        default: return l.anyOfGoal(goal.needed)
         }
     }
 

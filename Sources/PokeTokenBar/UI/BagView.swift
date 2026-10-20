@@ -138,6 +138,16 @@ private struct ItemCard: View {
         case .libertyPass: return l.libertyPassEffectHint
         case .revealGlass: return l.revealGlassEffectHint
         case .dnaSplicers: return l.dnaSplicersEffectHint
+        case .zygardeCube: return l.zygardeCubeEffectHint(Int((store.zygardeCubeMultiplier - 1) * 100 + 0.5))
+        case .prisonBottle: return l.prisonBottleEffectHint
+        case .sparklingStone: return l.sparklingStoneEffectHint
+        case .sunFlute: return l.sunFluteEffectHint
+        case .beastBall: return l.beastBallEffectHint
+        case .rustedSword: return l.rustedSwordEffectHint
+        case .reinsOfUnity: return l.reinsOfUnityEffectHint
+        case .boosterEnergy: return l.boosterEnergyEffectHint
+        case .tealMask: return l.tealMaskEffectHint
+        case .teraOrb: return l.teraOrbEffectHint
         case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,
              .soulBadge, .marshBadge, .volcanoBadge, .earthBadge,
              .zephyrBadge, .hiveBadge, .plainBadge, .fogBadge,

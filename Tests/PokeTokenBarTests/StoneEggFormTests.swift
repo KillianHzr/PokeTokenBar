@@ -57,6 +57,31 @@ final class StoneEggFormTests: XCTestCase {
         }
     }
 
+    /// The Prison Bottle's flag: set when the hatched form is new to its line, kept through a save.
+    func testHatchFlagsAFormNewToItsLine() async throws {
+        let fresh = egg(.fire, seed: 3)
+        await fresh.hatch(baseID: 37)
+        XCTAssertEqual(fresh.state.active?.hasNewForm, true, "no Vulpix registered yet")
+
+        var st = CompanionState()
+        st.installBaselineSet = true
+        st.lastDate = "2026-10-20"
+        st.eggTypeGuarantee = .fire
+        // A form counts as registered once the whole line carries it: Vulpix and Ninetales.
+        st.dex = [DexEntry(baseID: 37, finalID: 38, chainOrder: [37, 38], rarity: .common,
+                           caughtAt: Date(timeIntervalSince1970: 1_790_000_000), form: PokemonForm("normal"))]
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("stone-form-\(UUID().uuidString).json")
+        try JSONEncoder().encode(st).write(to: url)
+        let repeatForm = CompanionStore(provider: VulpixOnlyProvider(), clock: { Date(timeIntervalSince1970: 1_790_000_000) },
+                                        fileURL: url, rng: SeededRNG(seed: 3))
+        await repeatForm.hatch(baseID: 37)
+        XCTAssertEqual(repeatForm.state.active?.form, PokemonForm("normal"))
+        XCTAssertEqual(repeatForm.state.active?.hasNewForm, false, "the normal form is already registered")
+
+        let saved = try JSONEncoder().encode(try XCTUnwrap(fresh.state.active))
+        XCTAssertTrue(try JSONDecoder().decode(MonState.self, from: saved).hasNewForm)
+    }
+
     func testFormTypesOverrideTheSpeciesTypes() {
         XCTAssertEqual(PokemonTypeData.types(forSpeciesID: 37, form: nil), [.fire])
         XCTAssertEqual(PokemonTypeData.types(forSpeciesID: 37, form: alola), [.ice])

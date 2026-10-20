@@ -1240,12 +1240,22 @@ enum PokemonTypeData {
         speciesByType[type] ?? []
     }
 
-    /// Gym badges ask for the Gen 1 to 5 Pokémon of their type only, whatever generations hatch.
-    static let badgeSpeciesIDs = 1...649
+    /// National Pokédex range of each generation, Kanto first.
+    static let generations: [ClosedRange<Int>] = [
+        1...151, 152...251, 252...386, 387...493, 494...649, 650...721, 722...809, 810...905, 906...1025,
+    ]
 
-    /// Species a type's gym badge asks for.
+    /// Generation (1-based) a type's gym badge draws from: Kanto, or the first generation that has the type
+    /// (Johto for Dark, which no Kanto Pokémon has).
+    static func badgeGeneration(for type: PokemonType) -> Int {
+        let all = species(for: type)
+        return (generations.firstIndex { range in all.contains { range.contains($0) } } ?? 0) + 1
+    }
+
+    /// Species a type's gym badge asks for: every Pokémon of that type from `badgeGeneration(for:)`.
     static func badgeSpecies(for type: PokemonType) -> [Int] {
-        species(for: type).filter { badgeSpeciesIDs.contains($0) }.sorted()
+        let range = generations[badgeGeneration(for: type) - 1]
+        return species(for: type).filter { range.contains($0) }.sorted()
     }
 
     /// 공격 타입이 방어 타입에 가하는 단일 타입 상성 배율.

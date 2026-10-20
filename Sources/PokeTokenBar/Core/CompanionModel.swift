@@ -203,6 +203,16 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     case libertyPass
     case revealGlass
     case dnaSplicers
+    case zygardeCube
+    case prisonBottle
+    case sparklingStone
+    case sunFlute
+    case beastBall
+    case rustedSword
+    case reinsOfUnity
+    case boosterEnergy
+    case tealMask
+    case teraOrb
     case boulderBadge
     case cascadeBadge
     case thunderBadge
@@ -283,6 +293,16 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .libertyPass: return "liberty-pass"
         case .revealGlass: return "reveal-glass"
         case .dnaSplicers: return "dna-splicers"
+        case .zygardeCube: return "zygarde-cube"
+        case .prisonBottle: return "prison-bottle"
+        case .sparklingStone: return "sparkling-stone"
+        case .sunFlute: return "sun-flute"
+        case .beastBall: return "beast-ball"
+        case .rustedSword: return "rusted-sword"
+        case .reinsOfUnity: return "reins-of-unity"
+        case .boosterEnergy: return "booster-energy"
+        case .tealMask: return "teal-mask"
+        case .teraOrb: return "tera-orb"
         case .leafStone: return "leaf-stone"
         case .fireStone: return "fire-stone"
         case .waterStone: return "water-stone"
@@ -315,6 +335,16 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .libertyPass: return "🎟️"
         case .revealGlass: return "🪞"
         case .dnaSplicers: return "🧬"
+        case .zygardeCube: return "🟩"
+        case .prisonBottle: return "🏺"
+        case .sparklingStone: return "💎"
+        case .sunFlute: return "☀️"
+        case .beastBall: return "🔵"
+        case .rustedSword: return "🗡️"
+        case .reinsOfUnity: return "🐎"
+        case .boosterEnergy: return "⚡"
+        case .tealMask: return "🎭"
+        case .teraOrb: return "💠"
         case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,
              .soulBadge, .marshBadge, .volcanoBadge, .earthBadge,
              .zephyrBadge, .hiveBadge, .plainBadge, .fogBadge,
@@ -367,16 +397,16 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     var unlock: ItemUnlock? {
         switch self {
         case .rareCandy, .mint, .shinyCharm: return nil
+        // The first nine stones follow the generations: each asks for one region's final starters.
         case .leafStone:   return .species([SpeciesGoal([3, 6, 9])])            // Kanto starters
         case .fireStone:   return .species([SpeciesGoal([154, 157, 160])])      // Johto starters
-        case .waterStone:  return .species([SpeciesGoal([254, 257, 260]),       // Hoenn starters
-                                            SpeciesGoal([134, 135, 136])])      // Kanto Eeveelutions
-        case .thunderStone: return .species([SpeciesGoal([26, 135, 604])])      // Raichu, Jolteon, Eelektross
-        case .sunStone:    return .species([SpeciesGoal([389, 392, 395])])      // Sinnoh starters
-        case .moonStone:   return .species([SpeciesGoal([497, 500, 503])])      // Unova starters
-        case .duskStone:   return .species([SpeciesGoal([196, 197])])           // Espeon, Umbreon
-        case .iceStone:    return .species([SpeciesGoal([470, 471])])           // Leafeon, Glaceon
-        case .dawnStone:   return .species([SpeciesGoal([475, 478])])           // Gallade, Froslass
+        case .waterStone:  return .species([SpeciesGoal([254, 257, 260])])      // Hoenn starters
+        case .thunderStone: return .species([SpeciesGoal([389, 392, 395])])     // Sinnoh starters
+        case .sunStone:    return .species([SpeciesGoal([497, 500, 503])])      // Unova starters
+        case .moonStone:   return .species([SpeciesGoal([652, 655, 658])])      // Kalos starters
+        case .duskStone:   return .species([SpeciesGoal([724, 727, 730])])      // Alola starters
+        case .iceStone:    return .species([SpeciesGoal([812, 815, 818])])      // Galar starters
+        case .dawnStone:   return .species([SpeciesGoal([908, 911, 914])])      // Paldea starters
         // Dragon is the strongest egg type, so its stone asks for the three Dragon/Flying Pokémon:
         // two pseudo-legendaries (long to raise) and Rayquaza.
         case .shinyStone:  return .species([SpeciesGoal([149, 373, 384])])      // Dragonite, Salamence, Rayquaza
@@ -386,14 +416,25 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .clearBell:   return .species([SpeciesGoal([243, 244, 245])])      // Legendary beasts
         case .rainbowWing: return .species([SpeciesGoal([249, 250])])           // Lugia, Ho-Oh
         case .magmaStone:  return .species([SpeciesGoal([377, 378, 379]),       // Legendary titans
+                                            SpeciesGoal([894, 895]),            // Regieleki, Regidrago
                                             SpeciesGoal(SpeciesGoal.fossils, needed: 4)])
         case .soulDew:     return .species([SpeciesGoal([380, 381])])           // Latias, Latios
         case .jadeOrb:     return .species([SpeciesGoal([382, 383, 384])])      // Weather trio
         case .gracidea:    return .species([SpeciesGoal([480, 481, 482])])      // Lake guardians
         case .griseousOrb: return .species([SpeciesGoal([483, 484, 487])])      // Creation trio
         case .libertyPass: return .species([SpeciesGoal([638, 639, 640])])      // Swords of Justice
-        case .revealGlass: return .species([SpeciesGoal([641, 642, 645])])      // Forces of Nature
+        case .revealGlass: return .species([SpeciesGoal([641, 642, 645, 905], needed: 3)]) // Forces of Nature
         case .dnaSplicers: return .species([SpeciesGoal([643, 644])])           // Reshiram, Zekrom
+        case .zygardeCube: return .species([SpeciesGoal([716, 717, 718])])      // Kalos legends
+        case .prisonBottle: return .species([SpeciesGoal([719, 720, 721])])     // Diancie, Hoopa, Volcanion
+        case .sparklingStone: return .species([SpeciesGoal([785, 786, 787, 788])]) // Island guardians
+        case .sunFlute:    return .species([SpeciesGoal([791, 792, 800])])      // Solgaleo, Lunala, Necrozma
+        case .beastBall:   return .species([SpeciesGoal(SpeciesGoal.ultraBeasts, needed: 4)])
+        case .rustedSword: return .species([SpeciesGoal([888, 889, 890])])      // Zacian, Zamazenta, Eternatus
+        case .reinsOfUnity: return .species([SpeciesGoal([896, 897, 898])])     // Glastrier, Spectrier, Calyrex
+        case .boosterEnergy: return .species([SpeciesGoal(SpeciesGoal.paradoxes, needed: 4)])
+        case .tealMask:    return .species([SpeciesGoal([1017, 1014, 1015, 1016])]) // Ogerpon, Loyal Three
+        case .teraOrb:     return .species([SpeciesGoal([1007, 1008, 1024])])   // Koraidon, Miraidon, Terapagos
         case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,
              .soulBadge, .marshBadge, .volcanoBadge, .earthBadge,
              .zephyrBadge, .hiveBadge, .plainBadge, .fogBadge,
@@ -411,8 +452,12 @@ enum CollectorGroup: String, CaseIterable, Sendable {
 
 /// One way to unlock a collector item: `needed` of `species` registered in the Pokédex.
 struct SpeciesGoal: Equatable, Sendable {
-    /// Final fossil Pokémon of Gen 1 to 5 (and Aerodactyl).
-    static let fossils = [139, 141, 142, 346, 348, 409, 411, 565, 567]
+    /// Final fossil Pokémon of Gen 1 to 8 (Gen 9 has none).
+    static let fossils = [139, 141, 142, 346, 348, 409, 411, 565, 567, 697, 699, 880, 881, 882, 883]
+    /// Ultra Beasts, Naganadel included (it evolves from Poipole).
+    static let ultraBeasts = [793, 794, 795, 796, 797, 798, 799, 803, 804, 805, 806]
+    /// Paradox Pokémon of Scarlet and Violet and their DLC, ancient then future.
+    static let paradoxes = Array(984...995) + [1005, 1006, 1009, 1010] + Array(1020...1023)
 
     let species: [Int]
     let needed: Int
@@ -435,6 +480,29 @@ enum ItemUnlock: Equatable, Sendable {
 enum EvolutionStone {
     /// Stones one claim of a stone achievement adds to the Bag.
     static let achievementReward = 5
+}
+
+/// Growth bonuses of the passive collector items. Each one only speeds a group of Pokémon up or adds a
+/// reward: none of them reweights the egg or form rolls, so owning an item never lowers anyone's chances.
+/// (The Azure Flute's legendary weight is the one deliberate exception, kept as it was.)
+enum CollectorBonus {
+    /// Zygarde Cube: +1% token growth EXP per this many registered species, up to `zygardeMaxPercent`.
+    static let zygardeSpeciesPerPercent = 25
+    static let zygardeMaxPercent = 40
+    /// Speed multipliers of the stage thresholds (1.5 = grows 50% faster).
+    static let prisonBottleNewForm = 1.5
+    static let sparklingStoneFairy = 1.3
+    static let sunFluteFinalStage = 1.25
+    static let beastBallUltraBeast = 1.5
+    static let rustedSwordLegendary = 1.25
+    static let boosterEnergyParadox = 1.5
+    static let tealMaskTypes = 1.2
+    /// Ogerpon's four masks.
+    static let tealMaskTypeList: [PokemonType] = [.grass, .water, .fire, .rock]
+    static let clearBellRare = 1.25
+    static let griseousOrbGhostDragon = 1.3
+    /// Rare Candies the Reins of Unity add to each graduation.
+    static let reinsOfUnityCandies = 1
 }
 
 /// Azure Flute balance constant (passive collector item).
@@ -709,6 +777,8 @@ struct MonState: Codable, Sendable {
     /// 개체 고유 전투 프로필. 구버전 저장은 nil이며 `CompanionStore`가 한 번만 마이그레이션한다.
     var profile: PokemonProfile?
     var hasGrowthBoost = false
+    /// Hatched in a form its line had never registered (Prison Bottle). Fixed at hatch, kept through evolution.
+    var hasNewForm = false
     // 메타몽 위장 — nil=일반. 값=정체 메타몽, 이 종으로 위장 중(위장 구간엔 baseID 와 동일, 리빌 후에도 원 위장체 보존).
     var dittoDisguise: Int?
     var dittoRevealed = false       // 위장 → 리빌(정체 공개) 전환 여부
@@ -772,6 +842,7 @@ struct MonState: Codable, Sendable {
         // 손상된 신규 프로필 하나 때문에 기존 성장 상태 전체를 잃지 않는다. nil이면 스토어가 재마이그레이션한다.
         profile = (try? c.decodeIfPresent(PokemonProfile.self, forKey: .profile)) ?? nil
         hasGrowthBoost = try c.decodeIfPresent(Bool.self, forKey: .hasGrowthBoost) ?? false
+        hasNewForm = try c.decodeIfPresent(Bool.self, forKey: .hasNewForm) ?? false
         dittoDisguise = try c.decodeIfPresent(Int.self, forKey: .dittoDisguise)
         dittoRevealed = try c.decodeIfPresent(Bool.self, forKey: .dittoRevealed) ?? false
         form = PokemonForm.resolved(baseID: baseID, form: PokemonForm.decoded(from: decoder, keys: "form", "unownForm"))

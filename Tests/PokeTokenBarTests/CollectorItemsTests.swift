@@ -62,10 +62,10 @@ final class CollectorItemsTests: XCTestCase {
     func testCollectorItemsAndAchievements() {
         let s = store()
         XCTAssertEqual(s.collectorItems(in: .evolutionStones).count, 10)
-        XCTAssertEqual(s.collectorItems(in: .legendaryArtifacts).count, 13)
+        XCTAssertEqual(s.collectorItems(in: .legendaryArtifacts).count, 23)
         XCTAssertEqual(s.collectorItems(in: .gymBadges).count, 18)
         XCTAssertEqual(Set(CompanionStore.achievementItems), Set(ItemKind.allCases.filter { $0.collectorGroup != nil }))
-        XCTAssertEqual(s.totalAchievementsCount, 41)
+        XCTAssertEqual(s.totalAchievementsCount, 51)
         XCTAssertEqual(s.purchasableItems, [.mint, .rareCandy, .shinyCharm], "the Shop sells what main sells")
 
         // An unlocked stone is an achievement to claim, never a Shop item.
@@ -129,12 +129,12 @@ final class CollectorItemsTests: XCTestCase {
         XCTAssertTrue(store(dex: others, active: active(stage: 2)).isUnlocked(.leafStone))
     }
 
-    /// Water Stone has two Pokémon goals: the second one alone unlocks it.
+    /// Magma Stone has three goals: the Galar Regis alone unlock it, and goals don't mix.
     func testAlternativeGoalUnlocksOnItsOwn() {
-        XCTAssertTrue(store(dex: entries([134, 135, 136])).isUnlocked(.waterStone))
-        XCTAssertTrue(store(dex: entries([254, 257, 260])).isUnlocked(.waterStone))
-        XCTAssertFalse(store(dex: entries([134, 135, 254, 257])).isUnlocked(.waterStone),
-                       "goals don't mix: two of each trio is not a full trio")
+        XCTAssertTrue(store(dex: entries([894, 895], rarity: .legendary)).isUnlocked(.magmaStone))
+        XCTAssertTrue(store(dex: entries([377, 378, 379], rarity: .legendary)).isUnlocked(.magmaStone))
+        XCTAssertFalse(store(dex: entries([377, 378, 894], rarity: .legendary)).isUnlocked(.magmaStone),
+                       "goals don't mix: two Regis of each group is not a full group")
     }
 
     /// Magma Stone accepts any 4 of the 9 fossil Pokémon.
@@ -144,11 +144,15 @@ final class CollectorItemsTests: XCTestCase {
         XCTAssertTrue(store(dex: entries([377, 378, 379], rarity: .legendary)).isUnlocked(.magmaStone))
     }
 
-    /// A badge asks for every Gen 1 to 5 Pokémon of its type, not the later Fairy types like Sylveon.
+    /// A badge asks for every Kanto Pokémon of its type. Dark has none in Kanto, so its badge asks for Johto's.
     func testBadgeNeedsEveryPokemonOfItsType() {
         let fairy = PokemonTypeData.badgeSpecies(for: .fairy)
-        XCTAssertEqual(fairy.count, 22)
-        XCTAssertFalse(fairy.contains(700), "Sylveon is Gen 6")
+        XCTAssertEqual(fairy, [35, 36, 39, 40, 122], "Kanto only: no Togepi, no Sylveon")
+        XCTAssertEqual(PokemonTypeData.badgeSpecies(for: .rock).count, 11)
+        XCTAssertEqual(PokemonTypeData.badgeGeneration(for: .dark), 2)
+        XCTAssertEqual(PokemonTypeData.badgeSpecies(for: .dark), [197, 198, 215, 228, 229, 248])
+        XCTAssertTrue(ItemKind.allCases.compactMap(\.badgeType).allSatisfy { !PokemonTypeData.badgeSpecies(for: $0).isEmpty },
+                      "no badge is free")
         XCTAssertFalse(store(dex: entries(Array(fairy.dropFirst()))).isUnlocked(.fairyBadge))
         XCTAssertTrue(store(dex: entries(fairy)).isUnlocked(.fairyBadge))
     }
@@ -180,11 +184,10 @@ final class CollectorItemsTests: XCTestCase {
     func testUnlockProgressReportsRegisteredSpecies() {
         let s = store(dex: entries([254, 257]))
         let goals = s.unlockProgress(of: .waterStone)
-        XCTAssertEqual(goals.count, 2)
+        XCTAssertEqual(goals.count, 1, "one starter trio per stone, no alternative")
         XCTAssertEqual(goals[0].registered, [254, 257])
         XCTAssertEqual(goals[0].count, 2)
         XCTAssertFalse(goals[0].isMet)
-        XCTAssertEqual(goals[1].count, 0)
         XCTAssertTrue(s.unlockProgress(of: .legendCharm).isEmpty, "the Azure Flute has no species list")
         XCTAssertTrue(s.unlockProgress(of: .rareCandy).isEmpty)
     }
@@ -196,11 +199,20 @@ final class CollectorItemsTests: XCTestCase {
             .isUnlocked(.shinyStone))
     }
 
-    func testThunderAndDawnStonesNeedTheirEvolvers() {
-        XCTAssertFalse(store(dex: entries([26, 135])).isUnlocked(.thunderStone))
-        XCTAssertTrue(store(dex: entries([26, 135, 604])).isUnlocked(.thunderStone))
-        XCTAssertFalse(store(dex: entries([475])).isUnlocked(.dawnStone))
-        XCTAssertTrue(store(dex: entries([475, 478])).isUnlocked(.dawnStone))
+    /// The first nine stones follow the generations in order: each asks for one region's final starters.
+    func testStonesFollowTheStartersOfEachGeneration() {
+        let trios: [(ItemKind, [Int])] = [
+            (.leafStone, [3, 6, 9]), (.fireStone, [154, 157, 160]), (.waterStone, [254, 257, 260]),
+            (.thunderStone, [389, 392, 395]), (.sunStone, [497, 500, 503]), (.moonStone, [652, 655, 658]),
+            (.duskStone, [724, 727, 730]), (.iceStone, [812, 815, 818]), (.dawnStone, [908, 911, 914]),
+        ]
+        for (stone, trio) in trios {
+            XCTAssertEqual(stone.unlock, .species([SpeciesGoal(trio)]), "\(stone)")
+            XCTAssertFalse(store(dex: entries(Array(trio.dropLast()))).isUnlocked(stone), "\(stone)")
+            XCTAssertTrue(store(dex: entries(trio)).isUnlocked(stone), "\(stone)")
+        }
+        XCTAssertFalse(store(dex: entries([26, 135, 604])).isUnlocked(.thunderStone), "the evolver goals are gone")
+        XCTAssertFalse(store(dex: entries([134, 135, 136])).isUnlocked(.waterStone))
     }
 
     func testLockedStoneAchievementCannotBeClaimed() {
@@ -272,7 +284,7 @@ final class CollectorItemsTests: XCTestCase {
         let artifacts = s.collectorItems(in: .legendaryArtifacts)
         XCTAssertEqual(artifacts.first, .clearBell, "unlocked and not owned comes first")
         XCTAssertEqual(artifacts.last, .soulDew, "owned passives sink to the bottom")
-        XCTAssertEqual(artifacts.count, 13)
+        XCTAssertEqual(artifacts.count, 23)
     }
 
     // MARK: Effects
@@ -305,44 +317,115 @@ final class CollectorItemsTests: XCTestCase {
         XCTAssertEqual(flower.state.spentTokens, flower.price(of: .rareCandy), "still one candy's price")
     }
 
-    func testGriseousOrbDoublesGhostAndDragonHatchWeight() {
-        let gastly = BaseSpecies(id: 92, captureRate: 190)     // Ghost/Poison
-        let dratini = BaseSpecies(id: 147, captureRate: 45)    // Dragon
-        let rattata = BaseSpecies(id: 19, captureRate: 255)    // Normal
-        let plain = store()
-        let orb = store(inventory: [ItemKind.griseousOrb.rawValue: 1])
-        XCTAssertEqual(orb.hatchWeight(for: gastly), plain.hatchWeight(for: gastly) * 2)
-        XCTAssertEqual(orb.hatchWeight(for: dratini), plain.hatchWeight(for: dratini) * 2)
-        XCTAssertEqual(orb.hatchWeight(for: rattata), plain.hatchWeight(for: rattata))
-    }
-
-    func testAzureFluteAndClearBellBoostTheirTiers() {
+    /// Only the Azure Flute reweights the egg roll. Every other item is a pure bonus: owning the Clear Bell,
+    /// the Griseous Orb or a badge never lowers another Pokémon's chances.
+    func testAzureFluteIsTheOnlyItemThatChangesHatchOdds() {
         let mewtwo = BaseSpecies(id: 150, captureRate: 3)
-        let dratini = BaseSpecies(id: 147, captureRate: 45)
-        let rattata = BaseSpecies(id: 19, captureRate: 255)
+        let mew = BaseSpecies(id: 151, captureRate: 45, isUnbreedableLegendary: true)
+        let others = [BaseSpecies(id: 92, captureRate: 190), BaseSpecies(id: 147, captureRate: 45),
+                      BaseSpecies(id: 19, captureRate: 255), BaseSpecies(id: 489, captureRate: 30)]
         let plain = store()
         let flute = store(inventory: [ItemKind.legendCharm.rawValue: 1])
-        let bell = store(inventory: [ItemKind.clearBell.rawValue: 1])
         XCTAssertEqual(flute.hatchWeight(for: mewtwo), plain.hatchWeight(for: mewtwo) * LegendCharm.weightMultiplier)
-        XCTAssertEqual(flute.hatchWeight(for: dratini), plain.hatchWeight(for: dratini))
-        XCTAssertEqual(bell.hatchWeight(for: dratini), plain.hatchWeight(for: dratini) * 2)
-        XCTAssertEqual(bell.hatchWeight(for: mewtwo), plain.hatchWeight(for: mewtwo), "legendaries are the flute's")
-        XCTAssertEqual(bell.hatchWeight(for: rattata), plain.hatchWeight(for: rattata))
+        XCTAssertEqual(plain.hatchWeight(for: mew), PokemonOdds.legendaryHatchWeight)
+        XCTAssertEqual(flute.hatchWeight(for: mew), plain.hatchWeight(for: mew) * LegendCharm.weightMultiplier,
+                       "Mew rolls like Mewtwo, so the flute boosts it")
+        let passives = ItemKind.allCases.filter { $0.isPassive && $0 != .legendCharm }
+        let everything = store(inventory: Dictionary(uniqueKeysWithValues: passives.map { ($0.rawValue, 1) }))
+        for e in others + [mewtwo, mew] {
+            XCTAssertEqual(everything.hatchWeight(for: e), plain.hatchWeight(for: e), "#\(e.id)")
+        }
+        for e in others {
+            XCTAssertEqual(flute.hatchWeight(for: e), plain.hatchWeight(for: e), "#\(e.id)")
+        }
     }
 
-    /// Mew has the Kanto starters' capture rate (45) but rolls like Mewtwo, so it belongs to the flute's
-    /// tier, not the bell's. Phione keeps its rare-like roll (30) and stays the bell's.
-    func testAzureFluteAndClearBellTierLegendariesByHatchWeight() {
-        let mew = BaseSpecies(id: 151, captureRate: 45, isUnbreedableLegendary: true)
-        let phione = BaseSpecies(id: 489, captureRate: 30)
+    private func mon(_ id: Int, rarity: Rarity = .common, stage: Int = 0, forms: Int = 2,
+                     form: PokemonForm? = nil, newForm: Bool = false) -> MonState {
+        var m = MonState(baseID: id, pathIDs: [id], stageIndex: 0, usedAtStage: 0, rarity: rarity,
+                         totalForms: forms, form: form)
+        m.stageIndex = stage
+        m.pathIDs = Array(repeating: id, count: stage + 1)
+        m.hasNewForm = newForm
+        return m
+    }
+
+    /// Each growth artifact speeds up its own group by its bonus and leaves everyone else alone.
+    func testGrowthArtifactsSpeedUpOnlyTheirGroup() {
+        let cases: [(ItemKind, MonState, MonState, Double)] = [
+            (.clearBell, mon(147, rarity: .rare), mon(19), CollectorBonus.clearBellRare),
+            (.griseousOrb, mon(92), mon(19), CollectorBonus.griseousOrbGhostDragon),          // Gastly vs Rattata
+            (.prisonBottle, mon(37, newForm: true), mon(37), CollectorBonus.prisonBottleNewForm),
+            (.sparklingStone, mon(35), mon(19), CollectorBonus.sparklingStoneFairy),          // Clefairy
+            (.sunFlute, mon(19, stage: 1, forms: 2), mon(19), CollectorBonus.sunFluteFinalStage),
+            (.beastBall, mon(793, rarity: .rare), mon(147, rarity: .rare), CollectorBonus.beastBallUltraBeast),
+            (.rustedSword, mon(150, rarity: .legendary), mon(147, rarity: .rare), CollectorBonus.rustedSwordLegendary),
+            (.boosterEnergy, mon(984, rarity: .rare), mon(147, rarity: .rare), CollectorBonus.boosterEnergyParadox),
+            (.tealMask, mon(74), mon(19), CollectorBonus.tealMaskTypes),                      // Geodude (Rock)
+        ]
         let plain = store()
-        let flute = store(inventory: [ItemKind.legendCharm.rawValue: 1])
-        let bell = store(inventory: [ItemKind.clearBell.rawValue: 1])
-        XCTAssertEqual(plain.hatchWeight(for: mew), PokemonOdds.legendaryHatchWeight)
-        XCTAssertEqual(flute.hatchWeight(for: mew), plain.hatchWeight(for: mew) * LegendCharm.weightMultiplier)
-        XCTAssertEqual(bell.hatchWeight(for: mew), plain.hatchWeight(for: mew), "legendaries are the flute's")
-        XCTAssertEqual(bell.hatchWeight(for: phione), plain.hatchWeight(for: phione) * 2)
-        XCTAssertEqual(flute.hatchWeight(for: phione), plain.hatchWeight(for: phione))
+        for (item, boosted, other, bonus) in cases {
+            let owner = store(inventory: [item.rawValue: 1])
+            XCTAssertEqual(owner.growthSpeedMultiplier(for: boosted), bonus, accuracy: 0.0001, "\(item)")
+            XCTAssertEqual(owner.growthSpeedMultiplier(for: other), 1, accuracy: 0.0001, "\(item)")
+            XCTAssertEqual(plain.growthSpeedMultiplier(for: boosted), 1, accuracy: 0.0001, "\(item)")
+        }
+        // The Alolan form's types count: an Alolan Vulpix is Ice, not Fire, so the Teal Mask skips it.
+        let mask = store(inventory: [ItemKind.tealMask.rawValue: 1])
+        XCTAssertEqual(mask.growthSpeedMultiplier(for: mon(37)), CollectorBonus.tealMaskTypes, accuracy: 0.0001)
+        XCTAssertEqual(mask.growthSpeedMultiplier(for: mon(37, form: PokemonForm("alola"))), 1, accuracy: 0.0001)
+    }
+
+    func testGrowthBonusesShortenTheStageThreshold() {
+        let gastly = mon(92)
+        let plain = store(active: gastly).threshold
+        let orb = store(active: gastly, inventory: [ItemKind.griseousOrb.rawValue: 1]).threshold
+        XCTAssertEqual(Double(orb), Double(plain) / CollectorBonus.griseousOrbGhostDragon, accuracy: 1)
+    }
+
+    func testZygardeCubeGrowsWithThePokedex() {
+        let cube = [ItemKind.zygardeCube.rawValue: 1]
+        XCTAssertEqual(store(inventory: cube).zygardeCubeMultiplier, 1, accuracy: 0.0001)
+        XCTAssertEqual(store(dex: entries(Array(1...50)), inventory: cube).zygardeCubeMultiplier, 1.02, accuracy: 0.0001)
+        XCTAssertEqual(store(dex: entries(Array(1...1025)), inventory: cube).zygardeCubeMultiplier, 1.40, accuracy: 0.0001,
+                       "capped at +40%")
+    }
+
+    func testTeraOrbHalvesOnlyAStoneEggsThreshold() {
+        let plain = store()
+        let orb = store(inventory: [ItemKind.teraOrb.rawValue: 1])
+        XCTAssertEqual(orb.eggHatchThreshold, plain.eggHatchThreshold, "a plain egg keeps its threshold")
+        let stoneEgg = store(used: rich, dex: entries([154, 157, 160]), active: pikachu,
+                             inventory: [ItemKind.teraOrb.rawValue: 1, ItemKind.fireStone.rawValue: 1])
+        XCTAssertTrue(stoneEgg.useStone(.fireStone))
+        XCTAssertEqual(stoneEgg.eggHatchThreshold, plain.eggHatchThreshold / 2)
+    }
+
+    func testReinsOfUnityAddACandyToEachGraduation() async {
+        for owned in [false, true] {
+            let s = store(inventory: owned ? [ItemKind.reinsOfUnity.rawValue: 1] : [:])
+            await s.hatch(baseID: 4)
+            s.applyUsage(s.threshold)
+            XCTAssertEqual(s.state.dex.count, 1, "graduated")
+            XCTAssertEqual(s.rareCandyCount, owned ? CollectorBonus.reinsOfUnityCandies : 0)
+        }
+    }
+
+    /// The new legendary groups each unlock their artifact; the Beast Ball and Booster Energy take any four.
+    func testNewArtifactsUnlockFromTheirLegendaries() {
+        let goals: [(ItemKind, [Int])] = [
+            (.zygardeCube, [716, 717, 718]), (.prisonBottle, [719, 720, 721]),
+            (.sparklingStone, [785, 786, 787, 788]), (.sunFlute, [791, 792, 800]),
+            (.rustedSword, [888, 889, 890]), (.reinsOfUnity, [896, 897, 898]),
+            (.tealMask, [1014, 1015, 1016, 1017]), (.teraOrb, [1007, 1008, 1024]),
+            (.beastBall, [793, 798, 803, 806]), (.boosterEnergy, [984, 990, 1009, 1023]),
+            (.revealGlass, [641, 642, 905]),
+        ]
+        for (item, ids) in goals {
+            XCTAssertTrue(store(dex: entries(ids, rarity: .legendary)).isUnlocked(item), "\(item)")
+            XCTAssertFalse(store(dex: entries(Array(ids.dropLast()), rarity: .legendary)).isUnlocked(item), "\(item)")
+        }
+        XCTAssertTrue(store(dex: entries([697, 699, 880, 883])).isUnlocked(.magmaStone), "later fossils count")
     }
 
     func testRainbowWingAndJadeOrbDiscounts() throws {

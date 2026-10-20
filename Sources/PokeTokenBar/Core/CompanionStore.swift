@@ -157,6 +157,10 @@ final class CompanionStore {
         if ownsSilverWing {
             threshold = max(1_000_000, threshold / 2)
         }
+        // Tera Orb: an egg from an evolution stone hatches twice as fast.
+        if ownsTeraOrb, state.eggTypeGuarantee != nil {
+            threshold = max(1_000_000, threshold / 2)
+        }
         return threshold
     }
 
@@ -168,11 +172,36 @@ final class CompanionStore {
         if mon.hasGrowthBoost ? ownsMagmaStone : ownsLibertyPass {
             base = (base * 3) / 4
         }
-        let badgeMult = typeBadgeSpeedMultiplier(forSpeciesID: mon.currentID)
-        if badgeMult > 1.0 {
-            base = max(1, Int((Double(base) / badgeMult).rounded()))
+        let speed = growthSpeedMultiplier(for: mon)
+        if speed > 1.0 {
+            base = max(1, Int((Double(base) / speed).rounded()))
         }
         return PokemonBalance.scaled(base, by: growthDifficulty)
+    }
+
+    /// How much faster the passive items make this Pokémon grow (1.5 = 50% faster): badges, then the
+    /// artifacts that favor a group. They multiply. Only growth changes, never the odds of a hatch.
+    func growthSpeedMultiplier(for mon: MonState) -> Double {
+        let types = PokemonTypeData.types(forSpeciesID: mon.currentID, form: mon.form)
+        var speed = typeBadgeSpeedMultiplier(forSpeciesID: mon.currentID)
+        if ownsClearBell, mon.rarity == .rare { speed *= CollectorBonus.clearBellRare }
+        if ownsGriseousOrb, types.contains(where: { $0 == .ghost || $0 == .dragon }) {
+            speed *= CollectorBonus.griseousOrbGhostDragon
+        }
+        if ownsPrisonBottle, mon.hasNewForm { speed *= CollectorBonus.prisonBottleNewForm }
+        if ownsSparklingStone, types.contains(.fairy) { speed *= CollectorBonus.sparklingStoneFairy }
+        if ownsSunFlute, mon.stageIndex >= mon.totalForms - 1 { speed *= CollectorBonus.sunFluteFinalStage }
+        if ownsBeastBall, SpeciesGoal.ultraBeasts.contains(mon.currentID) {
+            speed *= CollectorBonus.beastBallUltraBeast
+        }
+        if ownsRustedSword, mon.rarity == .legendary { speed *= CollectorBonus.rustedSwordLegendary }
+        if ownsBoosterEnergy, SpeciesGoal.paradoxes.contains(mon.currentID) {
+            speed *= CollectorBonus.boosterEnergyParadox
+        }
+        if ownsTealMask, types.contains(where: CollectorBonus.tealMaskTypeList.contains) {
+            speed *= CollectorBonus.tealMaskTypes
+        }
+        return speed
     }
 
     /// 상점 표시·결제에 쓰는 실제 가격 — 기본가 × 상점 난이도. 미판매면 nil.
@@ -1155,6 +1184,7 @@ final class CompanionStore {
         if isTokenUsage {
             if ownsOldSeaMap { growthDelta = Int(Double(growthDelta) * 1.20) }
             if ownsDnaSplicers { growthDelta = Int(Double(growthDelta) * 1.50) }
+            if ownsZygardeCube { growthDelta = Int(Double(growthDelta) * zygardeCubeMultiplier) }
         }
         state.active!.usedAtStage += growthDelta
         reconcileActiveProfileGrowth()
@@ -1304,6 +1334,10 @@ final class CompanionStore {
                                       Dictionary(uniqueKeysWithValues:
                                           a.pathIDs.compactMap { id in line.names[id].map { (id, $0) } })
                                   }, form: a.form))
+        if ownsReinsOfUnity {
+            let received = addRareCandies(CollectorBonus.reinsOfUnityCandies)
+            AppLog.write("graduate: reins of unity +\(received) rare candy")
+        }
         let name = formDisplayName(currentLine?.localizedName(finalID, state.language) ?? "",
                                    speciesID: finalID, form: a.form)
         justGraduated = name
@@ -1340,6 +1374,23 @@ final class CompanionStore {
     var ownsLibertyPass: Bool { itemCount(.libertyPass) > 0 }
     var ownsRevealGlass: Bool { itemCount(.revealGlass) > 0 }
     var ownsDnaSplicers: Bool { itemCount(.dnaSplicers) > 0 }
+    var ownsZygardeCube: Bool { itemCount(.zygardeCube) > 0 }
+    var ownsPrisonBottle: Bool { itemCount(.prisonBottle) > 0 }
+    var ownsSparklingStone: Bool { itemCount(.sparklingStone) > 0 }
+    var ownsSunFlute: Bool { itemCount(.sunFlute) > 0 }
+    var ownsBeastBall: Bool { itemCount(.beastBall) > 0 }
+    var ownsRustedSword: Bool { itemCount(.rustedSword) > 0 }
+    var ownsReinsOfUnity: Bool { itemCount(.reinsOfUnity) > 0 }
+    var ownsBoosterEnergy: Bool { itemCount(.boosterEnergy) > 0 }
+    var ownsTealMask: Bool { itemCount(.tealMask) > 0 }
+    var ownsTeraOrb: Bool { itemCount(.teraOrb) > 0 }
+
+    /// Zygarde Cube: +1% token growth EXP per 25 registered species, up to +40%.
+    var zygardeCubeMultiplier: Double {
+        let percent = min(CollectorBonus.zygardeMaxPercent,
+                          registeredSpeciesIDs.count / CollectorBonus.zygardeSpeciesPerPercent)
+        return 1 + Double(percent) / 100
+    }
 
     /// 보유한 배지 중 특정 종에 효과적인 배지 개수 (약점 공격 가능 배지 또는 노말 배지의 경우 노말 종).
     func ownedBadgeCount(weakAgainst speciesID: Int) -> Int {
@@ -1352,7 +1403,8 @@ final class CompanionStore {
         return count
     }
 
-    /// 배지로 인한 포획/성장 가속 배율 (+20% per effective badge, cumulative).
+    /// Growth speed from badges: +20% per owned badge the species is weak to, cumulative. Growth only:
+    /// badges no longer touch the hatch odds.
     func typeBadgeSpeedMultiplier(forSpeciesID speciesID: Int) -> Double {
         let count = ownedBadgeCount(weakAgainst: speciesID)
         guard count > 0 else { return 1.0 }
@@ -2144,6 +2196,8 @@ final class CompanionStore {
         if let details = pokemonDetailsByID[line.baseID] { profile.enrich(with: details) }
         let hasGrowthBoost = state.hasCollectedFinal(forBaseID: line.baseID)
         let form = pendingForm ?? rollLineForm(baseID: line.baseID, type: typeGuarantee)
+        // Checked before this individual joins the Pokédex: does it bring a form its line never had?
+        let hasNewForm = form.map { !state.collectedLineForms(baseID: line.baseID).contains($0) } ?? false
         // 위장 중엔 이로치를 숨긴다 — 부화 알림·연출도 일반체로(정체는 리빌 때 공개).
         let showShiny = isShiny && dittoDisguise == nil
         activeGeneration += 1
@@ -2151,6 +2205,7 @@ final class CompanionStore {
                                 stageIndex: 0, usedAtStage: 0, rarity: line.rarity, totalForms: evolutionPlan.count,
                                 isShiny: isShiny, nature: nature, profile: profile, hasGrowthBoost: hasGrowthBoost,
                                 dittoDisguise: dittoDisguise, form: form)
+        state.active?.hasNewForm = hasNewForm
         AppLog.write("hatch: base=\(line.baseID) rarity=\(line.rarity) shiny=\(isShiny) forms=\(evolutionPlan.count) boost=\(hasGrowthBoost) ditto=\(dittoDisguise != nil) form=\(form?.rawValue ?? "none")")
         let name = formDisplayName(line.localizedName(line.baseID, state.language),
                                    speciesID: line.baseID, form: form)
@@ -2248,23 +2303,13 @@ final class CompanionStore {
     }
 
     /// Roll weight of one base species: its hatch weight (halved once its line is collected), then the
-    /// boosts of the items owned. Split out of `chooseBase` so each boost can be tested without a roll.
-    /// The Azure Flute and Clear Bell tiers read the hatch weight too, not the capture rate: Mew, Celebi,
-    /// Rayquaza and Shaymin have a capture rate of 45 but roll like Mewtwo.
+    /// Azure Flute. Split out of `chooseBase` so the boost can be tested without a roll. The flute reads the
+    /// hatch weight, not the capture rate: Mew, Celebi, Rayquaza and Shaymin have a capture rate of 45 but
+    /// roll like Mewtwo. It is the only item that reweights the roll; the others only add growth bonuses.
     func hatchWeight(for e: BaseSpecies) -> Int {
         var w = CollectionWeight.adjusted(e.hatchWeight, isCollected: state.hasCollectedFinal(forBaseID: e.id))
         if ownsLegendCharm && e.hatchWeight <= PokemonOdds.legendaryHatchWeight {
             w *= LegendCharm.weightMultiplier
-        }
-        if ownsClearBell && e.hatchWeight <= 45 && e.hatchWeight > PokemonOdds.legendaryHatchWeight {
-            w *= 2
-        }
-        if ownsGriseousOrb && PokemonTypeData.types(forSpeciesID: e.id).contains(where: { $0 == .ghost || $0 == .dragon }) {
-            w *= 2
-        }
-        let badgeMult = typeBadgeSpeedMultiplier(forSpeciesID: e.id)
-        if badgeMult > 1.0 {
-            w = max(1, Int((Double(w) * badgeMult).rounded()))
         }
         return w
     }

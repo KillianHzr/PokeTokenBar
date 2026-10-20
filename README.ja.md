@@ -173,14 +173,16 @@ Pi は複数のモデルを一つのセッションログに流すことがあ�
 | :--- | :---: | :---: | :--- |
 | **リーフのいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/leaf-stone.png" width="28" height="28" alt="リーフのいし"> | くさ | フシギバナ、リザードン、カメックス |
 | **ほのおのいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/fire-stone.png" width="28" height="28" alt="ほのおのいし"> | ほのお | メガニウム、バクフーン、オーダイル |
-| **みずのいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/water-stone.png" width="28" height="28" alt="みずのいし"> | みず | ジュカイン、バシャーモ、ラグラージ **または** シャワーズ、サンダース、ブースター |
-| **かみなりのいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/thunder-stone.png" width="28" height="28" alt="かみなりのいし"> | でんき | ライチュウ、サンダース、シビルドン |
-| **たいようのいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sun-stone.png" width="28" height="28" alt="たいようのいし"> | エスパー | ドダイトス、ゴウカザル、エンペルト |
-| **つきのいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/moon-stone.png" width="28" height="28" alt="つきのいし"> | フェアリー | ジャローダ、エンブオー、ダイケンキ |
-| **やみのいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dusk-stone.png" width="28" height="28" alt="やみのいし"> | あく | エーフィ、ブラッキー |
-| **こおりのいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/ice-stone.png" width="28" height="28" alt="こおりのいし"> | こおり | リーフィア、グレイシア |
-| **めざめいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dawn-stone.png" width="28" height="28" alt="めざめいし"> | かくとう | エルレイド、ユキメノコ |
+| **みずのいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/water-stone.png" width="28" height="28" alt="みずのいし"> | みず | ジュカイン、バシャーモ、ラグラージ |
+| **かみなりのいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/thunder-stone.png" width="28" height="28" alt="かみなりのいし"> | でんき | ドダイトス、ゴウカザル、エンペルト |
+| **たいようのいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sun-stone.png" width="28" height="28" alt="たいようのいし"> | エスパー | ジャローダ、エンブオー、ダイケンキ |
+| **つきのいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/moon-stone.png" width="28" height="28" alt="つきのいし"> | フェアリー | ブリガロン、マフォクシー、ゲッコウガ |
+| **やみのいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dusk-stone.png" width="28" height="28" alt="やみのいし"> | あく | ジュナイパー、ガオガエン、アシレーヌ |
+| **こおりのいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/ice-stone.png" width="28" height="28" alt="こおりのいし"> | こおり | ゴリランダー、エースバーン、インテレオン |
+| **めざめいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dawn-stone.png" width="28" height="28" alt="めざめいし"> | かくとう | マスカーニャ、ラウドボーン、ウェーニバル |
 | **ひかりのいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/shiny-stone.png" width="28" height="28" alt="ひかりのいし"> | ドラゴン | カイリュー、ボーマンダ、レックウザ |
+
+最初の9つの石は世代の順番どおり: カントーからパルデアまで、石ごとにひとつの地方の最終進化の御三家を求めます。
 
 ### でんせつのどうぐ
 
@@ -191,43 +193,57 @@ Pi は複数のモデルを一つのセッションログに流すことがあ�
 | **てんかいのふえ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/azure-flute.png" width="28" height="28" alt="てんかいのふえ"> | 同じ伝説のポケモンを2回卒業 | 伝説のポケモンが4倍生まれやすくなる |
 | **ぎんいろのはね** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/silver-wing.png" width="28" height="28" alt="ぎんいろのはね"> | フリーザー、サンダー、ファイヤー | タマゴの孵化に必要なトークンが半分になる |
 | **ふるびたかいず** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/old-sea-map.png" width="28" height="28" alt="ふるびたかいず"> | ミュウツー、ミュウ | トークン消費による成長 +20% |
-| **とうめいなスズ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/clear-bell.png" width="28" height="28" alt="とうめいなスズ"> | ライコウ、エンテイ、スイクン | レアのポケモンが2倍生まれやすくなる |
+| **とうめいなスズ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/clear-bell.png" width="28" height="28" alt="とうめいなスズ"> | ライコウ、エンテイ、スイクン | レアのポケモンが25%早く育つ |
 | **にじいろのはね** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rainbow-wing.png" width="28" height="28" alt="にじいろのはね"> | ルギア、ホウオウ | ショップの全商品が25%引き |
-| **かざんのおきいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/magma-stone.png" width="28" height="28" alt="かざんのおきいし"> | レジロック、レジアイス、レジスチル **または** 化石ポケモンのうち4匹¹ | 卒業済みのラインの成長必要量が25%減 |
+| **かざんのおきいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/magma-stone.png" width="28" height="28" alt="かざんのおきいし"> | レジロック、レジアイス、レジスチル **または** レジエレキ、レジドラゴ **または** 化石ポケモンのうち4匹¹ | 卒業済みのラインの成長必要量が25%減 |
 | **こころのしずく** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/soul-dew.png" width="28" height="28" alt="こころのしずく"> | ラティアス、ラティオス | ふしぎなアメの経験値 +50% |
 | **もえぎいろのたま** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/jade-orb.png" width="28" height="28" alt="もえぎいろのたま"> | カイオーガ、グラードン、レックウザ | タマゴがさらに20%引き |
 | **グラシデアのはな** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/gracidea.png" width="28" height="28" alt="グラシデアのはな"> | ユクシー、エムリット、アグノム | ふしぎなアメを手に入れるたびに1個多くもらえる |
-| **はっきんだま** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/griseous-orb.png" width="28" height="28" alt="はっきんだま"> | ディアルガ、パルキア、ギラティナ | ゴースト・ドラゴンタイプのポケモンが2倍生まれやすくなる |
+| **はっきんだま** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/griseous-orb.png" width="28" height="28" alt="はっきんだま"> | ディアルガ、パルキア、ギラティナ | ゴースト・ドラゴンタイプのポケモンが30%早く育つ |
 | **リバティチケット** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/liberty-pass.png" width="28" height="28" alt="リバティチケット"> | コバルオン、テラキオン、ビリジオン | まだ卒業させていないラインの成長必要量が25%減 |
-| **うつしかがみ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/reveal-glass.png" width="28" height="28" alt="うつしかがみ"> | トルネロス、ボルトロス、ランドロス | 色違い確率2倍(光るお守りと重複) |
+| **うつしかがみ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/reveal-glass.png" width="28" height="28" alt="うつしかがみ"> | トルネロス、ボルトロス、ランドロス、ラブトロスのうち3匹 | 色違い確率2倍(光るお守りと重複) |
 | **いでんしのくさび** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dna-splicers.png" width="28" height="28" alt="いでんしのくさび"> | レシラム、ゼクロム | トークン消費による成長 +50% |
+| **ジガルデキューブ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/zygarde-cube.png" width="28" height="28" alt="ジガルデキューブ"> | ゼルネアス、イベルタル、ジガルデ | 図鑑25種ごとにトークン消費による成長 +1%（最大+40%） |
+| **いましめのツボ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/prison-bottle.png" width="28" height="28" alt="いましめのツボ"> | ディアンシー、フーパ、ボルケニオン | 図鑑にない姿で生まれたポケモンが50%早く育つ |
+| **かがやくいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sparkling-stone.png" width="28" height="28" alt="かがやくいし"> | カプ・コケコ、カプ・テテフ、カプ・ブルル、カプ・レヒレ | フェアリータイプのポケモンが30%早く育つ |
+| **たいようのふえ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sun-flute.png" width="28" height="28" alt="たいようのふえ"> | ソルガレオ、ルナアーラ、ネクロズマ | 最終進化のポケモンが25%早く育つ |
+| **ウルトラボール** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/beast-ball.png" width="28" height="28" alt="ウルトラボール"> | ウルトラビーストのうち4匹² | ウルトラビーストが50%早く育つ |
+| **くちたけん** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rusted-sword.png" width="28" height="28" alt="くちたけん"> | ザシアン、ザマゼンタ、ムゲンダイナ | 伝説のポケモンが25%早く育つ |
+| **キズナのタヅナ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/reins-of-unity.png" width="28" height="28" alt="キズナのタヅナ"> | ブリザポス、レイスポス、バドレックス | ポケモンが卒業するたびにふしぎなアメ+1 |
+| **ブーストエナジー** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/booster-energy.png" width="28" height="28" alt="ブーストエナジー"> | パラドックスポケモンのうち4匹³ | パラドックスポケモンが50%早く育つ |
+| **みどりのめん** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/teal-mask.png" width="28" height="28" alt="みどりのめん"> | オーガポン、イイネイヌ、マシマシラ、キチキギス | くさ・みず・ほのお・いわタイプのポケモンが20%早く育つ |
+| **テラスタルオーブ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/tera-orb.png" width="28" height="28" alt="テラスタルオーブ"> | コライドン、ミライドン、テラパゴス | 進化の石のタマゴが2倍早くかえる |
 
-¹ オムスター、カブトプス、プテラ、ユレイドル、アーマルド、ラムパルド、トリデプス、アバゴーラ、アーケオス。
+生まれるポケモンの確率を変えるのはてんかいのふえだけです。ほかのどうぐはすべて純粋なボーナスで、ほかのポケモンの確率を下げません。
+
+¹ オムスター、カブトプス、プテラ、ユレイドル、アーマルド、ラムパルド、トリデプス、アバゴーラ、アーケオス、ガチゴラス、アマルルガ、パッチラゴン、パッチルドン、ウオノラゴン、ウオチルドン。
+² ウツロイド、マッシブーン、フェローチェ、デンジュモク、テッカグヤ、カミツルギ、アクジキング、ベベノム、アーゴヨン、ツンデツンデ、ズガドーン。
+³ イダイナキバ、サケブシッポ、アラブルタケ、ハバタクカミ、チヲハウハネ、スナノケガワ、テツノワダチ、テツノツツミ、テツノカイナ、テツノコウベ、テツノドクガ、テツノイバラ、トドロクツキ、テツノブジン、ウネルミナモ、テツノイサハ、ウガツホムラ、タケルライコ、テツノイワオ、テツノカシラ。
 
 ### ジムバッジ
 
-第1〜5世代のあるタイプのポケモンをすべて図鑑に登録すると、そのタイプのバッジが解放され、**実績**タブで受け取れます。持っている間、そのタイプに弱いポケモンが20%生まれやすくなり、20%早く育ちます。複数のバッジに弱いポケモンには効果が重なります。
+カントー(第1世代)のあるタイプのポケモンをすべて図鑑に登録すると、そのタイプのバッジが解放され、**実績**タブで受け取れます。カントーにはあくタイプのポケモンがいないため、あくのバッジはジョウトのあくタイプを求めます。持っている間、そのタイプに弱いポケモンが20%早く育ちます。複数のバッジに弱いポケモンには効果が重なります。
 
 | バッジ | スプライト | タイプ | 解放条件 | 効果を受けるポケモン |
 | :--- | :---: | :---: | :--- | :--- |
-| **グレーバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/1.png" width="28" height="28" alt="グレーバッジ"> | いわ | いわタイプのポケモン47匹すべて | ほのお、こおり、ひこう、むし |
-| **ブルーバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/2.png" width="28" height="28" alt="ブルーバッジ"> | みず | みずタイプのポケモン109匹すべて | ほのお、じめん、いわ |
-| **オレンジバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/3.png" width="28" height="28" alt="オレンジバッジ"> | でんき | でんきタイプのポケモン39匹すべて | みず、ひこう |
-| **レインボーバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/4.png" width="28" height="28" alt="レインボーバッジ"> | くさ | くさタイプのポケモン75匹すべて | みず、じめん、いわ |
-| **ピンクバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/5.png" width="28" height="28" alt="ピンクバッジ"> | どく | どくタイプのポケモン57匹すべて | くさ、フェアリー |
-| **ゴールドバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/6.png" width="28" height="28" alt="ゴールドバッジ"> | エスパー | エスパータイプのポケモン68匹すべて | かくとう、どく |
-| **クリムゾンバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/7.png" width="28" height="28" alt="クリムゾンバッジ"> | ほのお | ほのおタイプのポケモン48匹すべて | くさ、こおり、むし、はがね |
-| **グリーンバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/8.png" width="28" height="28" alt="グリーンバッジ"> | じめん | じめんタイプのポケモン58匹すべて | ほのお、でんき、どく、いわ、はがね |
-| **ウイングバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/9.png" width="28" height="28" alt="ウイングバッジ"> | ひこう | ひこうタイプのポケモン82匹すべて | くさ、かくとう、むし |
-| **インセクトバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/10.png" width="28" height="28" alt="インセクトバッジ"> | むし | むしタイプのポケモン63匹すべて | くさ、エスパー、あく |
-| **レギュラーバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/11.png" width="28" height="28" alt="レギュラーバッジ"> | ノーマル | ノーマルタイプのポケモン89匹すべて | ノーマルタイプ(ノーマルに弱いタイプがないため) |
-| **ファントムバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/12.png" width="28" height="28" alt="ファントムバッジ"> | ゴースト | ゴーストタイプのポケモン27匹すべて | エスパー、ゴースト |
-| **ショックバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/13.png" width="28" height="28" alt="ショックバッジ"> | かくとう | かくとうタイプのポケモン40匹すべて | ノーマル、こおり、いわ、あく、はがね |
-| **スチールバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/14.png" width="28" height="28" alt="スチールバッジ"> | はがね | はがねタイプのポケモン37匹すべて | こおり、いわ、フェアリー |
-| **アイスバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/15.png" width="28" height="28" alt="アイスバッジ"> | こおり | こおりタイプのポケモン29匹すべて | くさ、じめん、ひこう、ドラゴン |
-| **ライジングバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/16.png" width="28" height="28" alt="ライジングバッジ"> | ドラゴン | ドラゴンタイプのポケモン29匹すべて | ドラゴン |
-| **あくバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/59.png" width="28" height="28" alt="あくバッジ"> | あく | あくタイプのポケモン39匹すべて | エスパー、ゴースト |
-| **フェアリーバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/48.png" width="28" height="28" alt="フェアリーバッジ"> | フェアリー | フェアリータイプのポケモン22匹すべて | かくとう、ドラゴン、あく |
+| **グレーバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/1.png" width="28" height="28" alt="グレーバッジ"> | いわ | カントーのいわタイプのポケモン11匹すべて | ほのお、こおり、ひこう、むし |
+| **ブルーバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/2.png" width="28" height="28" alt="ブルーバッジ"> | みず | カントーのみずタイプのポケモン32匹すべて | ほのお、じめん、いわ |
+| **オレンジバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/3.png" width="28" height="28" alt="オレンジバッジ"> | でんき | カントーのでんきタイプのポケモン9匹すべて | みず、ひこう |
+| **レインボーバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/4.png" width="28" height="28" alt="レインボーバッジ"> | くさ | カントーのくさタイプのポケモン14匹すべて | みず、じめん、いわ |
+| **ピンクバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/5.png" width="28" height="28" alt="ピンクバッジ"> | どく | カントーのどくタイプのポケモン33匹すべて | くさ、フェアリー |
+| **ゴールドバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/6.png" width="28" height="28" alt="ゴールドバッジ"> | エスパー | カントーのエスパータイプのポケモン14匹すべて | かくとう、どく |
+| **クリムゾンバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/7.png" width="28" height="28" alt="クリムゾンバッジ"> | ほのお | カントーのほのおタイプのポケモン12匹すべて | くさ、こおり、むし、はがね |
+| **グリーンバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/8.png" width="28" height="28" alt="グリーンバッジ"> | じめん | カントーのじめんタイプのポケモン14匹すべて | ほのお、でんき、どく、いわ、はがね |
+| **ウイングバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/9.png" width="28" height="28" alt="ウイングバッジ"> | ひこう | カントーのひこうタイプのポケモン19匹すべて | くさ、かくとう、むし |
+| **インセクトバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/10.png" width="28" height="28" alt="インセクトバッジ"> | むし | カントーのむしタイプのポケモン12匹すべて | くさ、エスパー、あく |
+| **レギュラーバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/11.png" width="28" height="28" alt="レギュラーバッジ"> | ノーマル | カントーのノーマルタイプのポケモン22匹すべて | ノーマルタイプ(ノーマルに弱いタイプがないため) |
+| **ファントムバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/12.png" width="28" height="28" alt="ファントムバッジ"> | ゴースト | カントーのゴーストタイプのポケモン3匹すべて | エスパー、ゴースト |
+| **ショックバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/13.png" width="28" height="28" alt="ショックバッジ"> | かくとう | カントーのかくとうタイプのポケモン8匹すべて | ノーマル、こおり、いわ、あく、はがね |
+| **スチールバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/14.png" width="28" height="28" alt="スチールバッジ"> | はがね | カントーのはがねタイプのポケモン2匹すべて | こおり、いわ、フェアリー |
+| **アイスバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/15.png" width="28" height="28" alt="アイスバッジ"> | こおり | カントーのこおりタイプのポケモン5匹すべて | くさ、じめん、ひこう、ドラゴン |
+| **ライジングバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/16.png" width="28" height="28" alt="ライジングバッジ"> | ドラゴン | カントーのドラゴンタイプのポケモン3匹すべて | ドラゴン |
+| **あくバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/59.png" width="28" height="28" alt="あくバッジ"> | あく | ジョウトのあくタイプのポケモン6匹すべて | エスパー、ゴースト |
+| **フェアリーバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/48.png" width="28" height="28" alt="フェアリーバッジ"> | フェアリー | カントーのフェアリータイプのポケモン5匹すべて | かくとう、ドラゴン、あく |
 
 ## そのほかにも
 
