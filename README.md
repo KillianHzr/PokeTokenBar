@@ -172,14 +172,16 @@ Claiming a stone's achievement puts **5** of that stone in the Bag, next to the 
 | :--- | :---: | :---: | :--- |
 | **Leaf Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/leaf-stone.png" width="28" height="28" alt="Leaf Stone"> | Grass | Venusaur, Charizard, Blastoise |
 | **Fire Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/fire-stone.png" width="28" height="28" alt="Fire Stone"> | Fire | Meganium, Typhlosion, Feraligatr |
-| **Water Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/water-stone.png" width="28" height="28" alt="Water Stone"> | Water | Sceptile, Blaziken, Swampert, **or** Vaporeon, Jolteon, Flareon |
-| **Thunder Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/thunder-stone.png" width="28" height="28" alt="Thunder Stone"> | Electric | Raichu, Jolteon, Eelektross |
-| **Sun Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sun-stone.png" width="28" height="28" alt="Sun Stone"> | Psychic | Torterra, Infernape, Empoleon |
-| **Moon Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/moon-stone.png" width="28" height="28" alt="Moon Stone"> | Fairy | Serperior, Emboar, Samurott |
-| **Dusk Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dusk-stone.png" width="28" height="28" alt="Dusk Stone"> | Dark | Espeon, Umbreon |
-| **Ice Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/ice-stone.png" width="28" height="28" alt="Ice Stone"> | Ice | Leafeon, Glaceon |
-| **Dawn Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dawn-stone.png" width="28" height="28" alt="Dawn Stone"> | Fighting | Gallade, Froslass |
+| **Water Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/water-stone.png" width="28" height="28" alt="Water Stone"> | Water | Sceptile, Blaziken, Swampert |
+| **Thunder Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/thunder-stone.png" width="28" height="28" alt="Thunder Stone"> | Electric | Torterra, Infernape, Empoleon |
+| **Sun Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sun-stone.png" width="28" height="28" alt="Sun Stone"> | Psychic | Serperior, Emboar, Samurott |
+| **Moon Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/moon-stone.png" width="28" height="28" alt="Moon Stone"> | Fairy | Chesnaught, Delphox, Greninja |
+| **Dusk Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dusk-stone.png" width="28" height="28" alt="Dusk Stone"> | Dark | Decidueye, Incineroar, Primarina |
+| **Ice Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/ice-stone.png" width="28" height="28" alt="Ice Stone"> | Ice | Rillaboom, Cinderace, Inteleon |
+| **Dawn Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dawn-stone.png" width="28" height="28" alt="Dawn Stone"> | Fighting | Meowscarada, Skeledirge, Quaquaval |
 | **Shiny Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/shiny-stone.png" width="28" height="28" alt="Shiny Stone"> | Dragon | Dragonite, Salamence, Rayquaza |
+
+The first nine stones follow the generations in order: each one asks for a region's final starter trio, from Kanto to Paldea.
 
 ### Legendary Artifacts
 
@@ -190,43 +192,57 @@ Claimed once from the **Achievements** tab, active for as long as they sit in th
 | **Azure Flute** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/azure-flute.png" width="28" height="28" alt="Azure Flute"> | The same legendary Pokémon graduated twice | Legendary Pokémon hatch 4× as often |
 | **Silver Wing** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/silver-wing.png" width="28" height="28" alt="Silver Wing"> | Articuno, Zapdos, Moltres | Halves the tokens an egg needs to hatch |
 | **Old Sea Map** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/old-sea-map.png" width="28" height="28" alt="Old Sea Map"> | Mewtwo, Mew | +20% growth from token usage |
-| **Clear Bell** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/clear-bell.png" width="28" height="28" alt="Clear Bell"> | Raikou, Entei, Suicune | Rare-tier Pokémon hatch 2× as often |
+| **Clear Bell** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/clear-bell.png" width="28" height="28" alt="Clear Bell"> | Raikou, Entei, Suicune | Rare-tier Pokémon grow 25% faster |
 | **Rainbow Wing** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rainbow-wing.png" width="28" height="28" alt="Rainbow Wing"> | Lugia, Ho-Oh | 25% off every shop purchase |
-| **Magma Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/magma-stone.png" width="28" height="28" alt="Magma Stone"> | Regirock, Regice, Registeel, **or** any 4 fossil Pokémon¹ | Lines you already graduated need 25% less growth |
+| **Magma Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/magma-stone.png" width="28" height="28" alt="Magma Stone"> | Regirock, Regice, Registeel **or** Regieleki, Regidrago **or** any 4 fossil Pokémon¹ | Lines you already graduated need 25% less growth |
 | **Soul Dew** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/soul-dew.png" width="28" height="28" alt="Soul Dew"> | Latias, Latios | Rare Candy gives 50% more EXP |
 | **Jade Orb** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/jade-orb.png" width="28" height="28" alt="Jade Orb"> | Kyogre, Groudon, Rayquaza | An extra 20% off eggs |
 | **Gracidea** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/gracidea.png" width="28" height="28" alt="Gracidea"> | Uxie, Mesprit, Azelf | Every Rare Candy you get comes with one more |
-| **Griseous Orb** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/griseous-orb.png" width="28" height="28" alt="Griseous Orb"> | Dialga, Palkia, Giratina | Ghost- and Dragon-type Pokémon hatch 2× as often |
+| **Griseous Orb** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/griseous-orb.png" width="28" height="28" alt="Griseous Orb"> | Dialga, Palkia, Giratina | Ghost- and Dragon-type Pokémon grow 30% faster |
 | **Liberty Pass** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/liberty-pass.png" width="28" height="28" alt="Liberty Pass"> | Cobalion, Terrakion, Virizion | Lines you never graduated need 25% less growth |
-| **Reveal Glass** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/reveal-glass.png" width="28" height="28" alt="Reveal Glass"> | Tornadus, Thundurus, Landorus | Doubles the shiny odds (stacks with the Shiny Charm) |
+| **Reveal Glass** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/reveal-glass.png" width="28" height="28" alt="Reveal Glass"> | Any 3 of Tornadus, Thundurus, Landorus, Enamorus | Doubles the shiny odds (stacks with the Shiny Charm) |
 | **DNA Splicers** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dna-splicers.png" width="28" height="28" alt="DNA Splicers"> | Reshiram, Zekrom | +50% growth from token usage |
+| **Zygarde Cube** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/zygarde-cube.png" width="28" height="28" alt="Zygarde Cube"> | Xerneas, Yveltal, Zygarde | +1% growth from token usage per 25 species in your Pokédex (up to +40%) |
+| **Prison Bottle** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/prison-bottle.png" width="28" height="28" alt="Prison Bottle"> | Diancie, Hoopa, Volcanion | A Pokémon that hatched in a form new to your Pokédex grows 50% faster |
+| **Sparkling Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sparkling-stone.png" width="28" height="28" alt="Sparkling Stone"> | Tapu Koko, Tapu Lele, Tapu Bulu, Tapu Fini | Fairy-type Pokémon grow 30% faster |
+| **Sun Flute** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sun-flute.png" width="28" height="28" alt="Sun Flute"> | Solgaleo, Lunala, Necrozma | A Pokémon at its final stage grows 25% faster |
+| **Beast Ball** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/beast-ball.png" width="28" height="28" alt="Beast Ball"> | Any 4 Ultra Beasts² | Ultra Beasts grow 50% faster |
+| **Rusted Sword** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rusted-sword.png" width="28" height="28" alt="Rusted Sword"> | Zacian, Zamazenta, Eternatus | Legendary Pokémon grow 25% faster |
+| **Reins of Unity** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/reins-of-unity.png" width="28" height="28" alt="Reins of Unity"> | Glastrier, Spectrier, Calyrex | +1 Rare Candy for every Pokémon that graduates |
+| **Booster Energy** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/booster-energy.png" width="28" height="28" alt="Booster Energy"> | Any 4 Paradox Pokémon³ | Paradox Pokémon grow 50% faster |
+| **Teal Mask** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/teal-mask.png" width="28" height="28" alt="Teal Mask"> | Ogerpon, Okidogi, Munkidori, Fezandipiti | Grass-, Water-, Fire- and Rock-type Pokémon grow 20% faster |
+| **Tera Orb** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/tera-orb.png" width="28" height="28" alt="Tera Orb"> | Koraidon, Miraidon, Terapagos | Eggs from an evolution stone hatch twice as fast |
 
-¹ Omastar, Kabutops, Aerodactyl, Cradily, Armaldo, Rampardos, Bastiodon, Carracosta, Archeops.
+Only the Azure Flute changes which Pokémon hatch; every other artifact is a pure bonus that never lowers another Pokémon's chances.
+
+¹ Omastar, Kabutops, Aerodactyl, Cradily, Armaldo, Rampardos, Bastiodon, Carracosta, Archeops, Tyrantrum, Aurorus, Dracozolt, Arctozolt, Dracovish, Arctovish.
+² Nihilego, Buzzwole, Pheromosa, Xurkitree, Celesteela, Kartana, Guzzlord, Poipole, Naganadel, Stakataka, Blacephalon.
+³ Great Tusk, Scream Tail, Brute Bonnet, Flutter Mane, Slither Wing, Sandy Shocks, Iron Treads, Iron Bundle, Iron Hands, Iron Jugulis, Iron Moth, Iron Thorns, Roaring Moon, Iron Valiant, Walking Wake, Iron Leaves, Gouging Fire, Raging Bolt, Iron Boulder, Iron Crown.
 
 ### Gym Badges
 
-Register every Gen 1 to 5 Pokémon of a type to unlock its badge, then claim it from the **Achievements** tab. While owned, a badge makes the Pokémon weak to its type hatch 20% more often and grow 20% faster, stacking when a Pokémon is weak to several owned badges.
+Register every Kanto (Gen 1) Pokémon of a type to unlock its badge, then claim it from the **Achievements** tab. No Kanto Pokémon is Dark-type, so the Dark Badge asks for Johto's. While owned, a badge makes the Pokémon weak to its type grow 20% faster, stacking when a Pokémon is weak to several owned badges.
 
 | Badge | Sprite | Type | Unlocks with | Boosts Pokémon weak to it |
 | :--- | :---: | :---: | :--- | :--- |
-| **Boulder Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/1.png" width="28" height="28" alt="Boulder Badge"> | Rock | All 47 Rock-type Pokémon | Fire, Ice, Flying, Bug |
-| **Cascade Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/2.png" width="28" height="28" alt="Cascade Badge"> | Water | All 109 Water-type Pokémon | Fire, Ground, Rock |
-| **Thunder Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/3.png" width="28" height="28" alt="Thunder Badge"> | Electric | All 39 Electric-type Pokémon | Water, Flying |
-| **Rainbow Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/4.png" width="28" height="28" alt="Rainbow Badge"> | Grass | All 75 Grass-type Pokémon | Water, Ground, Rock |
-| **Soul Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/5.png" width="28" height="28" alt="Soul Badge"> | Poison | All 57 Poison-type Pokémon | Grass, Fairy |
-| **Marsh Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/6.png" width="28" height="28" alt="Marsh Badge"> | Psychic | All 68 Psychic-type Pokémon | Fighting, Poison |
-| **Volcano Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/7.png" width="28" height="28" alt="Volcano Badge"> | Fire | All 48 Fire-type Pokémon | Grass, Ice, Bug, Steel |
-| **Earth Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/8.png" width="28" height="28" alt="Earth Badge"> | Ground | All 58 Ground-type Pokémon | Fire, Electric, Poison, Rock, Steel |
-| **Zephyr Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/9.png" width="28" height="28" alt="Zephyr Badge"> | Flying | All 82 Flying-type Pokémon | Grass, Fighting, Bug |
-| **Hive Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/10.png" width="28" height="28" alt="Hive Badge"> | Bug | All 63 Bug-type Pokémon | Grass, Psychic, Dark |
-| **Plain Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/11.png" width="28" height="28" alt="Plain Badge"> | Normal | All 89 Normal-type Pokémon | Normal (no type is weak to Normal) |
-| **Fog Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/12.png" width="28" height="28" alt="Fog Badge"> | Ghost | All 27 Ghost-type Pokémon | Psychic, Ghost |
-| **Storm Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/13.png" width="28" height="28" alt="Storm Badge"> | Fighting | All 40 Fighting-type Pokémon | Normal, Ice, Rock, Dark, Steel |
-| **Mineral Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/14.png" width="28" height="28" alt="Mineral Badge"> | Steel | All 37 Steel-type Pokémon | Ice, Rock, Fairy |
-| **Glacier Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/15.png" width="28" height="28" alt="Glacier Badge"> | Ice | All 29 Ice-type Pokémon | Grass, Ground, Flying, Dragon |
-| **Rising Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/16.png" width="28" height="28" alt="Rising Badge"> | Dragon | All 29 Dragon-type Pokémon | Dragon |
-| **Dark Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/59.png" width="28" height="28" alt="Dark Badge"> | Dark | All 39 Dark-type Pokémon | Psychic, Ghost |
-| **Fairy Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/48.png" width="28" height="28" alt="Fairy Badge"> | Fairy | All 22 Fairy-type Pokémon | Fighting, Dragon, Dark |
+| **Boulder Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/1.png" width="28" height="28" alt="Boulder Badge"> | Rock | All 11 Kanto Rock-type Pokémon | Fire, Ice, Flying, Bug |
+| **Cascade Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/2.png" width="28" height="28" alt="Cascade Badge"> | Water | All 32 Kanto Water-type Pokémon | Fire, Ground, Rock |
+| **Thunder Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/3.png" width="28" height="28" alt="Thunder Badge"> | Electric | All 9 Kanto Electric-type Pokémon | Water, Flying |
+| **Rainbow Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/4.png" width="28" height="28" alt="Rainbow Badge"> | Grass | All 14 Kanto Grass-type Pokémon | Water, Ground, Rock |
+| **Soul Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/5.png" width="28" height="28" alt="Soul Badge"> | Poison | All 33 Kanto Poison-type Pokémon | Grass, Fairy |
+| **Marsh Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/6.png" width="28" height="28" alt="Marsh Badge"> | Psychic | All 14 Kanto Psychic-type Pokémon | Fighting, Poison |
+| **Volcano Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/7.png" width="28" height="28" alt="Volcano Badge"> | Fire | All 12 Kanto Fire-type Pokémon | Grass, Ice, Bug, Steel |
+| **Earth Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/8.png" width="28" height="28" alt="Earth Badge"> | Ground | All 14 Kanto Ground-type Pokémon | Fire, Electric, Poison, Rock, Steel |
+| **Zephyr Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/9.png" width="28" height="28" alt="Zephyr Badge"> | Flying | All 19 Kanto Flying-type Pokémon | Grass, Fighting, Bug |
+| **Hive Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/10.png" width="28" height="28" alt="Hive Badge"> | Bug | All 12 Kanto Bug-type Pokémon | Grass, Psychic, Dark |
+| **Plain Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/11.png" width="28" height="28" alt="Plain Badge"> | Normal | All 22 Kanto Normal-type Pokémon | Normal (no type is weak to Normal) |
+| **Fog Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/12.png" width="28" height="28" alt="Fog Badge"> | Ghost | All 3 Kanto Ghost-type Pokémon | Psychic, Ghost |
+| **Storm Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/13.png" width="28" height="28" alt="Storm Badge"> | Fighting | All 8 Kanto Fighting-type Pokémon | Normal, Ice, Rock, Dark, Steel |
+| **Mineral Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/14.png" width="28" height="28" alt="Mineral Badge"> | Steel | All 2 Kanto Steel-type Pokémon | Ice, Rock, Fairy |
+| **Glacier Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/15.png" width="28" height="28" alt="Glacier Badge"> | Ice | All 5 Kanto Ice-type Pokémon | Grass, Ground, Flying, Dragon |
+| **Rising Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/16.png" width="28" height="28" alt="Rising Badge"> | Dragon | All 3 Kanto Dragon-type Pokémon | Dragon |
+| **Dark Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/59.png" width="28" height="28" alt="Dark Badge"> | Dark | All 6 Johto Dark-type Pokémon | Psychic, Ghost |
+| **Fairy Badge** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/48.png" width="28" height="28" alt="Fairy Badge"> | Fairy | All 5 Kanto Fairy-type Pokémon | Fighting, Dragon, Dark |
 
 ## Also in the box
 
