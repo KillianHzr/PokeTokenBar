@@ -81,6 +81,18 @@ read_when:
   their Gen 1 to 5 goal through `badgeSpeciesIDs`. Guard: `testTypeTableCoversEveryHatchableSpecies`
   fails as soon as the hatch range outgrows the table.
 
+- **A type guarantee must hold for the form that hatches, not only the species.** Stone eggs filtered
+  candidates by species type (`PokemonTypeData.types(forSpeciesID:)`), then `rollLineForm` drew any form of
+  the line. Once the Gen 7 to 9 PRs added regional forms, a Fire Stone egg hatched an Alolan Vulpix (Ice) half
+  the time, and no Ice egg could hatch one. The collector items PR and the regional forms PR were each tested
+  alone, and the stone tests used species without forms. When no form was pre-rolled, the roll also ran after
+  `eggTypeGuarantee` was cleared. `PokemonTypeData.formTypes` now holds the 119 forms whose types differ
+  (PokéAPI form types, else the variety's), candidates pass `canHatch` through any of their forms, the form
+  roll keeps only forms of the guaranteed type, and `hatchCore` captures the guarantee before clearing it.
+  Sweep: badges and the Griseous Orb weigh species before any form is rolled, so they keep species types.
+  Guards: `StoneEggFormTests` (dropping the form filter, the form-aware candidate filter or the captured
+  guarantee each fails a test).
+
 - **A positional translation can hold the wrong script.** `L.t(ko, en, ja, ...)` compiles with a
   Korean syllable inside the Japanese column (`は가네`, `こころ의しずく` shipped in the collector items
   PR before merge). Guard: `testHangulAndKanaStayInTheirColumns` scans every `t(` call.

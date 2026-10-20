@@ -1971,7 +1971,7 @@ final class CompanionStore {
                 return
             }
             state.pendingHatchID = id
-            state.pendingForm = rollLineForm(baseID: id)
+            state.pendingForm = rollLineForm(baseID: id, type: state.eggTypeGuarantee)
             save()
         }
         guard let id = state.pendingHatchID else { return }
@@ -2007,9 +2007,14 @@ final class CompanionStore {
     }
 
     /// Draws only for lines with forms, so other species keep their random sequence.
-    private func rollLineForm(baseID: Int) -> PokemonForm? {
-        let forms = PokemonForm.lineForms(baseID: baseID)
+    private func rollLineForm(baseID: Int, type: PokemonType? = nil) -> PokemonForm? {
+        var forms = PokemonForm.lineForms(baseID: baseID)
         guard !forms.isEmpty else { return nil }
+        // A stone egg only rolls the forms that hatch with its type: no Alolan Vulpix (Ice) from a Fire Stone.
+        if let type {
+            let typed = forms.filter { PokemonTypeData.types(forSpeciesID: baseID, form: $0).contains(type) }
+            if !typed.isEmpty { forms = typed }
+        }
         return PokemonForm.roll(rng.next(), among: forms, collected: state.collectedLineForms(baseID: baseID))
     }
 
@@ -2098,10 +2103,10 @@ final class CompanionStore {
             save()
             return
         }
-        // Same last gate for a stone's type guarantee: the index type is the base species', so a stale
-        // index could still hand over another type. Keep the egg and re-roll next tick.
+        // Same last gate for a stone's type guarantee, on the pre-rolled form when there is one (a stale
+        // index or pre-roll could still hand over another type). Keep the egg and re-roll next tick.
         if let typeGuarantee = state.eggTypeGuarantee,
-           !PokemonTypeData.types(forSpeciesID: line.baseID).contains(typeGuarantee) {
+           !PokemonTypeData.canHatch(baseID: line.baseID, as: typeGuarantee, form: pendingForm) {
             AppLog.write("hatch: rolled \(line.baseID) without guaranteed type \(typeGuarantee), discarded; re-roll next tick")
             state.pendingHatchID = nil
             state.pendingForm = nil
@@ -2120,6 +2125,7 @@ final class CompanionStore {
         let overflow = max(0, state.eggUsage - eggHatchThreshold)
         state.eggUsage = 0
         state.eggTier = nil   // 보증은 이 부화로 소비된다(다음 알은 다시 무보증)
+        let typeGuarantee = state.eggTypeGuarantee   // still restricts the form rolled below
         state.eggTypeGuarantee = nil
         // 개체 롤: shiny(1/64, 부적 1/48, Reveal Glass halves it)·성격(25종)은 부화 순간 확정, 진화해도 유지.
         // 알림 문구는 이 판정과 같은 분모를 보여준다.
@@ -2137,7 +2143,7 @@ final class CompanionStore {
         var profile = PokemonProfile.generate(seed: rng.next())
         if let details = pokemonDetailsByID[line.baseID] { profile.enrich(with: details) }
         let hasGrowthBoost = state.hasCollectedFinal(forBaseID: line.baseID)
-        let form = pendingForm ?? rollLineForm(baseID: line.baseID)
+        let form = pendingForm ?? rollLineForm(baseID: line.baseID, type: typeGuarantee)
         // 위장 중엔 이로치를 숨긴다 — 부화 알림·연출도 일반체로(정체는 리빌 때 공개).
         let showShiny = isShiny && dittoDisguise == nil
         activeGeneration += 1
@@ -2279,8 +2285,7 @@ final class CompanionStore {
             // 좁힌 결과가 비면 보증을 못 지키므로 전체 풀로 폴백하지 말고 알을 유지한다(다음 틱 재시도).
             var index = tier.map { t in full.filter { t.includes(captureRate: $0.captureRate) } } ?? full
             if let targetType = typeGuarantee {
-                let typeSpecies = PokemonTypeData.species(for: targetType)
-                index = index.filter { typeSpecies.contains($0.id) }
+                index = index.filter { PokemonTypeData.canHatch(baseID: $0.id, as: targetType) }
             }
             guard !index.isEmpty else {
                 AppLog.write("hatch: no candidate for guaranteed tier=\(tier?.rawValue ?? "none") type=\(typeGuarantee?.rawValue ?? "none"), egg kept; retry next tick")
@@ -2314,7 +2319,7 @@ final class CompanionStore {
                     // 등급 보증은 가중 경로와 **같은 기준**으로 여기서도 걸러야 한다 — 이 폴백만 빠지면
                     // GraphQL 인덱스 장애 때 보증이 조용히 깨진다. 못 찾으면 알 유지(구매 소멸 금지).
                     if let tier, !tier.includes(captureRate: bs.captureRate) { continue }
-                    if let typeGuarantee, !PokemonTypeData.types(forSpeciesID: bs.id).contains(typeGuarantee) { continue }
+                    if let typeGuarantee, !PokemonTypeData.canHatch(baseID: bs.id, as: typeGuarantee) { continue }
                     AppLog.write("hatch: REST fallback picked base \(id) (cap \(bs.captureRate), \(attempt) tries)")
                     return id
                 }
