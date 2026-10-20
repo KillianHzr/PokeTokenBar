@@ -340,6 +340,16 @@ read_when:
   **회귀 가드:** `PokemonProfileLogicTests.testShedinjaAlwaysHasOneHP` — Lv1/50/100 모두 1, 다른 스탯은 일반 공식,
   base HP 1 인 다른 종은 일반 공식. 수정 전 3건 실패 확인.
 
+- **A hand-kept table of line bases must cover every species it routes.** `PokemonForm.formSpecies`
+  only rolls the forms of species that `lineBaseIDs` attaches to the base of their line. The Gen 6 to 9 PRs
+  catalogued forms on 24 evolved species without adding them (Alolan Raichu, the 20 Vivillon patterns, the
+  18 Silvally types, Lycanroc, Toxtricity, Urshifu, Hisuian Typhlosion and Samurott...): 59 forms could never
+  be rolled, so the Form Pokédex topped out at 1,221 of 1,280. The form tests checked each catalogued species
+  in isolation, never from the base an egg actually hatches. Reported from an outside Form Pokédex comparison.
+  The table now lists all 47 evolved species with forms. Guard: `testEveryCatalogedFormCanBeRolled` walks
+  every catalogued species from its PokéAPI line base (`evolutionRoots`, all 484 evolved species #1 to #1025),
+  so a new catalogue entry without its base fails.
+
 ## 외부 로그·사용량 소스
 
 - **토큰 파일 파서는 외부 도구의 실제 직렬화 구조체(중첩 객체)를 반영해야 한다.** `jetski-standalone-oauth-token`
