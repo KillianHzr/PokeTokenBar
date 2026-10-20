@@ -1499,7 +1499,7 @@ struct L {
         case .rock:     return t("바위", "Rock", "いわ", "Roca", "Roche", "Rocha", "Gestein", "Каменный")
         case .ghost:    return t("고스트", "Ghost", "ゴースト", "Fantasma", "Spectre", "Fantasma", "Geist", "Призрачный")
         case .dragon:   return t("드래곤", "Dragon", "ドラゴン", "Dragón", "Dragon", "Dragão", "Drache", "Драконий")
-        case .steel:    return t("강철", "Steel", "は가네", "Acero", "Acier", "Aço", "Stahl", "Стальной")
+        case .steel:    return t("강철", "Steel", "はがね", "Acero", "Acier", "Aço", "Stahl", "Стальной")
         case .dark:     return t("악", "Dark", "あく", "Siniestro", "Ténèbres", "Sombrio", "Unlicht", "Тёмный")
         case .fairy:    return t("페어리", "Fairy", "フェアリー", "Hada", "Fée", "Fada", "Fee", "Волшебный")
         }
@@ -1517,7 +1517,7 @@ struct L {
         case .clearBell: return t("투명한방울", "Clear Bell", "とうめいなスズ", "Campana Clara", "Clochette Claire", "Sino Transparente", "Klarglocke", "Прозрачный колокол")
         case .rainbowWing: return t("무지갯빛날개", "Rainbow Wing", "にじいろのはね", "Ala Arcoíris", "Aile Arc-en-Ciel", "Asa Arco-íris", "Buntflügel", "Радужное крыло")
         case .magmaStone: return t("화산의돌", "Magma Stone", "かざんのおきいし", "Piedra Magma", "Pierre Magma", "Pedra de Magma", "Magmastein", "Магматический камень")
-        case .soulDew: return t("마음의물방울", "Soul Dew", "こころ의しずく", "Rocío Bondad", "Rosée Âme", "Orvalho da Alma", "Seelentau", "Роса душ")
+        case .soulDew: return t("마음의물방울", "Soul Dew", "こころのしずく", "Rocío Bondad", "Rosée Âme", "Orvalho da Alma", "Seelentau", "Роса душ")
         case .jadeOrb: return t("초록구슬", "Jade Orb", "もえぎいろのたま", "Esfera Verde", "Orbe Vert", "Esfera de Jade", "Grüne Kugel", "Нефритовая сфера")
         case .gracidea: return t("그라시데아꽃", "Gracidea", "グラシデアのはな", "Gracídea", "Gracidée", "Gracidea", "Gracidea", "Грасидея")
         case .griseousOrb: return t("백금옥", "Griseous Orb", "はっきんだま", "Griseosfera", "Orbe Platiné", "Esfera de Platina", "Platinum-Orb", "Гризеус-сфера")
@@ -1630,14 +1630,14 @@ struct L {
                      "Gewährt im Beutel einen Rabatt auf alle Einkäufe im Token-Laden.",
                      "Пока оно у вас, даёт скидку на все покупки в магазине.")
         case .magmaStone:
-            return t("보유하면 이미 도감에 등록된 포켓몬을 육성할 때 토큰 소모가 25% 감소합니다.",
-                     "While owned, reduces token cost by 25% when raising already registered Pokémon.",
-                     "持っていると図鑑登録済みポケモンの育成トークン消費が25%減少します。",
-                     "Mientras lo tengas, reduce un 25% el coste de tokens al criar Pokémon ya registrados.",
-                     "Tant que tu la possèdes, réduit le coût de 25% lors de l'élevage d'un Pokémon déjà enregistré.",
-                     "Enquanto estiver na bolsa, reduz em 25% o custo de tokens ao criar Pokémon já registrados.",
-                     "Reduziert im Beutel die Token-Kosten um 25%, wenn bereits registrierte Pokémon trainiert werden.",
-                     "Пока он у вас, снижает расход токенов на повторное выращивание на 25%.")
+            return t("보유하면 이미 졸업시킨 적 있는 라인을 육성할 때 토큰 소모가 25% 감소합니다.",
+                     "While owned, reduces token cost by 25% when raising a line you have already graduated.",
+                     "持っていると卒業させたことのある系統の育成トークン消費が25%減少します。",
+                     "Mientras la tengas, reduce un 25% el coste de tokens al criar una línea que ya graduaste.",
+                     "Tant que tu la possèdes, réduit le coût de 25% lors de l'élevage d'une lignée déjà diplômée.",
+                     "Enquanto estiver na bolsa, reduz em 25% o custo de tokens ao criar uma linha que você já formou.",
+                     "Reduziert im Beutel die Token-Kosten um 25%, wenn eine bereits verabschiedete Entwicklungsreihe trainiert wird.",
+                     "Пока он у вас, снижает расход токенов на 25% при выращивании линии, которую вы уже выпускали.")
         case .soulDew:
             return t("보유하면 사탕 사용 시 얻는 경험치가 50% 증가합니다.",
                      "While owned, boosts EXP gained from using candies by 50%.",
@@ -1657,14 +1657,14 @@ struct L {
                      "Gewährt im Beutel zusätzliche 20% Rabatt beim Kauf von Eiern.",
                      "Пока она у вас, даёт дополнительную скидку 20% на покупку яиц.")
         case .gracidea:
-            return t("보유하면 포켓몬이 주는 사탕이 1개 늘어납니다.",
-                     "While owned, Pokémon yield +1 candy upon completion.",
-                     "持っているとポケモンがくれるアメが1個増えます。",
-                     "Mientras lo tengas, los Pokémon dan 1 caramelo adicional al completarse.",
-                     "Tant que tu la possèdes, les Pokémon donnent +1 bonbon une fois complétés.",
-                     "Enquanto estiver na bolsa, os Pokémon concedem +1 doce ao serem completados.",
-                     "Verleiht im Beutel +1 Bonbon pro abgeschlossenes Pokémon.",
-                     "Пока она у вас, даёт +1 дополнительную конфету за каждую выданную.")
+            return t("보유하면 이상한 사탕을 얻을 때마다 1개를 더 받습니다.",
+                     "While owned, every Rare Candy you get comes with one more.",
+                     "持っているとふしぎなアメを手に入れるたびに1個多くもらえます。",
+                     "Mientras la tengas, recibes un Caramelo Raro extra por cada uno que obtengas.",
+                     "Tant que tu la possèdes, chaque Super Bonbon obtenu t'en donne un de plus.",
+                     "Enquanto estiver na bolsa, cada Doce Raro obtido vem com mais um.",
+                     "Gibt im Beutel zu jedem erhaltenen Sonderbonbon ein weiteres dazu.",
+                     "Пока она у вас, за каждую полученную Редкую конфету даётся ещё одна.")
         case .griseousOrb:
             return t("보유하면 알에서 고스트·드래곤 타입 포켓몬이 등장할 확률이 2배로 증가합니다.",
                      "While owned, doubles the appearance rate of Ghost and Dragon-type Pokémon in eggs.",
@@ -1675,14 +1675,14 @@ struct L {
                      "Verdoppelt im Beutel die Chance auf Geist- und Drachen-Pokémon aus Eiern.",
                      "Пока она у вас, удваивает шанс встретить покемонов Призрачного и Драконьего типа.")
         case .libertyPass:
-            return t("보유하면 아직 도감에 등록되지 않은 새로운 종을 육성할 때 토큰 소모가 25% 감소합니다.",
-                     "While owned, reduces token cost by 25% when raising new species not yet registered in the Pokédex.",
-                     "持っていると図鑑未登録の新種を育成する際のトークン消費が25%減少します。",
-                     "Mientras lo tengas, reduce un 25% el coste de tokens al criar nuevas especies no registradas en la Pokédex.",
-                     "Tant que tu l'as, réduit le coût de 25% lors de l'élevage d'une nouvelle espèce non enregistrée.",
-                     "Enquanto estiver na bolsa, reduz em 25% o custo de tokens ao criar novas espécies não registradas.",
-                     "Reduziert im Beutel die Token-Kosten um 25%, wenn neue, unregistrierte Arten trainiert werden.",
-                     "Пока он у вас, снижает расход токенов на выращивание нового вида на 25%.")
+            return t("보유하면 한 번도 졸업시킨 적 없는 라인을 육성할 때 토큰 소모가 25% 감소합니다.",
+                     "While owned, reduces token cost by 25% when raising a line you have never graduated.",
+                     "持っていると一度も卒業させていない系統の育成トークン消費が25%減少します。",
+                     "Mientras lo tengas, reduce un 25% el coste de tokens al criar una línea que nunca graduaste.",
+                     "Tant que tu l'as, réduit le coût de 25% lors de l'élevage d'une lignée jamais diplômée.",
+                     "Enquanto estiver na bolsa, reduz em 25% o custo de tokens ao criar uma linha que você nunca formou.",
+                     "Reduziert im Beutel die Token-Kosten um 25%, wenn eine noch nie verabschiedete Entwicklungsreihe trainiert wird.",
+                     "Пока он у вас, снижает расход токенов на 25% при выращивании линии, которую вы ещё не выпускали.")
         case .revealGlass:
             return t("보유하면 이로치 확률 계산 시 분모가 절반으로 줄어듭니다.",
                      "While owned, halves the denominator in shiny rate calculations.",

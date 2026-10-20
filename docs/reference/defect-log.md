@@ -72,6 +72,10 @@ read_when:
   (see the entry above); the Griseous Orb and badges read types, not rates. Guard:
   `testAzureFluteAndClearBellTierLegendariesByHatchWeight`.
 
+- **A positional translation can hold the wrong script.** `L.t(ko, en, ja, ...)` compiles with a
+  Korean syllable inside the Japanese column (`は가네`, `こころ의しずく` shipped in the collector items
+  PR before merge). Guard: `testHangulAndKanaStayInTheirColumns` scans every `t(` call.
+
 - **A model-price test needs an independent bucket-level oracle.** Sonnet 5.5 copied Sonnet 5's
   cache-read rate ($0.20/MTok) although its official rate is $0.10; source-unpriced Claude logs
   therefore doubled that bucket's estimate. The standard-row test repeated the wrong literal,
