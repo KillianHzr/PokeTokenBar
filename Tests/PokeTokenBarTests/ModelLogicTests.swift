@@ -77,17 +77,17 @@ final class PokeAPILanguageTests: XCTestCase {
 
 final class EvoLineAssetTests: XCTestCase {
     /// PokéAPI 원본 체인에 Gen-V 이후 진화형이 이어져도, 서비스가 제공하는 GIF가 있는 형태만
-    /// 실제 진화 라인과 단계 수에 남아야 한다. 예: 망키(#56) → 성원숭(#57) → 저승갓숭(#979).
+    /// 실제 진화 라인과 단계 수에 남아야 한다. 예: 망키(#56) → 성원숭(#57) → 에셋 범위(#1...1025) 밖의 가상 진화형 #1026.
     func testKeepsOnlyFormsWithAnimatedAssets() {
         let line = EvoLine(
             baseID: 56,
-            tree: evoNode(56, [evoNode(57, [evoNode(979)])]),
+            tree: evoNode(56, [evoNode(57, [evoNode(1026)])]),
             rarity: .common,
             names: [:])
 
         XCTAssertEqual(line.totalForms, 2)
         XCTAssertEqual(line.tree.finalIDs, [57])
-        XCTAssertNil(line.tree.node(withID: 979))
+        XCTAssertNil(line.tree.node(withID: 1026))
     }
 }
 

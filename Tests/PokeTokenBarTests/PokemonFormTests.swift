@@ -75,7 +75,7 @@ final class PokemonFormTests: XCTestCase {
     // MARK: Catalog
 
     func testCatalogListsDefaultFirstWithinTheHatchableRange() {
-        XCTAssertEqual(PokemonForm.catalog.count, 23)
+        XCTAssertEqual(PokemonForm.catalog.count, 114)
         for (speciesID, entries) in PokemonForm.catalog {
             XCTAssertTrue(PokemonAssets.animatedSpeciesIDs.contains(speciesID))
             XCTAssertGreaterThanOrEqual(entries.count, 2, "#\(speciesID)")
@@ -95,7 +95,10 @@ final class PokemonFormTests: XCTestCase {
         XCTAssertEqual(PokemonForm.lineForms(baseID: 412), [plant, sandy, PokemonForm("trash")])
         XCTAssertEqual(PokemonForm.formSpecies(baseID: 420), [421])
         XCTAssertEqual(PokemonForm.lineForms(baseID: 420), [PokemonForm("overcast"), PokemonForm("sunshine")])
-        XCTAssertEqual(PokemonForm.lineForms(baseID: 554), [PokemonForm("standard"), PokemonForm("zen")])
+        XCTAssertEqual(PokemonForm.lineForms(baseID: 554), [
+            PokemonForm("standard"), PokemonForm("galar"), PokemonForm("zen"),
+            PokemonForm("galar-standard"), PokemonForm("galar-zen")
+        ])
         XCTAssertEqual(PokemonForm.lineForms(baseID: 1), [])
         XCTAssertEqual(PokemonForm.resolved(baseID: 420, form: nil), PokemonForm("overcast"))
         XCTAssertNil(PokemonForm.resolved(speciesID: 420, form: PokemonForm("sunshine")), "Cherubi has one look")
