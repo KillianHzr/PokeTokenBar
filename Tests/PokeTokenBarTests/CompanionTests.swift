@@ -2192,6 +2192,31 @@ final class CompanionIdentityTests: XCTestCase {
         XCTAssertEqual(s2.state.active?.baseID, 2, "수집済 가중치 ½ 로 선택 구간이 이동해야 한다")
     }
 
+    /// A legendary that cannot hatch from an egg weighs 3 like Mewtwo, whatever its capture_rate. Mew,
+    /// Celebi and Rayquaza have 45, so weighing them by capture_rate made each as likely as a Kanto starter.
+    func testSamplerWeighsUnbreedableLegendaryLikeMewtwo() async {
+        // capture_rate weights: [45, 45] → total 90. hatchWeight: [45, 3] → total 48.
+        let index = [BaseSpecies(id: 1, captureRate: 45),
+                     BaseSpecies(id: 151, captureRate: 45, isUnbreedableLegendary: true)]
+        // Trigger: v%90 ≥ 45 picks Mew under capture_rate weights, v%48 < 45 picks id 1 under hatchWeight.
+        // Control: v%48 ≥ 45 still picks Mew, so the legendary stays reachable.
+        var triggerSeed: UInt64?, controlSeed: UInt64?
+        for seed: UInt64 in 0..<5000 {
+            var r = SeededRNG(seed: seed)
+            let v = r.next()
+            if triggerSeed == nil, v % 90 >= 45, v % 48 < 45 { triggerSeed = seed }
+            if controlSeed == nil, v % 48 >= 45 { controlSeed = seed }
+            if triggerSeed != nil, controlSeed != nil { break }
+        }
+        guard let triggerSeed, let controlSeed else { return XCTFail("seed search failed") }
+        for (seed, expected) in [(triggerSeed, 1), (controlSeed, 151)] {
+            let p = IndexProvider(); p.index = index
+            let s = samplerStore(p, seed: seed, preloadState: eggReadyState())
+            await s.hatchIfNeeded()
+            XCTAssertEqual(s.state.active?.baseID, expected, "seed \(seed)")
+        }
+    }
+
     /// 알 상태 프리패칭 — update 틱에 종이 pre-roll 되어 영속되고, 부화는 pending 을 그대로 사용.
     func testEggPrefetchStoresPendingAndHatchUsesIt() async {
         let p = IndexProvider()
