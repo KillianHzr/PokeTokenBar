@@ -1359,12 +1359,14 @@ final class CompanionStore {
         return 1.0 + 0.20 * Double(count)
     }
 
-    /// 소유 아이템(개수>0) — 가방 목록. 정렬은 ItemKind.allCases 순서.
+    /// 소유 아이템(개수>0): 가방 목록.
+    /// Consumables first (candies, mints, stones), then passive items, each in `ItemKind` order.
     var ownedItems: [(kind: ItemKind, count: Int)] {
-        ItemKind.allCases.compactMap { k in
+        let owned: [(kind: ItemKind, count: Int)] = ItemKind.allCases.compactMap { k in
             let c = itemCount(k)
             return c > 0 ? (k, c) : nil
         }
+        return owned.filter { !$0.kind.isPassive } + owned.filter { $0.kind.isPassive }
     }
 
     /// 이상한 사탕 사용 가능 — 활성 포켓몬 + 라인 로딩 완료 + 재고>0.
@@ -1483,17 +1485,10 @@ final class CompanionStore {
     var availableTokens: Int { max(0, state.usedSinceInstall - state.spentTokens) }
 
     /// 상점 판매 아이템 — shopPrice 있는 것만. 가격 저렴한 순, 단 구매 완료한 보유형은 맨 아래로.
-    /// 진화의 돌은 도감 목표를 달성해 잠금 해제(isUnlocked)되었을 때만 일반 상점 목록에 노출된다.
+    /// Collector items have no price: they are only claimed in the Achievements tab.
     var purchasableItems: [ItemKind] {
-        let registered = registeredSpeciesIDs
-        return ItemKind.allCases
-            .filter { kind in
-                guard kind.shopPrice != nil else { return false }
-                if kind.stoneType != nil {
-                    return isUnlocked(kind, registered: registered)
-                }
-                return kind.collectorGroup == nil
-            }
+        ItemKind.allCases
+            .filter { $0.shopPrice != nil }
             .sorted { a, b in
                 // 구매 완료한 보유형(이로치 부적 등)은 맨 아래로 — 재구매 불가라 위에 있을 이유가 없다.
                 let aDone = a.isPassive && itemCount(a) > 0
@@ -1533,24 +1528,21 @@ final class CompanionStore {
     }
 
     /// 구매 가능 — 잔액이 그 아이템 가격 이상(상점 미판매면 false). 활성/알 무관(재고는 미리 쌓아둘 수 있음).
-    /// Collector items also need their Pokédex goal. Evolution stones are not Bag items: see `buyStone`.
     func canBuy(_ kind: ItemKind) -> Bool {
-        guard kind.stoneType == nil, let price = price(of: kind) else { return false }
+        guard let price = price(of: kind) else { return false }
         if kind.isPassive && itemCount(kind) > 0 { return false }   // 보유형은 1회만(재구매 불가)
-        guard isUnlocked(kind) else { return false }
         return availableTokens >= price
     }
 
     /// 한 번에 살 수 있는 최대 개수 — 잔액 ÷ 가격. 보유형은 1회 구매라 최대 1, 이미 보유했거나
-    /// 미판매·잔액 부족·잠김이면 0.
+    /// 미판매·잔액 부족이면 0.
     func maxBuyCount(_ kind: ItemKind) -> Int {
         guard canBuy(kind), let price = price(of: kind), price > 0 else { return 0 }
         return kind.isPassive ? 1 : availableTokens / price
     }
 
     /// 아이템 count 개 구매 — 지갑에서 price × count 차감, 인벤토리 +count. usedSinceInstall(성장·통계)·
-    /// 진화 진행엔 무영향(지출 원장만 증가). 잔액 부족/미판매/잠김/범위 밖 개수면 부분 구매 없이 no-op(false).
-    /// The unlock is checked through `maxBuyCount` → `canBuy`: the store is the gate, not the button.
+    /// 진화 진행엔 무영향(지출 원장만 증가). 잔액 부족/미판매/범위 밖 개수면 부분 구매 없이 no-op(false).
     @discardableResult
     func buy(_ kind: ItemKind, count: Int = 1) -> Bool {
         guard count >= 1, count <= maxBuyCount(kind), let price = price(of: kind) else { return false }
@@ -1609,7 +1601,7 @@ final class CompanionStore {
         return Dictionary(grouping: graduated, by: \.finalID).values.map(\.count).max() ?? 0
     }
 
-    /// Whether the shop may sell this item. Items without a Pokédex condition are always unlocked.
+    /// Whether this item's achievement goal is met. Items without a Pokédex condition are always unlocked.
     func isUnlocked(_ kind: ItemKind, registered: Set<Int>? = nil) -> Bool {
         switch kind.unlock {
         case nil: return true
@@ -1618,20 +1610,26 @@ final class CompanionStore {
         }
     }
 
-    // MARK: 업적 (체육관 배지 및 전설의 유물)
+    // MARK: 업적 (진화의 돌, 체육관 배지, 전설의 유물)
 
-    /// All items claimed through achievements (Gym Badges + Legendary Artifacts).
+    /// All items claimed through achievements (Evolution Stones, Gym Badges, Legendary Artifacts).
     static let achievementItems: [ItemKind] = ItemKind.allCases.filter(\.isAchievement)
+
+    /// Whether this achievement was already claimed. Stones are used up, so the Bag cannot tell: the
+    /// ledger can. A passive item owned before the ledger existed counts as claimed.
+    func isClaimed(_ kind: ItemKind) -> Bool {
+        state.claimedAchievements.contains(kind.rawValue) || (kind.isPassive && itemCount(kind) > 0)
+    }
 
     /// Number of achievements ready to be claimed.
     var unclaimedAchievementsCount: Int {
         let registered = registeredSpeciesIDs
-        return Self.achievementItems.filter { isUnlocked($0, registered: registered) && itemCount($0) == 0 }.count
+        return Self.achievementItems.filter { isUnlocked($0, registered: registered) && !isClaimed($0) }.count
     }
 
     /// Number of claimed achievements.
     var claimedAchievementsCount: Int {
-        Self.achievementItems.filter { itemCount($0) > 0 }.count
+        Self.achievementItems.filter(isClaimed).count
     }
 
     /// Total number of achievements.
@@ -1639,13 +1637,16 @@ final class CompanionStore {
         Self.achievementItems.count
     }
 
-    /// Claim an achievement reward once unlocked, adding it to the bag for free.
+    /// Claim an achievement reward once unlocked, adding it to the bag for free: one passive item, or
+    /// `EvolutionStone.achievementReward` stones.
     @discardableResult
     func claimAchievement(_ kind: ItemKind) -> Bool {
-        guard kind.isAchievement, isUnlocked(kind), itemCount(kind) == 0 else { return false }
-        state.inventory[kind.rawValue, default: 0] = 1
+        guard kind.isAchievement, isUnlocked(kind), !isClaimed(kind) else { return false }
+        let count = kind.achievementRewardCount
+        state.claimedAchievements.insert(kind.rawValue)
+        state.inventory[kind.rawValue, default: 0] += count
         save()
-        notifyCompanionEvent(l.notifAchievementClaimedTitle, l.notifAchievementClaimedBody(l.itemName(kind)))
+        notifyCompanionEvent(l.notifAchievementClaimedTitle, l.notifAchievementClaimedBody(l.itemName(kind), count: count))
         return true
     }
 
@@ -1653,7 +1654,7 @@ final class CompanionStore {
     func achievementItems(in group: CollectorGroup) -> [ItemKind] {
         let registered = registeredSpeciesIDs
         func rank(_ kind: ItemKind) -> Int {
-            if itemCount(kind) > 0 { return 2 }
+            if isClaimed(kind) { return 2 }
             return isUnlocked(kind, registered: registered) ? 0 : 1
         }
         let items = ItemKind.allCases.filter { $0.collectorGroup == group }
@@ -1677,7 +1678,7 @@ final class CompanionStore {
 
     /// 현재 알이 보증하는 등급 하한(UI 표시용). 활성 포켓몬이 있으면 알이 없으므로 nil.
     var eggGuarantee: Rarity? { state.active == nil ? state.eggTier : nil }
-    /// 현재 알이 보증하는 타입(진화의 돌 구매 UI 표시용). 활성 포켓몬이 있으면 알이 없으므로 nil.
+    /// 현재 알이 보증하는 타입(진화의 돌 사용 UI 표시용). 활성 포켓몬이 있으면 알이 없으므로 nil.
     var eggTypeGuarantee: PokemonType? { state.active == nil ? state.eggTypeGuarantee : nil }
 
     /// 알 구매 가능 — 폐기할 활성 포켓몬이 있고 지갑이 그 티어 가격 이상일 때만.
@@ -1709,25 +1710,24 @@ final class CompanionStore {
         return true
     }
 
-    /// Evolution stone purchase gate: same as an egg (a companion to send off, enough tokens) plus the
-    /// stone's Pokédex goal.
-    func canBuyStone(_ kind: ItemKind) -> Bool {
-        guard kind.stoneType != nil, let price = price(of: kind) else { return false }
-        return hasActive && isUnlocked(kind) && availableTokens >= price
+    /// Evolution stone use gate: a stone in the Bag and, like an egg purchase, a companion to send off.
+    func canUseStone(_ kind: ItemKind) -> Bool {
+        kind.stoneType != nil && hasActive && itemCount(kind) > 0
     }
 
-    /// Evolution stone purchase: works like an egg. The current Pokémon is sent off right away for an egg
-    /// guaranteed to hatch the stone's type; the stone itself never goes to the Bag.
+    /// Uses one evolution stone from the Bag. Like an egg purchase, the current Pokémon is sent off right
+    /// away for an egg, here guaranteed to hatch the stone's type.
     @discardableResult
-    func buyStone(_ kind: ItemKind) -> Bool {
-        guard canBuyStone(kind), let type = kind.stoneType, let price = price(of: kind) else { return false }
-        replaceActiveWithEgg(price: price, tier: nil, type: type)
-        AppLog.write("stone purchased: \(kind.rawValue), discarded active, type=\(type.rawValue)")
+    func useStone(_ kind: ItemKind) -> Bool {
+        guard canUseStone(kind), let type = kind.stoneType else { return false }
+        state.inventory[kind.rawValue] = itemCount(kind) - 1   // saved with the new egg
+        replaceActiveWithEgg(price: 0, tier: nil, type: type)
+        AppLog.write("stone used: \(kind.rawValue), discarded active, type=\(type.rawValue)")
         return true
     }
 
-    /// Shared reset of `buyEgg` and `buyStone`: pays, sends the current Pokémon off (kept in the Pokédex)
-    /// and starts a new egg carrying the bought guarantee.
+    /// Shared reset of `buyEgg` and `useStone`: pays (nothing for a stone), sends the current Pokémon off
+    /// (kept in the Pokédex) and starts a new egg carrying the guarantee.
     private func replaceActiveWithEgg(price: Int, tier: Rarity?, type: PokemonType?) {
         state.spentTokens += price
         if let a = state.active {

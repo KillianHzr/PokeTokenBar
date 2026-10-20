@@ -1,7 +1,7 @@
 import XCTest
 @testable import PokeTokenBar
 
-// MARK: Collector items (shop items unlocked by the Pokédex)
+// MARK: Collector items (achievement rewards unlocked by the Pokédex)
 
 private func collectorNode(_ id: Int, _ children: [EvoNode] = []) -> EvoNode {
     EvoNode(speciesID: id, children: children)
@@ -31,7 +31,8 @@ final class CollectorItemsTests: XCTestCase {
     private let rich = 1_000_000_000_000
 
     private func store(used: Int = 0, dex: [DexEntry] = [], active: MonState? = nil,
-                       inventory: [String: Int] = [:], collectedFinals: Set<String> = []) -> CompanionStore {
+                       inventory: [String: Int] = [:], collectedFinals: Set<String> = [],
+                       claimed: Set<String> = []) -> CompanionStore {
         var st = CompanionState()
         st.installBaselineSet = true
         st.usedSinceInstall = used
@@ -40,6 +41,7 @@ final class CollectorItemsTests: XCTestCase {
         st.active = active
         st.inventory = inventory
         st.collectedFinals = collectedFinals
+        st.claimedAchievements = claimed
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("collector-\(UUID().uuidString).json")
         try? JSONEncoder().encode(st).write(to: url)
         return CompanionStore(provider: CollectorStubProvider(), clock: { self.now }, fileURL: url,
@@ -62,13 +64,16 @@ final class CollectorItemsTests: XCTestCase {
         XCTAssertEqual(s.collectorItems(in: .evolutionStones).count, 10)
         XCTAssertEqual(s.collectorItems(in: .legendaryArtifacts).count, 13)
         XCTAssertEqual(s.collectorItems(in: .gymBadges).count, 18)
-        XCTAssertEqual(s.purchasableItems, [.mint, .rareCandy, .shinyCharm],
-                       "locked stones do not appear in the regular shop list")
+        XCTAssertEqual(Set(CompanionStore.achievementItems), Set(ItemKind.allCases.filter { $0.collectorGroup != nil }))
+        XCTAssertEqual(s.totalAchievementsCount, 41)
+        XCTAssertEqual(s.purchasableItems, [.mint, .rareCandy, .shinyCharm], "the Shop sells what main sells")
 
-        // Once a stone is unlocked, it appears in purchasableItems
+        // An unlocked stone is an achievement to claim, never a Shop item.
         let withFire = store(dex: entries([154, 157, 160]))
         XCTAssertTrue(withFire.isUnlocked(.fireStone))
-        XCTAssertTrue(withFire.purchasableItems.contains(.fireStone))
+        XCTAssertEqual(withFire.purchasableItems, [.mint, .rareCandy, .shinyCharm])
+        XCTAssertFalse(withFire.shopEntries.contains(.item(.fireStone)))
+        XCTAssertEqual(withFire.unclaimedAchievementsCount, 1)
     }
 
     func testItemsHaveAppropriatePricesAndUnlockConditions() {
@@ -76,14 +81,12 @@ final class CollectorItemsTests: XCTestCase {
             if kind.collectorGroup == nil {
                 XCTAssertNil(kind.unlock, "\(kind) is always on sale")
                 XCTAssertNotNil(kind.shopPrice, "\(kind) must have a price")
-            } else if kind.stoneType != nil {
-                XCTAssertNotNil(kind.unlock, "\(kind) stone is unlocked by the Pokédex")
-                XCTAssertNotNil(kind.shopPrice, "\(kind) stone is bought in the shop")
-                XCTAssertEqual(kind.shopPrice, CollectorPrice.evolutionStone)
             } else {
                 XCTAssertNotNil(kind.unlock, "\(kind) achievement is unlocked by the Pokédex")
                 XCTAssertNil(kind.shopPrice, "\(kind) achievement is free to claim, not bought")
                 XCTAssertTrue(kind.isAchievement)
+                XCTAssertEqual(kind.achievementRewardCount, kind.stoneType != nil ? 5 : 1)
+                XCTAssertEqual(kind.isPassive, kind.stoneType == nil, "stones are the only consumable rewards")
             }
         }
     }
@@ -184,19 +187,67 @@ final class CollectorItemsTests: XCTestCase {
         XCTAssertTrue(store(dex: entries([475, 478])).isUnlocked(.dawnStone))
     }
 
-    func testLockedStoneCannotBeBought() {
+    func testLockedStoneAchievementCannotBeClaimed() {
         let s = store(used: rich, active: pikachu)
-        XCTAssertFalse(s.canBuyStone(.fireStone))
-        XCTAssertFalse(s.buyStone(.fireStone))
-        XCTAssertEqual(s.state.spentTokens, 0)
+        XCTAssertFalse(s.claimAchievement(.fireStone))
+        XCTAssertEqual(s.itemCount(.fireStone), 0)
+        XCTAssertFalse(s.canUseStone(.fireStone), "no stone in the Bag")
+        XCTAssertFalse(s.useStone(.fireStone))
         XCTAssertFalse(s.isEgg, "the companion stays")
     }
 
     func testStoneNeedsACompanionToSendOff() {
-        let s = store(used: rich, dex: entries([154, 157, 160]))
-        XCTAssertTrue(s.isUnlocked(.fireStone))
-        XCTAssertFalse(s.canBuyStone(.fireStone), "an egg is incubating: nothing to send off")
-        XCTAssertFalse(s.buyStone(.fireStone))
+        let s = store(dex: entries([154, 157, 160]), inventory: [ItemKind.fireStone.rawValue: 5],
+                      claimed: [ItemKind.fireStone.rawValue])
+        XCTAssertFalse(s.canUseStone(.fireStone), "an egg is incubating: nothing to send off")
+        XCTAssertFalse(s.useStone(.fireStone))
+        XCTAssertEqual(s.itemCount(.fireStone), 5, "a refused use keeps the stone")
+    }
+
+    /// Stones are used up, so the Bag cannot say whether their achievement was claimed: an empty slot must
+    /// not hand out five more.
+    func testUsingEveryStoneDoesNotReopenItsAchievement() async {
+        let s = store(dex: entries([154, 157, 160]), active: pikachu)
+        XCTAssertTrue(s.claimAchievement(.fireStone))
+        for _ in 0..<EvolutionStone.achievementReward {
+            XCTAssertTrue(s.useStone(.fireStone))
+            s.setEggUsageForTesting(s.eggHatchThreshold)
+            await s.hatchIfNeeded()
+            XCTAssertFalse(s.isEgg)
+        }
+        XCTAssertTrue(s.isClaimed(.fireStone))
+        XCTAssertFalse(s.claimAchievement(.fireStone))
+        XCTAssertEqual(s.itemCount(.fireStone), 0)
+        XCTAssertEqual(s.unclaimedAchievementsCount, 0)
+        XCTAssertEqual(s.claimedAchievementsCount, 1)
+        XCTAssertEqual(s.collectorItems(in: .evolutionStones).last, .fireStone, "claimed cards sink to the bottom")
+    }
+
+    /// Badges and artifacts claimed before the ledger existed are only in the Bag: they stay claimed.
+    func testPassiveRewardOwnedBeforeTheLedgerStaysClaimed() {
+        let s = store(dex: entries([380, 381], rarity: .legendary), inventory: [ItemKind.soulDew.rawValue: 1])
+        XCTAssertTrue(s.state.claimedAchievements.isEmpty)
+        XCTAssertTrue(s.isClaimed(.soulDew))
+        XCTAssertFalse(s.claimAchievement(.soulDew))
+        XCTAssertEqual(s.itemCount(.soulDew), 1)
+        XCTAssertEqual(s.unclaimedAchievementsCount, 0)
+    }
+
+    func testClaimedAchievementsSurviveARestart() throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("claimed-\(UUID().uuidString).json")
+        var st = CompanionState()
+        st.installBaselineSet = true
+        st.dex = entries([154, 157, 160])
+        try JSONEncoder().encode(st).write(to: url)
+        let first = CompanionStore(provider: CollectorStubProvider(), clock: { self.now }, fileURL: url,
+                                   rng: SeededRNG(seed: 1))
+        XCTAssertTrue(first.claimAchievement(.fireStone))
+        let reopened = CompanionStore(provider: CollectorStubProvider(), clock: { self.now }, fileURL: url,
+                                      rng: SeededRNG(seed: 1))
+        // A stone is not passive: only the saved ledger can say it was claimed.
+        XCTAssertTrue(reopened.isClaimed(.fireStone))
+        XCTAssertFalse(reopened.claimAchievement(.fireStone))
+        XCTAssertEqual(reopened.itemCount(.fireStone), 5)
     }
 
     func testSectionListsItemsOnSaleBeforeLockedAndOwnedOnes() {
@@ -314,30 +365,40 @@ final class CollectorItemsTests: XCTestCase {
         XCTAssertEqual(s.typeBadgeSpeedMultiplier(forSpeciesID: 6), 1.0)
     }
 
-    /// Buying a stone works like buying an egg: the companion is sent off at once for a typed egg, and the
-    /// stone never lands in the Bag.
-    func testStoneIsBoughtLikeAnEgg() async throws {
+    /// Claiming a stone achievement puts five stones in the Bag for free. Using one works like buying an
+    /// egg: the companion is sent off at once for a typed egg.
+    func testClaimedStonesAreUsedLikeAnEgg() async throws {
         let s = store(used: rich, dex: entries([154, 157, 160]), active: pikachu)
-        XCTAssertFalse(s.canBuy(.fireStone), "not a Bag item")
+        XCTAssertFalse(s.canBuy(.fireStone), "not sold in the Shop")
         XCTAssertFalse(s.buy(.fireStone))
-        XCTAssertEqual(s.maxBuyCount(.fireStone), 0)
-        let price = try XCTUnwrap(s.price(of: .fireStone))
+        XCTAssertNil(s.price(of: .fireStone))
 
-        XCTAssertTrue(s.canBuyStone(.fireStone))
-        XCTAssertTrue(s.buyStone(.fireStone))
-        XCTAssertEqual(s.state.spentTokens, price)
-        XCTAssertEqual(s.itemCount(.fireStone), 0, "the stone is used on purchase")
+        XCTAssertTrue(s.claimAchievement(.fireStone))
+        XCTAssertEqual(s.itemCount(.fireStone), 5)
+        XCTAssertEqual(s.state.spentTokens, 0, "achievements are free to claim")
+        XCTAssertEqual(s.ownedItems.map(\.kind), [.fireStone], "stones are consumables in the Bag")
+
+        XCTAssertTrue(s.canUseStone(.fireStone))
+        XCTAssertTrue(s.useStone(.fireStone))
+        XCTAssertEqual(s.itemCount(.fireStone), 4)
+        XCTAssertEqual(s.state.spentTokens, 0, "using a stone costs no tokens")
         XCTAssertTrue(s.isEgg)
         XCTAssertEqual(s.eggTypeGuarantee, .fire)
         XCTAssertTrue(s.state.dex.contains { $0.baseID == 25 && $0.isReleased },
                       "the companion goes to the Pokédex as released")
-        XCTAssertFalse(s.canBuyStone(.fireStone), "no companion to send off while incubating")
+        XCTAssertFalse(s.canUseStone(.fireStone), "no companion to send off while incubating")
 
         s.setEggUsageForTesting(s.eggHatchThreshold)
         await s.hatchIfNeeded()
         XCTAssertEqual(s.currentSpeciesID, 4, "Charmander is the only Fire-type candidate")
         XCTAssertNil(s.eggTypeGuarantee)
-        XCTAssertTrue(s.canBuyStone(.fireStone), "stones can be bought again")
+        XCTAssertTrue(s.canUseStone(.fireStone), "the four other stones stay usable")
+    }
+
+    func testBagListsConsumablesBeforePassiveItems() {
+        let s = store(inventory: [ItemKind.shinyCharm.rawValue: 1, ItemKind.soulDew.rawValue: 1,
+                                  ItemKind.fireStone.rawValue: 5, ItemKind.rareCandy.rawValue: 2])
+        XCTAssertEqual(s.ownedItems.map(\.kind), [.rareCandy, .fireStone, .shinyCharm, .soulDew])
     }
 
     private var pikachu: MonState {

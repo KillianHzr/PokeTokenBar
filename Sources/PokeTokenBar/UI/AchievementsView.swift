@@ -1,25 +1,33 @@
 import SwiftUI
 
-/// 업적 화면 (체육관 배지 및 전설의 유물) — 도감 수집 조건을 달성하면 아이템을 무료로 획득.
-/// 획득한 아이템은 가방(인벤토리)으로 들어가 상시 패시브 효과를 발휘한다.
+/// 업적 화면 (진화의 돌, 체육관 배지, 전설의 유물): 도감 수집 조건을 달성하면 아이템을 무료로 획득.
+/// 획득한 아이템은 가방(인벤토리)으로 들어간다: 돌은 소모품 5개, 배지와 유물은 상시 패시브 효과.
 @MainActor
 struct AchievementsView: View {
     let store: CompanionStore
     let nav: PopoverNavigation
 
     enum AchievementCategory: Hashable, CaseIterable {
+        case evolutionStones
         case gymBadges
         case legendaryArtifacts
 
         var collectorGroup: CollectorGroup {
             switch self {
+            case .evolutionStones: return .evolutionStones
             case .gymBadges: return .gymBadges
             case .legendaryArtifacts: return .legendaryArtifacts
             }
         }
     }
 
-    @State private var selectedCategory: AchievementCategory = .gymBadges
+    @State private var selectedCategory: AchievementCategory
+
+    init(store: CompanionStore, nav: PopoverNavigation, category: AchievementCategory = .evolutionStones) {
+        self.store = store
+        self.nav = nav
+        _selectedCategory = State(initialValue: category)
+    }
 
     var body: some View {
         let l = store.l
@@ -50,7 +58,7 @@ struct AchievementsView: View {
 
     private func categoryTitle(_ category: AchievementCategory, _ l: L) -> String {
         let items = store.achievementItems(in: category.collectorGroup)
-        let claimed = items.filter { store.itemCount($0) > 0 }.count
+        let claimed = items.filter(store.isClaimed).count
         return "\(l.collectorGroupTitle(category.collectorGroup)) (\(claimed)/\(items.count))"
     }
 
@@ -90,7 +98,7 @@ struct AchievementsView: View {
     }
 }
 
-/// 개별 업적 카드 — 아이콘, 이름, 패시브 효과 설명, 도감 달성 조건 및 [받기 / 획득함] 버튼.
+/// 개별 업적 카드: 아이콘, 이름, 효과 설명, 도감 달성 조건 및 [받기 / 획득함] 버튼.
 @MainActor
 private struct AchievementCard: View {
     let store: CompanionStore
@@ -98,7 +106,7 @@ private struct AchievementCard: View {
     let kind: ItemKind
 
     private var isClaimed: Bool {
-        store.itemCount(kind) > 0
+        store.isClaimed(kind)
     }
 
     private var canClaim: Bool {
@@ -118,8 +126,12 @@ private struct AchievementCard: View {
                         Text(l.itemName(kind))
                             .font(.callout.weight(.semibold))
 
-                        if let badgeType = kind.badgeType {
-                            Badge(l.typeName(badgeType).uppercased(), tint: .type(badgeType))
+                        if let type = kind.badgeType ?? kind.stoneType {
+                            Badge(l.typeName(type).uppercased(), tint: .type(type))
+                        }
+                        if kind.achievementRewardCount > 1 {
+                            Text("×\(kind.achievementRewardCount)").font(.caption.weight(.bold))
+                                .foregroundStyle(.secondary).monospacedDigit()
                         }
 
                         Spacer(minLength: 4)

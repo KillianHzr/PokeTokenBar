@@ -59,6 +59,70 @@ final class AchievementsRenderingTests: XCTestCase {
         }
     }
 
+    /// Three segments with their counts used to be wider than the popover: SwiftUI centered the wider stack,
+    /// so the whole tab slid off both edges. Checked in every language, with the widest counts (all claimed).
+    func testCategoryPickerFitsTheTabWidthInEveryLanguage() async throws {
+        for language in AppLanguage.allCases {
+            let suite = "AchievementsWidth-\(UUID())"
+            let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+            defer { defaults.removePersistentDomain(forName: suite) }
+            let file = FileManager.default.temporaryDirectory.appendingPathComponent("\(suite).json")
+            defer { try? FileManager.default.removeItem(at: file) }
+            var state = CompanionState()
+            state.language = language
+            state.installBaselineSet = true
+            state.claimedAchievements = Set(CompanionStore.achievementItems.map(\.rawValue))
+            try JSONEncoder().encode(state).write(to: file)
+            let store = CompanionStore(provider: AchievementsStubProvider(), fileURL: file, defaults: defaults)
+
+            let host = NSHostingView(rootView: AchievementsView(store: store, nav: PopoverNavigation())
+                .frame(width: PopoverMetrics.contentWidth))
+            let size = NSSize(width: PopoverMetrics.contentWidth, height: 520)
+            host.frame = NSRect(origin: .zero, size: size)
+            let window = NSWindow(contentRect: NSRect(origin: NSPoint(x: -10000, y: -10000), size: size),
+                                  styleMask: .borderless, backing: .buffered, defer: false)
+            window.isReleasedWhenClosed = false
+            window.contentView = host
+            window.orderFront(nil)
+            defer { window.close() }
+            try await Task.sleep(for: .milliseconds(100))
+            host.layoutSubtreeIfNeeded()
+
+            let picker = try XCTUnwrap(descendants(of: host, NSSegmentedControl.self).first)
+            let frame = host.convert(picker.bounds, from: picker)
+            // The bezel is drawn 2 pt past the SwiftUI frame on each side.
+            XCTAssertGreaterThanOrEqual(frame.minX, -2.5, "\(language): picker \(frame) leaves \(host.bounds)")
+            XCTAssertLessThanOrEqual(frame.maxX, host.bounds.maxX + 2.5, "\(language): picker \(frame) leaves \(host.bounds)")
+        }
+    }
+
+    /// The Achievements tab made the popover's segmented tab bar five labels wide. With a two-digit count it was
+    /// wider than the popover in German, and Russian overflowed even without one.
+    func testTabBarFitsThePopoverInEveryLanguage() async throws {
+        for language in AppLanguage.allCases {
+            var tab = PopoverTab.home
+            let picker = PopoverTabPicker(tab: Binding(get: { tab }, set: { tab = $0 }), l: L(language),
+                                          unclaimedAchievements: 41)
+            let host = NSHostingView(rootView: picker.frame(width: PopoverMetrics.contentWidth))
+            let size = NSSize(width: PopoverMetrics.contentWidth, height: 40)
+            host.frame = NSRect(origin: .zero, size: size)
+            let window = NSWindow(contentRect: NSRect(origin: NSPoint(x: -10000, y: -10000), size: size),
+                                  styleMask: .borderless, backing: .buffered, defer: false)
+            window.isReleasedWhenClosed = false
+            window.contentView = host
+            window.orderFront(nil)
+            defer { window.close() }
+            try await Task.sleep(for: .milliseconds(50))
+            host.layoutSubtreeIfNeeded()
+
+            let control = try XCTUnwrap(descendants(of: host, NSSegmentedControl.self).first)
+            let frame = host.convert(control.bounds, from: control)
+            // The bezel is drawn 2 pt past the SwiftUI frame on each side.
+            XCTAssertGreaterThanOrEqual(frame.minX, -2.5, "\(language): tab bar \(frame) leaves \(host.bounds)")
+            XCTAssertLessThanOrEqual(frame.maxX, host.bounds.maxX + 2.5, "\(language): tab bar \(frame) leaves \(host.bounds)")
+        }
+    }
+
     private func descendants<T: NSView>(of view: NSView, _ type: T.Type) -> [T] {
         view.subviews.compactMap { $0 as? T } + view.subviews.flatMap { descendants(of: $0, type) }
     }

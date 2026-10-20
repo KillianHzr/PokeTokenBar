@@ -325,17 +325,13 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
             return "★"
         }
     }
-    /// 상점 판매가(재화 = 사용한 토큰). nil = 상점 미판매(업적 보상 등).
+    /// 상점 판매가(재화 = 사용한 토큰). nil = 상점 미판매(업적 보상).
     var shopPrice: Int? {
         switch self {
         case .rareCandy: return RareCandy.price
         case .mint: return Mint.price
         case .shinyCharm: return ShinyCharm.price
-        case .leafStone, .fireStone, .waterStone, .thunderStone, .sunStone,
-             .moonStone, .duskStone, .iceStone, .dawnStone, .shinyStone:
-            return CollectorPrice.evolutionStone
-        default:
-            return nil
+        default: return nil
         }
     }
     /// 보유형(패시브) 아이템 — 소비하지 않고 보유하는 동안 상시 효과. 1회 구매(재구매 불가), 가방엔 "적용 중" 표시.
@@ -351,11 +347,12 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     }
 
     /// Whether this item is claimed as an achievement rather than bought in the shop.
-    var isAchievement: Bool {
-        collectorGroup == .gymBadges || collectorGroup == .legendaryArtifacts
-    }
+    var isAchievement: Bool { collectorGroup != nil }
 
-    /// Group of an item that unlocks through the Pokédex. nil = always on sale in the main list.
+    /// How many of this item one claim of its achievement adds to the Bag.
+    var achievementRewardCount: Int { stoneType != nil ? EvolutionStone.achievementReward : 1 }
+
+    /// Achievement group of an item that unlocks through the Pokédex. nil = sold in the shop.
     var collectorGroup: CollectorGroup? {
         if badgeType != nil { return .gymBadges }
         if stoneType != nil { return .evolutionStones }
@@ -365,7 +362,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         }
     }
 
-    /// Pokédex condition before the shop sells this item. nil = always on sale.
+    /// Pokédex condition before this item's achievement can be claimed. nil = sold in the shop.
     /// Each item keeps the Pokémon of the achievement that used to award it.
     var unlock: ItemUnlock? {
         switch self {
@@ -407,7 +404,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     }
 }
 
-/// Groups of the items unlocked by the Pokédex: stones are sold in the Shop, the other two are claimed in Achievements.
+/// Groups of the items unlocked by the Pokédex, each a section of the Achievements tab.
 enum CollectorGroup: String, CaseIterable, Sendable {
     case evolutionStones, legendaryArtifacts, gymBadges
 }
@@ -426,7 +423,7 @@ struct SpeciesGoal: Equatable, Sendable {
     }
 }
 
-/// What the Pokédex must hold before the shop sells a collector item.
+/// What the Pokédex must hold before a collector item's achievement can be claimed.
 enum ItemUnlock: Equatable, Sendable {
     /// Any one goal met is enough.
     case species([SpeciesGoal])
@@ -434,9 +431,10 @@ enum ItemUnlock: Equatable, Sendable {
     case duplicateLegendary
 }
 
-/// Evolution stone prices. Stones are consumables bought to hatch typed eggs.
-enum CollectorPrice {
-    static let evolutionStone = 5_000_000_000
+/// Evolution stones are consumables: each one sends the current Pokémon off for an egg of the stone's type.
+enum EvolutionStone {
+    /// Stones one claim of a stone achievement adds to the Bag.
+    static let achievementReward = 5
 }
 
 /// Azure Flute balance constant (passive collector item).
@@ -915,6 +913,9 @@ struct CompanionState: Codable, Sendable {
     var language: AppLanguage = .systemDefault   // 신규 설치 = 시스템 로케일
     // 인벤토리 (ItemKind.rawValue → 개수)
     var inventory: [String: Int] = [:]
+    // Achievements already claimed (ItemKind.rawValue). The Bag cannot tell: stones are used up, and an
+    // empty slot must not make their achievement claimable again.
+    var claimedAchievements: Set<String> = []
     // 사탕 지급 엣지 상태(창 key → 지급한 tier). ★영속 — notifiedTier(인메모리)와 달리 재시작 무한지급 방지.
     var candyGrantTier: [String: Int] = [:]
     // 창 key → 마지막으로 본 epoch(`resets_at`). util 이 계속 100%여도 epoch 교체로 재무장(#326).
@@ -959,6 +960,7 @@ struct CompanionState: Codable, Sendable {
         collectedFinals    = c.lenient(Set<String>.self, forKey: .collectedFinals, default: [])
         language           = c.lenient(AppLanguage.self, forKey: .language, default: .systemDefault)
         inventory          = c.lenient([String: Int].self, forKey: .inventory, default: [:])
+        claimedAchievements = c.lenient(Set<String>.self, forKey: .claimedAchievements, default: [])
         candyGrantTier     = c.lenient([String: Int].self, forKey: .candyGrantTier, default: [:])
         candyWindowEpoch   = c.lenient([String: String].self, forKey: .candyWindowEpoch, default: [:])
         candyFeatureSeeded = c.lenient(Bool.self, forKey: .candyFeatureSeeded, default: false)

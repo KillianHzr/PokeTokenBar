@@ -60,6 +60,9 @@ private struct ItemCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(l.itemName(kind)).font(.callout.weight(.semibold))
+                        if let type = kind.stoneType {
+                            Badge(l.typeName(type).uppercased(), tint: .type(type))
+                        }
                         if !kind.isPassive {   // 보유형은 개수 개념이 없음(1회 구매·영구)
                             Text("×\(count)").font(.caption.weight(.bold))
                                 .foregroundStyle(.secondary).monospacedDigit()
@@ -77,6 +80,12 @@ private struct ItemCard: View {
                     Text(l.itemDescription(kind))
                         .font(.caption).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                    // A stone sends the companion off like a Shop egg: say what stays, as the egg card does.
+                    if kind.stoneType != nil, store.hasActive {
+                        Text(l.eggReleaseNote)
+                            .font(.caption2).foregroundStyle(.tertiary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
             if kind == .rareCandy, let preview = store.planRareCandyUse(count: selectedCandyCount) {
@@ -106,7 +115,7 @@ private struct ItemCard: View {
         switch kind {
         case .rareCandy: return store.canUseRareCandy
         case .mint:      return store.canUseMint
-        // 보유형: 사용 개념 없음(상시 효과). Evolution stones never reach the Bag: they are bought like eggs.
+        // 보유형: 사용 개념 없음(상시 효과). Stones have their own controls (`useControls`).
         default:         return false
         }
     }
@@ -137,7 +146,7 @@ private struct ItemCard: View {
             return l.badgeEffectHint
         case .leafStone, .fireStone, .waterStone, .thunderStone, .sunStone,
              .moonStone, .duskStone, .iceStone, .dawnStone, .shinyStone:
-            return ""   // never in the Bag
+            return kind.stoneType.map(l.eggTypeGuaranteeHint) ?? ""
         }
     }
     private func performUse() {
@@ -150,7 +159,14 @@ private struct ItemCard: View {
 
     @ViewBuilder
     private func useControls(_ l: L) -> some View {
-        if kind.isPassive {
+        if kind.stoneType != nil {
+            // Using a stone sends the companion off for a typed egg: the Shop egg's confirmations apply.
+            ReleaseForEggControls(store: store, nav: nav, detail: effectHint(l), actionTitle: l.useItem,
+                                  isAvailable: store.canUseStone(kind), unavailableText: l.useNeedsPokemon,
+                                  confirmText: l.stoneConfirm(store.displayName, l.itemName(kind))) {
+                store.useStone(kind)
+            }
+        } else if kind.isPassive {
             // 보유형(패시브 아이템): 사용 버튼 대신 상시 효과 표시.
             HStack(spacing: 6) {
                 Image(systemName: "checkmark.seal.fill").font(.caption2).foregroundStyle(.green)

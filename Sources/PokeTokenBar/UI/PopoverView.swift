@@ -3,6 +3,27 @@ import SwiftUI
 
 enum PopoverTab { case home, shop, bag, collection, achievements }
 
+/// The popover's tab bar. A segmented control is as wide as its labels, so the five labels must fit
+/// `PopoverMetrics.contentWidth` in every language (`testTabBarFitsThePopoverInEveryLanguage`).
+@MainActor
+struct PopoverTabPicker: View {
+    @Binding var tab: PopoverTab
+    let l: L
+    let unclaimedAchievements: Int
+
+    var body: some View {
+        Picker("", selection: $tab) {
+            Text(l.home).tag(PopoverTab.home)
+            Text(l.shop).tag(PopoverTab.shop)
+            Text(l.bag).tag(PopoverTab.bag)
+            Text(l.collection).tag(PopoverTab.collection)
+            Text(l.achievementsTab(unclaimed: unclaimedAchievements)).tag(PopoverTab.achievements)
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+    }
+}
+
 /// 팝오버 치수의 단일 소스. 자식이 쓸 수 있는 폭을 알아야 할 때 이 값을 쓴다 — 넘치는 자식이
 /// 부모 폭을 부풀리므로 GeometryReader 로 재면 순환한다.
 enum PopoverMetrics {
@@ -156,15 +177,7 @@ struct PopoverView: View {
         @Bindable var nav = nav
         return VStack(alignment: .leading, spacing: 12) {
             updateBanner
-            Picker("", selection: $nav.tab) {
-                Text(l.home).tag(PopoverTab.home)
-                Text(l.shop).tag(PopoverTab.shop)
-                Text(l.bag).tag(PopoverTab.bag)
-                Text(l.collection).tag(PopoverTab.collection)
-                Text(achievementsTabTitle).tag(PopoverTab.achievements)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            PopoverTabPicker(tab: $nav.tab, l: l, unclaimedAchievements: companion.unclaimedAchievementsCount)
 
             if nav.tab == .collection {
                 CollectionView(store: companion, navigation: nav)
@@ -195,11 +208,6 @@ struct PopoverView: View {
             footer
         }
         .padding(PopoverMetrics.padding)
-    }
-
-    private var achievementsTabTitle: String {
-        let unclaimed = companion.unclaimedAchievementsCount
-        return unclaimed > 0 ? "\(l.achievements) (\(unclaimed))" : l.achievements
     }
 
     // MARK: 헤더 — 오늘 합계 + provider/토큰타입 분해

@@ -1717,14 +1717,15 @@ struct L {
         case .leafStone, .fireStone, .waterStone, .thunderStone,
              .sunStone, .moonStone, .iceStone, .duskStone,
              .dawnStone, .shinyStone:
-            return t("특정 포켓몬을 진화시키는 데 필요한 신비한 돌입니다.",
-                     "A mysterious stone needed to evolve certain Pokémon.",
-                     "特定のポケモンを進化させるために必要な不思議な石です。",
-                     "Una piedra misteriosa necesaria para evolucionar a ciertos Pokémon.",
-                     "Une pierre mystérieuse nécessaire pour faire évoluer certains Pokémon.",
-                     "Uma pedra misteriosa necessária para evoluir certos Pokémon.",
-                     "Ein mysteriöser Stein, der zur Entwicklung bestimmter Pokémon benötigt wird.",
-                     "Таинственный камень, необходимый для эволюции некоторых покемонов.")
+            let type = kind.stoneType.map(typeName) ?? ""
+            return t("지금 포켓몬을 놓아주고, \(type)타입 포켓몬이 확정으로 태어나는 알을 받아요.",
+                     "Send off your current Pokémon for an egg guaranteed to hatch a \(type)-type Pokémon.",
+                     "いまのポケモンを手放して、\(type)タイプのポケモンが必ず生まれるタマゴを受け取ります。",
+                     "Suelta a tu Pokémon actual a cambio de un huevo del que saldrá seguro un Pokémon de tipo \(type).",
+                     "Laisse partir ton Pokémon actuel contre un œuf qui fera éclore à coup sûr un Pokémon de type \(type).",
+                     "Solte seu Pokémon atual em troca de um ovo que com certeza vai chocar um Pokémon do tipo \(type).",
+                     "Verabschiede dein aktuelles Pokémon für ein Ei, aus dem garantiert ein Pokémon vom Typ \(type) schlüpft.",
+                     "Отпустите текущего покемона и получите яйцо, из которого гарантированно вылупится покемон типа «\(type)».")
         }
     }
 
@@ -1759,8 +1760,15 @@ struct L {
     var ownedAlready: String { t("보유 중", "Owned", "所持済み", "En posesión", "Possédé", "Já tem", "Im Beutel", "Уже есть") }
 
     // MARK: 업적 (체육관 배지 및 전설의 유물)
-    var achievements: String { t("업적", "Achievements", "実績", "Logros", "Succès", "Conquistas", "Erfolge", "Достижения") }
+    var achievements: String { t("업적", "Achievements", "実績", "Logros", "Succès", "Conquistas", "Erfolge", "Успехи") }
     var achievementsTitle: String { achievements }
+    /// Popover tab title with the rewards ready to claim ("Achievements 2"). No parentheses, so a two-digit
+    /// count still fits the tab bar; Russian shows no count at all, its five tab words already fill the bar.
+    func achievementsTab(unclaimed: Int) -> String {
+        guard unclaimed > 0 else { return achievements }
+        let counted = "\(achievements) \(unclaimed)"
+        return t(counted, counted, counted, counted, counted, counted, counted, achievements)
+    }
     var claim: String { t("받기", "Claim", "受け取る", "Reclamar", "Récupérer", "Resgatar", "Einlösen", "Забрать") }
     var claimed: String { t("획득함", "Claimed", "獲得済み", "Conseguido", "Obtenu", "Resgatado", "Erhalten", "Получено") }
     func readyToClaimNotice(_ count: Int) -> String {
@@ -1786,26 +1794,30 @@ struct L {
     var notifAchievementClaimedTitle: String {
         t("🏆 업적 달성!", "🏆 Achievement Unlocked!", "🏆 実績達成！", "🏆 ¡Logro completado!", "🏆 Succès débloqué !", "🏆 Conquista desbloqueada!", "🏆 Erfolg freigeschaltet!", "🏆 Достижение получено!")
     }
-    func notifAchievementClaimedBody(_ name: String) -> String {
-        t("\(KoreanParticle.object.attach(to: name)) 가방에 획득했어요.",
-          "Obtained \(name) in your bag.",
-          "\(name) をバッグに獲得しました。",
-          "¡Obtuviste \(name) en tu bolsa!",
-          "\(name) a été ajouté à votre sac.",
-          "Você obteve \(name) na sua bolsa.",
-          "\(name) wurde deinem Beutel hinzugefügt.",
-          "«\(name)» добавлен в ваш инвентарь.")
+    func notifAchievementClaimedBody(_ name: String, count: Int = 1) -> String {
+        // The Korean particle follows the name itself, so the count comes after it ("…을 5개").
+        let koObject = KoreanParticle.object.attach(to: name) + (count > 1 ? " \(count)개" : "")
+        let shown = count > 1 ? "\(name) ×\(count)" : name
+        return t("\(koObject) 가방에 획득했어요.",
+          "Obtained \(shown) in your bag.",
+          "\(shown) をバッグに獲得しました。",
+          "¡Obtuviste \(shown) en tu bolsa!",
+          "\(shown) a été ajouté à votre sac.",
+          "Você obteve \(shown) na sua bolsa.",
+          "\(shown) wurde deinem Beutel hinzugefügt.",
+          "«\(shown)» добавлен в ваш инвентарь.")
     }
 
-    /// Collector sections of the shop (items unlocked by the Pokédex).
+    /// Section titles of the Achievements tab. Kept to one word: the three segments and their counts
+    /// must fit the 360 pt popover in every language (`testCategoryPickerFitsTheTabWidthInEveryLanguage`).
     func collectorGroupTitle(_ group: CollectorGroup) -> String {
         switch group {
         case .evolutionStones:
-            return t("진화의 돌", "Evolution Stones", "しんかのいし", "Piedras evolutivas", "Pierres d'évolution", "Pedras de evolução", "Entwicklungssteine", "Эволюционные камни")
+            return t("돌", "Stones", "いし", "Piedras", "Pierres", "Pedras", "Steine", "Камни")
         case .legendaryArtifacts:
-            return t("전설의 유물", "Legendary Artifacts", "でんせつのどうぐ", "Objetos legendarios", "Artefacts légendaires", "Artefatos lendários", "Legendäre Artefakte", "Легендарные артефакты")
+            return t("유물", "Artifacts", "どうぐ", "Objetos", "Artefacts", "Artefatos", "Artefakte", "Реликвии")
         case .gymBadges:
-            return t("체육관 배지", "Gym Badges", "ジムバッジ", "Medallas de gimnasio", "Badges d'arène", "Insígnias de ginásio", "Arenaorden", "Значки гимов")
+            return t("배지", "Badges", "バッジ", "Medallas", "Badges", "Insígnias", "Orden", "Значки")
         }
     }
     var lockedLabel: String { t("잠김", "Locked", "ロック中", "Bloqueado", "Verrouillé", "Bloqueado", "Gesperrt", "Закрыто") }

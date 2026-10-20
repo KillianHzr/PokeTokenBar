@@ -1048,6 +1048,18 @@ read_when:
   tab). `AchievementsRenderingTests` lays the tab out with the claim banner on and keeps the category
   picker and the list vertically inside the frame; putting the 460 pt back fails it (list maxY 534.5).
 
+- **A segmented control sized by its labels must fit the popover width in every language.** The
+  Evolution Stones section made the Achievements picker three long titles wide (449 pt in English,
+  468 pt in Spanish, for a 332 pt tab), and the fifth popover tab, "Achievements (41)", pushed the tab
+  bar past the popover in English and German, and in Russian even without a count. SwiftUI centered
+  the wider stack, so the whole tab slid off both edges. The layout test above only checked heights,
+  and the PR renders were English with a one-digit count. Section titles are now one word, the tab
+  reads "Achievements 2" without parentheses, and Russian uses "Успехи" with no count (the banner
+  inside the tab still counts). `testCategoryPickerFitsTheTabWidthInEveryLanguage` and
+  `testTabBarFitsThePopoverInEveryLanguage` lay both controls out in the 8 languages with two-digit
+  counts; the former labels fail them in English, German, Spanish, Japanese and Russian. The other
+  segmented pickers under `UI/` are unchanged by this PR and were not measured.
+
 ## 에너지 (상시 표시 애니메이션)
 
 - **절전용 정지 상태는 짝 알림 하나에만 복구를 맡기지 마라.** `screensDidSleep` 이 폴링 타이머를 끄고
