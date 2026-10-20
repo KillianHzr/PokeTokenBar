@@ -399,7 +399,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
              .zephyrBadge, .hiveBadge, .plainBadge, .fogBadge,
              .stormBadge, .mineralBadge, .glacierBadge, .risingBadge,
              .darkBadge, .fairyBadge:
-            return badgeType.map { .species([SpeciesGoal(PokemonTypeData.species(for: $0).sorted())]) }
+            return badgeType.map { .species([SpeciesGoal(PokemonTypeData.badgeSpecies(for: $0))]) }
         }
     }
 }

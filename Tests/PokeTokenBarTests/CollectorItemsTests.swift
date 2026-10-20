@@ -144,10 +144,26 @@ final class CollectorItemsTests: XCTestCase {
         XCTAssertTrue(store(dex: entries([377, 378, 379], rarity: .legendary)).isUnlocked(.magmaStone))
     }
 
+    /// A badge asks for every Gen 1 to 5 Pokémon of its type, not the later Fairy types like Sylveon.
     func testBadgeNeedsEveryPokemonOfItsType() {
-        let fairy = PokemonTypeData.species(for: .fairy).sorted()
+        let fairy = PokemonTypeData.badgeSpecies(for: .fairy)
+        XCTAssertEqual(fairy.count, 22)
+        XCTAssertFalse(fairy.contains(700), "Sylveon is Gen 6")
         XCTAssertFalse(store(dex: entries(Array(fairy.dropFirst()))).isUnlocked(.fairyBadge))
         XCTAssertTrue(store(dex: entries(fairy)).isUnlocked(.fairyBadge))
+    }
+
+    /// A species missing from the type table never hatches from a stone egg and ignores badges and the
+    /// Griseous Orb, so the table covers every species that can hatch, later generations included.
+    func testTypeTableCoversEveryHatchableSpecies() {
+        let missing = PokemonAssets.animatedSpeciesIDs.filter { PokemonTypeData.types(forSpeciesID: $0).isEmpty }
+        XCTAssertEqual(missing, [])
+        for id in 650...1025 {
+            XCTAssertFalse(PokemonTypeData.types(forSpeciesID: id).isEmpty, "#\(id)")
+        }
+        XCTAssertEqual(PokemonTypeData.types(forSpeciesID: 700), [.fairy])            // Sylveon
+        XCTAssertEqual(PokemonTypeData.types(forSpeciesID: 1007), [.fighting, .dragon]) // Koraidon
+        XCTAssertTrue(PokemonTypeData.species(for: .fairy).contains(669))               // Flabébé, for Moon Stone eggs
     }
 
     func testAzureFluteNeedsTheSameLegendaryGraduatedTwice() {

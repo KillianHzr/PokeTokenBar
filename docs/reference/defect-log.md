@@ -72,6 +72,15 @@ read_when:
   (see the entry above); the Griseous Orb and badges read types, not rates. Guard:
   `testAzureFluteAndClearBellTierLegendariesByHatchWeight`.
 
+- **A per-species table must cover every species that can hatch.** `PokemonTypeData` stopped at #649
+  while the Gen 6 to 9 PRs widen `PokemonAssets.animatedSpeciesIDs` to 1025, and
+  `types(forSpeciesID:)` returns `[]` for a missing id: a later Pokémon would never hatch from a stone
+  egg and would silently ignore badges and the Griseous Orb. The per-type sets were a second
+  hand-written copy of the same data. The table now covers #1 to #1025 (PokéAPI default forms; types
+  and `typeefficacy` checked against PokéAPI), the per-type sets derive from it, and gym badges keep
+  their Gen 1 to 5 goal through `badgeSpeciesIDs`. Guard: `testTypeTableCoversEveryHatchableSpecies`
+  fails as soon as the hatch range outgrows the table.
+
 - **A positional translation can hold the wrong script.** `L.t(ko, en, ja, ...)` compiles with a
   Korean syllable inside the Japanese column (`は가네`, `こころ의しずく` shipped in the collector items
   PR before merge). Guard: `testHangulAndKanaStayInTheirColumns` scans every `t(` call.
