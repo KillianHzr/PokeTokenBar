@@ -7,13 +7,44 @@ read_when:
 
 # Pokémon forms
 
-Species from generations 1 to 5 with alternate forms are collectible when the
-PokeAPI sprites repository has an animated Black/White GIF for every form. The
-catalog lives in `PokemonForm.catalog`, default form first:
+Species with alternate forms are collectible across generations 1 to 9, regional
+forms included. Gen 1 to 5 forms animate with the Black/White GIFs; Gen 6 to 9
+species and regional forms use the Showdown GIFs. The catalog lives in
+`PokemonForm.catalog`, default form first. A form on an evolved species is only
+rolled when `lineBaseIDs` maps that species to the base of its line
+(`PokemonFormLineTests` checks every catalogued species against PokéAPI):
 
 | Species | Forms |
 | --- | --- |
+| Rattata #19, Raticate #20 | normal, alola |
+| Raichu #26 | normal, alola |
+| Sandshrew #27, Sandslash #28 | normal, alola |
+| Vulpix #37, Ninetales #38 | normal, alola |
+| Diglett #50, Dugtrio #51 | normal, alola |
+| Meowth #52 | normal, alola, galar |
+| Persian #53 | normal, alola |
+| Growlithe #58, Arcanine #59 | normal, hisui |
+| Geodude #74, Graveler #75, Golem #76 | normal, alola |
+| Ponyta #77, Rapidash #78 | normal, galar |
+| Slowpoke #79, Slowbro #80, Slowking #199 | normal, galar |
+| Farfetch’d #83 | normal, galar |
+| Grimer #88, Muk #89 | normal, alola |
+| Voltorb #100, Electrode #101 | normal, hisui |
+| Exeggutor #103 | normal, alola |
+| Marowak #105 | normal, alola |
+| Weezing #110 | normal, galar |
+| Mr. Mime #122 | normal, galar |
+| Tauros #128 | normal, paldea-combat, paldea-blaze, paldea-aqua |
+| Articuno #144 | normal, galar |
+| Zapdos #145 | normal, galar |
+| Moltres #146 | normal, galar |
+| Typhlosion #157 | normal, hisui |
+| Wooper #194 | normal, paldea |
 | Unown #201 | A–Z, ! and ? |
+| Qwilfish #211 | normal, hisui |
+| Sneasel #215 | normal, hisui |
+| Corsola #222 | normal, galar |
+| Zigzagoon #263, Linoone #264 | normal, galar |
 | Castform #351 | normal, sunny, rainy, snowy |
 | Deoxys #386 | normal, attack, defense, speed |
 | Burmy #412, Wormadam #413 | plant, sandy, trash |
@@ -23,19 +54,65 @@ catalog lives in `PokemonForm.catalog`, default form first:
 | Giratina #487 | altered, origin |
 | Shaymin #492 | land, sky |
 | Arceus #493 | the 18 types |
-| Basculin #550 | red-striped, blue-striped |
-| Darmanitan #555 | standard, zen |
+| Samurott #503 | normal, hisui |
+| Lilligant #549 | normal, hisui |
+| Basculin #550 | red-striped, blue-striped, white-striped |
+| Darumaka #554 | standard, galar |
+| Darmanitan #555 | standard, zen, galar-standard, galar-zen |
+| Yamask #562 | normal, galar |
+| Zorua #570, Zoroark #571 | normal, hisui |
 | Deerling #585, Sawsbuck #586 | spring, summer, autumn, winter |
-| Tornadus #641, Thundurus #642, Landorus #645 | incarnate, therian |
+| Stunfisk #618 | normal, galar |
+| Braviary #628 | normal, hisui |
+| Tornadus #641 | incarnate, therian |
+| Thundurus #642 | incarnate, therian |
+| Landorus #645 | incarnate, therian |
 | Kyurem #646 | normal, black, white |
 | Keldeo #647 | ordinary, resolute |
 | Meloetta #648 | aria, pirouette |
 | Genesect #649 | normal, douse, shock, burn, chill |
+| Vivillon #666 | meadow, icy-snow, polar, tundra, continental, garden, elegant, modern, marine, archipelago, high-plains, sandstorm, river, monsoon, savanna, sun, ocean, jungle, fancy, poke-ball |
+| Flabébé #669, Floette #670, Florges #671 | red, yellow, orange, blue, white |
+| Furfrou #676 | natural, heart, star, diamond, debutante, matron, dandy, la-reine, kabuki, pharaoh |
+| Meowstic #678 | male, female |
+| Aegislash #681 | shield, blade |
+| Sliggoo #705, Goodra #706 | normal, hisui |
+| Pumpkaboo #710, Gourgeist #711 | average, small, large, super |
+| Avalugg #713 | normal, hisui |
+| Zygarde #718 | 50, 10, complete |
+| Decidueye #724 | normal, hisui |
+| Oricorio #741 | baile, pom-pom, pau, sensu |
+| Lycanroc #745 | midday, midnight, dusk |
+| Wishiwashi #746 | solo, school |
+| Silvally #773 | the 18 types |
+| Minior #774 | meteor, red, orange, yellow, green, blue, indigo, violet |
+| Mimikyu #778 | disguised, busted |
+| Necrozma #800 | normal, dusk, dawn, ultra |
+| Magearna #801 | normal, original |
+| Cramorant #845 | normal, gulping, gorging |
+| Toxtricity #849 | amped, low-key |
+| Eiscue #875 | ice, noice |
+| Morpeko #877 | full-belly, hangry |
+| Zacian #888 | hero, crowned |
+| Zamazenta #889 | hero, crowned |
+| Urshifu #892 | single-strike, rapid-strike |
+| Zarude #893 | normal, dada |
+| Calyrex #898 | normal, ice, shadow |
+| Basculegion #902 | male, female |
+| Enamorus #905 | incarnate, therian |
+| Squawkabilly #931 | green, blue, yellow, white |
+| Palafin #964 | zero, hero |
+| Tatsugiri #978 | curly, droopy, stretchy |
+| Dudunsparce #982 | two-segment, three-segment |
+| Gimmighoul #999 | chest, roaming |
+| Poltchageist #1012 | counterfeit, artisan |
+| Sinistcha #1013 | unremarkable, masterpiece |
+| Ogerpon #1017 | teal, wellspring, hearthflame, cornerstone |
+| Terapagos #1024 | normal, terastal, stellar |
 
-Left out on purpose: spiky-eared Pichu and Arceus `unknown` (no animated GIF),
-gender differences such as female Frillish (not forms), Mothim's cloaks (same
-sprite), and forms that only have static sprites (regional forms, Mega and
-Gigantamax, cap Pikachu, white-striped Basculin, Origin Dialga and Palkia).
+Left out on purpose: spiky-eared Pichu and Arceus `unknown`, gender differences
+that are not catalogued forms (such as female Frillish), Mothim's cloaks (same
+sprite), and battle-only transformations such as Mega Evolution and Gigantamax.
 
 ## Drawing a form
 
