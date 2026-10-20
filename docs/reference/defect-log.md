@@ -333,7 +333,7 @@ read_when:
   catalogued forms on 24 evolved species without adding them (Alolan Raichu, the 20 Vivillon patterns, the
   18 Silvally types, Lycanroc, Toxtricity, Urshifu, Hisuian Typhlosion and Samurott...): 59 forms could never
   be rolled, so the Form Pokédex topped out at 1,221 of 1,280. The form tests checked each catalogued species
-  in isolation, never from the base an egg actually hatches. Reported from an outside diff against TokenDex.
+  in isolation, never from the base an egg actually hatches. Reported from an outside Form Pokédex comparison.
   The table now lists all 47 evolved species with forms. Guard: `testEveryCatalogedFormCanBeRolled` walks
   every catalogued species from its PokéAPI line base (`evolutionRoots`, all 484 evolved species #1 to #1025),
   so a new catalogue entry without its base fails.
