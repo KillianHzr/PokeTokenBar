@@ -688,6 +688,9 @@ enum PokemonOdds {
     static let dittoDisguiseDenominator: UInt64 = 128
     /// 메타몽 종 id — 위장 리빌 전용(일반 부화 풀에서 제외).
     static let dittoSpeciesID = 132
+    /// Egg-roll weight of a legendary that cannot hatch from an egg: Mewtwo's capture_rate, the lowest
+    /// in the games, whatever the species' own capture_rate (`BaseSpecies.hatchWeight`).
+    static let legendaryHatchWeight = 3
 }
 
 /// 현재 키우는 포켓몬.

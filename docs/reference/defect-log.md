@@ -44,6 +44,25 @@ read_when:
 
 ## 판정·데이터
 
+- **An egg-roll weight must not treat capture_rate as rarity for legendaries.** `chooseBase` weighted
+  candidates by PokéAPI `capture_rate`: 3 for most legendaries, but 45 for Mew, Celebi, Rayquaza and
+  Shaymin (255 for Necrozma, Eternatus and Terapagos in later generations). Each of those four was as
+  likely as a Kanto starter and 15 times as likely as Mewtwo; with Phione (30) they held 62% of the
+  legendary weight. Rarity labels stayed right because `line()` reads `is_legendary`/`is_mythical`, but
+  the base index carried only `capture_rate`, and `testSamplerCaptureRateIsWeight` modeled a legendary
+  as a low capture rate, so no test rolled a legendary with a high one. The index now carries
+  `isUnbreedableLegendary` (legendary or mythical with no egg group besides `no-eggs`; Phione and
+  Manaphy are the only exceptions and keep their rate) and `BaseSpecies.hatchWeight` uses
+  `PokemonOdds.legendaryHatchWeight` (3). The field is required when decoding, so a 30-day
+  `base-index.json` written without it is fetched again. Sweep: the GraphQL index and REST
+  `baseSpecies(id:)` share `BaseSpecies.isUnbreedableLegendary`; the per-hatch REST fallback
+  (`chooseBaseViaREST`) stays unweighted by design, so it still over-represents legendaries during a
+  GraphQL outage with no cached index. Premium egg tiers still filter by `captureRateCeiling`, which
+  includes every Gen 1-5 legendary (all at 45 or less) but would exclude a later legendary at 255 from
+  "rare or better" eggs. Guards: `testSamplerWeighsUnbreedableLegendaryLikeMewtwo` (rolling by
+  capture_rate again fails both assertions), `LegendaryHatchWeightTests` (ignoring egg groups fails 2 of
+  3 tests on Phione) and `testBaseIndexCachedWithoutTheFlagIsNotReused`.
+
 - **A model-price test needs an independent bucket-level oracle.** Sonnet 5.5 copied Sonnet 5's
   cache-read rate ($0.20/MTok) although its official rate is $0.10; source-unpriced Claude logs
   therefore doubled that bucket's estimate. The standard-row test repeated the wrong literal,
