@@ -372,13 +372,17 @@ struct PokemonForm: RawRepresentable, Codable, Hashable, Sendable {
         ]
     }()
 
-    /// Catalogued species whose line starts elsewhere. The individual's form is chosen at hatch,
-    /// so Cherubi and Darumaka eggs already know which Cherrim or Darmanitan they will become.
+    /// Catalogued species whose line starts elsewhere, mapped to that line's base. The individual's form
+    /// is chosen at hatch, so Cherubi and Darumaka eggs already know which Cherrim or Darmanitan they will
+    /// become. A catalogued species missing here can never show its forms (`testEveryCatalogedFormCanBeRolled`).
     private static let lineBaseIDs: [Int: Int] = [
         413: 412, 421: 420, 423: 422, 555: 554, 586: 585,
         670: 669, 671: 669, 711: 710,
         20: 19, 28: 27, 38: 37, 51: 50, 53: 52, 75: 74, 76: 74, 89: 88,
         78: 77, 80: 79, 199: 79, 264: 263, 59: 58, 101: 100, 571: 570,
+        26: 172, 103: 102, 105: 104, 110: 109, 122: 439, 157: 155, 503: 501, 549: 548, 628: 627,
+        666: 664, 678: 677, 681: 679, 705: 704, 706: 704, 713: 712, 724: 722, 745: 744, 773: 772,
+        849: 848, 892: 891, 902: 550, 964: 963, 982: 206, 1013: 1012,
     ]
 
     static func entries(speciesID: Int) -> [Entry] { catalog[speciesID] ?? [] }
