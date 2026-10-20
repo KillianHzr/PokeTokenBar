@@ -1091,9 +1091,148 @@ enum PokemonTypeData {
         for type in entry.value { map[type, default: []].insert(entry.key) }
     }
 
+    /// Types of the forms whose types differ from their species', keyed by PokéAPI `pokemon-form` id
+    /// (`PokemonForm.formID`): regional forms, Rotom, Arceus, Castform... Every other form shares its
+    /// species' types. Generated from PokéAPI form types, falling back to the variety's types.
+    static let formTypes: [Int: [PokemonType]] = [
+        10028: [.fire],   // #351 sunny
+        10029: [.water],   // #351 rainy
+        10030: [.ice],   // #351 snowy
+        10036: [.bug, .ground],   // #413 sandy
+        10037: [.bug, .steel],   // #413 trash
+        10041: [.bug],   // #493 bug
+        10042: [.dark],   // #493 dark
+        10043: [.dragon],   // #493 dragon
+        10044: [.electric],   // #493 electric
+        10045: [.fighting],   // #493 fighting
+        10046: [.fire],   // #493 fire
+        10047: [.flying],   // #493 flying
+        10048: [.ghost],   // #493 ghost
+        10049: [.grass],   // #493 grass
+        10050: [.ground],   // #493 ground
+        10051: [.ice],   // #493 ice
+        10052: [.poison],   // #493 poison
+        10053: [.psychic],   // #493 psychic
+        10054: [.rock],   // #493 rock
+        10055: [.steel],   // #493 steel
+        10056: [.water],   // #493 water
+        10058: [.electric, .fire],   // #479 heat
+        10059: [.electric, .water],   // #479 wash
+        10060: [.electric, .ice],   // #479 frost
+        10061: [.electric, .flying],   // #479 fan
+        10062: [.electric, .grass],   // #479 mow
+        10064: [.grass, .flying],   // #492 sky
+        10067: [.fire, .psychic],   // #555 zen
+        10074: [.normal, .fighting],   // #648 pirouette
+        10085: [.fairy],   // #493 fairy
+        10193: [.dark, .normal],   // #19 alola
+        10194: [.dark, .normal],   // #20 alola
+        10202: [.electric, .psychic],   // #26 alola
+        10203: [.ice, .steel],   // #27 alola
+        10204: [.ice, .steel],   // #28 alola
+        10205: [.ice],   // #37 alola
+        10206: [.ice, .fairy],   // #38 alola
+        10207: [.ground, .steel],   // #50 alola
+        10208: [.ground, .steel],   // #51 alola
+        10209: [.dark],   // #52 alola
+        10210: [.dark],   // #53 alola
+        10211: [.rock, .electric],   // #74 alola
+        10212: [.rock, .electric],   // #75 alola
+        10213: [.rock, .electric],   // #76 alola
+        10214: [.poison, .dark],   // #88 alola
+        10215: [.poison, .dark],   // #89 alola
+        10216: [.grass, .dragon],   // #103 alola
+        10217: [.fire, .ghost],   // #105 alola
+        10225: [.electric, .flying],   // #741 pom-pom
+        10226: [.psychic, .flying],   // #741 pau
+        10227: [.ghost, .flying],   // #741 sensu
+        10232: [.fighting],   // #773 fighting
+        10233: [.flying],   // #773 flying
+        10234: [.poison],   // #773 poison
+        10235: [.ground],   // #773 ground
+        10236: [.rock],   // #773 rock
+        10237: [.bug],   // #773 bug
+        10238: [.ghost],   // #773 ghost
+        10239: [.steel],   // #773 steel
+        10240: [.fire],   // #773 fire
+        10241: [.water],   // #773 water
+        10242: [.grass],   // #773 grass
+        10243: [.electric],   // #773 electric
+        10244: [.psychic],   // #773 psychic
+        10245: [.ice],   // #773 ice
+        10246: [.dragon],   // #773 dragon
+        10247: [.dark],   // #773 dark
+        10248: [.fairy],   // #773 fairy
+        10314: [.psychic, .steel],   // #800 dusk
+        10315: [.psychic, .ghost],   // #800 dawn
+        10316: [.psychic, .dragon],   // #800 ultra
+        10320: [.steel],   // #52 galar
+        10321: [.psychic],   // #77 galar
+        10322: [.psychic, .fairy],   // #78 galar
+        10323: [.psychic],   // #79 galar
+        10324: [.poison, .psychic],   // #80 galar
+        10325: [.fighting],   // #83 galar
+        10326: [.poison, .fairy],   // #110 galar
+        10327: [.ice, .psychic],   // #122 galar
+        10328: [.psychic, .flying],   // #144 galar
+        10329: [.fighting, .flying],   // #145 galar
+        10330: [.dark, .flying],   // #146 galar
+        10331: [.poison, .psychic],   // #199 galar
+        10332: [.ghost],   // #222 galar
+        10333: [.dark, .normal],   // #263 galar
+        10334: [.dark, .normal],   // #264 galar
+        10335: [.ice],   // #554 galar
+        10336: [.ice],   // #555 galar-standard
+        10337: [.ice, .fire],   // #555 galar-zen
+        10338: [.ground, .ghost],   // #562 galar
+        10339: [.ground, .steel],   // #618 galar
+        10357: [.fairy, .steel],   // #888 crowned
+        10358: [.fighting, .steel],   // #889 crowned
+        10360: [.fighting, .water],   // #892 rapid-strike
+        10362: [.psychic, .ice],   // #898 ice
+        10363: [.psychic, .ghost],   // #898 shadow
+        10398: [.fire, .rock],   // #58 hisui
+        10399: [.fire, .rock],   // #59 hisui
+        10400: [.electric, .grass],   // #100 hisui
+        10401: [.electric, .grass],   // #101 hisui
+        10402: [.fire, .ghost],   // #157 hisui
+        10403: [.dark, .poison],   // #211 hisui
+        10404: [.fighting, .poison],   // #215 hisui
+        10405: [.water, .dark],   // #503 hisui
+        10406: [.grass, .fighting],   // #549 hisui
+        10407: [.normal, .ghost],   // #570 hisui
+        10408: [.normal, .ghost],   // #571 hisui
+        10409: [.psychic, .flying],   // #628 hisui
+        10410: [.steel, .dragon],   // #705 hisui
+        10411: [.steel, .dragon],   // #706 hisui
+        10412: [.ice, .rock],   // #713 hisui
+        10413: [.grass, .fighting],   // #724 hisui
+        10419: [.fighting],   // #128 paldea-combat-breed
+        10420: [.fighting, .fire],   // #128 paldea-blaze-breed
+        10421: [.fighting, .water],   // #128 paldea-aqua-breed
+        10422: [.poison, .ground],   // #194 paldea
+        10442: [.grass, .water],   // #1017 wellspring-mask
+        10443: [.grass, .fire],   // #1017 hearthflame-mask
+        10444: [.grass, .rock],   // #1017 cornerstone-mask
+    ]
+
     /// 특정 종 ID 의 타입 목록 반환.
     static func types(forSpeciesID id: Int) -> [PokemonType] {
         speciesToTypes[id] ?? []
+    }
+
+    /// Types of one individual: its form's own types when they differ, otherwise its species'.
+    static func types(forSpeciesID id: Int, form: PokemonForm?) -> [PokemonType] {
+        PokemonForm.formID(speciesID: id, form: form).flatMap { formTypes[$0] } ?? types(forSpeciesID: id)
+    }
+
+    /// Whether a base species hatches with this type: in the given form, or, before the form is rolled,
+    /// in at least one form its line can roll (an Alolan Vulpix makes Vulpix an Ice candidate).
+    static func canHatch(baseID: Int, as type: PokemonType, form: PokemonForm? = nil) -> Bool {
+        if let form { return types(forSpeciesID: baseID, form: form).contains(type) }
+        let forms = PokemonForm.lineForms(baseID: baseID)
+        guard !forms.isEmpty else { return types(forSpeciesID: baseID).contains(type) }
+        return forms.contains { types(forSpeciesID: baseID, form: $0).contains(type) }
     }
 
     /// 특정 타입에 속하는 종 ID 집합 반환.
