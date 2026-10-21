@@ -95,9 +95,9 @@ final class PokemonFormTests: XCTestCase {
         XCTAssertEqual(PokemonForm.lineForms(baseID: 412), [plant, sandy, PokemonForm("trash")])
         XCTAssertEqual(PokemonForm.formSpecies(baseID: 420), [421])
         XCTAssertEqual(PokemonForm.lineForms(baseID: 420), [PokemonForm("overcast"), PokemonForm("sunshine")])
+        // Darumaka and Darmanitan name their forms differently: one line form sets both.
         XCTAssertEqual(PokemonForm.lineForms(baseID: 554), [
-            PokemonForm("standard"), PokemonForm("galar"), PokemonForm("zen"),
-            PokemonForm("galar-standard"), PokemonForm("galar-zen")
+            PokemonForm("standard"), PokemonForm("zen"), PokemonForm("galar-standard"), PokemonForm("galar-zen")
         ])
         XCTAssertEqual(PokemonForm.lineForms(baseID: 1), [])
         XCTAssertEqual(PokemonForm.resolved(baseID: 420, form: nil), PokemonForm("overcast"))

@@ -9,11 +9,15 @@ struct BaseSpecies: Sendable, Codable {
     /// `hatchWeight` ignores it. Required when decoding: a base index cached before this field existed
     /// fails to decode and is fetched again, instead of keeping capture-rate weights for 30 days.
     let isUnbreedableLegendary: Bool
+    /// Legendary or mythical (PokéAPI `is_legendary`/`is_mythical`): the Azure Flute's target. Required when
+    /// decoding, like `isUnbreedableLegendary`, so an index cached before it is fetched again.
+    let isLegendary: Bool
 
-    init(id: Int, captureRate: Int, isUnbreedableLegendary: Bool = false) {
+    init(id: Int, captureRate: Int, isUnbreedableLegendary: Bool = false, isLegendary: Bool? = nil) {
         self.id = id
         self.captureRate = captureRate
         self.isUnbreedableLegendary = isUnbreedableLegendary
+        self.isLegendary = isLegendary ?? isUnbreedableLegendary
     }
 
     /// Weight of this species in the egg roll (`CompanionStore.chooseBase`).
@@ -192,7 +196,8 @@ actor PokeAPIClient: PokeProviding, PokemonDetailProviding {
             BaseSpecies(id: $0.id, captureRate: $0.capture_rate,
                         isUnbreedableLegendary: BaseSpecies.isUnbreedableLegendary(
                             isLegendary: $0.is_legendary, isMythical: $0.is_mythical,
-                            eggGroups: $0.pokemonegggroups.compactMap { $0.egggroup?.name }))
+                            eggGroups: $0.pokemonegggroups.compactMap { $0.egggroup?.name }),
+                        isLegendary: $0.is_legendary || $0.is_mythical)
         }
     }
 
@@ -307,7 +312,8 @@ actor PokeAPIClient: PokeProviding, PokemonDetailProviding {
         return BaseSpecies(id: id, captureRate: dto.capture_rate,
                            isUnbreedableLegendary: BaseSpecies.isUnbreedableLegendary(
                                isLegendary: dto.is_legendary, isMythical: dto.is_mythical,
-                               eggGroups: (dto.egg_groups ?? []).map(\.name)))
+                               eggGroups: (dto.egg_groups ?? []).map(\.name)),
+                           isLegendary: dto.is_legendary || dto.is_mythical)
     }
 
     private func get<T: Decodable>(_ url: URL) async throws -> T {

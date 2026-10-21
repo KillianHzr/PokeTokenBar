@@ -26,6 +26,8 @@ final class LegendaryHatchWeightTests: XCTestCase {
         XCTAssertEqual(entries.map(\.id), [1, 151, 172, 384, 489, 800, 999])
         XCTAssertEqual(entries.map(\.captureRate), [45, 45, 190, 45, 30, 255, 45], "capture_rate itself is kept")
         XCTAssertEqual(entries.map(\.hatchWeight), [45, 3, 190, 3, 30, 3, 3])
+        XCTAssertEqual(entries.map(\.isLegendary), [false, true, false, true, true, true, true],
+                       "the Azure Flute's targets: legendaries and mythicals, breedable or not")
     }
 
     func testRESTFallbackUsesTheSameLegendaryRule() throws {
@@ -41,6 +43,7 @@ final class LegendaryHatchWeightTests: XCTestCase {
         XCTAssertEqual(mew?.hatchWeight, 3)
         XCTAssertEqual(phione?.hatchWeight, 30)
         XCTAssertEqual(noGroups?.hatchWeight, 3, "a response without egg_groups must not restore the capture_rate weight")
+        XCTAssertEqual([mew, phione, noGroups].map { $0?.isLegendary }, [true, true, true])
         XCTAssertNil(PokeAPIClient.baseSpecies(id: 2, species: try species(45, mythical: false, eggGroups: ["monster"],
                                                                          evolvesFrom: "bulbasaur")),
                      "an evolved species is still not a hatch candidate")
@@ -50,6 +53,9 @@ final class LegendaryHatchWeightTests: XCTestCase {
     /// app keeps rolling Mew at weight 45 until it expires.
     func testBaseIndexCachedWithoutTheFlagIsNotReused() {
         XCTAssertThrowsError(try JSONDecoder().decode(BaseSpecies.self, from: Data(#"{"id":151,"captureRate":45}"#.utf8)))
+        // Nor one cached before `isLegendary`, or the Azure Flute keeps boosting Beldum until it expires.
+        XCTAssertThrowsError(try JSONDecoder().decode(BaseSpecies.self, from: Data(
+            #"{"id":374,"captureRate":3,"isUnbreedableLegendary":false}"#.utf8)))
         let current = BaseSpecies(id: 151, captureRate: 45, isUnbreedableLegendary: true)
         let roundTrip = try? JSONDecoder().decode(BaseSpecies.self, from: JSONEncoder().encode(current))
         XCTAssertEqual(roundTrip?.hatchWeight, 3)
