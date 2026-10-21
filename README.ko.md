@@ -190,7 +190,7 @@ Pi는 모델 여러 개를 세션 로그 하나로 흘려보낼 수 있습니다
 
 | 유물 | 스프라이트 | 해금 조건 | 효과 |
 | :--- | :---: | :--- | :--- |
-| **천공의피리** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/azure-flute.png" width="28" height="28" alt="천공의피리"> | 같은 전설의 포켓몬을 두 번 졸업 | 전설의 포켓몬이 4배 자주 태어나요 |
+| **천공의피리** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/azure-flute.png" width="28" height="28" alt="천공의피리"> | 같은 전설의 포켓몬을 두 번 졸업 | 전설의 포켓몬이 2배 자주 태어나요 |
 | **은빛날개** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/silver-wing.png" width="28" height="28" alt="은빛날개"> | 프리져, 썬더, 파이어 | 알 부화에 필요한 토큰이 절반으로 줄어요 |
 | **오래된해도** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/old-sea-map.png" width="28" height="28" alt="오래된해도"> | 뮤츠, 뮤 | 토큰 사용으로 얻는 성장 +20% |
 | **투명한방울** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/clear-bell.png" width="28" height="28" alt="투명한방울"> | 라이코, 앤테이, 스이쿤 | 희귀 등급 포켓몬이 25% 더 빨리 성장해요 |

@@ -190,7 +190,7 @@ Pi は複数のモデルを一つのセッションログに流すことがあ�
 
 | どうぐ | スプライト | 解放条件 | 効果 |
 | :--- | :---: | :--- | :--- |
-| **てんかいのふえ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/azure-flute.png" width="28" height="28" alt="てんかいのふえ"> | 同じ伝説のポケモンを2回卒業 | 伝説のポケモンが4倍生まれやすくなる |
+| **てんかいのふえ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/azure-flute.png" width="28" height="28" alt="てんかいのふえ"> | 同じ伝説のポケモンを2回卒業 | 伝説のポケモンが2倍生まれやすくなる |
 | **ぎんいろのはね** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/silver-wing.png" width="28" height="28" alt="ぎんいろのはね"> | フリーザー、サンダー、ファイヤー | タマゴの孵化に必要なトークンが半分になる |
 | **ふるびたかいず** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/old-sea-map.png" width="28" height="28" alt="ふるびたかいず"> | ミュウツー、ミュウ | トークン消費による成長 +20% |
 | **とうめいなスズ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/clear-bell.png" width="28" height="28" alt="とうめいなスズ"> | ライコウ、エンテイ、スイクン | レアのポケモンが25%早く育つ |
