@@ -20,6 +20,28 @@ actor SpriteStore {
             .appendingPathComponent("PokeTokenBar/sprites")
         self.directory = d
         try? FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
+        Self.purgeMisattributedFormSprites(in: d)
+    }
+
+    /// Species whose form sprites were cached from another Pokémon's file: their catalogue entries took the form
+    /// id as a variety id, so Icy Snow Vivillon loaded Hoopa Unbound's 10086 and Yellow Flabébé Alolan Vulpix's
+    /// 10103. Those 40 forms have no variety of their own.
+    nonisolated static let misattributedFormSpecies = [666, 669, 670, 671, 676]
+
+    /// Deletes the cached files of those forms once, so they download again from the right file. A marker
+    /// file records that the purge ran; a sprite cached afterwards stays.
+    nonisolated static func purgeMisattributedFormSprites(in directory: URL) {
+        let fm = FileManager.default
+        let marker = directory.appendingPathComponent(".form-sprites-v1")
+        guard !fm.fileExists(atPath: marker.path) else { return }
+        let prefixes = misattributedFormSpecies.flatMap { id in
+            PokemonForm.forms(speciesID: id).dropFirst().map { "\(PokemonForm.assetName(speciesID: id, form: $0))-" }
+        }
+        for name in (try? fm.contentsOfDirectory(atPath: directory.path)) ?? []
+        where prefixes.contains(where: name.hasPrefix) {
+            try? fm.removeItem(at: directory.appendingPathComponent(name))
+        }
+        fm.createFile(atPath: marker.path, contents: nil)
     }
 
     /// 기본 폼은 구캐시 키 그대로 유지. 다른 폼은 폼·이로치·애니메이션을 모두 구분한다.
@@ -30,23 +52,31 @@ actor SpriteStore {
     /// PokeAPI names Gen 1-5 form GIFs `201-b`/`492-sky`; Gen 6+ animated GIFs live in `other/showdown/`.
     /// Static PNGs of separate varieties use the variety id (`10006.png`). Cache files keep the `<id>-<form>` name either way.
     static func spriteURL(speciesID: Int, animated: Bool, shiny: Bool, form: PokemonForm? = nil) -> URL {
+        spriteURLs(speciesID: speciesID, animated: animated, shiny: shiny, form: form)[0]
+    }
+
+    /// Every place the sprite may be, most likely first. The Gen 5 folder has no form added after Gen 5 (the
+    /// white-striped Basculin's GIF is its variety `10247` in `showdown/`), and Showdown writes a form without
+    /// its hyphens (`666-highplains`, `676-lareine`).
+    static func spriteURLs(speciesID: Int, animated: Bool, shiny: Bool, form: PokemonForm? = nil) -> [URL] {
         let color = shiny ? "shiny/" : ""
         let isRegional = form?.rawValue.contains("alola") == true
                       || form?.rawValue.contains("galar") == true
                       || form?.rawValue.contains("hisui") == true
                       || form?.rawValue.contains("paldea") == true
-        if animated {
-            if speciesID <= 649, !isRegional {
-                let name = PokemonForm.assetName(speciesID: speciesID, form: form)
-                return URL(string: "\(base)/versions/generation-v/black-white/animated/\(color)\(name).gif")!
-            } else {
-                let name = PokemonForm.staticAssetName(speciesID: speciesID, form: form)
-                return URL(string: "\(base)/other/showdown/\(color)\(name).gif")!
-            }
-        } else {
-            let name = PokemonForm.staticAssetName(speciesID: speciesID, form: form)
-            return URL(string: "\(base)/\(color)\(name).png")!
+        let name = PokemonForm.staticAssetName(speciesID: speciesID, form: form)
+        guard animated else { return [URL(string: "\(base)/\(color)\(name).png")!] }
+        var names: [String] = []
+        if speciesID <= 649, !isRegional {
+            names.append("versions/generation-v/black-white/animated/\(color)\(PokemonForm.assetName(speciesID: speciesID, form: form))")
         }
+        names.append("other/showdown/\(color)\(name)")
+        let asset = PokemonForm.assetName(speciesID: speciesID, form: form)
+        if asset == name, let form, asset != String(speciesID) {
+            names.append("other/showdown/\(color)\(speciesID)-\(form.rawValue.replacingOccurrences(of: "-", with: ""))")
+        }
+        var seen = Set<String>()
+        return names.filter { seen.insert($0).inserted }.map { URL(string: "\(base)/\($0).gif")! }
     }
 
     func data(speciesID: Int, animated: Bool, shiny: Bool = false, form: PokemonForm? = nil) async -> Data? {
@@ -57,9 +87,12 @@ actor SpriteStore {
         let file = directory.appendingPathComponent("\(key).\(ext)")
         if let d = try? Data(contentsOf: file) { remember(key, d); return d }
         if failedKeys.contains(key) { return nil }
-        let url = Self.spriteURL(speciesID: speciesID, animated: animated, shiny: shiny, form: form)
-        guard let (d, resp) = try? await URLSession.shared.data(from: url) else { return nil }
-        guard (resp as? HTTPURLResponse)?.statusCode == 200, !d.isEmpty else {
+        var found: Data?
+        for url in Self.spriteURLs(speciesID: speciesID, animated: animated, shiny: shiny, form: form) {
+            guard let (d, resp) = try? await URLSession.shared.data(from: url) else { return nil }
+            if (resp as? HTTPURLResponse)?.statusCode == 200, !d.isEmpty { found = d; break }
+        }
+        guard let d = found else {
             failedKeys.insert(key)
             return nil
         }

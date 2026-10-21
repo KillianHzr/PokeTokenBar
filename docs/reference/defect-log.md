@@ -422,6 +422,20 @@ read_when:
 - **A shared text must hold for every case it covers.** All 18 badges said "Pokémon weak to this type grow
   faster", but no type is weak to Normal: `PokemonTypeData.isWeak` makes the Plain Badge boost Normal-type
   Pokémon, which the Bag and Achievements never said. Guard: `testPlainBadgeBoostsNormalTypesAndSaysSo`.
+- **A URL that answers 200 is not the right sprite.** The Gen 6 catalogue gave the 19 Vivillon patterns, the
+  Flabébé, Floette and Florges flowers and the 9 Furfrou trims a `pokemonID` equal to their `formID`. These forms
+  have no PokéAPI variety, and those ids belong to other Pokémon: Icy Snow Vivillon showed Hoopa Unbound (10086),
+  a Furfrou trim Zygarde Complete, Yellow Flabébé Alolan Vulpix (10103). The opt-in sprite check only asked
+  whether each URL existed, and it did. The 40 entries lose their `pokemonID` (sprites under `666-icy-snow` and
+  the like), a one-time purge deletes their files already cached, and the opt-in check now asks PokéAPI which
+  Pokémon each form belongs to. Sweep: the 341 catalogued forms against `pokemon-form`, only these 40 were wrong.
+  Guards: `testEveryFormHasItsOwnSpriteFile` (no variety id equal to the form id, no two forms on one file),
+  `testMisattributedFormSpritesArePurgedOnce` and `testEveryCataloguedSpriteExistsOnPokeAPI` (`PTB_PARITY=1`).
+- **One folder per sprite kind is a guess about where every form lives.** The Gen 5 animated folder has no form
+  added later (white-striped Basculin), and Showdown writes forms without hyphens (`666-highplains`,
+  `676-lareine`), so those GIFs were never found and the static PNG showed instead. `SpriteStore.spriteURLs`
+  lists every place a sprite may be and the loader tries them in turn. Guard:
+  `testAnimatedSpritesTryEveryPlaceTheFormMayBe`.
 
 ## 외부 로그·사용량 소스
 

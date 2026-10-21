@@ -139,20 +139,100 @@ final class PokemonFormTests: XCTestCase {
         XCTAssertEqual(SpriteStore.cacheKey(speciesID: 413, animated: false, shiny: false, form: sandy), "413-sandy-s")
     }
 
-    /// Opt-in: every catalogued sprite, normal and shiny, still exists on PokéAPI.
+    /// The 40 Vivillon, Flabébé, Floette, Florges and Furfrou forms took their form id as a variety id, so
+    /// their sprites were other Pokémon's: Icy Snow Vivillon was Hoopa Unbound (10086), Yellow Flabébé shared
+    /// Alolan Vulpix's 10103. A variety id is never the form id, and no two forms share a sprite file.
+    func testEveryFormHasItsOwnSpriteFile() {
+        var names: [String: String] = [:]
+        for (speciesID, entries) in PokemonForm.catalog {
+            for entry in entries {
+                if let pokemonID = entry.pokemonID {
+                    XCTAssertNotEqual(pokemonID, entry.formID, "#\(speciesID) \(entry.form.rawValue)")
+                }
+                let name = PokemonForm.staticAssetName(speciesID: speciesID, form: entry.form)
+                XCTAssertNil(names[name], "\(name): #\(speciesID) \(entry.form.rawValue) and \(names[name] ?? "")")
+                names[name] = "#\(speciesID) \(entry.form.rawValue)"
+            }
+        }
+        let base = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon"
+        XCTAssertEqual(SpriteStore.spriteURL(speciesID: 666, animated: false, shiny: false,
+                                             form: PokemonForm("icy-snow")).absoluteString, "\(base)/666-icy-snow.png")
+        XCTAssertEqual(SpriteStore.spriteURL(speciesID: 669, animated: false, shiny: true,
+                                             form: PokemonForm("yellow")).absoluteString, "\(base)/shiny/669-yellow.png")
+    }
+
+    /// The Gen 5 folder has no form added later, and Showdown drops a form's hyphens: the loader tries each place.
+    func testAnimatedSpritesTryEveryPlaceTheFormMayBe() {
+        let base = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon"
+        func urls(_ id: Int, _ form: String, shiny: Bool = false) -> [String] {
+            SpriteStore.spriteURLs(speciesID: id, animated: true, shiny: shiny, form: PokemonForm(form)).map(\.absoluteString)
+        }
+        XCTAssertEqual(urls(550, "white-striped-female"),
+                       ["\(base)/versions/generation-v/black-white/animated/550-white-striped.gif",
+                        "\(base)/other/showdown/10247.gif"])
+        XCTAssertEqual(urls(666, "high-plains", shiny: true),
+                       ["\(base)/other/showdown/shiny/666-high-plains.gif", "\(base)/other/showdown/shiny/666-highplains.gif"])
+        XCTAssertEqual(urls(676, "la-reine").last, "\(base)/other/showdown/676-lareine.gif")
+        XCTAssertEqual(urls(669, "yellow"), ["\(base)/other/showdown/669-yellow.gif"])
+        XCTAssertEqual(urls(37, "alola"), ["\(base)/other/showdown/10103.gif"])
+        XCTAssertEqual(SpriteStore.spriteURLs(speciesID: 25, animated: true, shiny: false).map(\.absoluteString),
+                       ["\(base)/versions/generation-v/black-white/animated/25.gif", "\(base)/other/showdown/25.gif"])
+    }
+
+    /// Sprites cached while those 40 forms pointed at other Pokémon are deleted once; later ones stay.
+    func testMisattributedFormSpritesArePurgedOnce() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("form-purge-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let stale = ["666-icy-snow-s.png", "666-icy-snow-sha.gif", "669-yellow-a.gif", "676-la-reine-shs.png"]
+        let kept = ["666-s.png", "666-a.gif", "37-alola-s.png", "10086-s.png", "item-gracidea.png"]
+        for name in stale + kept { try Data("x".utf8).write(to: directory.appendingPathComponent(name)) }
+        _ = SpriteStore(directory: directory)
+        let left = Set(try FileManager.default.contentsOfDirectory(atPath: directory.path))
+        XCTAssertTrue(left.isDisjoint(with: stale), "\(left)")
+        XCTAssertTrue(Set(kept).isSubset(of: left), "\(left)")
+
+        try Data("x".utf8).write(to: directory.appendingPathComponent("666-icy-snow-s.png"))
+        _ = SpriteStore(directory: directory)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: directory.appendingPathComponent("666-icy-snow-s.png").path),
+                      "a sprite cached after the purge stays")
+    }
+
+    /// Opt-in: every catalogued form is its own Pokémon on PokéAPI (`pokemon-form` → `pokemon`), and its sprites
+    /// exist there: the PNG always, the GIF unless PokéAPI has none for the form (the loader shows the PNG).
     func testEveryCataloguedSpriteExistsOnPokeAPI() async throws {
         guard ProcessInfo.processInfo.environment["PTB_PARITY"] == "1" else {
             throw XCTSkip("set PTB_PARITY=1 to check PokéAPI sprites for every form")
         }
-        for (speciesID, forms) in PokemonForm.catalog.mapValues({ $0.map(\.form) }) {
-            for form in forms {
+        // PokéAPI has no GIF for these: Ogerpon and Terapagos in any form, and three single forms.
+        let withoutGIF: Set<String> = ["666-icy-snow", "1012-artisan", "1013-masterpiece", "1017", "1017-wellspring",
+                                       "1017-hearthflame", "1017-cornerstone", "1024", "1024-terastal", "1024-stellar"]
+        func exists(_ url: URL) async throws -> Bool {
+            var request = URLRequest(url: url)
+            request.httpMethod = "HEAD"
+            let (_, response) = try await URLSession.shared.data(for: request)
+            return (response as? HTTPURLResponse)?.statusCode == 200
+        }
+        for (speciesID, entries) in PokemonForm.catalog {
+            for entry in entries {
+                let label = "#\(speciesID) \(entry.form.rawValue)"
+                let formURL = try XCTUnwrap(URL(string: "https://pokeapi.co/api/v2/pokemon-form/\(entry.formID)/"))
+                let (data, _) = try await URLSession.shared.data(from: formURL)
+                let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+                let pokemon = ((json?["pokemon"] as? [String: Any])?["url"] as? String)?
+                    .split(separator: "/").last.flatMap { Int($0) }
+                XCTAssertEqual(pokemon, entry.pokemonID ?? speciesID, label)
                 for animated in [false, true] {
                     for shiny in [false, true] {
-                        var request = URLRequest(url: SpriteStore.spriteURL(speciesID: speciesID, animated: animated,
-                                                                            shiny: shiny, form: form))
-                        request.httpMethod = "HEAD"
-                        let (_, response) = try await URLSession.shared.data(for: request)
-                        XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200, "\(request.url!)")
+                        var found = false
+                        for url in SpriteStore.spriteURLs(speciesID: speciesID, animated: animated, shiny: shiny,
+                                                          form: entry.form) where try await exists(url) {
+                            found = true
+                            break
+                        }
+                        let asset = PokemonForm.assetName(speciesID: speciesID, form: entry.form)
+                        if animated, withoutGIF.contains(asset) { continue }
+                        XCTAssertTrue(found, "\(label) animated: \(animated) shiny: \(shiny)")
                     }
                 }
             }
