@@ -91,6 +91,23 @@ final class PlateFormTests: XCTestCase {
         XCTAssertTrue(graduated.isLineComplete(baseID: 493), "an egg has nothing more to give")
     }
 
+    /// A Plate changes the look, not the individual: a shiny Arceus is shiny in each form it has, in the form
+    /// picker and for the menu-bar representative alike.
+    func testAShinyArceusIsShinyInEveryFormItHas() throws {
+        var st = state(plates: [.water])
+        st.dex = [DexEntry(baseID: 493, finalID: 493, chainOrder: [493], rarity: .legendary, caughtAt: date,
+                           isShiny: true, form: normal)]
+        let s = try store(st)
+        XCTAssertEqual(s.formSpecies(speciesID: 493).map(\.isShiny), [true, true])
+        XCTAssertTrue(s.state.ownsShinySpecies(493, form: water))
+        XCTAssertFalse(s.state.ownsShinySpecies(493, form: ice), "no Ice Plate")
+        XCTAssertTrue(s.setRepresentativeSpeciesID(493, form: water))
+        XCTAssertEqual(s.representativeSubject.isShiny, true)
+
+        let plain = state(plates: [.water], arceus: normal)
+        XCTAssertFalse(plain.ownsShinySpecies(493, form: water))
+    }
+
     func testClaimingABadgeAnnouncesItsArceusForm() throws {
         var st = state(arceus: normal)
         st.dex += badgeRegion(.fire)

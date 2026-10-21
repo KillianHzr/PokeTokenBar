@@ -641,16 +641,15 @@ final class CompanionStore {
         let owned = collectedDexSpecies(groupForms: true).filter { $0.id == speciesID }
         guard PokemonForm.unlockSource(speciesID: speciesID) != nil,
               let species = collectedDexSpecies(groupForms: false).first(where: { $0.id == speciesID }) else { return owned }
-        // Arceus shows each form its Plates unlock, like the ones it hatched in: same individuals, same shininess.
-        let ownedForms = Set(owned.compactMap(\.form))
-        let unlocked = state.collectedForms(speciesID: speciesID).subtracting(ownedForms).map { form in
-            var entry = species
-            entry.form = form
-            return entry
-        }
-        return (owned + unlocked).sorted {
-            PokemonForm.sortOrder($0.form, speciesID: speciesID) < PokemonForm.sortOrder($1.form, speciesID: speciesID)
-        }
+        // Arceus shows every form it has, hatched or unlocked by a Plate, with the same individuals and so the same
+        // shininess (`CompanionState.ownsShinySpecies` agrees).
+        return state.collectedForms(speciesID: speciesID)
+            .sorted { PokemonForm.sortOrder($0, speciesID: speciesID) < PokemonForm.sortOrder($1, speciesID: speciesID) }
+            .map { form in
+                var entry = species
+                entry.form = form
+                return entry
+            }
     }
 
     private func collectedDexSpecies(groupForms: Bool) -> [DexSpecies] {
@@ -2281,13 +2280,9 @@ final class CompanionStore {
 
     /// Draws only for lines with forms, so other species keep their random sequence.
     private func rollLineForm(baseID: Int, type: PokemonType? = nil) -> PokemonForm? {
-        var forms = PokemonForm.rollableLineForms(baseID: baseID)
+        // The same forms the Oval Charm's species filter reads (`CompanionState.lineMissesForms`).
+        var forms = CompanionState.eggForms(baseID: baseID, type: type)
         guard !forms.isEmpty else { return nil }
-        // A stone egg only rolls the forms that hatch with its type: no Alolan Vulpix (Ice) from a Fire Stone.
-        if let type {
-            let typed = forms.filter { PokemonTypeData.types(forSpeciesID: baseID, form: $0).contains(type) }
-            if !typed.isEmpty { forms = typed }
-        }
         let collected = state.collectedLineForms(baseID: baseID)
         // The Oval Charm hatches a form still missing when the line has one.
         if ownsOvalCharm {
@@ -2581,7 +2576,7 @@ final class CompanionStore {
             // The Oval Charm, reward for every species: eggs only bring lines with a form still missing, while
             // some are left within the egg's guarantees.
             if ownsOvalCharm {
-                let missing = index.filter { state.lineMissesForms(baseID: $0.id) }
+                let missing = index.filter { state.lineMissesForms(baseID: $0.id, type: typeGuarantee) }
                 if !missing.isEmpty { index = missing }
             }
             let weights = index.map(hatchWeight(for:))
