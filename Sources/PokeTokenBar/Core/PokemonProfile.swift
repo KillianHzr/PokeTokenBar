@@ -1,6 +1,7 @@
 import Foundation
 
-/// Immutable PokéAPI combat metadata for one default Pokémon form.
+/// Immutable PokéAPI combat metadata for one variety: a species' default form, or a form of its own
+/// (`PokemonForm.detailsID`). `speciesID` is the species either way.
 /// This is cached separately from the user's save; only rolled individual values live in `PokemonProfile`.
 struct PokemonDetails: Codable, Sendable, Equatable {
     let speciesID: Int
@@ -34,6 +35,11 @@ struct PokemonDetails: Codable, Sendable, Equatable {
             return ["scarlet-violet"]
         }
     }
+
+    /// Games of the regional and other varieties, in release order: where a form missing from its species' games
+    /// learns its moves.
+    static let formVersionGroups = ["ultra-sun-ultra-moon", "sun-moon", "sword-shield", "legends-arceus",
+                                    "brilliant-diamond-and-shining-pearl", "scarlet-violet"]
 
     func levelUpMoves(through level: Int) -> [PokemonKnownMove] {
         var bestByName: [String: Int] = [:]

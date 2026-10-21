@@ -393,7 +393,7 @@ final class PokemonProfileMigrationTests: XCTestCase {
             atPath: dir.appendingPathComponent("companion-state.pre-profiles-v1.json").path))
 
         let instanceID = try XCTUnwrap(store.state.active?.profile?.instanceID)
-        await store.loadPokemonDetails(speciesID: 79)
+        await store.loadPokemonDetails(speciesID: 79, form: nil)
         XCTAssertEqual(store.state.active?.profile?.instanceID, instanceID)
         XCTAssertEqual(store.state.active?.profile?.gender, .female)
         XCTAssertEqual(store.state.active?.profile?.abilityName, "oblivious")
@@ -475,7 +475,7 @@ final class PokemonProfileMigrationTests: XCTestCase {
         let store = CompanionStore(provider: ProfileLineProvider(), detailProvider: ProfileDetailProvider(),
                                    fileURL: file)
 
-        await store.loadPokemonDetails(speciesID: 79)
+        await store.loadPokemonDetails(speciesID: 79, form: nil)
 
         XCTAssertEqual(store.state.dex.compactMap(\.profile?.gender), [.female, .female])
         XCTAssertTrue(store.state.dex.allSatisfy { $0.profile?.abilityName == "oblivious" })
@@ -489,7 +489,7 @@ final class PokemonProfileMigrationTests: XCTestCase {
         let store = CompanionStore(provider: ProfileLineProvider(),
                                    detailProvider: ThrowingProfileDetailProvider(), fileURL: file)
 
-        await store.loadPokemonDetails(speciesID: 79)
+        await store.loadPokemonDetails(speciesID: 79, form: nil)
 
         XCTAssertTrue(store.failedPokemonDetailIDs.contains(79))
         XCTAssertFalse(store.loadingPokemonDetailIDs.contains(79))

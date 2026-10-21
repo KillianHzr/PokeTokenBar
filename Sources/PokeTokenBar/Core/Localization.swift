@@ -1159,11 +1159,6 @@ struct L {
     var normalForm: String {
         t("노말폼", "Normal Form", "ノーマルフォルム", "Forma Normal", "Forme Normale", "Forma Normal", "Normalform", "Обычная форма")
     }
-    var defaultFormDataNote: String {
-        t("정보는 기본 폼 기준", "Data uses the default form", "データは基本フォルムに基づきます",
-          "Datos de la forma predeterminada", "Données de la forme par défaut", "Dados da forma padrão",
-          "Daten der Standardform", "Данные обычной формы")
-    }
     /// Title of the short message that shows forms just unlocked (Arceus's Plates).
     func formUnlockTitle(count: Int) -> String {
         count == 1

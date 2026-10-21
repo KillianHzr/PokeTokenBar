@@ -53,9 +53,20 @@ final class SilvallyMemoryTests: XCTestCase {
         XCTAssertEqual(state(extra: [entry(649, released: true)]).silvallyMemoryTypes, [.bug, .steel],
                        "a released Genesect still counts")
         XCTAssertEqual(state(extra: [entry(794, rarity: .rare)]).silvallyMemoryTypes, [], "an Ultra Beast is no legendary")
-        XCTAssertEqual(state(extra: [entry(493, form: fire)]).silvallyMemoryTypes, [],
-                       "Arceus gives its default type, Normal, whatever its Plate")
+        XCTAssertEqual(state(extra: [entry(493, form: fire), entry(773, chain: [772, 773], form: fire)]).silvallyMemoryTypes,
+                       [], "Arceus and Silvally give their Normal type, even saved in a type form")
         XCTAssertEqual(state(legendaries: everyMemory).silvallyMemoryTypes, Set(PokemonForm.memoryTypes))
+    }
+
+    /// A legendary in a form of its own gives that form's types: a Galarian Moltres is Dark and Flying, a Crowned
+    /// Zacian Fairy and Steel. Before, every form gave its default form's types.
+    func testALegendaryFormGivesItsOwnTypes() {
+        XCTAssertEqual(state(extra: [entry(146, form: PokemonForm("galar"))]).silvallyMemoryTypes, [.dark, .flying])
+        XCTAssertEqual(state(extra: [entry(888, form: PokemonForm("crowned"))]).silvallyMemoryTypes, [.fairy, .steel])
+        var raising = state()
+        raising.active = MonState(baseID: 144, pathIDs: [144], stageIndex: 0, usedAtStage: 0, rarity: .legendary,
+                                  totalForms: 1, form: PokemonForm("galar"))
+        XCTAssertEqual(raising.silvallyMemoryTypes, [.psychic, .flying], "the Galarian Articuno being raised")
     }
 
     func testMemoriesUnlockSilvallysFormsOnceSilvallyIsInThePokedex() throws {
@@ -79,14 +90,25 @@ final class SilvallyMemoryTests: XCTestCase {
                        "the first Silvally takes the Memories already won")
     }
 
-    /// A legendary hatched with Silvally in the Pokédex announces its Memories; without Silvally, nothing.
+    /// A legendary hatched with Silvally in the Pokédex announces the Memories of its form; without Silvally, nothing.
     func testHatchingALegendaryAnnouncesItsMemoriesOnlyWithSilvally() async throws {
-        let s = try store(state(extra: [entry(773, chain: [772, 773], form: normal)]))
-        await s.hatch(baseID: 146)
-        XCTAssertEqual(s.formUnlockNews, [.init(speciesID: 773, forms: [flying, fire])])
+        func hatched(_ form: PokemonForm, silvally: Bool) async throws -> CompanionStore {
+            var st = state(extra: silvally ? [entry(773, chain: [772, 773], form: normal)] : [])
+            st.pendingHatchID = 146
+            st.pendingForm = form
+            let s = try store(st)
+            s.setEggUsageForTesting(s.eggHatchThreshold)
+            await s.hatchIfNeeded()
+            XCTAssertEqual(s.state.active?.form, form)
+            return s
+        }
+        let kanto = try await hatched(normal, silvally: true)
+        XCTAssertEqual(kanto.formUnlockNews, [.init(speciesID: 773, forms: [flying, fire])])
+        let galar = try await hatched(PokemonForm("galar"), silvally: true)
+        XCTAssertEqual(galar.formUnlockNews, [.init(speciesID: 773, forms: [flying, PokemonForm("dark")])],
+                       "a Galarian Moltres is Dark and Flying")
 
-        let alone = try store(state())
-        await alone.hatch(baseID: 146)
+        let alone = try await hatched(normal, silvally: false)
         XCTAssertEqual(alone.formUnlockNews, [], "no Silvally yet: the Memories wait, silent")
         XCTAssertEqual(alone.state.silvallyMemoryTypes, [.fire, .flying])
     }

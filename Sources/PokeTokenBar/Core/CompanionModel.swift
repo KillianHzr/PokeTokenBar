@@ -1190,13 +1190,20 @@ struct CompanionState: Codable, Sendable {
     }
 
     /// Types of the legendary and mythical Pokémon in the Pokédex, released ones included: one of Silvally's
-    /// Memories each. A species gives the types of its default form, so Arceus's Plates give no Memory.
+    /// Memories each. Each gives the types of its own form, like everywhere else: a Galarian Moltres gives Dark and
+    /// Flying, not Fire. Arceus's Plates and Silvally's Memories change a look, not the individual: they give their
+    /// Normal type, even for one hatched in a type form before Plates and Memories existed.
     var silvallyMemoryTypes: Set<PokemonType> {
-        var species = Set(dex.filter { $0.rarity == .legendary }.flatMap(\.chainOrder))
-        if let active, active.rarity == .legendary {
-            species.formUnion(active.pathIDs.prefix(active.stageIndex + 1))
+        var individuals = dex.filter { $0.rarity == .legendary }.flatMap { entry in
+            entry.chainOrder.map { (speciesID: $0, form: entry.form) }
         }
-        return Set(species.flatMap { PokemonTypeData.types(forSpeciesID: $0) }).subtracting([.normal])
+        if let active, active.rarity == .legendary {
+            individuals += active.pathIDs.prefix(active.stageIndex + 1).map { (speciesID: $0, form: active.form) }
+        }
+        return Set(individuals.flatMap { individual in
+            let form = PokemonForm.unlockSource(speciesID: individual.speciesID) == nil ? individual.form : nil
+            return PokemonTypeData.types(forSpeciesID: individual.speciesID, form: form)
+        }).subtracting([.normal])
     }
 
     /// Forms a species unlocks through items (Arceus's Plates, Silvally's Memories), whether or not it is in the

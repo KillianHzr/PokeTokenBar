@@ -1226,6 +1226,13 @@ enum PokemonTypeData {
         PokemonForm.formID(speciesID: id, form: form).flatMap { formTypes[$0] } ?? types(forSpeciesID: id)
     }
 
+    /// The type names to show for one individual. PokéAPI's species data is the default form's (a Kanto Vulpix
+    /// for an Alolan one), so it is only the fallback for a species missing from the local table.
+    static func typeNames(speciesID: Int, form: PokemonForm?, fallback: [String]?) -> [String] {
+        let local = types(forSpeciesID: speciesID, form: form)
+        return local.isEmpty ? fallback ?? [] : local.map(\.rawValue)
+    }
+
     /// Whether a base species hatches with this type: in the given form, or, before the form is rolled,
     /// in at least one form its line can roll (an Alolan Vulpix makes Vulpix an Ice candidate).
     static func canHatch(baseID: Int, as type: PokemonType, form: PokemonForm? = nil) -> Bool {
@@ -1471,18 +1478,19 @@ enum PokemonTypeData {
     }
 
     /// 공격 타입이 특정 종 ID(복합 타입 반영)에 가하는 최종 상성 배율.
-    static func effectiveness(attacking: PokemonType, speciesID: Int) -> Double {
-        let defTypes = types(forSpeciesID: speciesID)
+    /// The form is required: an Alolan Vulpix (Ice) is weak to Fire, a Kanto one to Water.
+    static func effectiveness(attacking: PokemonType, speciesID: Int, form: PokemonForm?) -> Double {
+        let defTypes = types(forSpeciesID: speciesID, form: form)
         guard !defTypes.isEmpty else { return 1.0 }
         return defTypes.reduce(1.0) { $0 * effectiveness(attacking: attacking, defending: $1) }
     }
 
     /// 특정 종이 공격 타입(배지)에 약한지(상성 배율 > 1.0) 판정.
     /// 노말 배지는 방어 상성 약점이 존재하지 않으므로 노말 타입 종에게 상시 유효.
-    static func isWeak(to attacking: PokemonType, speciesID: Int) -> Bool {
+    static func isWeak(to attacking: PokemonType, speciesID: Int, form: PokemonForm?) -> Bool {
         if attacking == .normal {
-            return types(forSpeciesID: speciesID).contains(.normal)
+            return types(forSpeciesID: speciesID, form: form).contains(.normal)
         }
-        return effectiveness(attacking: attacking, speciesID: speciesID) > 1.0
+        return effectiveness(attacking: attacking, speciesID: speciesID, form: form) > 1.0
     }
 }
