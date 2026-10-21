@@ -120,31 +120,43 @@ struct AchievementsView: View {
             }
 
             if unclaimed > 0 {
-                // Says where the rewards wait and takes you there: each tap opens the next section with one.
-                Button {
-                    if let next = Self.nextCategoryWithRewards(after: selectedCategory, store) {
-                        selectedCategory = next
+                HStack(spacing: 8) {
+                    // Says where the rewards wait and takes you there: each tap opens the next section with one.
+                    Button {
+                        if let next = Self.nextCategoryWithRewards(after: selectedCategory, store) {
+                            selectedCategory = next
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "gift.fill")
+                                .font(.caption)
+                            Text(l.readyToClaimSummary(unclaimed, readyBreakdown(l)))
+                                .font(.caption.weight(.semibold))
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Spacer(minLength: 4)
+                            Image(systemName: "chevron.right")
+                                .font(.caption2.weight(.bold))
+                        }
+                        .contentShape(Rectangle())
                     }
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "gift.fill")
-                            .font(.caption)
-                        Text(l.readyToClaimSummary(unclaimed, readyBreakdown(l)))
-                            .font(.caption.weight(.semibold))
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Spacer(minLength: 4)
-                        Image(systemName: "chevron.right")
-                            .font(.caption2.weight(.bold))
-                    }
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Color.accentColor)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .contentShape(RoundedRectangle(cornerRadius: 8))
+                    .buttonStyle(.plain)
+
+                    Button(l.claimAll) { store.claimAllAchievements() }
+                        .buttonStyle(.plain)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Color.accentColor)
+                        .lineLimit(1)
+                        .fixedSize()
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Capsule().fill(.white))
                 }
-                .buttonStyle(.plain)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.accentColor)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
             }
         }
     }

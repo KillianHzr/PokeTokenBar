@@ -1873,6 +1873,17 @@ struct L {
         return t(counted, counted, counted, counted, counted, counted, counted, achievements)
     }
     var claim: String { t("받기", "Claim", "受け取る", "Reclamar", "Récupérer", "Resgatar", "Einlösen", "Забрать") }
+    var claimAll: String { t("모두 받기", "Claim all", "すべて受け取る", "Reclamar todo", "Tout récupérer", "Resgatar tudo", "Alle einlösen", "Забрать всё") }
+    func notifAchievementsClaimedBody(_ count: Int) -> String {
+        t("업적 보상 \(count)개를 가방에 받았어요.",
+          "\(count) achievement rewards added to your bag.",
+          "実績の報酬 \(count) 件をバッグに受け取りました。",
+          "¡\(count) recompensas de logros añadidas a tu bolsa!",
+          "\(count) récompenses de succès ajoutées à votre sac.",
+          "\(count) recompensas de conquistas adicionadas à sua bolsa.",
+          "\(count) Erfolgsbelohnungen wurden deinem Beutel hinzugefügt.",
+          "Наград за успехи получено: \(count).")
+    }
     var claimed: String { t("획득함", "Claimed", "獲得済み", "Conseguido", "Obtenu", "Resgatado", "Erhalten", "Получено") }
     /// Claim banner: how many rewards are ready and in which sections ("Stones 1, Artifacts 2").
     func readyToClaimSummary(_ count: Int, _ sections: String) -> String {
