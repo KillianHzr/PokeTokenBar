@@ -1080,6 +1080,17 @@ struct L {
         t("중복 (이미 졸업)", "Repeat (already graduated)", "ダブり (卒業済み)", "Repetido (ya graduado)",
           "Doublon (déjà diplômé)", "Repetido (já formado)", "Wiederholung (schon abgeschlossen)", "Повтор (уже выпущен)")
     }
+    /// Under the growth factors: the bonuses add up, and the repeat boost multiplies the result.
+    func bonusSumNote(_ percent: String, repeatMultiplier m: String?) -> String {
+        let sum = t("보너스는 더해져요: +\(percent)%.", "Bonuses add up: +\(percent)%.", "ボーナスは足し算です: +\(percent)%。",
+                    "Las bonificaciones se suman: +\(percent)%.", "Les bonus s'additionnent : +\(percent)%.",
+                    "Os bônus se somam: +\(percent)%.", "Boni addieren sich: +\(percent)%.", "Бонусы складываются: +\(percent)%.")
+        guard let m else { return sum }
+        return sum + t(" 중복이 전체를 \(m)배로 해요.", " The repeat boost then multiplies it all by \(m).",
+                       "ダブりで全体が\(m)倍になります。", " El repetido lo multiplica todo por \(m).",
+                       " Le doublon multiplie ensuite le tout par \(m).", " O repetido multiplica tudo por \(m).",
+                       " Die Wiederholung multipliziert dann alles mit \(m).", " Повтор затем умножает всё на \(m).")
+    }
     var bonusNoGrowth: String {
         t("이 포켓몬에 적용되는 성장 보너스가 없어요.", "No growth bonus applies to this Pokémon.",
           "このポケモンにかかる成長ボーナスはありません。", "Ninguna bonificación de crecimiento se aplica a este Pokémon.",

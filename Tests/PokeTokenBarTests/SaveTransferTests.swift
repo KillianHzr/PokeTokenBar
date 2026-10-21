@@ -553,7 +553,9 @@ final class SaveTransferTests: XCTestCase {
         let progress: Set<String> = ["usedSinceInstall", "spentTokens", "eggUsage", "eggTier",
                                      "eggTypeGuarantee", "pendingHatchID", "pendingForm", "active",
                                      "representativeSpeciesID", "representativeForm", "dex",
-                                     "collectedFinals", "inventory", "claimedAchievements"]
+                                     "collectedFinals", "inventory", "claimedAchievements",
+                                     // The rule `active.usedAtStage` was earned under: it travels with that value.
+                                     "additiveGrowthBonuses"]
         let deviceLedger: Set<String> = ["installBaselineSet", "claimedTodayTokensByProvider", "lastDate"]
         let accountLedger: Set<String> = ["candyGrantTier", "candyWindowEpoch", "candyFeatureSeeded"]
         let devicePreference: Set<String> = ["language"]
