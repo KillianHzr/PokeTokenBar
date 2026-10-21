@@ -2,7 +2,7 @@ import XCTest
 @testable import PokeTokenBar
 
 private struct CharmProvider: PokeProviding {
-    let entries = [BaseSpecies(id: 1, captureRate: 45), BaseSpecies(id: 201, captureRate: 225)]
+    var entries = [BaseSpecies(id: 1, captureRate: 45), BaseSpecies(id: 201, captureRate: 225)]
     func line(baseSpeciesID: Int) async throws -> EvoLine {
         EvoLine(baseID: baseSpeciesID, tree: EvoNode(speciesID: baseSpeciesID, children: []), rarity: .common, names: [:])
     }
@@ -30,16 +30,20 @@ final class CompletionCharmTests: XCTestCase {
         }
     }
 
-    private func store(dex: [DexEntry], items: [ItemKind] = [], seed: UInt64 = 1) throws -> CompanionStore {
+    private func store(dex: [DexEntry], items: [ItemKind] = [], seed: UInt64 = 1,
+                       bases: [BaseSpecies]? = nil, eggType: PokemonType? = nil) throws -> CompanionStore {
         var st = CompanionState()
         st.installBaselineSet = true
         st.lastDate = "2026-10-21"
         st.dex = dex
+        st.eggTypeGuarantee = eggType
         st.inventory = Dictionary(uniqueKeysWithValues: items.map { ($0.rawValue, 1) })
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("charms-\(UUID().uuidString).json")
         try JSONEncoder().encode(st).write(to: url)
         addTeardownBlock { try? FileManager.default.removeItem(at: url) }
-        let s = CompanionStore(provider: CharmProvider(), clock: { self.date }, fileURL: url, rng: SeededRNG(seed: seed))
+        var provider = CharmProvider()
+        if let bases { provider.entries = bases }
+        let s = CompanionStore(provider: provider, clock: { self.date }, fileURL: url, rng: SeededRNG(seed: seed))
         s.setEggUsageForTesting(s.eggHatchThreshold)
         return s
     }
@@ -71,6 +75,20 @@ final class CompletionCharmTests: XCTestCase {
             if plain.state.active?.baseID == 1 { bulbasaurWithout = true }
         }
         XCTAssertTrue(bulbasaurWithout, "without the charm Bulbasaur still hatches")
+    }
+
+    /// A Fire Stone egg only rolls Fire forms: Vulpix, whose Kanto line is complete and whose missing form is the
+    /// Alolan one (Ice), is not picked; Growlithe, whose missing Hisuian form is Fire, is, and hatches in it.
+    func testTheOvalCharmFollowsAStoneEggsType() async throws {
+        let bases = [BaseSpecies(id: 37, captureRate: 190), BaseSpecies(id: 58, captureRate: 190)]
+        let normal = PokemonForm("normal")
+        let dex = [entry(37, normal), entry(38, normal), entry(58, normal), entry(59, normal)]
+        for seed: UInt64 in 1...16 {
+            let s = try store(dex: dex, items: [.ovalCharm], seed: seed, bases: bases, eggType: .fire)
+            await s.hatchIfNeeded()
+            XCTAssertEqual(s.state.active?.baseID, 58, "seed \(seed)")
+            XCTAssertEqual(s.state.active?.form, PokemonForm("hisui"), "seed \(seed)")
+        }
     }
 
     /// With nothing left to bring, eggs roll as usual.
