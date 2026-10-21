@@ -222,28 +222,28 @@ Pi は複数のモデルを一つのセッションログに流すことがあ�
 
 ### ジムバッジ
 
-カントー(第1世代)のあるタイプのポケモンをすべて図鑑に登録すると、そのタイプのバッジが解放され、**実績**タブで受け取れます。カントーにはあくタイプのポケモンがいないため、あくのバッジはジョウトのあくタイプを求めます。持っている間、そのタイプに弱いポケモンが20%早く育ちます。複数のバッジに弱いポケモンには効果が重なります。
+すべてのバッジには**世代ごとに1つの地方**があります。その地方のそのタイプのポケモンをすべて図鑑に登録すると完成し、**実績**タブで受け取れます(バッジのカードごとに9つの地方が受け取り済み・受け取り可能・進行中で表示されます)。受け取った地方ごとに、そのタイプに弱いポケモンが2.5%早く育つので、9つの地方すべてで22.5%です。カントーにはあくタイプのポケモンがいないため、あくのバッジは8つの地方(20%)です。複数のバッジに弱いポケモンには効果が重なります。地方ができる前に受け取ったバッジはカントー(あくはジョウト)の地方として数えられます。
 
-| バッジ | スプライト | タイプ | 解放条件 | 効果を受けるポケモン |
+| バッジ | スプライト | タイプ | 地方ごとのポケモン | 効果を受けるポケモン |
 | :--- | :---: | :---: | :--- | :--- |
-| **グレーバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/1.png" width="28" height="28" alt="グレーバッジ"> | いわ | カントーのいわタイプのポケモン11匹すべて | ほのお、こおり、ひこう、むし |
-| **ブルーバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/2.png" width="28" height="28" alt="ブルーバッジ"> | みず | カントーのみずタイプのポケモン32匹すべて | ほのお、じめん、いわ |
-| **オレンジバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/3.png" width="28" height="28" alt="オレンジバッジ"> | でんき | カントーのでんきタイプのポケモン9匹すべて | みず、ひこう |
-| **レインボーバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/4.png" width="28" height="28" alt="レインボーバッジ"> | くさ | カントーのくさタイプのポケモン14匹すべて | みず、じめん、いわ |
-| **ピンクバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/5.png" width="28" height="28" alt="ピンクバッジ"> | どく | カントーのどくタイプのポケモン33匹すべて | くさ、フェアリー |
-| **ゴールドバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/6.png" width="28" height="28" alt="ゴールドバッジ"> | エスパー | カントーのエスパータイプのポケモン14匹すべて | かくとう、どく |
-| **クリムゾンバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/7.png" width="28" height="28" alt="クリムゾンバッジ"> | ほのお | カントーのほのおタイプのポケモン12匹すべて | くさ、こおり、むし、はがね |
-| **グリーンバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/8.png" width="28" height="28" alt="グリーンバッジ"> | じめん | カントーのじめんタイプのポケモン14匹すべて | ほのお、でんき、どく、いわ、はがね |
-| **ウイングバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/9.png" width="28" height="28" alt="ウイングバッジ"> | ひこう | カントーのひこうタイプのポケモン19匹すべて | くさ、かくとう、むし |
-| **インセクトバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/10.png" width="28" height="28" alt="インセクトバッジ"> | むし | カントーのむしタイプのポケモン12匹すべて | くさ、エスパー、あく |
-| **レギュラーバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/11.png" width="28" height="28" alt="レギュラーバッジ"> | ノーマル | カントーのノーマルタイプのポケモン22匹すべて | ノーマルタイプ(ノーマルに弱いタイプがないため) |
-| **ファントムバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/12.png" width="28" height="28" alt="ファントムバッジ"> | ゴースト | カントーのゴーストタイプのポケモン3匹すべて | エスパー、ゴースト |
-| **ショックバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/13.png" width="28" height="28" alt="ショックバッジ"> | かくとう | カントーのかくとうタイプのポケモン8匹すべて | ノーマル、こおり、いわ、あく、はがね |
-| **スチールバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/14.png" width="28" height="28" alt="スチールバッジ"> | はがね | カントーのはがねタイプのポケモン2匹すべて | こおり、いわ、フェアリー |
-| **アイスバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/15.png" width="28" height="28" alt="アイスバッジ"> | こおり | カントーのこおりタイプのポケモン5匹すべて | くさ、じめん、ひこう、ドラゴン |
-| **ライジングバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/16.png" width="28" height="28" alt="ライジングバッジ"> | ドラゴン | カントーのドラゴンタイプのポケモン3匹すべて | ドラゴン |
-| **あくバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/59.png" width="28" height="28" alt="あくバッジ"> | あく | ジョウトのあくタイプのポケモン6匹すべて | エスパー、ゴースト |
-| **フェアリーバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/48.png" width="28" height="28" alt="フェアリーバッジ"> | フェアリー | カントーのフェアリータイプのポケモン5匹すべて | かくとう、ドラゴン、あく |
+| **グレーバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/1.png" width="28" height="28" alt="グレーバッジ"> | いわ | カントー 11 · ジョウト 7 · ホウエン 12 · シンオウ 7 · イッシュ 10 · カロス 8 · アローラ 5 · ガラル 6 · パルデア 8 | ほのお、こおり、ひこう、むし |
+| **ブルーバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/2.png" width="28" height="28" alt="ブルーバッジ"> | みず | カントー 32 · ジョウト 18 · ホウエン 28 · シンオウ 14 · イッシュ 17 · カロス 9 · アローラ 13 · ガラル 11 · パルデア 12 | ほのお、じめん、いわ |
+| **オレンジバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/3.png" width="28" height="28" alt="オレンジバッジ"> | でんき | カントー 9 · ジョウト 8 · ホウエン 4 · シンオウ 7 · イッシュ 11 · カロス 3 · アローラ 6 · ガラル 9 · パルデア 12 | みず、ひこう |
+| **レインボーバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/4.png" width="28" height="28" alt="レインボーバッジ"> | くさ | カントー 14 · ジョウト 10 · ホウエン 17 · シンオウ 14 · イッシュ 20 · カロス 9 · アローラ 13 · ガラル 10 · パルデア 20 | みず、じめん、いわ |
+| **ピンクバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/5.png" width="28" height="28" alt="ピンクバッジ"> | どく | カントー 33 · ジョウト 4 · ホウエン 5 · シンオウ 8 · イッシュ 7 · カロス 2 · アローラ 7 · ガラル 5 · パルデア 12 | くさ、フェアリー |
+| **ゴールドバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/6.png" width="28" height="28" alt="ゴールドバッジ"> | エスパー | カントー 14 · ジョウト 10 · ホウエン 20 · シンオウ 9 · イッシュ 15 · カロス 6 · アローラ 8 · ガラル 9 · パルデア 11 | かくとう、どく |
+| **クリムゾンバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/7.png" width="28" height="28" alt="クリムゾンバッジ"> | ほのお | カントー 12 · ジョウト 10 · ホウエン 6 · シンオウ 5 · イッシュ 15 · カロス 8 · アローラ 8 · ガラル 7 · パルデア 10 | くさ、こおり、むし、はがね |
+| **グリーンバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/8.png" width="28" height="28" alt="グリーンバッジ"> | じめん | カントー 14 · ジョウト 10 · ホウエン 13 · シンオウ 10 · イッシュ 11 · カロス 2 · アローラ 4 · ガラル 4 · パルデア 7 | ほのお、でんき、どく、いわ、はがね |
+| **ウイングバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/9.png" width="28" height="28" alt="ウイングバッジ"> | ひこう | カントー 19 · ジョウト 19 · ホウエン 12 · シンオウ 14 · イッシュ 18 · カロス 8 · アローラ 8 · ガラル 5 · パルデア 6 | くさ、かくとう、むし |
+| **インセクトバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/10.png" width="28" height="28" alt="インセクトバッジ"> | むし | カントー 12 · ジョウト 10 · ホウエン 14 · シンオウ 9 · イッシュ 18 · カロス 3 · アローラ 11 · ガラル 8 · パルデア 7 | くさ、エスパー、あく |
+| **レギュラーバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/11.png" width="28" height="28" alt="レギュラーバッジ"> | ノーマル | カントー 22 · ジョウト 15 · ホウエン 18 · シンオウ 17 · イッシュ 17 · カロス 8 · アローラ 12 · ガラル 8 · パルデア 14 | ノーマルタイプ(ノーマルに弱いタイプがないため) |
+| **ファントムバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/12.png" width="28" height="28" alt="ファントムバッジ"> | ゴースト | カントー 3 · ジョウト 1 · ホウエン 6 · シンオウ 8 · イッシュ 9 · カロス 8 · アローラ 8 · ガラル 9 · パルデア 13 | エスパー、ゴースト |
+| **ショックバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/13.png" width="28" height="28" alt="ショックバッジ"> | かくとう | カントー 8 · ジョウト 3 · ホウエン 7 · シンオウ 7 · イッシュ 15 · カロス 4 · アローラ 10 · ガラル 8 · パルデア 11 | ノーマル、こおり、いわ、あく、はがね |
+| **スチールバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/14.png" width="28" height="28" alt="スチールバッジ"> | はがね | カントー 2 · ジョウト 4 · ホウエン 9 · シンオウ 10 · イッシュ 12 · カロス 4 · アローラ 8 · ガラル 5 · パルデア 11 | こおり、いわ、フェアリー |
+| **アイスバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/15.png" width="28" height="28" alt="アイスバッジ"> | こおり | カントー 5 · ジョウト 5 · ホウエン 6 · シンオウ 6 · イッシュ 7 · カロス 4 · アローラ 1 · ガラル 7 · パルデア 7 | くさ、じめん、ひこう、ドラゴン |
+| **ライジングバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/16.png" width="28" height="28" alt="ライジングバッジ"> | ドラゴン | カントー 3 · ジョウト 1 · ホウエン 9 · シンオウ 6 · イッシュ 10 · カロス 9 · アローラ 7 · ガラル 11 · パルデア 14 | ドラゴン |
+| **あくバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/59.png" width="28" height="28" alt="あくバッジ"> | あく | ジョウト 6 · ホウエン 10 · シンオウ 7 · イッシュ 16 · カロス 5 · アローラ 2 · ガラル 10 · パルデア 13 | エスパー、ゴースト |
+| **フェアリーバッジ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/48.png" width="28" height="28" alt="フェアリーバッジ"> | フェアリー | カントー 5 · ジョウト 8 · ホウエン 5 · シンオウ 2 · イッシュ 2 · カロス 13 · アローラ 12 · ガラル 8 · パルデア 9 | かくとう、ドラゴン、あく |
 
 ## そのほかにも
 

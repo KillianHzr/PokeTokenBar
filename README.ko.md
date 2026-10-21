@@ -222,28 +222,28 @@ Pi는 모델 여러 개를 세션 로그 하나로 흘려보낼 수 있습니다
 
 ### 체육관 배지
 
-관동(1세대)의 한 타입 포켓몬을 모두 도감에 등록하면 그 타입의 배지가 해금되고, **업적** 탭에서 받을 수 있어요. 관동에는 악타입 포켓몬이 없어서 악 배지는 성도의 악타입 포켓몬을 요구해요. 보유하는 동안 그 타입에 약한 포켓몬이 20% 빨리 자라요. 여러 배지에 약한 포켓몬은 효과가 누적돼요.
+모든 배지에는 **세대마다 하나의 지방**이 있어요. 그 지방의 해당 타입 포켓몬을 모두 도감에 등록하면 완성되고, **업적** 탭에서 받을 수 있어요(배지 카드마다 9개 지방이 받음·받기 가능·진행 중으로 표시돼요). 받은 지방마다 그 타입에 약한 포켓몬이 2.5% 빨리 자라서, 9개 지방을 모두 받으면 22.5%예요. 관동에는 악타입 포켓몬이 없어서 악 배지는 8개 지방(20%)이에요. 여러 배지에 약한 포켓몬은 효과가 누적돼요. 지방이 생기기 전에 받은 배지는 관동 지방(악은 성도)으로 인정돼요.
 
-| 배지 | 스프라이트 | 타입 | 해금 조건 | 효과를 받는 포켓몬 |
+| 배지 | 스프라이트 | 타입 | 지방별 포켓몬 | 효과를 받는 포켓몬 |
 | :--- | :---: | :---: | :--- | :--- |
-| **회색배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/1.png" width="28" height="28" alt="회색배지"> | 바위 | 관동 바위타입 포켓몬 11마리 전부 | 불꽃, 얼음, 비행, 벌레 |
-| **블루배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/2.png" width="28" height="28" alt="블루배지"> | 물 | 관동 물타입 포켓몬 32마리 전부 | 불꽃, 땅, 바위 |
-| **오렌지배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/3.png" width="28" height="28" alt="오렌지배지"> | 전기 | 관동 전기타입 포켓몬 9마리 전부 | 물, 비행 |
-| **무지개배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/4.png" width="28" height="28" alt="무지개배지"> | 풀 | 관동 풀타입 포켓몬 14마리 전부 | 물, 땅, 바위 |
-| **핑크배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/5.png" width="28" height="28" alt="핑크배지"> | 독 | 관동 독타입 포켓몬 33마리 전부 | 풀, 페어리 |
-| **골드배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/6.png" width="28" height="28" alt="골드배지"> | 에스퍼 | 관동 에스퍼타입 포켓몬 14마리 전부 | 격투, 독 |
-| **진홍배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/7.png" width="28" height="28" alt="진홍배지"> | 불꽃 | 관동 불꽃타입 포켓몬 12마리 전부 | 풀, 얼음, 벌레, 강철 |
-| **그린배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/8.png" width="28" height="28" alt="그린배지"> | 땅 | 관동 땅타입 포켓몬 14마리 전부 | 불꽃, 전기, 독, 바위, 강철 |
-| **윙배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/9.png" width="28" height="28" alt="윙배지"> | 비행 | 관동 비행타입 포켓몬 19마리 전부 | 풀, 격투, 벌레 |
-| **인섹트배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/10.png" width="28" height="28" alt="인섹트배지"> | 벌레 | 관동 벌레타입 포켓몬 12마리 전부 | 풀, 에스퍼, 악 |
-| **레귤러배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/11.png" width="28" height="28" alt="레귤러배지"> | 노말 | 관동 노말타입 포켓몬 22마리 전부 | 노말타입 (노말에 약한 타입이 없어서) |
-| **팬텀배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/12.png" width="28" height="28" alt="팬텀배지"> | 고스트 | 관동 고스트타입 포켓몬 3마리 전부 | 에스퍼, 고스트 |
-| **쇼크배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/13.png" width="28" height="28" alt="쇼크배지"> | 격투 | 관동 격투타입 포켓몬 8마리 전부 | 노말, 얼음, 바위, 악, 강철 |
-| **스틸배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/14.png" width="28" height="28" alt="스틸배지"> | 강철 | 관동 강철타입 포켓몬 2마리 전부 | 얼음, 바위, 페어리 |
-| **아이스배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/15.png" width="28" height="28" alt="아이스배지"> | 얼음 | 관동 얼음타입 포켓몬 5마리 전부 | 풀, 땅, 비행, 드래곤 |
-| **라이징배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/16.png" width="28" height="28" alt="라이징배지"> | 드래곤 | 관동 드래곤타입 포켓몬 3마리 전부 | 드래곤 |
-| **악배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/59.png" width="28" height="28" alt="악배지"> | 악 | 성도 악타입 포켓몬 6마리 전부 | 에스퍼, 고스트 |
-| **페어리배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/48.png" width="28" height="28" alt="페어리배지"> | 페어리 | 관동 페어리타입 포켓몬 5마리 전부 | 격투, 드래곤, 악 |
+| **회색배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/1.png" width="28" height="28" alt="회색배지"> | 바위 | 관동 11 · 성도 7 · 호연 12 · 신오 7 · 하나 10 · 칼로스 8 · 알로라 5 · 가라르 6 · 팔데아 8 | 불꽃, 얼음, 비행, 벌레 |
+| **블루배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/2.png" width="28" height="28" alt="블루배지"> | 물 | 관동 32 · 성도 18 · 호연 28 · 신오 14 · 하나 17 · 칼로스 9 · 알로라 13 · 가라르 11 · 팔데아 12 | 불꽃, 땅, 바위 |
+| **오렌지배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/3.png" width="28" height="28" alt="오렌지배지"> | 전기 | 관동 9 · 성도 8 · 호연 4 · 신오 7 · 하나 11 · 칼로스 3 · 알로라 6 · 가라르 9 · 팔데아 12 | 물, 비행 |
+| **무지개배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/4.png" width="28" height="28" alt="무지개배지"> | 풀 | 관동 14 · 성도 10 · 호연 17 · 신오 14 · 하나 20 · 칼로스 9 · 알로라 13 · 가라르 10 · 팔데아 20 | 물, 땅, 바위 |
+| **핑크배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/5.png" width="28" height="28" alt="핑크배지"> | 독 | 관동 33 · 성도 4 · 호연 5 · 신오 8 · 하나 7 · 칼로스 2 · 알로라 7 · 가라르 5 · 팔데아 12 | 풀, 페어리 |
+| **골드배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/6.png" width="28" height="28" alt="골드배지"> | 에스퍼 | 관동 14 · 성도 10 · 호연 20 · 신오 9 · 하나 15 · 칼로스 6 · 알로라 8 · 가라르 9 · 팔데아 11 | 격투, 독 |
+| **진홍배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/7.png" width="28" height="28" alt="진홍배지"> | 불꽃 | 관동 12 · 성도 10 · 호연 6 · 신오 5 · 하나 15 · 칼로스 8 · 알로라 8 · 가라르 7 · 팔데아 10 | 풀, 얼음, 벌레, 강철 |
+| **그린배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/8.png" width="28" height="28" alt="그린배지"> | 땅 | 관동 14 · 성도 10 · 호연 13 · 신오 10 · 하나 11 · 칼로스 2 · 알로라 4 · 가라르 4 · 팔데아 7 | 불꽃, 전기, 독, 바위, 강철 |
+| **윙배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/9.png" width="28" height="28" alt="윙배지"> | 비행 | 관동 19 · 성도 19 · 호연 12 · 신오 14 · 하나 18 · 칼로스 8 · 알로라 8 · 가라르 5 · 팔데아 6 | 풀, 격투, 벌레 |
+| **인섹트배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/10.png" width="28" height="28" alt="인섹트배지"> | 벌레 | 관동 12 · 성도 10 · 호연 14 · 신오 9 · 하나 18 · 칼로스 3 · 알로라 11 · 가라르 8 · 팔데아 7 | 풀, 에스퍼, 악 |
+| **레귤러배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/11.png" width="28" height="28" alt="레귤러배지"> | 노말 | 관동 22 · 성도 15 · 호연 18 · 신오 17 · 하나 17 · 칼로스 8 · 알로라 12 · 가라르 8 · 팔데아 14 | 노말타입 (노말에 약한 타입이 없어서) |
+| **팬텀배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/12.png" width="28" height="28" alt="팬텀배지"> | 고스트 | 관동 3 · 성도 1 · 호연 6 · 신오 8 · 하나 9 · 칼로스 8 · 알로라 8 · 가라르 9 · 팔데아 13 | 에스퍼, 고스트 |
+| **쇼크배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/13.png" width="28" height="28" alt="쇼크배지"> | 격투 | 관동 8 · 성도 3 · 호연 7 · 신오 7 · 하나 15 · 칼로스 4 · 알로라 10 · 가라르 8 · 팔데아 11 | 노말, 얼음, 바위, 악, 강철 |
+| **스틸배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/14.png" width="28" height="28" alt="스틸배지"> | 강철 | 관동 2 · 성도 4 · 호연 9 · 신오 10 · 하나 12 · 칼로스 4 · 알로라 8 · 가라르 5 · 팔데아 11 | 얼음, 바위, 페어리 |
+| **아이스배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/15.png" width="28" height="28" alt="아이스배지"> | 얼음 | 관동 5 · 성도 5 · 호연 6 · 신오 6 · 하나 7 · 칼로스 4 · 알로라 1 · 가라르 7 · 팔데아 7 | 풀, 땅, 비행, 드래곤 |
+| **라이징배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/16.png" width="28" height="28" alt="라이징배지"> | 드래곤 | 관동 3 · 성도 1 · 호연 9 · 신오 6 · 하나 10 · 칼로스 9 · 알로라 7 · 가라르 11 · 팔데아 14 | 드래곤 |
+| **악배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/59.png" width="28" height="28" alt="악배지"> | 악 | 성도 6 · 호연 10 · 신오 7 · 하나 16 · 칼로스 5 · 알로라 2 · 가라르 10 · 팔데아 13 | 에스퍼, 고스트 |
+| **페어리배지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/48.png" width="28" height="28" alt="페어리배지"> | 페어리 | 관동 5 · 성도 8 · 호연 5 · 신오 2 · 하나 2 · 칼로스 13 · 알로라 12 · 가라르 8 · 팔데아 9 | 격투, 드래곤, 악 |
 
 ## 이 밖에도
 
