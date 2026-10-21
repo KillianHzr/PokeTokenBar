@@ -2227,6 +2227,7 @@ private struct DexEntryRow: View {
 
 /// The short message of forms just unlocked (Arceus's Plates): their sprites, gone after a few seconds or a
 /// click. Several claims at once ("Claim all") share one message.
+@MainActor
 struct FormUnlockToast: View {
     let store: CompanionStore
 
