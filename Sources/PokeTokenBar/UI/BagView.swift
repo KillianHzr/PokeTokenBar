@@ -5,22 +5,79 @@ import SwiftUI
 struct BagView: View {
     let store: CompanionStore
     let nav: PopoverNavigation
+    @State private var section: Section = .items
+
+    /// The Bag's sections, as the Achievements tabs: items (Shop, candies, stones), gym badges, artifacts. The
+    /// 18 badges used to fill the list and hide the other items.
+    enum Section: CaseIterable, Hashable {
+        case items, badges, artifacts
+
+        static func of(_ kind: ItemKind) -> Section {
+            switch kind.collectorGroup {
+            case .gymBadges?: return .badges
+            case .legendaryArtifacts?: return .artifacts
+            case .evolutionStones?, nil: return .items
+            }
+        }
+    }
 
     var body: some View {
-        if store.ownedItems.isEmpty {
+        let owned = store.ownedItems
+        if owned.isEmpty {
             emptyState
         } else {
+            let sections = Section.allCases.filter { s in owned.contains { Section.of($0.kind) == s } }
+            let current = sections.contains(section) ? section : sections[0]
+            let items = owned.filter { Section.of($0.kind) == current }
             // 고정 높이 — 컬렉션과 동일(팝오버 재오픈 시 fitting size 축소 방지).
-            ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(store.ownedItems, id: \.kind) { item in
-                        ItemCard(store: store, nav: nav, kind: item.kind, count: item.count)
+            VStack(alignment: .leading, spacing: 8) {
+                if sections.count > 1 {
+                    Picker("", selection: Binding(get: { current }, set: { section = $0 })) {
+                        ForEach(sections, id: \.self) { s in
+                            Text("\(title(s)) \(owned.filter { Section.of($0.kind) == s }.count)").tag(s)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                }
+                ScrollView {
+                    if current == .badges {
+                        badgeGrid(items.map(\.kind))
+                    } else {
+                        VStack(alignment: .leading, spacing: 8) {
+                            ForEach(items, id: \.kind) { item in
+                                ItemCard(store: store, nav: nav, kind: item.kind, count: item.count)
+                            }
+                        }
+                        .reservesScrollerLane()
                     }
                 }
-                .reservesScrollerLane()
             }
             .frame(height: 520)
         }
+    }
+
+    private func title(_ section: Section) -> String {
+        switch section {
+        case .items: return store.l.bagItemsTitle
+        case .badges: return store.l.collectorGroupTitle(.gymBadges)
+        case .artifacts: return store.l.collectorGroupTitle(.legendaryArtifacts)
+        }
+    }
+
+    /// The badges in two columns: icon, name and bonus so far, with the effect said once above them.
+    private func badgeGrid(_ kinds: [ItemKind]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(store.l.bagBadgesHint)
+                .font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)], spacing: 6) {
+                ForEach(kinds, id: \.self) { kind in
+                    BadgeTile(store: store, kind: kind)
+                }
+            }
+        }
+        .reservesScrollerLane()
     }
 
     /// 빈 가방 — 움직이는 잠만보(143) + 안내(특정 아이템명 미언급, 확장 대비).
@@ -226,5 +283,35 @@ private struct ItemCard: View {
         confirming = false
         performUse()
         nav.tab = .home
+    }
+}
+
+/// One gym badge in the Bag's grid: its icon, name and growth bonus so far out of its maximum.
+@MainActor
+private struct BadgeTile: View {
+    let store: CompanionStore
+    let kind: ItemKind
+
+    var body: some View {
+        let l = store.l
+        let type = kind.badgeType
+        let claimed = type.map(store.claimedBadgeTierCount) ?? 0
+        let regions = type.map { PokemonTypeData.badgeGenerations(for: $0).count } ?? 0
+        HStack(spacing: 6) {
+            ItemIconView(kind: kind, size: 24)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(l.itemName(kind)).font(.caption.weight(.semibold)).lineLimit(1).minimumScaleFactor(0.75)
+                Text(l.badgeBonus(Double(claimed) * CollectorBonus.badgeRegionBonus * 100,
+                                  of: Double(regions) * CollectorBonus.badgeRegionBonus * 100))
+                    .font(.caption2.weight(.semibold)).monospacedDigit()
+                    .foregroundStyle(claimed > 0 ? .green : .secondary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.secondary.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .accessibilityElement(children: .combine)
     }
 }
