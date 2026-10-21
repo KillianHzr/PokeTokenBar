@@ -192,6 +192,8 @@ final class CompanionStore {
         if ownsPrisonBottle, mon.hasNewForm { speed *= CollectorBonus.prisonBottleNewForm }
         if ownsSparklingStone, types.contains(.fairy) { speed *= CollectorBonus.sparklingStoneFairy }
         if ownsSunFlute, mon.stageIndex >= mon.totalForms - 1 { speed *= CollectorBonus.sunFluteFinalStage }
+        // A Pokémon that does not evolve: its whole planned line is one species (a Regi, Tauros, a Kanto Farfetch'd).
+        if ownsRelicStatue, mon.totalForms == 1 { speed *= CollectorBonus.relicStatueNoEvolution }
         if ownsBeastBall, SpeciesGoal.ultraBeasts.contains(mon.currentID) {
             speed *= CollectorBonus.beastBallUltraBeast
         }
@@ -1398,6 +1400,7 @@ final class CompanionStore {
     var ownsBoosterEnergy: Bool { itemCount(.boosterEnergy) > 0 }
     var ownsTealMask: Bool { itemCount(.tealMask) > 0 }
     var ownsTeraOrb: Bool { itemCount(.teraOrb) > 0 }
+    var ownsRelicStatue: Bool { itemCount(.relicStatue) > 0 }
 
     /// Zygarde Cube: +1% token growth EXP per 25 registered species, up to +40%.
     var zygardeCubeMultiplier: Double {

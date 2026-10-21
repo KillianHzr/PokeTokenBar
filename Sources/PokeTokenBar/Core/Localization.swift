@@ -1534,6 +1534,7 @@ struct L {
         case .boosterEnergy: return t("부스트에너지", "Booster Energy", "ブーストエナジー", "Energía Potenciadora", "Énergie Booster", "Energia Booster", "Energiekapsel", "Бустер-энергия")
         case .tealMask: return t("벽록의가면", "Teal Mask", "みどりのめん", "Máscara Turquesa", "Masque Turquoise", "Máscara Turquesa", "Türkisgrüne Maske", "Бирюзовая маска")
         case .teraOrb: return t("테라스탈오브", "Tera Orb", "テラスタルオーブ", "Orbe Teracristal", "Orbe Téracristal", "Orbe Terastal", "Terakristall-Orb", "Тера-сфера")
+        case .relicStatue: return t("고대의석상", "Relic Statue", "こだいのせきぞう", "Efigie Antigua", "Vieux Santon", "Estátua Antiga", "Alte Statue", "Древняя статуя")
         case .boulderBadge: return t("회색배지", "Boulder Badge", "グレーバッジ", "Medalla Roca", "Badge Roche", "Insígnia da Rocha", "Felsorden", "Каменный значок")
         case .cascadeBadge: return t("블루배지", "Cascade Badge", "ブルーバッジ", "Medalla Cascada", "Badge Cascade", "Insígnia da Cascata", "Quellorden", "Каскадный значок")
         case .thunderBadge: return t("오렌지배지", "Thunder Badge", "オレンジバッジ", "Medalla Trueno", "Badge Foudre", "Insígnia do Trovão", "Donnerorden", "Значок молнии")
@@ -1804,6 +1805,15 @@ struct L {
                      "Enquanto estiver na bolsa, ovos obtidos com uma pedra de evolução chocam 2 vezes mais rápido.",
                      "Lässt im Beutel Eier aus Entwicklungssteinen doppelt so schnell schlüpfen.",
                      "Пока она у вас, яйца, полученные за камень эволюции, вылупляются в 2 раза быстрее.")
+        case .relicStatue:
+            return t("보유하면 진화하지 않는 포켓몬이 25% 더 빨리 성장합니다.",
+                     "While owned, a Pokémon that does not evolve grows 25% faster.",
+                     "持っていると進化しないポケモンが25%早く育ちます。",
+                     "Mientras la tengas, un Pokémon que no evoluciona crece un 25% más rápido.",
+                     "Tant que tu le possèdes, un Pokémon qui n'évolue pas grandit 25% plus vite.",
+                     "Enquanto estiver na bolsa, um Pokémon que não evolui cresce 25% mais rápido.",
+                     "Lässt im Beutel Pokémon, die sich nicht entwickeln, 25% schneller wachsen.",
+                     "Пока она у вас, покемон, который не эволюционирует, растёт на 25% быстрее.")
         case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,
              .soulBadge, .marshBadge, .volcanoBadge, .earthBadge,
              .zephyrBadge, .hiveBadge, .plainBadge, .fogBadge,
@@ -2029,6 +2039,7 @@ struct L {
         return t("\(names) +20% · 적용 중", "\(names) +20% · active", "\(names) +20% · 適用中", "\(names) +20% · activo", "\(names) +20% · actif", "\(names) +20% · ativo", "\(names) +20% · aktiv", "\(names) +20% · активна")
     }
     var teraOrbEffectHint: String { t("돌의 알 부화 ½ · 적용 중", "Stone egg threshold ½ · active", "石のタマゴ必要量½ · 適用中", "Huevo de piedra ½ · activo", "Œuf de pierre ½ · actif", "Ovo de pedra ½ · ativo", "Stein-Ei-Schwelle ½ · aktiv", "Яйцо из камня ½ · активна") }
+    var relicStatueEffectHint: String { t("진화 없음 +25% · 적용 중", "No evolution +25% · active", "進化なし +25% · 適用中", "Sin evolución +25% · activo", "Sans évolution +25% · actif", "Sem evolução +25% · ativo", "Ohne Entwicklung +25% · aktiv", "Без эволюции +25% · активна") }
     // 알 (리롤) — tier = 보증 등급 하한(nil = 보증 없는 기본 알).
     // 이름은 `rarityLabel(r) + " 알"` 식 조합으로 만들지 않는다: 한국어·영어는 맞아떨어져도 일본어에서
     // 조사가 어긋난다(レアのタマゴ vs 자연스러운 レアなタマゴ). 세 언어를 명시 트리플로 적는다.
