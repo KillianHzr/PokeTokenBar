@@ -222,7 +222,7 @@ Only the Azure Flute changes which Pokémon hatch; every other artifact is a pur
 
 ### Gym Badges
 
-Every badge has a **region per generation**: register every Pokémon of its type from that region to complete it, then claim it from the **Achievements** tab (each badge card shows its nine regions: claimed, ready or in progress). Each claimed region makes the Pokémon weak to the badge's type grow 2.5% faster, so a badge with all nine regions gives 22.5%; Dark has no Kanto Pokémon, so its badge has eight regions (20%). Bonuses stack when a Pokémon is weak to several badges. Badges claimed before regions existed count as their Kanto region (Johto for Dark).
+Every badge has a **region per generation**: register every Pokémon of its type from that region to complete it, then claim it from the **Achievements** tab (each badge card shows its nine regions: claimed, ready or in progress). Each claimed region makes the Pokémon weak to the badge's type grow 2.5% faster, so a badge with all nine regions gives 22.5%; Dark has no Kanto Pokémon, so its badge has eight regions (20%). Bonuses stack when a Pokémon is weak to several badges. Badges claimed before regions existed count as their Kanto region (Johto for Dark). Each badge also gives Arceus the Plate of its type: Arceus hatches in its Normal form, and once it is in your Pokédex every badge with a claimed region unlocks the matching form (Fire Arceus with the Volcano Badge), shown under each form in its Pokédex page.
 
 | Badge | Sprite | Type | Pokémon per region | Boosts Pokémon weak to it |
 | :--- | :---: | :---: | :--- | :--- |

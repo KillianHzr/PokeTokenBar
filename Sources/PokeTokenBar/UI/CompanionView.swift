@@ -1772,33 +1772,45 @@ struct PokemonDetailView: View {
         let allForms = PokemonForm.forms(speciesID: species.id)
         let selected = displayedSpecies.form
         let columns = Self.formPickerColumns(formCount: allForms.count)
+        let plates = store.state.plateTypes
         return VStack(alignment: .leading, spacing: 6) {
             Text(store.l.formsCollected(forms.count, of: allForms.count)).font(.callout.weight(.semibold))
+            if PokemonForm.unlockSource(speciesID: species.id) == .gymBadge {
+                Text(store.l.plateFormsHint).font(.caption).foregroundStyle(.secondary)
+            }
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 3), count: columns), spacing: 4) {
                 ForEach(allForms, id: \.self) { form in
                     let owned = forms.first { $0.form == form }
                     let label = PokemonForm.label(speciesID: species.id, form: form, language: store.language) ?? ""
+                    let plate = PokemonForm.unlockType(speciesID: species.id, form: form)
                     Button {
                         selectedForm = form
                         selectedInstanceID = ""
                         selectedShiny = nil
                     } label: {
                         VStack(spacing: 0) {
-                            SpriteView(speciesID: species.id, size: 36,
-                                       shiny: owned?.isShiny == true, form: form)
-                                .frame(width: 36, height: 36)
-                                .overlay(alignment: .topTrailing) {
-                                    if owned?.isShiny == true { Text("✨").font(.system(size: 11)) }
-                                }
-                            // Wide grids hold short labels (letters, types); longer names wrap on two lines.
-                            Text(label).font(.system(size: 11, weight: .semibold))
-                                .multilineTextAlignment(.center)
-                                .lineLimit(columns > 4 ? 1 : 2, reservesSpace: columns <= 4)
-                                .minimumScaleFactor(0.6)
-                                .padding(.horizontal, 2)
+                            VStack(spacing: 0) {
+                                SpriteView(speciesID: species.id, size: 36,
+                                           shiny: owned?.isShiny == true, form: form)
+                                    .frame(width: 36, height: 36)
+                                    .overlay(alignment: .topTrailing) {
+                                        if owned?.isShiny == true { Text("✨").font(.system(size: 11)) }
+                                    }
+                                // Wide grids hold short labels (letters, types); longer names wrap on two lines.
+                                Text(label).font(.system(size: 11, weight: .semibold))
+                                    .multilineTextAlignment(.center)
+                                    .lineLimit(columns > 4 ? 1 : 2, reservesSpace: columns <= 4)
+                                    .minimumScaleFactor(0.6)
+                                    .padding(.horizontal, 2)
+                            }
+                            .opacity(owned == nil ? 0.25 : 1)
+                            // The badge that gives this form's Plate, faded until one of its regions is claimed.
+                            if let plate {
+                                ItemIconView(kind: plate.badgeItem, size: 14)
+                                    .opacity(plates.contains(plate) ? 1 : 0.35)
+                            }
                         }
                         .frame(maxWidth: .infinity).padding(.vertical, 3)
-                        .opacity(owned == nil ? 0.25 : 1)
                         .background(owned.map { store.isRepresentative($0) } == true
                                     ? Color.accentColor.opacity(0.16) : Color.secondary.opacity(0.06),
                                     in: RoundedRectangle(cornerRadius: 6))
@@ -1812,7 +1824,9 @@ struct PokemonDetailView: View {
                     .buttonStyle(.plain)
                     .disabled(owned == nil)
                     .accessibilityLabel("\(species.name) [\(label)]")
-                    .accessibilityValue(owned == nil ? store.l.formNotCollected
+                    .accessibilityValue(owned == nil
+                                        ? [store.l.formNotCollected, plate.map { store.l.itemName($0.badgeItem) }]
+                                            .compactMap { $0 }.joined(separator: ", ")
                                         : (owned?.isShiny == true ? store.l.dexShinyLabel : ""))
                     .accessibilityAddTraits(selected == form ? .isSelected : [])
                 }
@@ -2207,6 +2221,46 @@ private struct DexEntryRow: View {
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .task(id: "\(entry.id)-\(store.language.rawValue)") {
             resolved = await store.dexResolveChainNames(entry)
+        }
+    }
+}
+
+/// The short message of forms just unlocked (Arceus's Plates): their sprites, gone after a few seconds or a
+/// click. Several claims at once ("Claim all") share one message.
+struct FormUnlockToast: View {
+    let store: CompanionStore
+
+    var body: some View {
+        let news = store.formUnlockNews
+        let count = news.reduce(0) { $0 + $1.forms.count }
+        VStack(alignment: .leading, spacing: 6) {
+            Text(store.l.formUnlockTitle(count: count)).font(.callout.weight(.semibold))
+            ForEach(news, id: \.speciesID) { item in
+                LazyVGrid(columns: Array(repeating: GridItem(.fixed(40), spacing: 4), count: min(max(item.forms.count, 1), 7)),
+                          alignment: .leading, spacing: 4) {
+                    ForEach(item.forms, id: \.self) { form in
+                        SpriteView(speciesID: item.speciesID, size: 40, form: form)
+                            .frame(width: 40, height: 40)
+                    }
+                }
+                if !item.isOwned {
+                    Text(store.l.formUnlockWaiting(count: item.forms.count))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.accentColor.opacity(0.6), lineWidth: 1))
+        .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
+        .contentShape(Rectangle())
+        .onTapGesture { store.dismissFormUnlockNews() }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .task(id: news) {
+            try? await Task.sleep(for: .seconds(5))
+            if !Task.isCancelled { store.dismissFormUnlockNews() }
         }
     }
 }

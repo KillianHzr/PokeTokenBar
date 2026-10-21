@@ -1230,7 +1230,7 @@ enum PokemonTypeData {
     /// in at least one form its line can roll (an Alolan Vulpix makes Vulpix an Ice candidate).
     static func canHatch(baseID: Int, as type: PokemonType, form: PokemonForm? = nil) -> Bool {
         if let form { return types(forSpeciesID: baseID, form: form).contains(type) }
-        let forms = PokemonForm.lineForms(baseID: baseID)
+        let forms = PokemonForm.rollableLineForms(baseID: baseID)
         guard !forms.isEmpty else { return types(forSpeciesID: baseID).contains(type) }
         return forms.contains { types(forSpeciesID: baseID, form: $0).contains(type) }
     }
