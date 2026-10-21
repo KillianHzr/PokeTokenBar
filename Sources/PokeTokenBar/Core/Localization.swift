@@ -1054,7 +1054,63 @@ struct L {
     }
     func toNextEvolution(_ amount: String) -> String { t("다음 진화까지 \(amount)", "\(amount) to next evolution", "次の進化まで \(amount)", "\(amount) para la siguiente evolución", "\(amount) avant la prochaine évolution", "\(amount) para a próxima evolução", "\(amount) bis zur nächsten Entwicklung", "Ещё \(amount) до следующей эволюции") }
     func toGraduation(_ amount: String) -> String { t("졸업까지 \(amount)", "\(amount) to graduation", "卒業まで \(amount)", "\(amount) para graduarse", "\(amount) avant le diplôme", "\(amount) para se formar", "\(amount) bis zum Abschied", "Ещё \(amount) до выпуска") }
-    func growthBoost(_ multiplier: Int) -> String { t("\(multiplier)× 성장", "\(multiplier)× growth", "成長 \(multiplier)倍", "Crecimiento ×\(multiplier)", "Croissance ×\(multiplier)", "Crescimento ×\(multiplier)", "\(multiplier)× Wachstum", "Рост ×\(multiplier)") }
+    /// A growth multiplier with at most two decimals, in the language's number format ("1.05", "3,6").
+    func multiplierNumber(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(0...2)).locale(lang.displayLocale))
+    }
+    func growthBoost(_ multiplier: Double) -> String {
+        let m = multiplierNumber(multiplier)
+        return t("\(m)× 성장", "\(m)× growth", "成長 \(m)倍", "Crecimiento ×\(m)", "Croissance ×\(m)", "Crescimento ×\(m)", "\(m)× Wachstum", "Рост ×\(m)")
+    }
+    /// The Home growth badge of a repeat: the word says why it is orange ("Repeat · 5.25× growth").
+    func repeatGrowthBoost(_ multiplier: Double) -> String {
+        let word = t("중복", "Repeat", "ダブり", "Repetido", "Doublon", "Repetido", "Wiederholung", "Повтор")
+        return "\(word) · \(growthBoost(multiplier))"
+    }
+    var bonusTitle: String { t("보너스", "Bonuses", "ボーナス", "Bonificaciones", "Bonus", "Bônus", "Boni", "Бонусы") }
+    var bonusOpen: String {
+        t("모든 보너스 보기", "See all bonuses", "すべてのボーナスを見る", "Ver todas las bonificaciones",
+          "Voir tous les bonus", "Ver todos os bônus", "Alle Boni anzeigen", "Все бонусы")
+    }
+    var bonusCurrent: String {
+        t("지금 포켓몬의 성장", "Current Pokémon's growth", "いまのポケモンの成長", "Crecimiento del Pokémon actual",
+          "Croissance du Pokémon actuel", "Crescimento do Pokémon atual", "Wachstum des aktuellen Pokémon", "Рост текущего покемона")
+    }
+    var bonusRepeat: String {
+        t("중복 (이미 졸업)", "Repeat (already graduated)", "ダブり (卒業済み)", "Repetido (ya graduado)",
+          "Doublon (déjà diplômé)", "Repetido (já formado)", "Wiederholung (schon abgeschlossen)", "Повтор (уже выпущен)")
+    }
+    var bonusNoGrowth: String {
+        t("이 포켓몬에 적용되는 성장 보너스가 없어요.", "No growth bonus applies to this Pokémon.",
+          "このポケモンにかかる成長ボーナスはありません。", "Ninguna bonificación de crecimiento se aplica a este Pokémon.",
+          "Aucun bonus de croissance ne s'applique à ce Pokémon.", "Nenhum bônus de crescimento se aplica a este Pokémon.",
+          "Für dieses Pokémon gilt kein Wachstumsbonus.", "К этому покемону не применяется бонус роста.")
+    }
+    var bonusNoneYet: String {
+        t("아직 보너스가 없어요. 업적을 받아 보세요.", "No bonus yet: claim achievements to get some.",
+          "まだボーナスはありません。実績を受け取りましょう。", "Todavía no tienes bonificaciones: reclama logros para conseguirlas.",
+          "Aucun bonus pour l'instant : récupère des succès pour en obtenir.", "Ainda sem bônus: resgate conquistas para obtê-los.",
+          "Noch keine Boni: hol dir Erfolge, um welche zu bekommen.", "Бонусов пока нет: получайте достижения.")
+    }
+    func bonusThemeTitle(_ theme: BonusTheme) -> String {
+        switch theme {
+        case .growth: return t("성장", "Growth", "成長", "Crecimiento", "Croissance", "Crescimento", "Wachstum", "Рост")
+        case .eggs: return t("알", "Eggs", "タマゴ", "Huevos", "Œufs", "Ovos", "Eier", "Яйца")
+        case .shiny: return t("이로치", "Shiny", "色違い", "Variocolor", "Chromatiques", "Shiny", "Schillernd", "Шайни")
+        case .shop: return shop
+        case .candies: return t("사탕", "Candies", "アメ", "Caramelos", "Bonbons", "Doces", "Bonbons", "Конфеты")
+        }
+    }
+    func eggThresholdSummary(_ current: String, instead base: String) -> String {
+        t("부화: \(base) 대신 \(current)", "Hatching: \(current) instead of \(base)", "孵化: \(base)ではなく\(current)",
+          "Eclosión: \(current) en vez de \(base)", "Éclosion : \(current) au lieu de \(base)", "Eclosão: \(current) em vez de \(base)",
+          "Schlüpfen: \(current) statt \(base)", "Вылупление: \(current) вместо \(base)")
+    }
+    func shinyOddsSummary(_ denominator: Int) -> String {
+        t("이로치: 1/\(denominator)", "Shiny: 1 in \(denominator)", "色違い: 1/\(denominator)", "Variocolor: 1 de \(denominator)",
+          "Chromatique : 1 sur \(denominator)", "Shiny: 1 em \(denominator)", "Schillernd: 1 zu \(denominator)",
+          "Шайни: 1 из \(denominator)")
+    }
     func graduated(_ name: String) -> String {
         t("\(name) 졸업 → 도감에 보존. 새 Token Egg가 도착했어요!",
           "\(name) graduated → saved to the dex. A new Token Egg has arrived!",

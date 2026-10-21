@@ -180,34 +180,75 @@ final class CompanionStore {
         return PokemonBalance.scaled(base, by: growthDifficulty)
     }
 
+    /// One thing that speeds up a Pokémon's growth, and by how much (1.5 = 50% faster).
+    struct GrowthFactor: Equatable, Sendable {
+        enum Source: Equatable, Sendable {
+            /// The repeat boost: this line already graduated in this form.
+            case repeatBoost
+            /// The gym badges the species is weak to, together.
+            case badges
+            case item(ItemKind)
+        }
+        let source: Source
+        let multiplier: Double
+    }
+
     /// How much faster the passive items make this Pokémon grow (1.5 = 50% faster): badges, then the
     /// artifacts that favor a group. They multiply. Only growth changes, never the odds of a hatch.
     func growthSpeedMultiplier(for mon: MonState) -> Double {
-        let types = PokemonTypeData.types(forSpeciesID: mon.currentID, form: mon.form)
-        var speed = typeBadgeSpeedMultiplier(forSpeciesID: mon.currentID)
-        if ownsClearBell, mon.rarity == .rare { speed *= CollectorBonus.clearBellRare }
-        if ownsGriseousOrb, types.contains(where: { $0 == .ghost || $0 == .dragon }) {
-            speed *= CollectorBonus.griseousOrbGhostDragon
-        }
-        if ownsPrisonBottle, mon.hasNewForm { speed *= CollectorBonus.prisonBottleNewForm }
-        if ownsSparklingStone, types.contains(.fairy) { speed *= CollectorBonus.sparklingStoneFairy }
-        if ownsSunFlute, mon.stageIndex >= mon.totalForms - 1 { speed *= CollectorBonus.sunFluteFinalStage }
-        // The Sun Flute's mirror: the first stage of a Pokémon that will evolve.
-        if ownsGracidea, mon.stageIndex == 0, mon.totalForms > 1 { speed *= CollectorBonus.gracideaFirstStage }
-        // A Pokémon that does not evolve: its whole planned line is one species (a Regi, Tauros, a Kanto Farfetch'd).
-        if ownsRelicStatue, mon.totalForms == 1 { speed *= CollectorBonus.relicStatueNoEvolution }
-        if ownsBeastBall, SpeciesGoal.ultraBeasts.contains(mon.currentID) {
-            speed *= CollectorBonus.beastBallUltraBeast
-        }
-        if ownsRustedSword, mon.rarity == .legendary { speed *= CollectorBonus.rustedSwordLegendary }
-        if ownsBoosterEnergy, SpeciesGoal.paradoxes.contains(mon.currentID) {
-            speed *= CollectorBonus.boosterEnergyParadox
-        }
-        if ownsTealMask, types.contains(where: CollectorBonus.tealMaskTypeList.contains) {
-            speed *= CollectorBonus.tealMaskTypes
-        }
-        return speed
+        growthSpeedFactors(for: mon).reduce(1) { $0 * $1.multiplier }
     }
+
+    /// The factors of `growthSpeedMultiplier`, one per badge set or artifact that applies to this Pokémon.
+    func growthSpeedFactors(for mon: MonState) -> [GrowthFactor] {
+        let types = PokemonTypeData.types(forSpeciesID: mon.currentID, form: mon.form)
+        var factors: [GrowthFactor] = []
+        func add(_ kind: ItemKind, _ multiplier: Double, if applies: Bool) {
+            if applies, itemCount(kind) > 0 { factors.append(GrowthFactor(source: .item(kind), multiplier: multiplier)) }
+        }
+        let badges = typeBadgeSpeedMultiplier(forSpeciesID: mon.currentID)
+        if badges > 1 { factors.append(GrowthFactor(source: .badges, multiplier: badges)) }
+        add(.clearBell, CollectorBonus.clearBellRare, if: mon.rarity == .rare)
+        add(.griseousOrb, CollectorBonus.griseousOrbGhostDragon, if: types.contains { $0 == .ghost || $0 == .dragon })
+        add(.prisonBottle, CollectorBonus.prisonBottleNewForm, if: mon.hasNewForm)
+        add(.sparklingStone, CollectorBonus.sparklingStoneFairy, if: types.contains(.fairy))
+        add(.sunFlute, CollectorBonus.sunFluteFinalStage, if: mon.stageIndex >= mon.totalForms - 1)
+        // The Sun Flute's mirror: the first stage of a Pokémon that will evolve.
+        add(.gracidea, CollectorBonus.gracideaFirstStage, if: mon.stageIndex == 0 && mon.totalForms > 1)
+        // A Pokémon that does not evolve: its whole planned line is one species (a Regi, Tauros, a Kanto Farfetch'd).
+        add(.relicStatue, CollectorBonus.relicStatueNoEvolution, if: mon.totalForms == 1)
+        add(.beastBall, CollectorBonus.beastBallUltraBeast, if: SpeciesGoal.ultraBeasts.contains(mon.currentID))
+        add(.rustedSword, CollectorBonus.rustedSwordLegendary, if: mon.rarity == .legendary)
+        add(.boosterEnergy, CollectorBonus.boosterEnergyParadox, if: SpeciesGoal.paradoxes.contains(mon.currentID))
+        add(.tealMask, CollectorBonus.tealMaskTypes, if: types.contains(where: CollectorBonus.tealMaskTypeList.contains))
+        return factors
+    }
+
+    /// Items that add to the tokens counted as growth, in the order `applyUsage` applies them.
+    var tokenGrowthFactors: [GrowthFactor] {
+        var factors: [GrowthFactor] = []
+        if ownsOldSeaMap { factors.append(GrowthFactor(source: .item(.oldSeaMap), multiplier: 1.20)) }
+        if ownsDnaSplicers { factors.append(GrowthFactor(source: .item(.dnaSplicers), multiplier: 1.50)) }
+        if ownsZygardeCube { factors.append(GrowthFactor(source: .item(.zygardeCube), multiplier: zygardeCubeMultiplier)) }
+        return factors
+    }
+
+    /// Everything that speeds up this Pokémon's growth, the repeat boost included: what the Home badge and the
+    /// Bonuses page show. Growth difficulty is a setting, not a bonus, and is left out.
+    func growthFactors(for mon: MonState) -> [GrowthFactor] {
+        var factors: [GrowthFactor] = []
+        if mon.hasGrowthBoost {
+            factors.append(GrowthFactor(source: .repeatBoost, multiplier: Double(PokemonBalance.repeatGrowthMultiplier)))
+        }
+        // Magma Stone speeds up lines already graduated, Liberty Pass the ones never graduated: 25% less to grow.
+        let lineItem: ItemKind = mon.hasGrowthBoost ? .magmaStone : .libertyPass
+        if itemCount(lineItem) > 0 { factors.append(GrowthFactor(source: .item(lineItem), multiplier: 4.0 / 3.0)) }
+        return factors + growthSpeedFactors(for: mon) + tokenGrowthFactors
+    }
+
+    /// The current Pokémon's growth factors and their product; empty and 1 for an egg.
+    var currentGrowthFactors: [GrowthFactor] { state.active.map(growthFactors(for:)) ?? [] }
+    var currentGrowthTotal: Double { currentGrowthFactors.reduce(1) { $0 * $1.multiplier } }
 
     /// 상점 표시·결제에 쓰는 실제 가격 — 기본가 × 상점 난이도. 미판매면 nil.
     func price(of kind: ItemKind) -> Int? {
@@ -1193,9 +1234,7 @@ final class CompanionStore {
         guard state.active != nil else { return }
         var growthDelta = delta
         if isTokenUsage {
-            if ownsOldSeaMap { growthDelta = Int(Double(growthDelta) * 1.20) }
-            if ownsDnaSplicers { growthDelta = Int(Double(growthDelta) * 1.50) }
-            if ownsZygardeCube { growthDelta = Int(Double(growthDelta) * zygardeCubeMultiplier) }
+            for factor in tokenGrowthFactors { growthDelta = Int(Double(growthDelta) * factor.multiplier) }
         }
         state.active!.usedAtStage += growthDelta
         reconcileActiveProfileGrowth()
