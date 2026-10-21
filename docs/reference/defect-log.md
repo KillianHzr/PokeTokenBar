@@ -350,6 +350,13 @@ read_when:
   every catalogued species from its PokéAPI line base (`evolutionRoots`, all 484 evolved species #1 to #1025),
   so a new catalogue entry without its base fails.
 
+- **A test of a shared, bounded cache must not depend on other tests' traffic.** `SpriteImageCacheTests` and
+  `UnownSpriteCacheTests` check that a loaded `NSImage` stays the same object in `SpriteLoader.imageCache`
+  (64 entries). When the Achievements layout test started opening on the Artifacts section, about sixty goal
+  sprites kept loading over the network on CI after it ended, evicted the images under test between two awaits,
+  and failed three identity assertions; locally the sprites come from disk at once, so nothing showed. Both
+  classes now lift the cache limit in `setUp` and restore it in `tearDown`.
+
 ## 외부 로그·사용량 소스
 
 - **토큰 파일 파서는 외부 도구의 실제 직렬화 구조체(중첩 객체)를 반영해야 한다.** `jetski-standalone-oauth-token`

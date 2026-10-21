@@ -509,6 +509,20 @@ final class CollectorItemsTests: XCTestCase {
         XCTAssertTrue(s.canUseStone(.fireStone), "the four other stones stay usable")
     }
 
+    /// The banner's "Claim all" claims every ready achievement at once, and nothing that is still locked.
+    func testClaimAllClaimsEveryReadyAchievementOnce() {
+        let s = store(dex: entries([154, 157, 160]) + entries([144, 145, 146, 380, 381], rarity: .legendary))
+        XCTAssertEqual(s.unclaimedAchievementsCount, 3, "Fire Stone, Silver Wing, Soul Dew")
+        XCTAssertEqual(s.claimAllAchievements(), 3)
+        XCTAssertEqual(s.unclaimedAchievementsCount, 0)
+        XCTAssertEqual(s.itemCount(.fireStone), EvolutionStone.achievementReward)
+        XCTAssertEqual(s.itemCount(.silverWing), 1)
+        XCTAssertEqual(s.itemCount(.soulDew), 1)
+        XCTAssertFalse(s.isClaimed(.waterStone), "a locked achievement stays locked")
+        XCTAssertEqual(s.claimAllAchievements(), 0, "nothing left to claim")
+        XCTAssertEqual(s.itemCount(.fireStone), EvolutionStone.achievementReward, "no second batch")
+    }
+
     func testBagListsConsumablesBeforePassiveItems() {
         let s = store(inventory: [ItemKind.shinyCharm.rawValue: 1, ItemKind.soulDew.rawValue: 1,
                                   ItemKind.fireStone.rawValue: 5, ItemKind.rareCandy.rawValue: 2])
