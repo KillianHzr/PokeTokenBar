@@ -1074,7 +1074,11 @@ struct L {
     /// 포획 로그 = 개체 단위 기록(같은 라인 중복이 정상). 도감 = 종 단위 집계.
     var catchLogTitle: String { t("포획 로그", "Catch log", "捕獲ログ", "Registro de capturas", "Journal de captures", "Registro de capturas", "Fangprotokoll", "Журнал поимок") }
     /// 도감 총계는 개체가 아니라 종 수 — 로그의 dexTotal("총 N마리")과 단위가 다르다.
-    func dexSpeciesTotal(_ n: Int) -> String { t("\(n)종", "\(n) species", "\(n)種", "\(n) especies", "\(n) espèces", "\(n) espécies", "\(n) Spezies", "Видов: \(n)") }
+    /// Species in the Pokédex out of every species that can hatch, above the grid next to `formsCollected`.
+    func dexSpeciesProgress(_ count: Int, of total: Int) -> String {
+        t("종 \(count)/\(total)", "Species \(count)/\(total)", "種 \(count)/\(total)", "Especies \(count)/\(total)",
+          "Espèces \(count)/\(total)", "Espécies \(count)/\(total)", "Spezies \(count)/\(total)", "Виды: \(count)/\(total)")
+    }
     func formsCollected(_ count: Int, of total: Int) -> String {
         t("폼 \(count)/\(total)", "Forms \(count)/\(total)", "フォルム \(count)/\(total)",
           "Formas \(count)/\(total)", "Formes \(count)/\(total)", "Formas \(count)/\(total)",

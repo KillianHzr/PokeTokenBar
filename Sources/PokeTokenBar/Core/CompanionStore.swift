@@ -1661,6 +1661,29 @@ final class CompanionStore {
         return ids
     }
 
+    /// How much of the Pokédex is collected: species, and appearances (every form of every species, one for a
+    /// species without forms), out of everything that can hatch.
+    struct CollectionProgress: Equatable, Sendable {
+        let species: Int
+        let speciesTotal: Int
+        let forms: Int
+        let formsTotal: Int
+    }
+
+    /// Every appearance that can be collected: 1,025 species and their other forms.
+    static let collectableFormCount = PokemonAssets.animatedSpeciesIDs.reduce(0) {
+        $0 + max(1, PokemonForm.forms(speciesID: $1).count)
+    }
+
+    var collectionProgress: CollectionProgress {
+        let species = registeredSpeciesIDs.filter(PokemonAssets.animatedSpeciesIDs.contains)
+        let forms = species.reduce(0) {
+            $0 + (PokemonForm.hasForms(speciesID: $1) ? max(1, state.collectedForms(speciesID: $1).count) : 1)
+        }
+        return CollectionProgress(species: species.count, speciesTotal: PokemonAssets.animatedSpeciesIDs.count,
+                                  forms: forms, formsTotal: Self.collectableFormCount)
+    }
+
     /// How far one species goal is from unlocking its item.
     struct GoalProgress: Equatable, Sendable {
         let goal: SpeciesGoal

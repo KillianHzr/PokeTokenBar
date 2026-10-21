@@ -1565,10 +1565,16 @@ private struct DexGridView: View {
 
     private func header(_ all: [CompanionStore.DexSpecies]) -> some View {
         VStack(alignment: .leading, spacing: 5) {
+            // What is collected and what is left: species, then every form of every species.
+            let progress = store.collectionProgress
             HStack(spacing: 6) {
-                Text(store.l.dexTitle).font(.callout.weight(.semibold))
-                Text(store.l.dexSpeciesTotal(all.count)).font(.caption).foregroundStyle(.secondary)
+                Text(store.l.dexTitle).font(.callout.weight(.semibold)).foregroundStyle(.primary)
+                Spacer(minLength: 4)
+                Text(store.l.dexSpeciesProgress(progress.species, of: progress.speciesTotal))
+                Text("·").foregroundStyle(.tertiary)
+                Text(store.l.formsCollected(progress.forms, of: progress.formsTotal))
             }
+            .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 4) {
                     ForEach(rarityDisplayOrder, id: \.self) { r in
