@@ -154,7 +154,22 @@ actor PokeAPIClient: PokeProviding, PokemonDetailProviding {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir.appendingPathComponent("base-index.json")
     }()
-    private struct BaseIndexSnapshot: Codable { let fetchedAt: Date; let entries: [BaseSpecies] }
+    /// `maxSpeciesID` is the last national dex number the index was fetched up to: nil for snapshots written
+    /// before the field existed, which stopped at #649.
+    struct BaseIndexSnapshot: Codable {
+        let fetchedAt: Date
+        let entries: [BaseSpecies]
+        var maxSpeciesID: Int?
+    }
+
+    /// Whether a cached index can be reused without fetching: younger than 30 days and fetched for the species
+    /// range that hatches now. An index cached before the Gen 6 to 9 range existed would otherwise keep them out
+    /// of every egg for up to a month.
+    static func isFreshBaseIndex(_ snapshot: BaseIndexSnapshot, now: Date = Date()) -> Bool {
+        now.timeIntervalSince(snapshot.fetchedAt) < 30 * 86400
+            && snapshot.maxSpeciesID == PokemonAssets.animatedSpeciesIDs.upperBound
+            && !snapshot.entries.isEmpty
+    }
     private struct GraphQLBaseResponse: Decodable {
         struct DataBox: Decodable { let pokemonspecies: [Row] }
         struct Row: Decodable {
@@ -181,21 +196,22 @@ actor PokeAPIClient: PokeProviding, PokemonDetailProviding {
         }
     }
 
-    /// 1~5세대 base(진화라인 시작점) 전체 — PokéAPI GraphQL 1쿼리.
-    /// 우선순위: 메모리 캐시 → 디스크 캐시(30일 TTL) → GraphQL fetch(성공 시 디스크 갱신)
+    /// 부화 가능한 범위(`PokemonAssets.animatedSpeciesIDs`)의 base(진화라인 시작점) 전체 — PokéAPI GraphQL 1쿼리.
+    /// 우선순위: 메모리 캐시 → 디스크 캐시(30일 TTL, 같은 범위일 때만) → GraphQL fetch(성공 시 디스크 갱신)
     /// → TTL 지난 디스크라도 있으면 사용(오프라인 폴백). 전부 실패 시 throw(알 유지, 다음 틱 재시도).
     func baseSpeciesIndex() async throws -> [BaseSpecies] {
         if let c = baseIndexCache { return c }
         let disk = (try? Data(contentsOf: Self.baseIndexFile))
             .flatMap { try? JSONDecoder().decode(BaseIndexSnapshot.self, from: $0) }
-        if let disk, Date().timeIntervalSince(disk.fetchedAt) < 30 * 86400, !disk.entries.isEmpty {
+        if let disk, Self.isFreshBaseIndex(disk) {
             baseIndexCache = disk.entries
             return disk.entries
         }
         do {
             let entries = try await fetchBaseIndex()
             baseIndexCache = entries
-            if let data = try? JSONEncoder().encode(BaseIndexSnapshot(fetchedAt: Date(), entries: entries)) {
+            if let data = try? JSONEncoder().encode(BaseIndexSnapshot(
+                fetchedAt: Date(), entries: entries, maxSpeciesID: PokemonAssets.animatedSpeciesIDs.upperBound)) {
                 try? data.write(to: Self.baseIndexFile, options: .atomic)
             }
             return entries
@@ -246,7 +262,7 @@ actor PokeAPIClient: PokeProviding, PokemonDetailProviding {
         }
         bases.sort { $0.id < $1.id }
         baseIndexCache = bases
-        if let data = try? JSONEncoder().encode(BaseIndexSnapshot(fetchedAt: Date(), entries: bases)) {
+        if let data = try? JSONEncoder().encode(BaseIndexSnapshot(fetchedAt: Date(), entries: bases, maxSpeciesID: maxID)) {
             try? data.write(to: Self.baseIndexFile, options: .atomic)
         }
         AppLog.write("base index: REST build done — \(bases.count) bases persisted (offline-capable now)")
