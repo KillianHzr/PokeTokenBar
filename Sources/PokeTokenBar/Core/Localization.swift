@@ -1102,18 +1102,6 @@ struct L {
                 "\(count) formas nuevas desbloqueadas", "\(count) nouvelles formes débloquées",
                 "\(count) novas formas desbloqueadas", "\(count) neue Formen freigeschaltet", "Открыто новых форм: \(count)")
     }
-    /// Under forms unlocked for a species not in the Pokédex yet.
-    func formUnlockWaiting(count: Int) -> String {
-        count == 1
-            ? t("이 포켓몬을 얻으면 도감에 등록돼요.", "It counts once you have this Pokémon.",
-                "このポケモンを手に入れると図鑑に登録されます。", "Contará cuando tengas este Pokémon.",
-                "Elle comptera dès que tu auras ce Pokémon.", "Conta quando você tiver este Pokémon.",
-                "Sie zählt, sobald du dieses Pokémon hast.", "Засчитается, когда у вас будет этот покемон.")
-            : t("이 포켓몬을 얻으면 도감에 등록돼요.", "They count once you have this Pokémon.",
-                "このポケモンを手に入れると図鑑に登録されます。", "Contarán cuando tengas este Pokémon.",
-                "Elles compteront dès que tu auras ce Pokémon.", "Contam quando você tiver este Pokémon.",
-                "Sie zählen, sobald du dieses Pokémon hast.", "Засчитаются, когда у вас будет этот покемон.")
-    }
     /// One line above Arceus's forms: where they come from.
     var plateFormsHint: String {
         t("타입별 배지마다 폼이 하나씩 해금돼요.", "Each type's gym badge unlocks a form.",

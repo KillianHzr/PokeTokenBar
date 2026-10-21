@@ -1818,13 +1818,11 @@ final class CompanionStore {
         return ready.count
     }
 
-    /// Forms a claim or a first catch just unlocked (Arceus's Plates), for the short message that shows their
-    /// sprites. One entry per species; a message not seen yet takes the next unlocks in.
+    /// Forms a claim, a catch or an evolution just unlocked (Arceus's Plates, Silvally's Memories), for the short
+    /// message that shows their sprites. One entry per species; a message not seen yet takes the next unlocks in.
     struct FormUnlockNews: Equatable, Sendable {
         let speciesID: Int
         let forms: [PokemonForm]
-        /// False while the species is not in the Pokédex: its forms count once it is.
-        let isOwned: Bool
     }
 
     private(set) var formUnlockNews: [FormUnlockNews] = []
@@ -1839,21 +1837,21 @@ final class CompanionStore {
         })
     }
 
-    /// Announces the forms unlocked since the snapshot. The first Arceus also brings the Plates already won.
+    /// Announces the forms unlocked since the snapshot, only for a species in the Pokédex: a Plate or Memory won
+    /// before stays silent, and the first Arceus or Silvally announces every one already won.
     private func announceFormUnlocks(since before: ItemFormSnapshot) {
         for (id, previous) in before.sorted(by: { $0.key < $1.key }) {
+            guard state.ownsSpeciesInAnyForm(id) else { continue }
             let unlocked = state.itemUnlockedForms(speciesID: id)
-            let owned = state.ownsSpeciesInAnyForm(id)
-            var new = unlocked.subtracting(previous.unlocked)
-            if owned, !previous.owned { new.formUnion(unlocked) }
+            let new = previous.owned ? unlocked.subtracting(previous.unlocked) : unlocked
             guard !new.isEmpty else { continue }
             let pending = formUnlockNews.first { $0.speciesID == id }.map { Set($0.forms) } ?? []
             let forms = new.union(pending).sorted {
                 PokemonForm.sortOrder($0, speciesID: id) < PokemonForm.sortOrder($1, speciesID: id)
             }
             formUnlockNews.removeAll { $0.speciesID == id }
-            formUnlockNews.append(FormUnlockNews(speciesID: id, forms: forms, isOwned: owned))
-            AppLog.write("forms unlocked: \(id) \(forms.map(\.rawValue)) owned=\(owned)")
+            formUnlockNews.append(FormUnlockNews(speciesID: id, forms: forms))
+            AppLog.write("forms unlocked: \(id) \(forms.map(\.rawValue))")
         }
     }
 

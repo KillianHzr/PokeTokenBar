@@ -2255,10 +2255,6 @@ struct FormUnlockToast: View {
                             .frame(width: 40, height: 40)
                     }
                 }
-                if !item.isOwned {
-                    Text(store.l.formUnlockWaiting(count: item.forms.count))
-                        .font(.caption).foregroundStyle(.secondary)
-                }
             }
         }
         .padding(10)

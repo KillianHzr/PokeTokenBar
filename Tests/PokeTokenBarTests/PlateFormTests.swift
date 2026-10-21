@@ -96,27 +96,37 @@ final class PlateFormTests: XCTestCase {
         st.dex += badgeRegion(.fire)
         let s = try store(st)
         XCTAssertEqual(s.claimBadgeTiers(.volcanoBadge), 1)
-        XCTAssertEqual(s.formUnlockNews, [.init(speciesID: 493, forms: [fire], isOwned: true)])
+        XCTAssertEqual(s.formUnlockNews, [.init(speciesID: 493, forms: [fire])])
         s.dismissFormUnlockNews()
         XCTAssertEqual(s.formUnlockNews, [])
     }
 
     /// "Claim all" shows one message with every form it unlocked; a Plate already won announces nothing.
     func testClaimAllAnnouncesEveryNewFormInOneMessage() throws {
-        var st = state(plates: [.water])
+        var st = state(plates: [.water], arceus: normal)
         st.dex += badgeRegion(.fire) + badgeRegion(.ice) + badgeRegion(.water)
         st.claimedAchievements.remove(CompanionState.badgeTierKey(.cascadeBadge, generation: 1))
         st.claimedAchievements.insert(CompanionState.badgeTierKey(.cascadeBadge, generation: 2))
         let s = try store(st)
         XCTAssertGreaterThanOrEqual(s.claimAllAchievements(), 3)
-        XCTAssertEqual(s.formUnlockNews, [.init(speciesID: 493, forms: [fire, ice], isOwned: false)],
-                       "no Arceus yet; Water was already unlocked by Johto")
+        XCTAssertEqual(s.formUnlockNews, [.init(speciesID: 493, forms: [fire, ice])],
+                       "Water was already unlocked by Johto")
+    }
+
+    /// Without Arceus no form is announced: its Plates wait, silent, for the first one.
+    func testPlatesWonWithoutArceusAnnounceNothing() throws {
+        var st = state()
+        st.dex += badgeRegion(.fire)
+        let s = try store(st)
+        XCTAssertEqual(s.claimBadgeTiers(.volcanoBadge), 1)
+        XCTAssertEqual(s.formUnlockNews, [])
+        XCTAssertEqual(s.state.itemUnlockedForms(speciesID: 493), [fire], "the Plate is still won")
     }
 
     func testTheFirstArceusBringsThePlatesAlreadyWon() async throws {
         let s = try store(state(plates: [.fire, .water]))
         await s.hatch(baseID: 493)
-        XCTAssertEqual(s.formUnlockNews, [.init(speciesID: 493, forms: [fire, water], isOwned: true)])
+        XCTAssertEqual(s.formUnlockNews, [.init(speciesID: 493, forms: [fire, water])])
 
         let again = try store(state(plates: [.fire], arceus: normal))
         await again.hatch(baseID: 493)

@@ -75,14 +75,20 @@ final class SilvallyMemoryTests: XCTestCase {
         XCTAssertEqual(s.formUnlockNews, [], "a Type: Null brings no Memory")
         s.applyUsage(s.threshold)
         XCTAssertEqual(s.currentSpeciesID, 773)
-        XCTAssertEqual(s.formUnlockNews, [.init(speciesID: 773, forms: [flying, fire], isOwned: true)],
+        XCTAssertEqual(s.formUnlockNews, [.init(speciesID: 773, forms: [flying, fire])],
                        "the first Silvally takes the Memories already won")
     }
 
-    func testHatchingALegendaryAnnouncesItsMemories() async throws {
-        let s = try store(state())
+    /// A legendary hatched with Silvally in the Pokédex announces its Memories; without Silvally, nothing.
+    func testHatchingALegendaryAnnouncesItsMemoriesOnlyWithSilvally() async throws {
+        let s = try store(state(extra: [entry(773, chain: [772, 773], form: normal)]))
         await s.hatch(baseID: 146)
-        XCTAssertEqual(s.formUnlockNews, [.init(speciesID: 773, forms: [flying, fire], isOwned: false)])
+        XCTAssertEqual(s.formUnlockNews, [.init(speciesID: 773, forms: [flying, fire])])
+
+        let alone = try store(state())
+        await alone.hatch(baseID: 146)
+        XCTAssertEqual(alone.formUnlockNews, [], "no Silvally yet: the Memories wait, silent")
+        XCTAssertEqual(alone.state.silvallyMemoryTypes, [.fire, .flying])
     }
 
     /// All 17 Memories unlock the Type: Null Egg, used like a stone to hatch a Type: Null.
