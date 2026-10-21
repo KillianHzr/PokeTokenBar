@@ -1556,6 +1556,8 @@ struct L {
         case .teraOrb: return t("테라스탈오브", "Tera Orb", "テラスタルオーブ", "Orbe Teracristal", "Orbe Téracristal", "Orbe Terastal", "Terakristall-Orb", "Тера-сфера")
         case .relicStatue: return t("고대의석상", "Relic Statue", "こだいのせきぞう", "Efigie Antigua", "Vieux Santon", "Estátua Antiga", "Alte Statue", "Древняя статуя")
         case .typeNullEgg: return t("타입:널의 알", "Type: Null Egg", "タイプ：ヌルのタマゴ", "Huevo de Código Cero", "Œuf de Type:0", "Ovo de Type: Null", "Typ:Null-Ei", "Яйцо Тип: Ноль")
+        case .ovalCharm: return t("둥근부적", "Oval Charm", "まるいおまもり", "Amuleto Oval", "Charme Ovale", "Amuleto Oval", "Ovalpin", "Овальный талисман")
+        case .glimmeringCharm: return t("반짝이는부적", "Glimmering Charm", "きらめくおまもり", "Amuleto Cristalino", "Charme Éclatant", "Amuleto Cintilante", "Glitzerpin", "Сверкающий талисман")
         case .boulderBadge: return t("회색배지", "Boulder Badge", "グレーバッジ", "Medalla Roca", "Badge Roche", "Insígnia da Rocha", "Felsorden", "Каменный значок")
         case .cascadeBadge: return t("블루배지", "Cascade Badge", "ブルーバッジ", "Medalla Cascada", "Badge Cascade", "Insígnia da Cascata", "Quellorden", "Каскадный значок")
         case .thunderBadge: return t("오렌지배지", "Thunder Badge", "オレンジバッジ", "Medalla Trueno", "Badge Foudre", "Insígnia do Trovão", "Donnerorden", "Значок молнии")
@@ -1826,6 +1828,24 @@ struct L {
                      "Enquanto estiver na bolsa, ovos obtidos com uma pedra de evolução chocam 2 vezes mais rápido.",
                      "Lässt im Beutel Eier aus Entwicklungssteinen doppelt so schnell schlüpfen.",
                      "Пока она у вас, яйца, полученные за камень эволюции, вылупляются в 2 раза быстрее.")
+        case .ovalCharm:
+            return t("보유하면 아직 모으지 못한 폼이 있는 포켓몬만, 그 폼으로 알에서 태어납니다.",
+                     "While owned, eggs only hatch Pokémon with a form you are missing, in a form you don't have.",
+                     "持っているとまだ集めていないフォルムがあるポケモンだけが、そのフォルムでタマゴから生まれます。",
+                     "Mientras lo tengas, de los huevos solo salen Pokémon con una forma que te falta, en una forma que no tienes.",
+                     "Tant que tu le possèdes, les œufs ne font éclore que des Pokémon dont il te manque une forme, dans une forme que tu n'as pas.",
+                     "Enquanto estiver na bolsa, dos ovos só nascem Pokémon com uma forma que falta, numa forma que você não tem.",
+                     "Lässt im Beutel nur Pokémon schlüpfen, denen dir noch eine Form fehlt, in einer Form, die du nicht hast.",
+                     "Пока он у вас, из яиц вылупляются только покемоны с недостающей формой, в форме, которой у вас нет.")
+        case .glimmeringCharm:
+            return t("보유하면 알에서 태어나는 포켓몬이 모두 이로치입니다.",
+                     "While owned, every Pokémon that hatches is shiny.",
+                     "持っているとタマゴから生まれるポケモンがすべて色違いになります。",
+                     "Mientras lo tengas, todos los Pokémon que nacen son variocolor.",
+                     "Tant que tu le possèdes, chaque Pokémon qui éclot est chromatique.",
+                     "Enquanto estiver na bolsa, todo Pokémon que nascer é shiny.",
+                     "Lässt im Beutel jedes schlüpfende Pokémon schillern.",
+                     "Пока он у вас, каждый вылупившийся покемон шайни.")
         case .typeNullEgg:
             return t("실버디의 메모리 17개를 모은 보상. 지금 포켓몬을 놓아주고 타입:널이 확정으로 태어나는 알을 받아요.",
                      "The reward for all 17 of Silvally's Memories. Send off your current Pokémon for an egg that hatches a Type: Null.",
@@ -2019,6 +2039,14 @@ struct L {
     }
     func anyOfGoal(_ needed: Int) -> String {
         t("이 중 \(needed)마리", "Any \(needed) of these", "このうち\(needed)匹", "\(needed) de estos", "\(needed) parmi ceux-ci", "\(needed) destes", "\(needed) davon", "Любые \(needed) из них")
+    }
+    var ovalCharmEffectHint: String { t("빠진 폼만 부화 · 적용 중", "Missing forms only · active", "未収集フォルムのみ · 適用中", "Solo formas que faltan · activo", "Formes manquantes · actif", "Só formas que faltam · ativo", "Nur fehlende Formen · aktiv", "Только недостающие формы · активен") }
+    var glimmeringCharmEffectHint: String { t("이로치 확정 · 적용 중", "Always shiny · active", "色違い確定 · 適用中", "Siempre variocolor · activo", "Chromatique garanti · actif", "Sempre shiny · ativo", "Immer schillernd · aktiv", "Всегда шайни · активен") }
+    var allSpeciesGoal: String {
+        t("모든 종", "Every species", "すべての種", "Todas las especies", "Toutes les espèces", "Todas as espécies", "Alle Spezies", "Все виды")
+    }
+    var allFormsGoal: String {
+        t("모든 폼", "Every form", "すべてのフォルム", "Todas las formas", "Toutes les formes", "Todas as formas", "Alle Formen", "Все формы")
     }
     var typeNullEggHint: String {
         t("타입:널 확정", "Guaranteed Type: Null", "タイプ：ヌル確定", "Código Cero garantizado", "Type:0 garanti",

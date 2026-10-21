@@ -19,6 +19,15 @@ struct UnlockRequirementView: View {
             case .duplicateLegendary:
                 let copies = min(store.graduatedLegendaryCopies, 2)
                 counterRow(l.duplicateLegendaryGoal, count: copies, needed: 2, met: copies >= 2)
+            case .allSpecies, .allForms:
+                let progress = store.collectionProgress
+                let isSpecies = kind.unlock == .allSpecies
+                let count = isSpecies ? progress.species : progress.forms
+                let needed = isSpecies ? progress.speciesTotal : progress.formsTotal
+                counterRow(isSpecies ? l.allSpeciesGoal : l.allFormsGoal, count: count, needed: needed, met: count >= needed)
+                if !compact {
+                    ProgressView(value: Double(min(count, needed)), total: Double(max(1, needed))).controlSize(.small)
+                }
             case .silvallyMemories:
                 let won = store.state.silvallyMemoryTypes
                 let needed = PokemonForm.memoryTypes.count

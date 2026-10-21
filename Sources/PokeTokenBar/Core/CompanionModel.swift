@@ -215,6 +215,8 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     case teraOrb
     case relicStatue
     case typeNullEgg
+    case ovalCharm
+    case glimmeringCharm
     case boulderBadge
     case cascadeBadge
     case thunderBadge
@@ -307,6 +309,8 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .teraOrb: return "tera-orb"
         case .relicStatue: return "relic-statue"
         case .typeNullEgg: return "mystery-egg"
+        case .ovalCharm: return "oval-charm"
+        case .glimmeringCharm: return "glimmering-charm"
         case .leafStone: return "leaf-stone"
         case .fireStone: return "fire-stone"
         case .waterStone: return "water-stone"
@@ -351,6 +355,8 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .teraOrb: return "💠"
         case .relicStatue: return "🗿"
         case .typeNullEgg: return "🥚"
+        case .ovalCharm: return "🔶"
+        case .glimmeringCharm: return "✨"
         case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,
              .soulBadge, .marshBadge, .volcanoBadge, .earthBadge,
              .zephyrBadge, .hiveBadge, .plainBadge, .fogBadge,
@@ -444,6 +450,8 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .teraOrb:     return .species([SpeciesGoal([1007, 1008, 1024])])   // Koraidon, Miraidon, Terapagos
         case .relicStatue: return .species([SpeciesGoal([377, 378, 379, 486, 894, 895])]) // All six Regis
         case .typeNullEgg: return .silvallyMemories
+        case .ovalCharm: return .allSpecies
+        case .glimmeringCharm: return .allForms
         case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,
              .soulBadge, .marshBadge, .volcanoBadge, .earthBadge,
              .zephyrBadge, .hiveBadge, .plainBadge, .fogBadge,
@@ -490,6 +498,10 @@ enum ItemUnlock: Equatable, Sendable {
     case duplicateLegendary
     /// All 17 of Silvally's Memories: a legendary or mythical Pokémon of every type but Normal in the Pokédex.
     case silvallyMemories
+    /// Every species in the Pokédex (`CompanionStore.collectionProgress`).
+    case allSpecies
+    /// Every form of every species in the Pokédex.
+    case allForms
 }
 
 /// Evolution stones are consumables: each one sends the current Pokémon off for an egg of the stone's type.
@@ -1188,6 +1200,12 @@ struct CompanionState: Codable, Sendable {
 
     /// Hatch roll weights: a form counts as collected once every species of the line that shows it
     /// is owned in it, so a Sandy Burmy that became Mothim still leaves Sandy Wormadam to find.
+    /// Whether an egg of this line can still bring a form missing from the Pokédex (the Oval Charm's target).
+    func lineMissesForms(baseID: Int) -> Bool {
+        let forms = PokemonForm.rollableLineForms(baseID: baseID)
+        return !forms.isEmpty && !Set(forms).isSubset(of: collectedLineForms(baseID: baseID))
+    }
+
     func collectedLineForms(baseID: Int) -> Set<PokemonForm> {
         let owned = PokemonForm.formSpecies(baseID: baseID).map { ($0, collectedForms(speciesID: $0)) }
         return Set(PokemonForm.lineForms(baseID: baseID).filter { form in
