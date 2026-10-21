@@ -1278,10 +1278,10 @@ final class CompanionStore {
                 state.active!.stageIndex += 1
                 announceFormUnlocks(since: unlockedForms)
                 state.active!.usedAtStage = a.usedAtStage - thr   // 초과분 이월
-                if let details = pokemonDetailsByID[next.speciesID] {
+                if let details = pokemonDetails(speciesID: next.speciesID, form: a.form) {
                     state.active!.profile?.enrich(with: details)
                 } else if detailProvider != nil {
-                    Task { await self.loadPokemonDetails(speciesID: next.speciesID) }
+                    Task { await self.loadPokemonDetails(speciesID: next.speciesID, form: a.form) }
                 }
                 let newName = formDisplayName(line.localizedName(next.speciesID, state.language),
                                               speciesID: next.speciesID, form: a.form)
@@ -1395,7 +1395,7 @@ final class CompanionStore {
     private func graduate() {
         guard var a = state.active else { return }
         a.profile?.advanceGrowth(to: PokemonBalance.graduationTotal(a.rarity), rarity: a.rarity)
-        if let details = pokemonDetailsByID[a.currentID] { a.profile?.enrich(with: details) }
+        if let details = pokemonDetails(speciesID: a.currentID, form: a.form) { a.profile?.enrich(with: details) }
         let finalID = a.currentID
         state.collectedFinals.insert("\(a.baseID):\(finalID)")
         state.dex.append(DexEntry(id: a.profile?.instanceID ?? UUID().uuidString,
@@ -2457,8 +2457,9 @@ final class CompanionStore {
         }
         var evolutionPlan = makeEvolutionPlan(from: line.tree, baseID: line.baseID, form: pendingForm)
         var profile = PokemonProfile.generate(seed: rng.next())
-        if let details = pokemonDetailsByID[line.baseID] { profile.enrich(with: details) }
         let form = pendingForm ?? rollLineForm(baseID: line.baseID, type: typeGuarantee)
+        // After the form roll: an Alolan Vulpix gets an Alolan Vulpix's ability. Enriching draws nothing from `rng`.
+        if let details = pokemonDetails(speciesID: line.baseID, form: form) { profile.enrich(with: details) }
         // The form is rolled last so owning forms never shifts the other rolls; a plan it cannot take (a
         // Galarian Meowth planned into Persian) is redone for it, which only happens on form-gated lines.
         if !Self.planFollowsForm(evolutionPlan, form: form) {
@@ -2493,7 +2494,7 @@ final class CompanionStore {
         // 마지막 이벤트를 hatch 로 유지한다. 이월로 즉시 졸업한 극단 케이스면 생략(이미 도감행).
         if state.active != nil { fireCelebration(.hatch(shiny: showShiny)) }
         save()
-        if detailProvider != nil { Task { await self.loadPokemonDetails(speciesID: line.baseID) } }
+        if detailProvider != nil { Task { await self.loadPokemonDetails(speciesID: line.baseID, form: form) } }
     }
 
     /// 위장 → 리빌: 진화 못 하는 메타몽이 "첫 진화 임계"에서 진화 대신 정체를 드러내는 순간.
@@ -2529,7 +2530,7 @@ final class CompanionStore {
         // The hatch boost came from the disguise's line; from now on only a repeat Ditto earns it.
         m.hasGrowthBoost = state.hasCollectedFinal(forBaseID: dittoLine.baseID)
         m.profile?.rebaseForSpeciesIdentity(from: previousRarity, to: dittoLine.rarity)
-        if let details = pokemonDetailsByID[dittoLine.baseID] {
+        if let details = pokemonDetails(speciesID: dittoLine.baseID, form: nil) {
             m.profile?.enrich(with: details)
         }
         let shiny = m.isShiny
@@ -2546,7 +2547,7 @@ final class CompanionStore {
         applyUsage(0)   // 이월분으로 메타몽 졸업 재평가(rare 3B라 보통 즉시 졸업 아님)
         isRevealingDitto = false   // Details are enrichment, not part of the reveal transaction.
         if detailProvider != nil {
-            await loadPokemonDetails(speciesID: PokemonOdds.dittoSpeciesID)
+            await loadPokemonDetails(speciesID: PokemonOdds.dittoSpeciesID, form: nil)
         }
     }
 
@@ -2570,8 +2571,8 @@ final class CompanionStore {
             // After a relaunch only the popover loads form names; evolution and graduation
             // notifications need them before it is opened.
             if AppEnv.isBundledApp { await loadActiveFormNames() }
-            if let speciesID = state.active?.currentID, detailProvider != nil {
-                await loadPokemonDetails(speciesID: speciesID)
+            if let active = state.active, detailProvider != nil {
+                await loadPokemonDetails(speciesID: active.currentID, form: active.form)
             }
         }
     }
@@ -2820,35 +2821,51 @@ final class CompanionStore {
         }
     }
 
-    /// Loads immutable PokéAPI metadata and persists any deferred profile fields exactly once.
-    func loadPokemonDetails(speciesID: Int) async {
-        if let details = pokemonDetailsByID[speciesID] {
-            enrichProfiles(for: speciesID, with: details)
+    /// The PokéAPI data of one species in one form: the form's own when it is a variety (an Alolan Vulpix's stats
+    /// and Snow Cloak), never its default form's. `pokemonDetailsByID` is keyed by `PokemonForm.detailsID`.
+    func pokemonDetails(speciesID: Int, form: PokemonForm?) -> PokemonDetails? {
+        pokemonDetailsByID[PokemonForm.detailsID(speciesID: speciesID, form: form)]
+    }
+
+    func failedToLoadPokemonDetails(speciesID: Int, form: PokemonForm?) -> Bool {
+        failedPokemonDetailIDs.contains(PokemonForm.detailsID(speciesID: speciesID, form: form))
+    }
+
+    /// Loads immutable PokéAPI metadata of this form and fills the profiles of the individuals in it. The form is
+    /// required: with the species alone, an Alolan Vulpix would get a Kanto one's stats, ability and moves.
+    func loadPokemonDetails(speciesID: Int, form: PokemonForm?) async {
+        let id = PokemonForm.detailsID(speciesID: speciesID, form: form)
+        if let details = pokemonDetailsByID[id] {
+            enrichProfiles(for: speciesID, detailsID: id, with: details)
             return
         }
-        guard let detailProvider, !loadingPokemonDetailIDs.contains(speciesID) else { return }
-        loadingPokemonDetailIDs.insert(speciesID)
-        failedPokemonDetailIDs.remove(speciesID)
-        defer { loadingPokemonDetailIDs.remove(speciesID) }
+        guard let detailProvider, !loadingPokemonDetailIDs.contains(id) else { return }
+        loadingPokemonDetailIDs.insert(id)
+        failedPokemonDetailIDs.remove(id)
+        defer { loadingPokemonDetailIDs.remove(id) }
         do {
-            let details = try await detailProvider.pokemonDetails(speciesID: speciesID)
-            pokemonDetailsByID[speciesID] = details
-            enrichProfiles(for: speciesID, with: details)
+            let details = try await detailProvider.pokemonDetails(pokemonID: id, speciesID: speciesID)
+            pokemonDetailsByID[id] = details
+            enrichProfiles(for: speciesID, detailsID: id, with: details)
         } catch {
-            failedPokemonDetailIDs.insert(speciesID)
-            AppLog.write("pokemon details fetch failed id=\(speciesID): \(error)")
+            failedPokemonDetailIDs.insert(id)
+            AppLog.write("pokemon details fetch failed id=\(id) species=\(speciesID): \(error)")
         }
     }
 
     /// Startup/background warmup for the only profile needed before a detail page is opened.
     func preparePokemonProfiles() async {
-        guard let speciesID = state.active?.currentID else { return }
-        await loadPokemonDetails(speciesID: speciesID)
+        guard let active = state.active else { return }
+        await loadPokemonDetails(speciesID: active.currentID, form: active.form)
     }
 
-    private func enrichProfiles(for speciesID: Int, with details: PokemonDetails) {
+    /// Fills the profiles of the individuals of this species whose form reads these details. `enrich` keeps the
+    /// rolled ability slot and recomputes its name and the moves, so an individual saved with its default form's
+    /// ability gets its own form's on the next load.
+    private func enrichProfiles(for speciesID: Int, detailsID: Int, with details: PokemonDetails) {
         var changed = false
-        if var active = state.active, active.currentID == speciesID, var profile = active.profile {
+        if var active = state.active, active.currentID == speciesID,
+           PokemonForm.detailsID(speciesID: speciesID, form: active.form) == detailsID, var profile = active.profile {
             let before = profile
             profile.enrich(with: details)
             if profile != before {
@@ -2857,7 +2874,8 @@ final class CompanionStore {
                 changed = true
             }
         }
-        for index in state.dex.indices where state.dex[index].finalID == speciesID {
+        for index in state.dex.indices where state.dex[index].finalID == speciesID
+            && PokemonForm.detailsID(speciesID: speciesID, form: state.dex[index].form) == detailsID {
             guard var profile = state.dex[index].profile else { continue }
             let before = profile
             profile.enrich(with: details)
@@ -2931,7 +2949,7 @@ final class CompanionStore {
         let candidate = min(PokemonBalance.graduationTotal(active.rarity),
                             completed + Int((Double(standardPhase) * fraction).rounded(.down)))
         profile.advanceGrowth(to: candidate, rarity: active.rarity)
-        if let details = pokemonDetailsByID[active.currentID] { profile.enrich(with: details) }
+        if let details = pokemonDetails(speciesID: active.currentID, form: active.form) { profile.enrich(with: details) }
         active.profile = profile
         state.active = active
     }

@@ -447,14 +447,19 @@ read_when:
   representative) asked for a shiny individual in that very form: a shiny Arceus showed shiny in the picker and
   plain in the menu bar. Both now follow "a Plate changes the look, not the individual". Guard:
   `testAShinyArceusIsShinyInEveryFormItHas`.
-- **A form's types, everywhere a type is read.** An Alolan Vulpix showed "FIRE" on Home and in the Pokédex, and
-  took the growth of the Water, Ground and Rock badges instead of Fire, Fighting, Rock and Steel. The type badges
-  read PokéAPI's species data, which is always the default form's (a note under them said so), and
-  `PokemonTypeData.isWeak` took a species ID alone. The badge tests used default forms only, and a rendering test
-  pinned the note on Home as the expected behavior. The weakness check now requires the form, and the shown types
-  come from the local form table (`PokemonTypeData.typeNames`), PokéAPI only as a fallback; the note stays in the
-  Pokédex for stats, size and abilities. Guards: `testBadgesFollowTheRegionalFormsTypes`,
-  `testShownTypesFollowTheForm`, `testHomeShowsTheFormsOwnTypesWithoutTheNote` (reads the rendered pixels).
+- **A form is its own Pokémon, everywhere it is read.** An Alolan Vulpix showed "FIRE" on Home and in the
+  Pokédex, had Flash Fire and a Kanto Vulpix's stats, and took the growth of the Water, Ground and Rock badges instead
+  of Fire, Fighting, Rock and Steel; a Galarian Moltres gave Silvally's Fire Memory. Every lookup took a species ID
+  alone: PokéAPI details were fetched and keyed by species (always the default form, which a "Data uses the default
+  form" note admitted), `PokemonTypeData.isWeak` and `silvallyMemoryTypes` read the species' types. The tests used
+  default forms only, and a rendering test pinned the note as the expected behavior. Now the form is required:
+  `isWeak(to:speciesID:form:)`, `loadPokemonDetails(speciesID:form:)` and `pokemonDetails(speciesID:form:)` read the
+  form's PokéAPI variety (`PokemonForm.detailsID`), shown types come from the local form table, and a form missing
+  from its species' games takes its moves from its own (`PokemonDetails.formVersionGroups`). Individuals saved with
+  their default form's ability get their form's on the next load (same slot). Only the egg rolls keep reading the
+  base form, on purpose: a line hatches from it. Guards: `testBadgesFollowTheRegionalFormsTypes`,
+  `testShownTypesFollowTheForm`, `FormDetailsTests`, `testALegendaryFormGivesItsOwnTypes`, and
+  `FormDataRenderingTests` (reads the rendered pixels of Home and the Pokédex).
 
 ## 외부 로그·사용량 소스
 

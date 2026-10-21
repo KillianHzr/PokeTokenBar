@@ -222,7 +222,7 @@ Only the Azure Flute and the Oval Charm change which Pokémon hatch, and the Ova
 ¹ Omastar, Kabutops, Aerodactyl, Cradily, Armaldo, Rampardos, Bastiodon, Carracosta, Archeops, Tyrantrum, Aurorus, Dracozolt, Arctozolt, Dracovish, Arctovish.
 ² Nihilego, Buzzwole, Pheromosa, Xurkitree, Celesteela, Kartana, Guzzlord, Poipole, Naganadel, Stakataka, Blacephalon.
 ³ Great Tusk, Scream Tail, Brute Bonnet, Flutter Mane, Slither Wing, Sandy Shocks, Iron Treads, Iron Bundle, Iron Hands, Iron Jugulis, Iron Moth, Iron Thorns, Roaring Moon, Iron Valiant, Walking Wake, Iron Leaves, Gouging Fire, Raging Bolt, Iron Boulder, Iron Crown.
-⁴ Silvally hatches as Type: Null and evolves in its Normal form. Each legendary or mythical Pokémon in your Pokédex, released ones included, gives the Memory of its types (Moltres: Fire and Flying); the only Bug one is Genesect. Once Silvally is in your Pokédex, each Memory unlocks its form, shown under each form in its Pokédex page, and all 17 earn the Type: Null Egg.
+⁴ Silvally hatches as Type: Null and evolves in its Normal form. Each legendary or mythical Pokémon in your Pokédex, released ones included, gives the Memory of its form's types (Moltres: Fire and Flying; Galarian Moltres: Dark and Flying); the only Bug one is Genesect. Once Silvally is in your Pokédex, each Memory unlocks its form, shown under each form in its Pokédex page, and all 17 earn the Type: Null Egg.
 
 ### Gym Badges
 

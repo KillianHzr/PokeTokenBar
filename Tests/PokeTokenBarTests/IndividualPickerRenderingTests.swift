@@ -32,7 +32,7 @@ final class IndividualPickerRenderingTests: XCTestCase {
             }
             try JSONEncoder().encode(state).write(to: file)
             let store = CompanionStore(provider: PickerRenderProvider(), fileURL: file)
-            await store.loadPokemonDetails(speciesID: 47)
+            await store.loadPokemonDetails(speciesID: 47, form: nil)
             let species = try XCTUnwrap(store.dexSpecies.first { $0.id == 47 })
             let view = PokemonDetailView(store: store, species: species, onBack: {},
                 spriteStore: SpriteStore(directory: dir))

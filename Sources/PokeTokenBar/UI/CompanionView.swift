@@ -807,7 +807,7 @@ struct CompanionHeader: View {
                     }
                     if store.hasActive, let id = store.currentSpeciesID {
                         let types = PokemonTypeData.typeNames(speciesID: id, form: store.currentForm,
-                                                              fallback: store.pokemonDetailsByID[id]?.types)
+                                                              fallback: store.pokemonDetails(speciesID: id, form: store.currentForm)?.types)
                         if !types.isEmpty { TypeBadges(types: types, language: store.language) }
                     }
                     if store.hasActive {
@@ -882,10 +882,12 @@ struct CompanionHeader: View {
                     .font(.caption2).foregroundStyle(.orange)
             }
         }
-        // Types come from PokéAPI details; cached after the first fetch. Same ID as the sprite,
-        // so a disguised Ditto shows its disguise's types.
-        .task(id: store.currentSpeciesID) {
-            if store.hasActive, let id = store.currentSpeciesID { await store.loadPokemonDetails(speciesID: id) }
+        // The current form's PokéAPI details, cached after the first fetch: they fill the individual's ability and
+        // moves. Same ID as the sprite, so a disguised Ditto loads its disguise's.
+        .task(id: store.currentSpeciesID.map { PokemonForm.detailsID(speciesID: $0, form: store.currentForm) }) {
+            if store.hasActive, let id = store.currentSpeciesID {
+                await store.loadPokemonDetails(speciesID: id, form: store.currentForm)
+            }
         }
         .onAppear {
             playCelebrationIfNeeded()
@@ -1763,13 +1765,8 @@ struct PokemonDetailView: View {
                     if individuals.isEmpty {
                         Text(store.l.dexAppearancePreview).font(.callout).foregroundStyle(.secondary)
                     }
-                    if let details = store.pokemonDetailsByID[species.id] {
-                        // The types follow the form; stats, size and abilities are still the default form's.
-                        if !PokemonForm.isDefault(displayedSpecies.form, speciesID: species.id) {
-                            Text(store.l.defaultFormDataNote)
-                                .font(.caption2).foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
+                    // The displayed form's own stats, size, abilities and moves (an Alolan Vulpix's, not a Kanto one's).
+                    if let details = store.pokemonDetails(speciesID: species.id, form: displayedSpecies.form) {
                         if let individual, let profile = individual.profile {
                             individualSection(entry: individual, profile: profile, details: details)
                         } else {
@@ -1777,10 +1774,12 @@ struct PokemonDetailView: View {
                         }
                         speciesSection(details)
                         movesSection(details)
-                    } else if store.failedPokemonDetailIDs.contains(species.id) {
+                    } else if store.failedToLoadPokemonDetails(speciesID: species.id, form: displayedSpecies.form) {
                         VStack(spacing: 8) {
                             Text(store.l.pokemonDetailsUnavailable).foregroundStyle(.secondary)
-                            Button(store.l.retry) { Task { await store.loadPokemonDetails(speciesID: species.id) } }
+                            Button(store.l.retry) {
+                                Task { await store.loadPokemonDetails(speciesID: species.id, form: displayedSpecies.form) }
+                            }
                         }
                         .frame(maxWidth: .infinity).padding(.vertical, 24)
                     } else {
@@ -1795,7 +1794,10 @@ struct PokemonDetailView: View {
         .task {
             if selectedForm == nil { selectedForm = displayedSpecies.form }
             if selectedInstanceID.isEmpty { selectedInstanceID = individuals.first?.id ?? "" }
-            await store.loadPokemonDetails(speciesID: species.id)
+        }
+        // Again whenever the form picker shows a form with data of its own.
+        .task(id: PokemonForm.detailsID(speciesID: species.id, form: displayedSpecies.form)) {
+            await store.loadPokemonDetails(speciesID: species.id, form: displayedSpecies.form)
         }
     }
 
@@ -1897,7 +1899,7 @@ struct PokemonDetailView: View {
                         .font(.callout.weight(.semibold)).foregroundStyle(.secondary)
                 }
                 let types = PokemonTypeData.typeNames(speciesID: species.id, form: species.form,
-                                                      fallback: store.pokemonDetailsByID[species.id]?.types)
+                                                      fallback: store.pokemonDetails(speciesID: species.id, form: species.form)?.types)
                 if !types.isEmpty {
                     TypeBadges(types: types, language: store.language, size: 11,
                                horizontalPadding: 7, verticalPadding: 2)

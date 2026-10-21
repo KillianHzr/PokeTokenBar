@@ -150,7 +150,7 @@ final class DittoRevealTests: XCTestCase {
 
     func testRevealRebasesDisguiseProfileAndLoadsDittoDetails() async {
         let s = seedDisguise()
-        await s.loadPokemonDetails(speciesID: 1)
+        await s.loadPokemonDetails(speciesID: 1, form: nil)
         XCTAssertNotEqual(s.state.active?.profile?.gender, .genderless)
         XCTAssertEqual(s.state.active?.profile?.abilityName, "overgrow")
         XCTAssertEqual(s.state.active?.profile?.moves.map(\.name), ["tackle"])
@@ -176,12 +176,12 @@ final class DittoRevealTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: suite) }
         let s = seedDisguise(boosted: true, defaults: defaults)
         s.setGrowthDifficulty(0.1)
-        await s.loadPokemonDetails(speciesID: 1)
+        await s.loadPokemonDetails(speciesID: 1, form: nil)
         let initial = try XCTUnwrap(s.state.active?.profile)
         s.applyUsage(7_250_000) // 6.25M reveal threshold plus 1M raw carryover.
         let earnedLevel = s.state.active?.profile?.level
         await drainReveal(s)
-        await s.loadPokemonDetails(speciesID: PokemonOdds.dittoSpeciesID)
+        await s.loadPokemonDetails(speciesID: PokemonOdds.dittoSpeciesID, form: nil)
         for _ in 0..<200 {
             if s.state.active?.profile?.gender == .genderless { break }
             await Task.yield()

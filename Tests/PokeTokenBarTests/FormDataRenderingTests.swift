@@ -4,7 +4,7 @@ import Vision
 import XCTest
 @testable import PokeTokenBar
 
-private struct FormMetadataProvider: PokeProviding, PokemonDetailProviding {
+private struct FormDataProvider: PokeProviding, PokemonDetailProviding {
     let detailsAvailable: Bool
 
     func line(baseSpeciesID: Int) async throws -> EvoLine {
@@ -14,18 +14,24 @@ private struct FormMetadataProvider: PokeProviding, PokemonDetailProviding {
     func baseSpeciesIndex() async throws -> [BaseSpecies] { [] }
     func baseSpecies(id: Int) async throws -> BaseSpecies? { nil }
     func pokemonDetails(speciesID: Int) async throws -> PokemonDetails {
+        try await pokemonDetails(pokemonID: speciesID, speciesID: speciesID)
+    }
+    /// Each variety its own data: Land Shaymin (492) has Natural Cure, Sky Shaymin (10006) Serene Grace.
+    func pokemonDetails(pokemonID: Int, speciesID: Int) async throws -> PokemonDetails {
         guard detailsAvailable else { throw URLError(.notConnectedToInternet) }
-        // PokéAPI's species data: default Shaymin types, stats and ability. The shown types follow the form.
-        return PokemonDetails(speciesID: speciesID, name: "shaymin", height: 2, weight: 21,
-            baseExperience: 270, genderRate: -1, types: ["grass"],
+        let sky = pokemonID == 10006
+        return PokemonDetails(speciesID: speciesID, name: sky ? "shaymin-sky" : "shaymin", height: sky ? 4 : 2,
+            weight: sky ? 52 : 21, baseExperience: 270, genderRate: -1, types: sky ? ["grass", "flying"] : ["grass"],
             baseStats: Dictionary(uniqueKeysWithValues: PokemonStatCalculator.order.map { ($0, 100) }),
-            abilities: [PokemonAbilityOption(name: "natural-cure", slot: 1, isHidden: false)], moves: [])
+            abilities: [PokemonAbilityOption(name: sky ? "serene-grace" : "natural-cure", slot: 1, isHidden: false)],
+            moves: [])
     }
 }
 
-/// Reads the real Home and Pokédex pixels: a helper-only test would miss either missing call site.
+/// Reads the real Home and Pokédex pixels: a helper-only test would miss either missing call site. A form shows its
+/// own types and data; they used to be the default form's, with a "Data uses the default form" note.
 @MainActor
-final class FormMetadataNoteRenderingTests: XCTestCase {
+final class FormDataRenderingTests: XCTestCase {
     private var windows: [NSWindow] = []
 
     override func tearDown() async throws {
@@ -39,7 +45,7 @@ final class FormMetadataNoteRenderingTests: XCTestCase {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
         let file = directory.appendingPathComponent("state.json")
-        let suite = "FormMetadataNote-\(UUID())"
+        let suite = "FormData-\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         addTeardownBlock { defaults.removePersistentDomain(forName: suite) }
         var state = CompanionState()
@@ -57,9 +63,9 @@ final class FormMetadataNoteRenderingTests: XCTestCase {
             state.representativeForm = form
         }
         try JSONEncoder().encode(state).write(to: file)
-        let store = CompanionStore(provider: FormMetadataProvider(detailsAvailable: detailsAvailable),
+        let store = CompanionStore(provider: FormDataProvider(detailsAvailable: detailsAvailable),
                                    fileURL: file, defaults: defaults)
-        if !egg && detailsAvailable { await store.loadPokemonDetails(speciesID: speciesID) }
+        if !egg && detailsAvailable { await store.loadPokemonDetails(speciesID: speciesID, form: form) }
         return store
     }
 
@@ -111,22 +117,8 @@ final class FormMetadataNoteRenderingTests: XCTestCase {
         return text
     }
 
-    private func assertNote(_ expected: Bool, in host: NSView, loaded: Bool = true,
-                            file: StaticString = #filePath, line: UInt = #line) async throws {
-        let deadline = ContinuousClock.now + .seconds(5)
-        var text = ""
-        repeat {
-            text = try renderedText(host)
-            let ready = loaded ? text.contains("grass") : !text.isEmpty
-            if ready && text.contains("data uses the default form") == expected { return }
-            try await Task.sleep(for: .milliseconds(50))
-        } while ContinuousClock.now < deadline
-        XCTFail("Expected default-form note=\(expected). Rendered: \(text)", file: file, line: line)
-    }
-
-    /// Home shows the form's own types, with or without PokéAPI's data (which is the default form's: Grass for a
-    /// Sky Shaymin), and no default-form note: nothing else on Home comes from that data.
-    func testHomeShowsTheFormsOwnTypesWithoutTheNote() async throws {
+    /// Home shows the form's own types, with or without PokéAPI's data.
+    func testHomeShowsTheFormsOwnTypes() async throws {
         let cases: [(form: PokemonForm?, speciesID: Int, egg: Bool, loaded: Bool, shown: [String], hidden: [String])] = [
             (PokemonForm("sky"), 492, false, true, ["grass", "flying"], []),
             (PokemonForm("land"), 492, false, true, ["grass"], ["flying"]),
@@ -141,21 +133,26 @@ final class FormMetadataNoteRenderingTests: XCTestCase {
             let text = try await renderedText(host) { !$0.isEmpty && item.shown.allSatisfy($0.contains) }
             for type in item.shown { XCTAssertTrue(text.contains(type), "\(type) in: \(text)") }
             for type in item.hidden { XCTAssertFalse(text.contains(type), "\(type) in: \(text)") }
-            XCTAssertFalse(text.contains("data uses the default form"), text)
         }
     }
 
-    /// The Pokédex shows the form's own types too, and keeps the note for the stats, size and abilities below them.
-    func testDexExplainsTheDisplayedFormRatherThanTheOriginalSelection() async throws {
+    /// The Pokédex shows the displayed form's own types and data: a Sky Shaymin's ability is Serene Grace, not the
+    /// Land form's Natural Cure. The page loads the form's details itself.
+    func testDexShowsTheDisplayedFormsOwnData() async throws {
         for form in [PokemonForm("land"), PokemonForm("sky")] {
-            let store = try await store(form: form)
-            // Pass the aggregate/default species, as CollectionView does; the representative is Sky.
+            let store = try await store(form: form, detailsAvailable: true)
+            // Pass the aggregate/default species, as CollectionView does; the representative is the form.
             let species = try XCTUnwrap(store.dexSpecies.first { $0.id == 492 })
-            let host = mount(PokemonDetailView(store: store, species: species, onBack: {}), height: 520)
-            try await assertNote(form == PokemonForm("sky"), in: host)
-            // Type names load asynchronously: give Sky's second badge time to show its name.
-            let text = try await renderedText(host) { form != PokemonForm("sky") || $0.contains("flying") }
-            XCTAssertEqual(text.contains("flying"), form == PokemonForm("sky"), text)
+            let host = mount(PokemonDetailView(store: store, species: species, onBack: {}), height: 900)
+            let sky = form == PokemonForm("sky")
+            // Names load asynchronously: wait for the ability and the second type badge.
+            let text = try await renderedText(host) {
+                $0.contains(sky ? "serene" : "natural") && (!sky || $0.contains("flying"))
+            }
+            XCTAssertEqual(text.contains("serene"), sky, text)
+            XCTAssertEqual(text.contains("natural"), !sky, text)
+            XCTAssertEqual(text.contains("flying"), sky, text)
+            XCTAssertFalse(text.contains("default form"), text)
         }
     }
 }

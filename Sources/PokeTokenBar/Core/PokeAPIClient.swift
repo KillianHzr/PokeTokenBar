@@ -44,6 +44,15 @@ protocol PokeProviding: Sendable {
 /// Separate from `PokeProviding` so existing evolution-only test doubles stay small.
 protocol PokemonDetailProviding: Sendable {
     func pokemonDetails(speciesID: Int) async throws -> PokemonDetails
+    /// One variety's data: a species' default form (`pokemonID == speciesID`) or a form of its own.
+    func pokemonDetails(pokemonID: Int, speciesID: Int) async throws -> PokemonDetails
+}
+
+extension PokemonDetailProviding {
+    /// Test doubles that model one form per species answer every variety with it.
+    func pokemonDetails(pokemonID: Int, speciesID: Int) async throws -> PokemonDetails {
+        try await pokemonDetails(speciesID: speciesID)
+    }
 }
 
 /// PokéAPI 클라이언트 — 종/진화체인을 런타임 fetch + 파싱. 포켓몬 데이터는 레포에 번들하지 않는다.
@@ -66,18 +75,24 @@ actor PokeAPIClient: PokeProviding, PokemonDetailProviding {
         let details: PokemonDetails
     }
 
-    /// Default-form battle metadata. Memory → 30-day disk cache → REST, with stale disk fallback offline.
+    /// Default-form battle metadata.
     func pokemonDetails(speciesID: Int) async throws -> PokemonDetails {
-        if let cached = detailsCache[speciesID] { return cached }
-        let file = Self.detailsDirectory.appendingPathComponent("\(speciesID).json")
+        try await pokemonDetails(pokemonID: speciesID, speciesID: speciesID)
+    }
+
+    /// Battle metadata of one variety, keyed by its `pokemon` id: an Alolan Vulpix reads `pokemon/10103`, and its
+    /// species for the gender rate. Memory → 30-day disk cache → REST, with stale disk fallback offline.
+    func pokemonDetails(pokemonID: Int, speciesID: Int) async throws -> PokemonDetails {
+        if let cached = detailsCache[pokemonID] { return cached }
+        let file = Self.detailsDirectory.appendingPathComponent("\(pokemonID).json")
         let disk = (try? Data(contentsOf: file))
             .flatMap { try? JSONDecoder().decode(DetailSnapshot.self, from: $0) }
         if let disk, Date().timeIntervalSince(disk.fetchedAt) < 30 * 86400 {
-            detailsCache[speciesID] = disk.details
+            detailsCache[pokemonID] = disk.details
             return disk.details
         }
         do {
-            let dto: PokemonDTO = try await get(base.appendingPathComponent("pokemon/\(speciesID)"))
+            let dto: PokemonDTO = try await get(base.appendingPathComponent("pokemon/\(pokemonID)"))
             let speciesDTO = try await species(speciesID)
             let details = PokemonDetails(
                 speciesID: speciesID,
@@ -92,14 +107,14 @@ actor PokeAPIClient: PokeProviding, PokemonDetailProviding {
                     PokemonAbilityOption(name: $0.ability.name, slot: $0.slot, isHidden: $0.is_hidden)
                 }.sorted { $0.slot < $1.slot },
                 moves: Self.normalizedMoves(dto.moves, for: speciesID))
-            detailsCache[speciesID] = details
+            detailsCache[pokemonID] = details
             if let data = try? JSONEncoder().encode(DetailSnapshot(fetchedAt: Date(), details: details)) {
                 try? data.write(to: file, options: .atomic)
             }
             return details
         } catch {
             if let disk {
-                detailsCache[speciesID] = disk.details
+                detailsCache[pokemonID] = disk.details
                 return disk.details
             }
             throw error
@@ -109,7 +124,10 @@ actor PokeAPIClient: PokeProviding, PokemonDetailProviding {
     /// Reduce PokéAPI's cross-generation move history at the trust boundary, before it reaches
     /// either memory or disk. Moves absent from the supported version group are omitted entirely.
     static func normalizedMoves(_ moves: [PokemonMoveDTO], for speciesID: Int? = nil) -> [PokemonMoveOption] {
-        let targets = speciesID.map(PokemonDetails.preferredVersionGroups(for:)) ?? [PokemonDetails.preferredVersionGroup]
+        // A regional form is missing from its species' games (no Alolan Vulpix in Black 2): then the first game
+        // that has it, in release order from Sun and Moon.
+        let targets = (speciesID.map(PokemonDetails.preferredVersionGroups(for:)) ?? [PokemonDetails.preferredVersionGroup])
+            + PokemonDetails.formVersionGroups
         let chosenGroup = targets.first { target in
             moves.contains { move in move.version_group_details.contains { $0.version_group.name == target } }
         } ?? targets[0]

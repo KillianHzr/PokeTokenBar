@@ -523,6 +523,14 @@ struct PokemonForm: RawRepresentable, Codable, Hashable, Sendable {
         return assetName(speciesID: speciesID, form: form)
     }
 
+    /// PokéAPI `pokemon` resource holding an individual's stats, abilities, size and moves: its form's own variety
+    /// (10103 for an Alolan Vulpix), else the species, whose default form also stands for the forms that only change
+    /// a look (Unown's letters, Arceus's Plates).
+    static func detailsID(speciesID: Int, form: PokemonForm?) -> Int {
+        let resolved = resolved(speciesID: speciesID, form: form)
+        return entries(speciesID: speciesID).first { $0.form == resolved }?.pokemonID ?? speciesID
+    }
+
     /// PokéAPI `pokemon-form` id holding the localized form names. Nil for species without forms.
     static func formID(speciesID: Int, form: PokemonForm?) -> Int? {
         let resolved = resolved(speciesID: speciesID, form: form)

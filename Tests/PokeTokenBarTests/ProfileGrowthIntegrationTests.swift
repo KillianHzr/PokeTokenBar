@@ -53,7 +53,7 @@ final class ProfileGrowthIntegrationTests: XCTestCase {
                     await s.hatch(baseID: 1)
                     XCTAssertEqual(s.state.active?.hasGrowthBoost, repeated)
                     XCTAssertEqual(s.state.active?.profile?.level, 5)
-                    await s.loadPokemonDetails(speciesID: forms)
+                    await s.loadPokemonDetails(speciesID: forms, form: nil)
                     for _ in 0..<forms { s.applyUsage(s.tokensToNext) }
                     XCTAssertNil(s.state.active)
                     XCTAssertEqual(s.state.dex.last?.profile?.level, 100)
@@ -152,7 +152,7 @@ final class ProfileGrowthIntegrationTests: XCTestCase {
         seed.inventory[ItemKind.rareCandy.rawValue] = 1
         let (s, _, _) = try fixture(seed, difficulty: 0.1)
         await s.hatch(baseID: 1)
-        await s.loadPokemonDetails(speciesID: 3)
+        await s.loadPokemonDetails(speciesID: 3, form: nil)
         _ = s.useRareCandy()
         XCTAssertNil(s.state.active)
         XCTAssertEqual(s.state.dex.last?.profile?.level, 100)
