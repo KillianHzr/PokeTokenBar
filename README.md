@@ -212,6 +212,7 @@ Claimed once from the **Achievements** tab, active for as long as they sit in th
 | **Booster Energy** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/booster-energy.png" width="28" height="28" alt="Booster Energy"> | Any 4 Paradox Pokémon³ | Paradox Pokémon grow 50% faster |
 | **Teal Mask** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/teal-mask.png" width="28" height="28" alt="Teal Mask"> | Ogerpon, Okidogi, Munkidori, Fezandipiti | Grass-, Water-, Fire- and Rock-type Pokémon grow 20% faster |
 | **Tera Orb** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/tera-orb.png" width="28" height="28" alt="Tera Orb"> | Koraidon, Miraidon, Terapagos | Eggs from an evolution stone hatch twice as fast |
+| **Relic Statue** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-statue.png" width="28" height="28" alt="Relic Statue"> | Regirock, Regice, Registeel, Regigigas, Regieleki, Regidrago | A Pokémon that does not evolve grows 25% faster |
 
 Only the Azure Flute changes which Pokémon hatch; every other artifact is a pure bonus that never lowers another Pokémon's chances.
 

@@ -213,6 +213,7 @@ Pi は複数のモデルを一つのセッションログに流すことがあ�
 | **ブーストエナジー** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/booster-energy.png" width="28" height="28" alt="ブーストエナジー"> | パラドックスポケモンのうち4匹³ | パラドックスポケモンが50%早く育つ |
 | **みどりのめん** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/teal-mask.png" width="28" height="28" alt="みどりのめん"> | オーガポン、イイネイヌ、マシマシラ、キチキギス | くさ・みず・ほのお・いわタイプのポケモンが20%早く育つ |
 | **テラスタルオーブ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/tera-orb.png" width="28" height="28" alt="テラスタルオーブ"> | コライドン、ミライドン、テラパゴス | 進化の石のタマゴが2倍早くかえる |
+| **こだいのせきぞう** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-statue.png" width="28" height="28" alt="こだいのせきぞう"> | レジロック、レジアイス、レジスチル、レジギガス、レジエレキ、レジドラゴ | 進化しないポケモンが25%早く育つ |
 
 生まれるポケモンの確率を変えるのはてんかいのふえだけです。ほかのどうぐはすべて純粋なボーナスで、ほかのポケモンの確率を下げません。
 
