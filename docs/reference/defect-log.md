@@ -350,12 +350,32 @@ read_when:
   every catalogued species from its PokéAPI line base (`evolutionRoots`, all 484 evolved species #1 to #1025),
   so a new catalogue entry without its base fails.
 
+- **A repeat must be judged at the level the player collects.** `hatchCore` set the repeat growth boost
+  ("Growth ×2") with `hasCollectedFinal(forBaseID:)`, a line-level check from before forms existed. Once
+  regional forms joined, a first Alolan Dugtrio hatched as a repeat because a Kanto Dugtrio had graduated,
+  and the Magma Stone and Liberty Pass, which read the same flag, sided with the wrong line. The form tests
+  only checked which form hatched, never the flags derived from it. `hasCollectedFinal(forBaseID:form:)`
+  now looks for a graduated record of this form (records from before forms count as the default form; a
+  save whose Pokédex lost the record falls back to the line). Sweep: the species roll's uncollected weight
+  stays per line because it runs before any form is rolled, and the form roll already favors uncollected
+  forms. Unown letters used to keep species-based repeat growth on purpose (#288); every form now follows
+  the same rule, so a new letter is not a repeat. Guards: `RepeatBoostFormTests` (the line-level check fails
+  it) and `UnownTests.testOnlyALetterAlreadyGraduatedGetsRepeatGrowthAtEveryDifficulty`.
 - **A test of a shared, bounded cache must not depend on other tests' traffic.** `SpriteImageCacheTests` and
   `UnownSpriteCacheTests` check that a loaded `NSImage` stays the same object in `SpriteLoader.imageCache`
   (64 entries). When the Achievements layout test started opening on the Artifacts section, about sixty goal
   sprites kept loading over the network on CI after it ended, evicted the images under test between two awaits,
   and failed three identity assertions; locally the sprites come from disk at once, so nothing showed. Both
   classes now lift the cache limit in `setUp` and restore it in `tearDown`.
+
+- **A cache keyed by age only outlives a change of what it covers.** The hatch index (`base-index.json`) was
+  reused for 30 days whatever species range it was fetched for. One cached hours before the Gen 6 to 9 PRs
+  merged stopped at #649, so no Gen 6 to 9 species hatched for up to a month; only Gen 1 to 5 species and their
+  regional forms came out. The Gen 6 to 9 tests used stub providers, never a cached index. The snapshot now
+  records `maxSpeciesID`, and `PokeAPIClient.isFreshBaseIndex` reuses it only for the current
+  `PokemonAssets.animatedSpeciesIDs` range; an older snapshot stays the offline fallback. Sweep: the per-species
+  detail and name caches are keyed by species, so a wider range only adds entries. Guard:
+  `BaseIndexCacheRangeTests` (an age-only check fails it).
 
 ## 외부 로그·사용량 소스
 

@@ -472,7 +472,9 @@ final class UnownTests: XCTestCase {
         XCTAssertTrue(s.pokemonIndividuals(speciesID: 201, form: .question).isEmpty)
     }
 
-    func testDifferentLettersKeepSpeciesBasedRepeatGrowthAtEveryDifficulty() async throws {
+    /// The repeat growth boost follows the form: a letter never graduated is new to the Pokédex, so it grows
+    /// at the normal speed even after another letter graduated; the same letter again is a repeat.
+    func testOnlyALetterAlreadyGraduatedGetsRepeatGrowthAtEveryDifficulty() async throws {
         for difficulty in [0.1, 1.0, 2.0] {
             let s = try store(seed: 17)
             s.setGrowthDifficulty(difficulty)
@@ -492,12 +494,23 @@ final class UnownTests: XCTestCase {
             await repeated.hatchIfNeeded()
             XCTAssertEqual(repeated.currentForm, nextEgg.pendingForm)
             XCTAssertNotEqual(repeated.currentForm, firstForm)
-            XCTAssertTrue(try XCTUnwrap(repeated.state.active).hasGrowthBoost)
-            XCTAssertEqual(repeated.threshold, unboostedThreshold / PokemonBalance.repeatGrowthMultiplier)
+            XCTAssertFalse(try XCTUnwrap(repeated.state.active).hasGrowthBoost, "a new letter is not a repeat")
+            XCTAssertEqual(repeated.threshold, unboostedThreshold)
             XCTAssertEqual(repeated.state.dex.first?.form, firstForm)
             repeated.applyUsage(repeated.tokensToNext)
             XCTAssertEqual(repeated.state.dex.count, 2)
             XCTAssertTrue(repeated.state.dex.allSatisfy { $0.profile?.level == 100 })
+
+            var sameLetter = repeated.state
+            sameLetter.pendingHatchID = 201
+            sameLetter.pendingForm = firstForm
+            sameLetter.eggUsage = PokemonBalance.eggHatchThreshold
+            let again = try store(sameLetter)
+            again.setGrowthDifficulty(difficulty)
+            await again.hatchIfNeeded()
+            XCTAssertEqual(again.currentForm, firstForm)
+            XCTAssertTrue(try XCTUnwrap(again.state.active).hasGrowthBoost, "the same letter again is a repeat")
+            XCTAssertEqual(again.threshold, unboostedThreshold / PokemonBalance.repeatGrowthMultiplier)
         }
     }
 

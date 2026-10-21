@@ -2289,8 +2289,10 @@ final class CompanionStore {
         let evolutionPlan = makeEvolutionPlan(from: line.tree, baseID: line.baseID)
         var profile = PokemonProfile.generate(seed: rng.next())
         if let details = pokemonDetailsByID[line.baseID] { profile.enrich(with: details) }
-        let hasGrowthBoost = state.hasCollectedFinal(forBaseID: line.baseID)
         let form = pendingForm ?? rollLineForm(baseID: line.baseID, type: typeGuarantee)
+        // A repeat only when this line already graduated in this form: an Alolan Dugtrio is new to the
+        // Pokédex even after a Kanto one graduated, so it gets no repeat boost.
+        let hasGrowthBoost = state.hasCollectedFinal(forBaseID: line.baseID, form: form)
         // Checked before this individual joins the Pokédex: does it bring a form its line never had?
         let hasNewForm = form.map { !state.collectedLineForms(baseID: line.baseID).contains($0) } ?? false
         // 위장 중엔 이로치를 숨긴다 — 부화 알림·연출도 일반체로(정체는 리빌 때 공개).
