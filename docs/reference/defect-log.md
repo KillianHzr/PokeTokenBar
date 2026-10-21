@@ -450,10 +450,11 @@ read_when:
 - **A form's types, everywhere a type is read.** An Alolan Vulpix showed "FIRE" on Home and in the Pokédex, and
   took the growth of the Water, Ground and Rock badges instead of Fire, Fighting, Rock and Steel. The type badges
   read PokéAPI's species data, which is always the default form's (a note under them said so), and
-  `PokemonTypeData.isWeak` took a species ID alone. The badge tests used default forms only. The weakness check now
-  requires the form, and the shown types come from the local form table (`PokemonTypeData.typeNames`), PokéAPI
-  only as a fallback; the note stays in the Pokédex for stats, size and abilities. Guards:
-  `testBadgesFollowTheRegionalFormsTypes`, `testShownTypesFollowTheForm`.
+  `PokemonTypeData.isWeak` took a species ID alone. The badge tests used default forms only, and a rendering test
+  pinned the note on Home as the expected behavior. The weakness check now requires the form, and the shown types
+  come from the local form table (`PokemonTypeData.typeNames`), PokéAPI only as a fallback; the note stays in the
+  Pokédex for stats, size and abilities. Guards: `testBadgesFollowTheRegionalFormsTypes`,
+  `testShownTypesFollowTheForm`, `testHomeShowsTheFormsOwnTypesWithoutTheNote` (reads the rendered pixels).
 
 ## 외부 로그·사용량 소스
 
