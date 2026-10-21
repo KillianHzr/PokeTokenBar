@@ -206,7 +206,7 @@ final class CompanionStore {
         func add(_ kind: ItemKind, _ multiplier: Double, if applies: Bool) {
             if applies, itemCount(kind) > 0 { factors.append(GrowthFactor(source: .item(kind), multiplier: multiplier)) }
         }
-        let badges = typeBadgeSpeedMultiplier(forSpeciesID: mon.currentID)
+        let badges = typeBadgeSpeedMultiplier(forSpeciesID: mon.currentID, form: mon.form)
         if badges > 1 { factors.append(GrowthFactor(source: .badges, multiplier: badges)) }
         add(.clearBell, CollectorBonus.clearBellRare, if: mon.rarity == .rare)
         add(.griseousOrb, CollectorBonus.griseousOrbGhostDragon, if: types.contains { $0 == .ghost || $0 == .dragon })
@@ -1469,16 +1469,16 @@ final class CompanionStore {
     }
 
     /// Regional tiers claimed across the badges this species is weak to (Normal badges count for Normal types).
-    func ownedBadgeTierCount(weakAgainst speciesID: Int) -> Int {
+    func ownedBadgeTierCount(weakAgainst speciesID: Int, form: PokemonForm?) -> Int {
         PokemonType.allCases.reduce(0) { count, type in
-            PokemonTypeData.isWeak(to: type, speciesID: speciesID) ? count + claimedBadgeTierCount(type) : count
+            PokemonTypeData.isWeak(to: type, speciesID: speciesID, form: form) ? count + claimedBadgeTierCount(type) : count
         }
     }
 
     /// Growth speed from badges: +2.5% per claimed regional tier of each badge the species is weak to,
     /// cumulative. Growth only: badges never touch the hatch odds.
-    func typeBadgeSpeedMultiplier(forSpeciesID speciesID: Int) -> Double {
-        1.0 + CollectorBonus.badgeRegionBonus * Double(ownedBadgeTierCount(weakAgainst: speciesID))
+    func typeBadgeSpeedMultiplier(forSpeciesID speciesID: Int, form: PokemonForm?) -> Double {
+        1.0 + CollectorBonus.badgeRegionBonus * Double(ownedBadgeTierCount(weakAgainst: speciesID, form: form))
     }
 
     /// Regional tiers of this type's badge already claimed.

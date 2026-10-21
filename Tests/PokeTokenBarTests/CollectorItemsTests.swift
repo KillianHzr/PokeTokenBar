@@ -521,8 +521,8 @@ final class CollectorItemsTests: XCTestCase {
     /// No type is weak to Normal, so the Plain Badge boosts Normal-type Pokémon, and its texts must say so.
     func testPlainBadgeBoostsNormalTypesAndSaysSo() {
         let s = store(claimed: ["plainBadge@1", "plainBadge@2"])
-        XCTAssertEqual(s.typeBadgeSpeedMultiplier(forSpeciesID: 143), 1.05, accuracy: 0.0001, "Snorlax")
-        XCTAssertEqual(s.typeBadgeSpeedMultiplier(forSpeciesID: 6), 1.0, "Charizard")
+        XCTAssertEqual(s.typeBadgeSpeedMultiplier(forSpeciesID: 143, form: nil), 1.05, accuracy: 0.0001, "Snorlax")
+        XCTAssertEqual(s.typeBadgeSpeedMultiplier(forSpeciesID: 6, form: nil), 1.0, "Charizard")
         for lang in AppLanguage.allCases {
             let l = L(lang)
             // The stem of the type name, so a declined form ("обычного") still matches.
@@ -539,15 +539,37 @@ final class CollectorItemsTests: XCTestCase {
     func testBadgeRegionsStackOnPokemonWeakToThem() {
         let s = store(claimed: ["fairyBadge@1", "fairyBadge@6", "glacierBadge@1"])
         // Dragonite (Dragon/Flying) is weak to both Fairy and Ice: three regions.
-        XCTAssertEqual(s.ownedBadgeTierCount(weakAgainst: 149), 3)
-        XCTAssertEqual(s.typeBadgeSpeedMultiplier(forSpeciesID: 149), 1.075, accuracy: 0.0001)
+        XCTAssertEqual(s.ownedBadgeTierCount(weakAgainst: 149, form: nil), 3)
+        XCTAssertEqual(s.typeBadgeSpeedMultiplier(forSpeciesID: 149, form: nil), 1.075, accuracy: 0.0001)
         // Charizard (Fire/Flying) is weak to neither.
-        XCTAssertEqual(s.typeBadgeSpeedMultiplier(forSpeciesID: 6), 1.0)
+        XCTAssertEqual(s.typeBadgeSpeedMultiplier(forSpeciesID: 6, form: nil), 1.0)
         // Every region of every badge Dragonite is weak to: Dragon 9, Fairy 9, Ice 9, Rock 9 regions.
         let all = store(claimed: Set([PokemonType.dragon, .fairy, .ice, .rock].flatMap { type in
             PokemonTypeData.badgeGenerations(for: type).map { CompanionState.badgeTierKey(type.badgeItem, generation: $0) }
         }))
-        XCTAssertEqual(all.typeBadgeSpeedMultiplier(forSpeciesID: 149), 1 + 4 * 0.225, accuracy: 0.0001)
+        XCTAssertEqual(all.typeBadgeSpeedMultiplier(forSpeciesID: 149, form: nil), 1 + 4 * 0.225, accuracy: 0.0001)
+    }
+
+    /// A regional form takes the badges its own types are weak to: an Alolan Vulpix (Ice) grows faster with the Fire
+    /// badge, a Kanto Vulpix (Fire) with the Water one. Before, both read the species' default types.
+    func testBadgesFollowTheRegionalFormsTypes() {
+        let alolan = mon(37, form: PokemonForm("alola"))
+        let kanto = mon(37)
+        let fire = store(claimed: ["volcanoBadge@1"])
+        XCTAssertEqual(fire.growthSpeedMultiplier(for: alolan), 1.025, accuracy: 0.0001)
+        XCTAssertEqual(fire.growthSpeedMultiplier(for: kanto), 1, accuracy: 0.0001)
+        let water = store(claimed: ["cascadeBadge@1"])
+        XCTAssertEqual(water.growthSpeedMultiplier(for: alolan), 1, accuracy: 0.0001)
+        XCTAssertEqual(water.growthSpeedMultiplier(for: kanto), 1.025, accuracy: 0.0001)
+    }
+
+    /// The types shown on Home and in the Pokédex follow the form; PokéAPI's species data, the default form's,
+    /// only fills in for a species the local table lacks.
+    func testShownTypesFollowTheForm() {
+        XCTAssertEqual(PokemonTypeData.typeNames(speciesID: 37, form: PokemonForm("alola"), fallback: ["fire"]), ["ice"])
+        XCTAssertEqual(PokemonTypeData.typeNames(speciesID: 37, form: nil, fallback: ["fire"]), ["fire"])
+        XCTAssertEqual(PokemonTypeData.typeNames(speciesID: 52, form: PokemonForm("galar"), fallback: ["normal"]), ["steel"])
+        XCTAssertEqual(PokemonTypeData.typeNames(speciesID: 99_999, form: nil, fallback: ["water"]), ["water"])
     }
 
     /// Claiming a stone achievement puts five stones in the Bag for free. Using one works like buying an
