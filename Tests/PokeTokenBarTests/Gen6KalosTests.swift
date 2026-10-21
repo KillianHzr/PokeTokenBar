@@ -47,11 +47,11 @@ final class Gen6KalosTests: XCTestCase {
             "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/10026.gif"
         )
 
-        // Gen 1-5 animated sprites remain Black/White animated
+        // Gen 1-5 animated sprites are Showdown 3D renders too
         let genesectAnimated = SpriteStore.spriteURL(speciesID: 649, animated: true, shiny: false)
         XCTAssertEqual(
             genesectAnimated.absoluteString,
-            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/649.gif"
+            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/649.gif"
         )
     }
 
