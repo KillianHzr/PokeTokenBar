@@ -384,6 +384,36 @@ read_when:
   detail and name caches are keyed by species, so a wider range only adds entries. Guard:
   `BaseIndexCacheRangeTests` (an age-only check fails it).
 
+- **An evolution open to one form is closed to the others.** PokéAPI's `evolves_to` lists every evolution of a
+  species whatever its form, and `makeEvolutionPlan` followed it: a Kanto Farfetch'd became Sirfetch'd, a Galarian
+  Meowth Persian (shown as a Kanto one), a Johto Wooper Clodsire, and Kanto Farfetch'd, Corsola or Mr. Mime were
+  never finals. The form tests used stub trees with no form, so no path ever met a gate. `PokemonEvolutionData`
+  now holds the evolution tree of every line and `formGates` (14 evolutions tied to the parent's form); the
+  plan, the evolve loop, the final-stage label, the Home evolution row, the catch log and saved plans (redone on
+  load) all go through `openChildren`. Sweep: every `node.children` read in `CompanionStore`. Guard:
+  `FormAwareLineTests` (ignoring the gates fails eight of its tests).
+- **A hand-written list stops where its author stopped.** `branchingFinals` listed the branching lines of Gen 1
+  to 4 plus Sylveon; Meowth, Scyther, Wooper, Sneasel, Yamask, Cosmog, Applin and Charcadet were missing, so a
+  released Applin took the duplicate badge while Appletun was still to find. It is now derived from
+  `PokemonEvolutionData`, form gates included. Guard: `testBranchingFinalsComeFromTheEvolutionData` (the former
+  list is kept as expected values) and `testAReleasedApplinIsNotADuplicateWhileOtherFinalsAreMissing`.
+- **One rolled form must say what each species of its line shows.** `lineForms` summed the forms of each species
+  and `resolved` gave the species default to a species without the rolled name. Basculin and Basculegion,
+  Darumaka and Darmanitan, Poltchageist and Sinistcha name their forms differently, so a white-striped Basculin
+  always became a male Basculegion and a Galarian Darumaka a standard Darmanitan.
+  `testEveryCatalogedFormCanBeRolled` passed because each form could roll, never asking on which species it
+  showed. `PokemonForm.lineVariants` maps one line form to each species' own form, and saved species forms move
+  to the line form that shows them. Sweep: a scan of every line with two form species found only these three
+  (Meowth is a gate). Guard: `testEveryCataloguedFormIsReachableFromItsLine`.
+- **"Collected" for the egg roll means the whole line.** `hatchWeight` halved a line as soon as one final was
+  graduated: Eevee after one Vaporeon, Rattata after a Kanto Raticate, and the 18 old lines that gained a final
+  in Gen 8 or 9. `CompanionState.isLineComplete` asks for every final (form gates included) and every line form.
+  Guard: `testALineIsHalvedOnlyOnceEveryFinalAndFormIsCollected`.
+- **A weight is not a category.** The Azure Flute boosted every species of `hatchWeight` 3, so Beldum (capture
+  rate 3, not legendary) got ×4. `BaseSpecies.isLegendary` (PokéAPI legendary or mythical) is required to decode,
+  so an index cached without it is fetched again. Guards: `testAzureFluteIsTheOnlyItemThatChangesHatchOdds`
+  (Beldum) and `LegendaryHatchWeightTests`.
+
 ## 외부 로그·사용량 소스
 
 - **토큰 파일 파서는 외부 도구의 실제 직렬화 구조체(중첩 객체)를 반영해야 한다.** `jetski-standalone-oauth-token`

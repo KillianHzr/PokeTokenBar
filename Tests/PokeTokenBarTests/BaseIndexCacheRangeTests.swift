@@ -25,7 +25,7 @@ final class BaseIndexCacheRangeTests: XCTestCase {
     /// The user's cache had this shape: no `maxSpeciesID` key. It still decodes, so it stays available as the
     /// offline fallback, but it is never reused as fresh.
     func testAnIndexWrittenWithoutTheRangeStillDecodes() throws {
-        let json = #"{"fetchedAt":782000000,"entries":[{"id":1,"captureRate":45,"isUnbreedableLegendary":false}]}"#
+        let json = #"{"fetchedAt":782000000,"entries":[{"id":1,"captureRate":45,"isUnbreedableLegendary":false,"isLegendary":false}]}"#
         let decoded = try JSONDecoder().decode(PokeAPIClient.BaseIndexSnapshot.self, from: Data(json.utf8))
         XCTAssertNil(decoded.maxSpeciesID)
         XCTAssertEqual(decoded.entries.map(\.id), [1])

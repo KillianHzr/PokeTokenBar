@@ -200,7 +200,8 @@ final class UnownTests: XCTestCase {
         XCTAssertEqual(s.state.pendingForm, .question)
     }
 
-    func testFormOwnershipDoesNotChangeSpeciesSelectionOrShinyRolls() async throws {
+    /// Letters owned only decide whether the Unown line is complete (halved). They never change the roll order.
+    func testOnlyEveryLetterHalvesUnownWithoutChangingShinyRolls() async throws {
         var selectedSpecies = Set<Int>()
         for seed: UInt64 in [1, 7, 17, 42, 128, 999] {
             for forms in [[], [PokemonForm.b], PokemonForm.unownLetters] {
@@ -210,8 +211,9 @@ final class UnownTests: XCTestCase {
                 original.dex = forms.map { entry($0) }
                 let s = try store(original, seed: seed, provider: UnownSelectionProvider())
                 var rng = SeededRNG(seed: seed)
-                // Existing species weights: Pikachu 255, collected Unown floor(225 / 2) = 112.
-                let expectedSpecies = rng.next() % 367 < 255 ? 25 : 201
+                // Pikachu 255; Unown 225, halved to 112 only once every letter is collected.
+                let unownWeight: UInt64 = forms.count == PokemonForm.unownLetters.count ? 112 : 225
+                let expectedSpecies = rng.next() % (255 + unownWeight) < 255 ? 25 : 201
                 let expectedShiny = rng.next() % PokemonOdds.shinyDenominator == 0
                 let expectedNature = PokemonNature.allCases[Int(rng.next() % UInt64(PokemonNature.allCases.count))]
                 let expectedProfileSeed = rng.next()

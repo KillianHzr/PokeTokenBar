@@ -1112,13 +1112,23 @@ struct CompanionState: Codable, Sendable {
         return forms
     }
 
+    /// Whether the egg roll treats a line as collected (its weight halved): every final of the line graduated,
+    /// branches and form-gated finals included, and every form of the line in the Pokédex. One graduated
+    /// final is not enough: after a Vaporeon, Eevee keeps its full chance while seven evolutions are missing.
+    func isLineComplete(baseID: Int) -> Bool {
+        let finals = PokemonEvolutionData.finals(from: baseID)
+        guard finals.allSatisfy({ collectedFinals.contains("\(baseID):\($0)") }) else { return false }
+        let forms = PokemonForm.lineForms(baseID: baseID)
+        return forms.isEmpty || Set(forms).isSubset(of: collectedLineForms(baseID: baseID))
+    }
+
     /// Hatch roll weights: a form counts as collected once every species of the line that shows it
     /// is owned in it, so a Sandy Burmy that became Mothim still leaves Sandy Wormadam to find.
     func collectedLineForms(baseID: Int) -> Set<PokemonForm> {
         let owned = PokemonForm.formSpecies(baseID: baseID).map { ($0, collectedForms(speciesID: $0)) }
         return Set(PokemonForm.lineForms(baseID: baseID).filter { form in
             owned.allSatisfy { speciesID, forms in
-                !PokemonForm.forms(speciesID: speciesID).contains(form) || forms.contains(form)
+                PokemonForm.ownForm(speciesID: speciesID, lineForm: form).map(forms.contains) ?? true
             }
         })
     }
