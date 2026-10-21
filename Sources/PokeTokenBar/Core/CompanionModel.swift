@@ -1056,6 +1056,9 @@ struct CompanionState: Codable, Sendable {
     var candyWindowEpoch: [String: String] = [:]
     // 사탕 지급 첫 실행 시드 완료 — 업데이트 직후 이미 100%였던 창의 소급 지급 차단.
     var candyFeatureSeeded = false
+    /// The growth bonuses add up (they used to multiply). A save from before that has `false`, and its current
+    /// stage is carried over once by `CompanionStore.migrateToAdditiveGrowthIfNeeded`.
+    var additiveGrowthBonuses = true
 
     init() {}
 
@@ -1098,6 +1101,7 @@ struct CompanionState: Codable, Sendable {
         candyGrantTier     = c.lenient([String: Int].self, forKey: .candyGrantTier, default: [:])
         candyWindowEpoch   = c.lenient([String: String].self, forKey: .candyWindowEpoch, default: [:])
         candyFeatureSeeded = c.lenient(Bool.self, forKey: .candyFeatureSeeded, default: false)
+        additiveGrowthBonuses = c.lenient(Bool.self, forKey: .additiveGrowthBonuses, default: false)
     }
 
     /// 졸업 기록 또는 현재 개체가 실제로 도달한 단계에 이 종이 포함되는가.
