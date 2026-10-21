@@ -100,7 +100,7 @@ final class LocalizationInterpolationTests: XCTestCase {
 
             // Pokédex / 도감
             expect(lang, "dexTotal", l.dexTotal(4242), "4242")
-            expect(lang, "dexSpeciesTotal", l.dexSpeciesTotal(4242), "4242")
+            expect(lang, "dexSpeciesProgress", l.dexSpeciesProgress(4242, of: 9191), "4242", "9191")
             expect(lang, "dexPageLabel", l.dexPageLabel(4242, 1717), "4242", "1717")
 
             // System notifications / 시스템 알림
