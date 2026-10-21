@@ -1057,6 +1057,19 @@ struct CompanionState: Codable, Sendable {
         collectedFinals.contains { $0.hasPrefix("\(baseID):") }
     }
 
+    /// Whether this line already graduated in this form. The repeat growth boost (and the Magma Stone and
+    /// Liberty Pass split) is for an appearance already in the Pokédex: a Kanto Dugtrio graduated does not
+    /// make an Alolan one a repeat. Lines without forms, and saves whose Pokédex no longer holds the
+    /// graduated record, fall back to the line.
+    func hasCollectedFinal(forBaseID baseID: Int, form: PokemonForm?) -> Bool {
+        guard let form = PokemonForm.resolved(baseID: baseID, form: form) else {
+            return hasCollectedFinal(forBaseID: baseID)
+        }
+        let graduated = dex.filter { $0.baseID == baseID && !$0.isReleased }
+        guard !graduated.isEmpty else { return hasCollectedFinal(forBaseID: baseID) }
+        return graduated.contains { PokemonForm.resolved(baseID: baseID, form: $0.form) == form }
+    }
+
     /// Match Pokédex ownership, including the active Pokémon and released catch records.
     /// Normal and shiny individuals of the same form contribute once.
     func collectedForms(speciesID: Int) -> Set<PokemonForm> {
