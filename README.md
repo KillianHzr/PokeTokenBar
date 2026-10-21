@@ -213,12 +213,14 @@ Claimed once from the **Achievements** tab, active for as long as they sit in th
 | **Teal Mask** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/teal-mask.png" width="28" height="28" alt="Teal Mask"> | Ogerpon, Okidogi, Munkidori, Fezandipiti | Grass-, Water-, Fire- and Rock-type Pokémon grow 20% faster |
 | **Tera Orb** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/tera-orb.png" width="28" height="28" alt="Tera Orb"> | Koraidon, Miraidon, Terapagos | Eggs from an evolution stone hatch twice as fast |
 | **Relic Statue** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-statue.png" width="28" height="28" alt="Relic Statue"> | Regirock, Regice, Registeel, Regigigas, Regieleki, Regidrago | A Pokémon that does not evolve grows 25% faster |
+| **Type: Null Egg** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/mystery-egg.png" width="28" height="28" alt="Type: Null Egg"> | All 17 of Silvally's Memories⁴ | Send off your Pokémon for an egg that hatches a Type: Null |
 
 Only the Azure Flute changes which Pokémon hatch; every other artifact is a pure bonus that never lowers another Pokémon's chances.
 
 ¹ Omastar, Kabutops, Aerodactyl, Cradily, Armaldo, Rampardos, Bastiodon, Carracosta, Archeops, Tyrantrum, Aurorus, Dracozolt, Arctozolt, Dracovish, Arctovish.
 ² Nihilego, Buzzwole, Pheromosa, Xurkitree, Celesteela, Kartana, Guzzlord, Poipole, Naganadel, Stakataka, Blacephalon.
 ³ Great Tusk, Scream Tail, Brute Bonnet, Flutter Mane, Slither Wing, Sandy Shocks, Iron Treads, Iron Bundle, Iron Hands, Iron Jugulis, Iron Moth, Iron Thorns, Roaring Moon, Iron Valiant, Walking Wake, Iron Leaves, Gouging Fire, Raging Bolt, Iron Boulder, Iron Crown.
+⁴ Silvally hatches as Type: Null and evolves in its Normal form. Each legendary or mythical Pokémon in your Pokédex, released ones included, gives the Memory of its types (Moltres: Fire and Flying); the only Bug one is Genesect. Once Silvally is in your Pokédex, each Memory unlocks its form, shown under each form in its Pokédex page, and all 17 earn the Type: Null Egg.
 
 ### Gym Badges
 

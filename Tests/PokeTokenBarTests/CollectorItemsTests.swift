@@ -70,10 +70,10 @@ final class CollectorItemsTests: XCTestCase {
     func testCollectorItemsAndAchievements() {
         let s = store()
         XCTAssertEqual(s.collectorItems(in: .evolutionStones).count, 10)
-        XCTAssertEqual(s.collectorItems(in: .legendaryArtifacts).count, 24)
+        XCTAssertEqual(s.collectorItems(in: .legendaryArtifacts).count, 25)
         XCTAssertEqual(s.collectorItems(in: .gymBadges).count, 18)
         XCTAssertEqual(Set(CompanionStore.achievementItems), Set(ItemKind.allCases.filter { $0.collectorGroup != nil }))
-        XCTAssertEqual(s.totalAchievementsCount, 195, "10 stones, 24 artifacts, 161 badge regions")
+        XCTAssertEqual(s.totalAchievementsCount, 196, "10 stones, 25 artifacts, 161 badge regions")
         XCTAssertEqual(s.purchasableItems, [.mint, .rareCandy, .shinyCharm], "the Shop sells what main sells")
 
         // An unlocked stone is an achievement to claim, never a Shop item.
@@ -94,7 +94,8 @@ final class CollectorItemsTests: XCTestCase {
                 XCTAssertNil(kind.shopPrice, "\(kind) achievement is free to claim, not bought")
                 XCTAssertTrue(kind.isAchievement)
                 XCTAssertEqual(kind.achievementRewardCount, kind.stoneType != nil ? 5 : 1)
-                XCTAssertEqual(kind.isPassive, kind.stoneType == nil, "stones are the only consumable rewards")
+                XCTAssertEqual(kind.isPassive, kind.stoneType == nil && kind != .typeNullEgg,
+                               "stones and the Type: Null Egg are the only consumable rewards")
             }
         }
     }
@@ -322,7 +323,7 @@ final class CollectorItemsTests: XCTestCase {
         let artifacts = s.collectorItems(in: .legendaryArtifacts)
         XCTAssertEqual(artifacts.first, .clearBell, "unlocked and not owned comes first")
         XCTAssertEqual(artifacts.last, .soulDew, "owned passives sink to the bottom")
-        XCTAssertEqual(artifacts.count, 24)
+        XCTAssertEqual(artifacts.count, 25)
     }
 
     // MARK: Effects

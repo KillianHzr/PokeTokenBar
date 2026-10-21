@@ -63,7 +63,7 @@ final class AchievementsRenderingTests: XCTestCase {
 
     /// Three segments with their counts used to be wider than the popover: SwiftUI centered the wider stack,
     /// so the whole tab slid off both edges. Checked in every language with the widest labels: every reward
-    /// ready, so the segments carry counts up to three digits (10, 161, 24).
+    /// ready, so the segments carry counts up to three digits (10, 161, 25).
     func testCategoryPickerFitsTheTabWidthInEveryLanguage() async throws {
         for language in AppLanguage.allCases {
             let suite = "AchievementsWidth-\(UUID())"
@@ -78,7 +78,7 @@ final class AchievementsRenderingTests: XCTestCase {
             try JSONEncoder().encode(state).write(to: file)
             let store = CompanionStore(provider: AchievementsStubProvider(), fileURL: file, defaults: defaults)
             XCTAssertEqual(AchievementsView.AchievementCategory.allCases.map { AchievementsView.readyCount($0, store) },
-                           [10, 161, 24])
+                           [10, 161, 25])
 
             let host = NSHostingView(rootView: AchievementsView(store: store, nav: PopoverNavigation())
                 .frame(width: PopoverMetrics.contentWidth))
@@ -103,7 +103,9 @@ final class AchievementsRenderingTests: XCTestCase {
 
     /// Every species registered, Mewtwo graduated twice: every achievement is ready to claim.
     private static let everySpeciesTwiceMewtwo: [DexEntry] = (1...1025).map { id in
-        DexEntry(baseID: id, finalID: id, chainOrder: [id], rarity: id == 150 ? .legendary : .common,
+        // Mewtwo graduated twice (Azure Flute), and a legendary of every type for Silvally's Memories (Type: Null Egg).
+        DexEntry(baseID: id, finalID: id, chainOrder: [id],
+                 rarity: [150, 146, 245, 145, 251, 144, 638, 890, 383, 649, 377, 487, 491, 716].contains(id) ? .legendary : .common,
                  caughtAt: Date(timeIntervalSince1970: 1_790_000_000))
     } + [DexEntry(baseID: 150, finalID: 150, chainOrder: [150], rarity: .legendary,
                   caughtAt: Date(timeIntervalSince1970: 1_790_000_000))]

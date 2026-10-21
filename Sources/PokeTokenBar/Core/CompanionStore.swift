@@ -1234,8 +1234,11 @@ final class CompanionStore {
                 } else {
                     graduate(); break
                 }
+                // Evolving into a legendary (Solgaleo) wins its Memories; into Silvally, the forms they unlock.
+                let unlockedForms = itemFormSnapshot()
                 state.active!.pathIDs = Array(a.pathIDs.prefix(a.stageIndex + 1)) + [next.speciesID]
                 state.active!.stageIndex += 1
+                announceFormUnlocks(since: unlockedForms)
                 state.active!.usedAtStage = a.usedAtStage - thr   // 초과분 이월
                 if let details = pokemonDetailsByID[next.speciesID] {
                     state.active!.profile?.enrich(with: details)
@@ -1677,6 +1680,9 @@ final class CompanionStore {
         }
     }
 
+    /// Silvally's Memories won so far, out of `PokemonForm.memoryTypes`.
+    var silvallyMemoryCount: Int { state.silvallyMemoryTypes.count }
+
     /// Most graduated copies of a single legendary species (released copies excluded).
     var graduatedLegendaryCopies: Int {
         let graduated = state.dex.filter { $0.rarity == .legendary && !$0.isReleased }
@@ -1713,6 +1719,7 @@ final class CompanionStore {
         switch kind.unlock {
         case nil: return true
         case .duplicateLegendary: return graduatedLegendaryCopies >= 2
+        case .silvallyMemories: return silvallyMemoryCount >= PokemonForm.memoryTypes.count
         case .species: return unlockProgress(of: kind, registered: registered).contains(where: \.isMet)
         }
     }
@@ -1811,13 +1818,11 @@ final class CompanionStore {
         return ready.count
     }
 
-    /// Forms a claim or a first catch just unlocked (Arceus's Plates), for the short message that shows their
-    /// sprites. One entry per species; a message not seen yet takes the next unlocks in.
+    /// Forms a claim, a catch or an evolution just unlocked (Arceus's Plates, Silvally's Memories), for the short
+    /// message that shows their sprites. One entry per species; a message not seen yet takes the next unlocks in.
     struct FormUnlockNews: Equatable, Sendable {
         let speciesID: Int
         let forms: [PokemonForm]
-        /// False while the species is not in the Pokédex: its forms count once it is.
-        let isOwned: Bool
     }
 
     private(set) var formUnlockNews: [FormUnlockNews] = []
@@ -1832,21 +1837,21 @@ final class CompanionStore {
         })
     }
 
-    /// Announces the forms unlocked since the snapshot. The first Arceus also brings the Plates already won.
+    /// Announces the forms unlocked since the snapshot, only for a species in the Pokédex: a Plate or Memory won
+    /// before stays silent, and the first Arceus or Silvally announces every one already won.
     private func announceFormUnlocks(since before: ItemFormSnapshot) {
         for (id, previous) in before.sorted(by: { $0.key < $1.key }) {
+            guard state.ownsSpeciesInAnyForm(id) else { continue }
             let unlocked = state.itemUnlockedForms(speciesID: id)
-            let owned = state.ownsSpeciesInAnyForm(id)
-            var new = unlocked.subtracting(previous.unlocked)
-            if owned, !previous.owned { new.formUnion(unlocked) }
+            let new = previous.owned ? unlocked.subtracting(previous.unlocked) : unlocked
             guard !new.isEmpty else { continue }
             let pending = formUnlockNews.first { $0.speciesID == id }.map { Set($0.forms) } ?? []
             let forms = new.union(pending).sorted {
                 PokemonForm.sortOrder($0, speciesID: id) < PokemonForm.sortOrder($1, speciesID: id)
             }
             formUnlockNews.removeAll { $0.speciesID == id }
-            formUnlockNews.append(FormUnlockNews(speciesID: id, forms: forms, isOwned: owned))
-            AppLog.write("forms unlocked: \(id) \(forms.map(\.rawValue)) owned=\(owned)")
+            formUnlockNews.append(FormUnlockNews(speciesID: id, forms: forms))
+            AppLog.write("forms unlocked: \(id) \(forms.map(\.rawValue))")
         }
     }
 
@@ -1945,6 +1950,22 @@ final class CompanionStore {
         state.inventory[kind.rawValue] = itemCount(kind) - 1   // saved with the new egg
         replaceActiveWithEgg(price: 0, tier: nil, type: type)
         AppLog.write("stone used: \(kind.rawValue), discarded active, type=\(type.rawValue)")
+        return true
+    }
+
+    func canUseTypeNullEgg() -> Bool { hasActive && itemCount(.typeNullEgg) > 0 }
+
+    /// Uses the Type: Null Egg, the reward for all of Silvally's Memories: like a stone, the current Pokémon is
+    /// sent off for an egg, which hatches a Type: Null.
+    @discardableResult
+    func useTypeNullEgg() -> Bool {
+        guard canUseTypeNullEgg() else { return false }
+        state.inventory[ItemKind.typeNullEgg.rawValue] = itemCount(.typeNullEgg) - 1
+        replaceActiveWithEgg(price: 0, tier: nil, type: nil)
+        state.pendingHatchID = PokemonForm.typeNullSpeciesID
+        state.pendingForm = PokemonForm.resolved(baseID: PokemonForm.typeNullSpeciesID, form: nil)
+        save()
+        AppLog.write("type null egg used, discarded active")
         return true
     }
 

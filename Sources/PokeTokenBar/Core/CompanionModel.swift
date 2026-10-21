@@ -214,6 +214,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     case tealMask
     case teraOrb
     case relicStatue
+    case typeNullEgg
     case boulderBadge
     case cascadeBadge
     case thunderBadge
@@ -305,6 +306,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .tealMask: return "teal-mask"
         case .teraOrb: return "tera-orb"
         case .relicStatue: return "relic-statue"
+        case .typeNullEgg: return "mystery-egg"
         case .leafStone: return "leaf-stone"
         case .fireStone: return "fire-stone"
         case .waterStone: return "water-stone"
@@ -348,6 +350,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .tealMask: return "🎭"
         case .teraOrb: return "💠"
         case .relicStatue: return "🗿"
+        case .typeNullEgg: return "🥚"
         case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,
              .soulBadge, .marshBadge, .volcanoBadge, .earthBadge,
              .zephyrBadge, .hiveBadge, .plainBadge, .fogBadge,
@@ -371,6 +374,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     var isPassive: Bool {
         switch self {
         case .rareCandy, .mint,
+             .typeNullEgg,
              .leafStone, .fireStone, .waterStone, .thunderStone, .sunStone,
              .moonStone, .duskStone, .iceStone, .dawnStone, .shinyStone:
             return false
@@ -439,6 +443,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .tealMask:    return .species([SpeciesGoal([1017, 1014, 1015, 1016])]) // Ogerpon, Loyal Three
         case .teraOrb:     return .species([SpeciesGoal([1007, 1008, 1024])])   // Koraidon, Miraidon, Terapagos
         case .relicStatue: return .species([SpeciesGoal([377, 378, 379, 486, 894, 895])]) // All six Regis
+        case .typeNullEgg: return .silvallyMemories
         case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,
              .soulBadge, .marshBadge, .volcanoBadge, .earthBadge,
              .zephyrBadge, .hiveBadge, .plainBadge, .fogBadge,
@@ -483,6 +488,8 @@ enum ItemUnlock: Equatable, Sendable {
     case species([SpeciesGoal])
     /// The same legendary graduated twice. Released copies don't count: they were never raised to the end.
     case duplicateLegendary
+    /// All 17 of Silvally's Memories: a legendary or mythical Pokémon of every type but Normal in the Pokédex.
+    case silvallyMemories
 }
 
 /// Evolution stones are consumables: each one sends the current Pokémon off for an egg of the stone's type.
@@ -1145,17 +1152,28 @@ struct CompanionState: Codable, Sendable {
         })
     }
 
-    /// Forms a species unlocks through items (Arceus's Plates), whether or not it is in the Pokédex yet: they
-    /// count as collected once it is. Its default form needs no item.
+    /// Types of the legendary and mythical Pokémon in the Pokédex, released ones included: one of Silvally's
+    /// Memories each. A species gives the types of its default form, so Arceus's Plates give no Memory.
+    var silvallyMemoryTypes: Set<PokemonType> {
+        var species = Set(dex.filter { $0.rarity == .legendary }.flatMap(\.chainOrder))
+        if let active, active.rarity == .legendary {
+            species.formUnion(active.pathIDs.prefix(active.stageIndex + 1))
+        }
+        return Set(species.flatMap { PokemonTypeData.types(forSpeciesID: $0) }).subtracting([.normal])
+    }
+
+    /// Forms a species unlocks through items (Arceus's Plates, Silvally's Memories), whether or not it is in the
+    /// Pokédex yet: they count as collected once it is. Its default form needs no item.
     func itemUnlockedForms(speciesID: Int) -> Set<PokemonForm> {
         guard let source = PokemonForm.unlockSource(speciesID: speciesID) else { return [] }
+        let types: Set<PokemonType>
         switch source {
-        case .gymBadge:
-            let plates = plateTypes
-            return Set(PokemonForm.forms(speciesID: speciesID).filter {
-                PokemonForm.unlockType(speciesID: speciesID, form: $0).map(plates.contains) ?? false
-            })
+        case .gymBadge: types = plateTypes
+        case .legendaryType: types = silvallyMemoryTypes
         }
+        return Set(PokemonForm.forms(speciesID: speciesID).filter {
+            PokemonForm.unlockType(speciesID: speciesID, form: $0).map(types.contains) ?? false
+        })
     }
 
     /// Whether the egg roll treats a line as collected (its weight halved): every final of the line graduated,

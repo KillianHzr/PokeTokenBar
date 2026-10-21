@@ -149,6 +149,7 @@ private struct ItemCard: View {
         case .tealMask: return l.tealMaskEffectHint
         case .teraOrb: return l.teraOrbEffectHint
         case .relicStatue: return l.relicStatueEffectHint
+        case .typeNullEgg: return l.typeNullEggHint
         case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,
              .soulBadge, .marshBadge, .volcanoBadge, .earthBadge,
              .zephyrBadge, .hiveBadge, .plainBadge, .fogBadge,
@@ -177,6 +178,12 @@ private struct ItemCard: View {
                                   isAvailable: store.canUseStone(kind), unavailableText: l.useNeedsPokemon,
                                   confirmText: l.stoneConfirm(store.displayName, l.itemName(kind))) {
                 store.useStone(kind)
+            }
+        } else if kind == .typeNullEgg {
+            ReleaseForEggControls(store: store, nav: nav, detail: effectHint(l), actionTitle: l.useItem,
+                                  isAvailable: store.canUseTypeNullEgg(), unavailableText: l.useNeedsPokemon,
+                                  confirmText: l.stoneConfirm(store.displayName, l.itemName(kind))) {
+                store.useTypeNullEgg()
             }
         } else if kind.isPassive {
             // 보유형(패시브 아이템): 사용 버튼 대신 상시 효과 표시.
