@@ -16,7 +16,7 @@ private struct FormDataProvider: PokeProviding, PokemonDetailProviding {
     func pokemonDetails(speciesID: Int) async throws -> PokemonDetails {
         try await pokemonDetails(pokemonID: speciesID, speciesID: speciesID)
     }
-    /// Each variety its own data: Land Shaymin (492) has Natural Cure, Sky Shaymin (10006) Serene Grace.
+    /// Each variety its own data: Land Shaymin (492) is 0.2 m and 2.1 kg, Sky Shaymin (10006) 0.4 m and 5.2 kg.
     func pokemonDetails(pokemonID: Int, speciesID: Int) async throws -> PokemonDetails {
         guard detailsAvailable else { throw URLError(.notConnectedToInternet) }
         let sky = pokemonID == 10006
@@ -136,8 +136,9 @@ final class FormDataRenderingTests: XCTestCase {
         }
     }
 
-    /// The Pokédex shows the displayed form's own types and data: a Sky Shaymin's ability is Serene Grace, not the
-    /// Land form's Natural Cure. The page loads the form's details itself.
+    /// The Pokédex shows the displayed form's own types and data: a Sky Shaymin is 0.4 m and 5.2 kg, not the Land
+    /// form's 0.2 m and 2.1 kg. The page loads the form's details itself. Size, not the ability: ability names come
+    /// from PokéAPI and may still be loading on a CI runner (`FormDetailsTests` checks the ability).
     func testDexShowsTheDisplayedFormsOwnData() async throws {
         for form in [PokemonForm("land"), PokemonForm("sky")] {
             let store = try await store(form: form, detailsAvailable: true)
@@ -145,12 +146,12 @@ final class FormDataRenderingTests: XCTestCase {
             let species = try XCTUnwrap(store.dexSpecies.first { $0.id == 492 })
             let host = mount(PokemonDetailView(store: store, species: species, onBack: {}), height: 900)
             let sky = form == PokemonForm("sky")
-            // Names load asynchronously: wait for the ability and the second type badge.
+            // Type names load asynchronously: wait for the second badge's too.
             let text = try await renderedText(host) {
-                $0.contains(sky ? "serene" : "natural") && (!sky || $0.contains("flying"))
+                $0.contains(sky ? "5.2 kg" : "2.1 kg") && (!sky || $0.contains("flying"))
             }
-            XCTAssertEqual(text.contains("serene"), sky, text)
-            XCTAssertEqual(text.contains("natural"), !sky, text)
+            XCTAssertEqual(text.contains("5.2 kg"), sky, text)
+            XCTAssertEqual(text.contains("2.1 kg"), !sky, text)
             XCTAssertEqual(text.contains("flying"), sky, text)
             XCTAssertFalse(text.contains("default form"), text)
         }
