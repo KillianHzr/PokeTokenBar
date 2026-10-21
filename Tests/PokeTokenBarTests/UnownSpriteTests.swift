@@ -72,6 +72,20 @@ final class UnownSpriteTests: XCTestCase {
 /// A correct filename helper alone cannot prove the production loaders forward the selected form.
 @MainActor
 final class UnownSpriteCacheTests: XCTestCase {
+    /// Other tests leave sprite views loading in the background (over the network on CI) into this shared
+    /// cache; with its 64-entry limit they could evict the image under test between two awaits. Unbounded
+    /// while these tests run, so the identity checks only see their own loads.
+    private var savedImageCacheLimit = 0
+
+    override func setUp() async throws {
+        savedImageCacheLimit = SpriteLoader.imageCache.countLimit
+        SpriteLoader.imageCache.countLimit = 0
+    }
+
+    override func tearDown() async throws {
+        SpriteLoader.imageCache.countLimit = savedImageCacheLimit
+    }
+
     private let forms: [(PokemonForm, String)] = [
         (.a, "201"), (.b, "201-b"), (.exclamation, "201-exclamation"), (.question, "201-question"),
     ]
