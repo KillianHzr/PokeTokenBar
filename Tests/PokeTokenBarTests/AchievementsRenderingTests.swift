@@ -49,6 +49,8 @@ final class AchievementsRenderingTests: XCTestCase {
         host.layoutSubtreeIfNeeded()
 
         let picker = try XCTUnwrap(descendants(of: host, NSSegmentedControl.self).first)
+        XCTAssertEqual(picker.selectedSegment, AchievementsView.AchievementCategory.allCases.firstIndex(of: .legendaryArtifacts),
+                       "the tab opens on the section holding the Silver Wing")
         let list = try XCTUnwrap(descendants(of: host, NSScrollView.self).first)
         // Vertical only: the segmented control draws its bezel 2 pt past its SwiftUI frame on each side.
         for (name, view) in [("category picker", picker as NSView), ("list", list)] {
@@ -60,7 +62,8 @@ final class AchievementsRenderingTests: XCTestCase {
     }
 
     /// Three segments with their counts used to be wider than the popover: SwiftUI centered the wider stack,
-    /// so the whole tab slid off both edges. Checked in every language, with the widest counts (all claimed).
+    /// so the whole tab slid off both edges. Checked in every language with the widest labels: every reward
+    /// ready, so each segment carries a two-digit count (10, 18, 23).
     func testCategoryPickerFitsTheTabWidthInEveryLanguage() async throws {
         for language in AppLanguage.allCases {
             let suite = "AchievementsWidth-\(UUID())"
@@ -71,9 +74,11 @@ final class AchievementsRenderingTests: XCTestCase {
             var state = CompanionState()
             state.language = language
             state.installBaselineSet = true
-            state.claimedAchievements = Set(CompanionStore.achievementItems.map(\.rawValue))
+            state.dex = Self.everySpeciesTwiceMewtwo
             try JSONEncoder().encode(state).write(to: file)
             let store = CompanionStore(provider: AchievementsStubProvider(), fileURL: file, defaults: defaults)
+            XCTAssertEqual(AchievementsView.AchievementCategory.allCases.map { AchievementsView.readyCount($0, store) },
+                           [10, 18, 23])
 
             let host = NSHostingView(rootView: AchievementsView(store: store, nav: PopoverNavigation())
                 .frame(width: PopoverMetrics.contentWidth))
@@ -94,6 +99,51 @@ final class AchievementsRenderingTests: XCTestCase {
             XCTAssertGreaterThanOrEqual(frame.minX, -2.5, "\(language): picker \(frame) leaves \(host.bounds)")
             XCTAssertLessThanOrEqual(frame.maxX, host.bounds.maxX + 2.5, "\(language): picker \(frame) leaves \(host.bounds)")
         }
+    }
+
+    /// Every species registered, Mewtwo graduated twice: every achievement is ready to claim.
+    private static let everySpeciesTwiceMewtwo: [DexEntry] = (1...1025).map { id in
+        DexEntry(baseID: id, finalID: id, chainOrder: [id], rarity: id == 150 ? .legendary : .common,
+                 caughtAt: Date(timeIntervalSince1970: 1_790_000_000))
+    } + [DexEntry(baseID: 150, finalID: 150, chainOrder: [150], rarity: .legendary,
+                  caughtAt: Date(timeIntervalSince1970: 1_790_000_000))]
+
+    private func store(registering ids: [Int]) throws -> CompanionStore {
+        let suite = "AchievementsTabs-\(UUID())"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("\(suite).json")
+        var state = CompanionState()
+        state.language = .en
+        state.installBaselineSet = true
+        state.dex = ids.map {
+            DexEntry(baseID: $0, finalID: $0, chainOrder: [$0], rarity: .common,
+                     caughtAt: Date(timeIntervalSince1970: 1_790_000_000))
+        }
+        try JSONEncoder().encode(state).write(to: file)
+        return CompanionStore(provider: AchievementsStubProvider(), fileURL: file, defaults: defaults)
+    }
+
+    /// A segment used to read "Stones (1/10)", taken for "1 of 10 to claim". It now counts the rewards ready
+    /// there, the view opens on the first section holding one, and the claim banner walks through them.
+    func testTabsCountRewardsReadyAndLeadToThem() throws {
+        typealias A = AchievementsView
+        // Johto starters (Fire Stone) and the legendary birds (Silver Wing); no badge is ready.
+        let both = try store(registering: [154, 157, 160, 144, 145, 146])
+        XCTAssertEqual(A.tabTitle(.evolutionStones, both), "Stones ●1")
+        XCTAssertEqual(A.tabTitle(.gymBadges, both), "Badges")
+        XCTAssertEqual(A.tabTitle(.legendaryArtifacts, both), "Artifacts ●1")
+        XCTAssertEqual(A.firstCategoryWithRewards(both), .evolutionStones)
+        XCTAssertEqual(A.nextCategoryWithRewards(after: .evolutionStones, both), .legendaryArtifacts)
+        XCTAssertEqual(A.nextCategoryWithRewards(after: .legendaryArtifacts, both), .evolutionStones, "wraps around")
+        XCTAssertEqual(A.nextCategoryWithRewards(after: .gymBadges, both), .legendaryArtifacts)
+
+        let birds = try store(registering: [144, 145, 146])
+        XCTAssertEqual(A.firstCategoryWithRewards(birds), .legendaryArtifacts, "opens where the reward is")
+        XCTAssertEqual(A.nextCategoryWithRewards(after: .legendaryArtifacts, birds), .legendaryArtifacts)
+
+        let none = try store(registering: [])
+        XCTAssertNil(A.firstCategoryWithRewards(none))
+        XCTAssertEqual(A.AchievementCategory.allCases.map { A.tabTitle($0, none) }, ["Stones", "Badges", "Artifacts"])
     }
 
     /// The Achievements tab made the popover's segmented tab bar five labels wide. With a two-digit count it was

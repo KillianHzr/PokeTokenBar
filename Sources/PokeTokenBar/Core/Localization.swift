@@ -1874,15 +1874,16 @@ struct L {
     }
     var claim: String { t("받기", "Claim", "受け取る", "Reclamar", "Récupérer", "Resgatar", "Einlösen", "Забрать") }
     var claimed: String { t("획득함", "Claimed", "獲得済み", "Conseguido", "Obtenu", "Resgatado", "Erhalten", "Получено") }
-    func readyToClaimNotice(_ count: Int) -> String {
-        t("받을 수 있는 업적이 \(count)개 있어요!",
-          "\(count) achievement(s) ready to claim!",
-          "受け取り可能な実績が \(count) 件あります！",
-          "¡\(count) logro(s) listos para reclamar!",
-          "\(count) succès prêt(s) à être récupéré(s) !",
-          "\(count) conquista(s) pronta(s) para resgatar!",
-          "\(count) Erfolg(e) bereit zum Einlösen!",
-          "Можно забрать наград: \(count)!")
+    /// Claim banner: how many rewards are ready and in which sections ("Stones 1, Artifacts 2").
+    func readyToClaimSummary(_ count: Int, _ sections: String) -> String {
+        t("받을 수 있는 업적 \(count)개 · \(sections)",
+          "\(count) ready to claim: \(sections)",
+          "受け取れる実績 \(count)件: \(sections)",
+          "\(count) por reclamar: \(sections)",
+          "\(count) à récupérer : \(sections)",
+          "\(count) para resgatar: \(sections)",
+          "\(count) zum Einlösen: \(sections)",
+          "Можно забрать: \(count) · \(sections)")
     }
     func achievementsProgress(_ count: Int, _ total: Int) -> String {
         t("\(total)개 중 \(count)개 완료",
