@@ -502,6 +502,9 @@ enum CollectorBonus {
     static let prisonBottleNewForm = 1.5
     static let sparklingStoneFairy = 1.3
     static let sunFluteFinalStage = 1.25
+    /// Gracidea: the first stage of a Pokémon that will evolve. It used to double every Rare Candy, bought ones
+    /// included, which stacked with the Soul Dew and the Rainbow Wing into four times the EXP per shop token.
+    static let gracideaFirstStage = 1.25
     /// Relic Statue: a Pokémon that does not evolve, like the Regis.
     static let relicStatueNoEvolution = 1.25
     static let beastBallUltraBeast = 1.5
