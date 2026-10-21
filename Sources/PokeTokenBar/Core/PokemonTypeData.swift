@@ -1252,7 +1252,21 @@ enum PokemonTypeData {
         return (generations.firstIndex { range in all.contains { range.contains($0) } } ?? 0) + 1
     }
 
-    /// Species a type's gym badge asks for: every Pokémon of that type from `badgeGeneration(for:)`.
+    /// Generations (1-based) a type has Pokémon in: each is one regional tier of that type's gym badge.
+    /// Dark has none in Kanto, so its badge has eight tiers.
+    static func badgeGenerations(for type: PokemonType) -> [Int] {
+        let all = species(for: type)
+        return generations.indices.filter { g in all.contains { generations[g].contains($0) } }.map { $0 + 1 }
+    }
+
+    /// Species one regional tier asks for: every Pokémon of that type from that generation.
+    static func badgeSpecies(for type: PokemonType, generation: Int) -> [Int] {
+        let range = generations[generation - 1]
+        return species(for: type).filter { range.contains($0) }.sorted()
+    }
+
+    /// Species the single gym badge asked for before badges had regional tiers: every Pokémon of that type
+    /// from `badgeGeneration(for:)`. A badge claimed then becomes that tier.
     static func badgeSpecies(for type: PokemonType) -> [Int] {
         let range = generations[badgeGeneration(for: type) - 1]
         return species(for: type).filter { range.contains($0) }.sorted()
