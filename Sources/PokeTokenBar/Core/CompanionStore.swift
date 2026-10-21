@@ -363,7 +363,9 @@ final class CompanionStore {
     /// faded, the others as silhouettes, without telling which one this individual will take.
     private func futureLineItem(_ speciesID: Int, active a: MonState) -> EvoLineItem {
         let forms = PokemonForm.forms(speciesID: speciesID)
-        guard forms.count > 1, !PokemonForm.hasForms(speciesID: a.currentID) else {
+        // A species whose forms come from items arrives in its default form: nothing to guess.
+        guard forms.count > 1, !PokemonForm.hasForms(speciesID: a.currentID),
+              PokemonForm.unlockSource(speciesID: speciesID) == nil else {
             return EvoLineItem(.species(speciesID), .future)
         }
         let owned = state.collectedForms(speciesID: speciesID)
@@ -636,7 +638,19 @@ final class CompanionStore {
     /// Collected form summaries for the detail picker; missing forms remain visible but disabled.
     func formSpecies(speciesID: Int) -> [DexSpecies] {
         guard PokemonForm.hasForms(speciesID: speciesID) else { return [] }
-        return collectedDexSpecies(groupForms: true).filter { $0.id == speciesID }
+        let owned = collectedDexSpecies(groupForms: true).filter { $0.id == speciesID }
+        guard PokemonForm.unlockSource(speciesID: speciesID) != nil,
+              let species = collectedDexSpecies(groupForms: false).first(where: { $0.id == speciesID }) else { return owned }
+        // Arceus shows each form its Plates unlock, like the ones it hatched in: same individuals, same shininess.
+        let ownedForms = Set(owned.compactMap(\.form))
+        let unlocked = state.collectedForms(speciesID: speciesID).subtracting(ownedForms).map { form in
+            var entry = species
+            entry.form = form
+            return entry
+        }
+        return (owned + unlocked).sorted {
+            PokemonForm.sortOrder($0.form, speciesID: speciesID) < PokemonForm.sortOrder($1.form, speciesID: speciesID)
+        }
     }
 
     private func collectedDexSpecies(groupForms: Bool) -> [DexSpecies] {
@@ -1773,8 +1787,10 @@ final class CompanionStore {
             badgeTiers(kind, registered: registered).filter(\.isReady).map { (kind, $0.generation) }
         }
         guard !items.isEmpty || !tiers.isEmpty else { return 0 }
+        let forms = itemFormSnapshot()
         items.forEach { _ = grantAchievement($0) }
         tiers.forEach { grantBadgeTier($0.0, generation: $0.1) }
+        announceFormUnlocks(since: forms)
         save()
         notifyCompanionEvent(l.notifAchievementClaimedTitle, l.notifAchievementsClaimedBody(items.count + tiers.count))
         return items.count + tiers.count
@@ -1785,12 +1801,53 @@ final class CompanionStore {
     func claimBadgeTiers(_ kind: ItemKind) -> Int {
         let ready = badgeTiers(kind).filter(\.isReady)
         guard !ready.isEmpty else { return 0 }
+        let forms = itemFormSnapshot()
         ready.forEach { grantBadgeTier(kind, generation: $0.generation) }
+        announceFormUnlocks(since: forms)
         save()
         let regions = ready.map { l.regionName(generation: $0.generation) }.joined(separator: ", ")
         notifyCompanionEvent(l.notifAchievementClaimedTitle,
                              l.notifAchievementClaimedBody("\(l.itemName(kind)) (\(regions))"))
         return ready.count
+    }
+
+    /// Forms a claim or a first catch just unlocked (Arceus's Plates), for the short message that shows their
+    /// sprites. One entry per species; a message not seen yet takes the next unlocks in.
+    struct FormUnlockNews: Equatable, Sendable {
+        let speciesID: Int
+        let forms: [PokemonForm]
+        /// False while the species is not in the Pokédex: its forms count once it is.
+        let isOwned: Bool
+    }
+
+    private(set) var formUnlockNews: [FormUnlockNews] = []
+
+    func dismissFormUnlockNews() { formUnlockNews = [] }
+
+    private typealias ItemFormSnapshot = [Int: (unlocked: Set<PokemonForm>, owned: Bool)]
+
+    private func itemFormSnapshot() -> ItemFormSnapshot {
+        Dictionary(uniqueKeysWithValues: PokemonForm.unlockSources.keys.map { id in
+            (id, (unlocked: state.itemUnlockedForms(speciesID: id), owned: state.ownsSpeciesInAnyForm(id)))
+        })
+    }
+
+    /// Announces the forms unlocked since the snapshot. The first Arceus also brings the Plates already won.
+    private func announceFormUnlocks(since before: ItemFormSnapshot) {
+        for (id, previous) in before.sorted(by: { $0.key < $1.key }) {
+            let unlocked = state.itemUnlockedForms(speciesID: id)
+            let owned = state.ownsSpeciesInAnyForm(id)
+            var new = unlocked.subtracting(previous.unlocked)
+            if owned, !previous.owned { new.formUnion(unlocked) }
+            guard !new.isEmpty else { continue }
+            let pending = formUnlockNews.first { $0.speciesID == id }.map { Set($0.forms) } ?? []
+            let forms = new.union(pending).sorted {
+                PokemonForm.sortOrder($0, speciesID: id) < PokemonForm.sortOrder($1, speciesID: id)
+            }
+            formUnlockNews.removeAll { $0.speciesID == id }
+            formUnlockNews.append(FormUnlockNews(speciesID: id, forms: forms, isOwned: owned))
+            AppLog.write("forms unlocked: \(id) \(forms.map(\.rawValue)) owned=\(owned)")
+        }
     }
 
     /// Records one regional tier and keeps the badge in the Bag, where its effect line lives.
@@ -2172,7 +2229,7 @@ final class CompanionStore {
 
     /// Draws only for lines with forms, so other species keep their random sequence.
     private func rollLineForm(baseID: Int, type: PokemonType? = nil) -> PokemonForm? {
-        var forms = PokemonForm.lineForms(baseID: baseID)
+        var forms = PokemonForm.rollableLineForms(baseID: baseID)
         guard !forms.isEmpty else { return nil }
         // A stone egg only rolls the forms that hatch with its type: no Alolan Vulpix (Ice) from a Fire Stone.
         if let type {
@@ -2320,11 +2377,14 @@ final class CompanionStore {
         // 위장 중엔 이로치를 숨긴다 — 부화 알림·연출도 일반체로(정체는 리빌 때 공개).
         let showShiny = isShiny && dittoDisguise == nil
         activeGeneration += 1
+        let unlockedForms = itemFormSnapshot()
         state.active = MonState(baseID: line.baseID, pathIDs: [line.baseID], plannedPathIDs: evolutionPlan,
                                 stageIndex: 0, usedAtStage: 0, rarity: line.rarity, totalForms: evolutionPlan.count,
                                 isShiny: isShiny, nature: nature, profile: profile, hasGrowthBoost: hasGrowthBoost,
                                 dittoDisguise: dittoDisguise, form: form)
         state.active?.hasNewForm = hasNewForm
+        // A disguised Ditto is not the species it shows: nothing unlocks until it is revealed.
+        if dittoDisguise == nil { announceFormUnlocks(since: unlockedForms) }
         AppLog.write("hatch: base=\(line.baseID) rarity=\(line.rarity) shiny=\(isShiny) forms=\(evolutionPlan.count) boost=\(hasGrowthBoost) ditto=\(dittoDisguise != nil) form=\(form?.rawValue ?? "none")")
         let name = formDisplayName(line.localizedName(line.baseID, state.language),
                                    speciesID: line.baseID, form: form)
@@ -2650,9 +2710,11 @@ final class CompanionStore {
     /// species reference pages; the same evolved individual is not duplicated as a second creature.
     func pokemonIndividuals(speciesID: Int, form: PokemonForm? = nil) -> [DexEntry] {
         let form = PokemonForm.resolved(speciesID: speciesID, form: form)
+        // A Plate changes Arceus's look, not the individual: every Arceus shows in each form it has.
+        let anyForm = PokemonForm.unlockSource(speciesID: speciesID) != nil
         return dexEntriesSorted.filter {
             $0.finalID == speciesID && $0.profile != nil
-                && PokemonForm.resolved(speciesID: speciesID, form: $0.form) == form
+                && (anyForm || PokemonForm.resolved(speciesID: speciesID, form: $0.form) == form)
         }
     }
 

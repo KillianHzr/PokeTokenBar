@@ -1093,6 +1093,34 @@ struct L {
           "Datos de la forma predeterminada", "Données de la forme par défaut", "Dados da forma padrão",
           "Daten der Standardform", "Данные обычной формы")
     }
+    /// Title of the short message that shows forms just unlocked (Arceus's Plates).
+    func formUnlockTitle(count: Int) -> String {
+        count == 1
+            ? t("새 폼 해금", "New form unlocked", "新しいフォルムを解放", "Nueva forma desbloqueada",
+                "Nouvelle forme débloquée", "Nova forma desbloqueada", "Neue Form freigeschaltet", "Новая форма открыта")
+            : t("새 폼 \(count)개 해금", "\(count) new forms unlocked", "新しいフォルムを\(count)個解放",
+                "\(count) formas nuevas desbloqueadas", "\(count) nouvelles formes débloquées",
+                "\(count) novas formas desbloqueadas", "\(count) neue Formen freigeschaltet", "Открыто новых форм: \(count)")
+    }
+    /// Under forms unlocked for a species not in the Pokédex yet.
+    func formUnlockWaiting(count: Int) -> String {
+        count == 1
+            ? t("이 포켓몬을 얻으면 도감에 등록돼요.", "It counts once you have this Pokémon.",
+                "このポケモンを手に入れると図鑑に登録されます。", "Contará cuando tengas este Pokémon.",
+                "Elle comptera dès que tu auras ce Pokémon.", "Conta quando você tiver este Pokémon.",
+                "Sie zählt, sobald du dieses Pokémon hast.", "Засчитается, когда у вас будет этот покемон.")
+            : t("이 포켓몬을 얻으면 도감에 등록돼요.", "They count once you have this Pokémon.",
+                "このポケモンを手に入れると図鑑に登録されます。", "Contarán cuando tengas este Pokémon.",
+                "Elles compteront dès que tu auras ce Pokémon.", "Contam quando você tiver este Pokémon.",
+                "Sie zählen, sobald du dieses Pokémon hast.", "Засчитаются, когда у вас будет этот покемон.")
+    }
+    /// One line above Arceus's forms: where they come from.
+    var plateFormsHint: String {
+        t("타입별 배지마다 폼이 하나씩 해금돼요.", "Each type's gym badge unlocks a form.",
+          "タイプごとのバッジでフォルムが1つ解放されます。", "Cada medalla de tipo desbloquea una forma.",
+          "Chaque badge de type débloque une forme.", "Cada insígnia de tipo desbloqueia uma forma.",
+          "Jeder Typ-Orden schaltet eine Form frei.", "Каждый значок типа открывает форму.")
+    }
     var formNotCollected: String {
         t("미수집", "Not collected", "未収集", "Sin conseguir", "Non collectionnée", "Não coletada", "Noch nicht gesammelt", "Не собрано")
     }

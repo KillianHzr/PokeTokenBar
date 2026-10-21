@@ -1064,6 +1064,11 @@ struct CompanionState: Codable, Sendable {
     /// 도감 전체 표시 모델을 만들지 않고 대표 종 하나만 확인하는 경량 경로다.
     func ownsSpecies(_ speciesID: Int, form: PokemonForm? = nil) -> Bool {
         let form = PokemonForm.resolved(speciesID: speciesID, form: form)
+        // An Arceus in the Pokédex shows every form its Plates unlock.
+        if PokemonForm.unlockSource(speciesID: speciesID) != nil, let form,
+           form == PokemonForm.forms(speciesID: speciesID).first || itemUnlockedForms(speciesID: speciesID).contains(form) {
+            return ownsSpeciesInAnyForm(speciesID)
+        }
         if dex.contains(where: {
             $0.chainOrder.contains(speciesID)
                 && PokemonForm.resolved(speciesID: speciesID, form: $0.form) == form
@@ -1118,7 +1123,39 @@ struct CompanionState: Codable, Sendable {
            let form = PokemonForm.resolved(speciesID: speciesID, form: active.form) {
             forms.insert(form)
         }
+        // Once in the Pokédex, Arceus has its default form and every form its Plates unlock.
+        if !forms.isEmpty, PokemonForm.unlockSource(speciesID: speciesID) != nil {
+            if let first = PokemonForm.forms(speciesID: speciesID).first { forms.insert(first) }
+            forms.formUnion(itemUnlockedForms(speciesID: speciesID))
+        }
         return forms
+    }
+
+    /// Whether the Pokédex has this species, in any form.
+    func ownsSpeciesInAnyForm(_ speciesID: Int) -> Bool {
+        if dex.contains(where: { $0.chainOrder.contains(speciesID) }) { return true }
+        guard let active else { return false }
+        return active.pathIDs.prefix(active.stageIndex + 1).contains(speciesID)
+    }
+
+    /// Types whose gym badge has at least one region claimed: one Plate each.
+    var plateTypes: Set<PokemonType> {
+        Set(PokemonType.allCases.filter { type in
+            claimedAchievements.contains { $0.hasPrefix("\(type.badgeItem.rawValue)@") }
+        })
+    }
+
+    /// Forms a species unlocks through items (Arceus's Plates), whether or not it is in the Pokédex yet: they
+    /// count as collected once it is. Its default form needs no item.
+    func itemUnlockedForms(speciesID: Int) -> Set<PokemonForm> {
+        guard let source = PokemonForm.unlockSource(speciesID: speciesID) else { return [] }
+        switch source {
+        case .gymBadge:
+            let plates = plateTypes
+            return Set(PokemonForm.forms(speciesID: speciesID).filter {
+                PokemonForm.unlockType(speciesID: speciesID, form: $0).map(plates.contains) ?? false
+            })
+        }
     }
 
     /// Whether the egg roll treats a line as collected (its weight halved): every final of the line graduated,
@@ -1127,7 +1164,7 @@ struct CompanionState: Codable, Sendable {
     func isLineComplete(baseID: Int) -> Bool {
         let finals = PokemonEvolutionData.finals(from: baseID)
         guard finals.allSatisfy({ collectedFinals.contains("\(baseID):\($0)") }) else { return false }
-        let forms = PokemonForm.lineForms(baseID: baseID)
+        let forms = PokemonForm.rollableLineForms(baseID: baseID)
         return forms.isEmpty || Set(forms).isSubset(of: collectedLineForms(baseID: baseID))
     }
 

@@ -410,6 +410,30 @@ struct PokemonForm: RawRepresentable, Codable, Hashable, Sendable {
                ("artisan", [1012: "artisan", 1013: "masterpiece"])],
     ]
 
+    /// Where a species gets its type forms when no egg rolls them: Arceus holds a Plate, as in the games, and
+    /// the gym badge of each type gives that Plate. Such a species hatches in its default form; the others
+    /// unlock for it (`CompanionState.itemUnlockedForms`).
+    enum UnlockSource: Sendable {
+        case gymBadge
+    }
+
+    static let unlockSources: [Int: UnlockSource] = [493: .gymBadge]
+
+    static func unlockSource(speciesID: Int) -> UnlockSource? { unlockSources[speciesID] }
+
+    /// The type a form of such a species stands for (Fire Arceus: Fire). Nil for its default form.
+    static func unlockType(speciesID: Int, form: PokemonForm) -> PokemonType? {
+        guard unlockSources[speciesID] != nil, form != forms(speciesID: speciesID).first else { return nil }
+        return PokemonType(rawValue: form.rawValue)
+    }
+
+    /// Forms an egg of this line rolls: only the default on a line whose forms come from items.
+    static func rollableLineForms(baseID: Int) -> [PokemonForm] {
+        let forms = lineForms(baseID: baseID)
+        guard formSpecies(baseID: baseID).contains(where: { unlockSources[$0] != nil }) else { return forms }
+        return Array(forms.prefix(1))
+    }
+
     /// Base of the line a catalogued species belongs to.
     static func lineBase(of speciesID: Int) -> Int { lineBaseIDs[speciesID] ?? speciesID }
 

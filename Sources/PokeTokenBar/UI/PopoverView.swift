@@ -138,6 +138,14 @@ struct PopoverView: View {
             }
         }
         .frame(width: PopoverMetrics.width)
+        .overlay(alignment: .top) {
+            if !companion.formUnlockNews.isEmpty {
+                FormUnlockToast(store: companion)
+                    .padding(.horizontal, 10).padding(.top, 8)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: companion.formUnlockNews)
         .environment(\.locale, companion.language.displayLocale)
     }
 
