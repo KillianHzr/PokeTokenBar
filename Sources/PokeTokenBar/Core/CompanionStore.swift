@@ -93,6 +93,7 @@ final class CompanionStore {
         }
         defaults.set(growthDifficulty, forKey: "growthDifficulty")
         defaults.set(shopDifficulty, forKey: "shopDifficulty")
+        migrateToAdditiveGrowthIfNeeded()
         migratePokemonProfilesIfNeeded()
         refreshRepresentativeSubject()
         refreshSnapshots()
@@ -167,17 +168,42 @@ final class CompanionStore {
 
     /// 난이도를 반영한 단계 임계. **`PokemonBalance.phaseThreshold` 를 직접 부르지 않는다** —
     /// 배율을 빠뜨린 호출부가 생기면 그 경로만 조용히 기본 난이도로 돌아간다.
+    /// The repeat boost is already in `phaseThreshold`; the bonuses divide it by their sum (+33% and +10%: 1.43).
     private func stageThreshold(for mon: MonState) -> Int {
         var base = mon.phaseThreshold
-        // Magma Stone speeds up lines already graduated, Liberty Pass the ones never graduated.
-        if mon.hasGrowthBoost ? ownsMagmaStone : ownsLibertyPass {
-            base = (base * 3) / 4
-        }
-        let speed = growthSpeedMultiplier(for: mon)
+        let speed = 1 + Self.bonusSum(thresholdGrowthFactors(for: mon))
         if speed > 1.0 {
             base = max(1, Int((Double(base) / speed).rounded()))
         }
         return PokemonBalance.scaled(base, by: growthDifficulty)
+    }
+
+    /// The stage threshold of the rule before bonuses added up, when they multiplied each other. Only
+    /// `migrateToAdditiveGrowthIfNeeded` reads it, to keep a stage's progress across the change.
+    private func multipliedBonusThreshold(for mon: MonState) -> Int {
+        var base = mon.phaseThreshold
+        if mon.hasGrowthBoost ? ownsMagmaStone : ownsLibertyPass {
+            base = (base * 3) / 4
+        }
+        let speed = growthSpeedFactors(for: mon).reduce(1) { $0 * $1.multiplier }
+        if speed > 1.0 {
+            base = max(1, Int((Double(base) / speed).rounded()))
+        }
+        return PokemonBalance.scaled(base, by: growthDifficulty)
+    }
+
+    /// Bonuses used to multiply each other and now add up, which raises the threshold of a Pokémon with two
+    /// or more of them (a sum is never more than the product). Its stage keeps the progress it had, once: the
+    /// bar does not move back. With fewer than two bonuses both rules give the same threshold and nothing moves.
+    private func migrateToAdditiveGrowthIfNeeded() {
+        guard !state.additiveGrowthBonuses else { return }
+        state.additiveGrowthBonuses = true
+        if let active = state.active, thresholdGrowthFactors(for: active).count >= 2, active.usedAtStage > 0 {
+            let value = Double(active.usedAtStage) / Double(multipliedBonusThreshold(for: active))
+                * Double(stageThreshold(for: active))
+            state.active?.usedAtStage = Int(min(Double(SaveTransfer.maxTokenValue), value.rounded(.down)))
+        }
+        save()
     }
 
     /// One thing that speeds up a Pokémon's growth, and by how much (1.5 = 50% faster).
@@ -194,9 +220,14 @@ final class CompanionStore {
     }
 
     /// How much faster the passive items make this Pokémon grow (1.5 = 50% faster): badges, then the
-    /// artifacts that favor a group. They multiply. Only growth changes, never the odds of a hatch.
+    /// artifacts that favor a group. They add up. Only growth changes, never the odds of a hatch.
     func growthSpeedMultiplier(for mon: MonState) -> Double {
-        growthSpeedFactors(for: mon).reduce(1) { $0 * $1.multiplier }
+        1 + Self.bonusSum(growthSpeedFactors(for: mon))
+    }
+
+    /// What a set of bonuses adds together: +25% and +25% make 0.5.
+    static func bonusSum(_ factors: [GrowthFactor]) -> Double {
+        factors.reduce(0) { $0 + $1.multiplier - 1 }
     }
 
     /// The factors of `growthSpeedMultiplier`, one per badge set or artifact that applies to this Pokémon.
@@ -233,6 +264,15 @@ final class CompanionStore {
         return factors
     }
 
+    /// The bonuses the stage threshold is divided by: the Magma Stone or the Liberty Pass, then the badges and
+    /// artifacts. A Rare Candy gets these; the token items only count tokens.
+    func thresholdGrowthFactors(for mon: MonState) -> [GrowthFactor] {
+        // Magma Stone speeds up lines already graduated, Liberty Pass the ones never graduated: 25% less to grow.
+        let lineItem: ItemKind = mon.hasGrowthBoost ? .magmaStone : .libertyPass
+        let line = itemCount(lineItem) > 0 ? [GrowthFactor(source: .item(lineItem), multiplier: 4.0 / 3.0)] : []
+        return line + growthSpeedFactors(for: mon)
+    }
+
     /// Everything that speeds up this Pokémon's growth, the repeat boost included: what the Home badge and the
     /// Bonuses page show. Growth difficulty is a setting, not a bonus, and is left out.
     func growthFactors(for mon: MonState) -> [GrowthFactor] {
@@ -240,15 +280,18 @@ final class CompanionStore {
         if mon.hasGrowthBoost {
             factors.append(GrowthFactor(source: .repeatBoost, multiplier: Double(PokemonBalance.repeatGrowthMultiplier)))
         }
-        // Magma Stone speeds up lines already graduated, Liberty Pass the ones never graduated: 25% less to grow.
-        let lineItem: ItemKind = mon.hasGrowthBoost ? .magmaStone : .libertyPass
-        if itemCount(lineItem) > 0 { factors.append(GrowthFactor(source: .item(lineItem), multiplier: 4.0 / 3.0)) }
-        return factors + growthSpeedFactors(for: mon) + tokenGrowthFactors
+        return factors + thresholdGrowthFactors(for: mon) + tokenGrowthFactors
     }
 
-    /// The current Pokémon's growth factors and their product; empty and 1 for an egg.
+    /// The current Pokémon's growth factors and total; empty and 1 for an egg.
     var currentGrowthFactors: [GrowthFactor] { state.active.map(growthFactors(for:)) ?? [] }
-    var currentGrowthTotal: Double { currentGrowthFactors.reduce(1) { $0 * $1.multiplier } }
+    var currentGrowthTotal: Double { Self.growthTotal(currentGrowthFactors) }
+
+    /// The bonuses add up and the repeat boost multiplies their total: 2 × (1 + 0.33 + 0.1) = ×2.87.
+    static func growthTotal(_ factors: [GrowthFactor]) -> Double {
+        let repeatBoost = factors.filter { $0.source == .repeatBoost }.reduce(1) { $0 * $1.multiplier }
+        return repeatBoost * (1 + bonusSum(factors.filter { $0.source != .repeatBoost }))
+    }
 
     /// 상점 표시·결제에 쓰는 실제 가격 — 기본가 × 상점 난이도. 미판매면 nil.
     func price(of kind: ItemKind) -> Int? {
@@ -1233,8 +1276,12 @@ final class CompanionStore {
     func applyUsage(_ delta: Int, isTokenUsage: Bool = true) {
         guard state.active != nil else { return }
         var growthDelta = delta
-        if isTokenUsage {
-            for factor in tokenGrowthFactors { growthDelta = Int(Double(growthDelta) * factor.multiplier) }
+        let tokenBonus = Self.bonusSum(tokenGrowthFactors)
+        if isTokenUsage, tokenBonus > 0, let mon = state.active {
+            // The threshold is already divided by the other bonuses. The token items add theirs to that sum:
+            // a token counts (1 + every bonus) / (1 + threshold bonuses), and a Rare Candy keeps the latter only.
+            let thresholdSpeed = 1 + Self.bonusSum(thresholdGrowthFactors(for: mon))
+            growthDelta = Int(Double(delta) * (thresholdSpeed + tokenBonus) / thresholdSpeed)
         }
         state.active!.usedAtStage += growthDelta
         reconcileActiveProfileGrowth()
@@ -2713,6 +2760,7 @@ final class CompanionStore {
         candyFeedbackAmount = 0
         mintFeedbackNature = nil
         displayState = state.active != nil ? .idle : .egg
+        migrateToAdditiveGrowthIfNeeded()
         migratePokemonProfilesIfNeeded()
         save()
         if state.active != nil { Task { await loadCurrentLine() } }

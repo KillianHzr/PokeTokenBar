@@ -141,7 +141,7 @@ Open a species in the <b>Pokédex</b> to inspect each individual: level, gender,
 <td width="45%" align="center"><img src="assets/screenshot-difficulty.png" width="300" alt="Choose your growth pace"></td>
 <td width="55%" valign="middle">
 <h3>Choose your growth pace</h3>
-Set growth thresholds and shop prices independently from <b>10% to 200%</b>, with Easy/Hard and Cheap/Expensive labels at the slider ends. Dragging only edits a draft; press <b>Save</b> to apply it. Changing growth difficulty preserves your current stage progress instead of triggering an evolution. A hatch from an evolution line you have already graduated grows <b>2× faster</b>. Hover the hatch or growth bar on Home to see used tokens, the target, and progress as a percentage.
+Set growth thresholds and shop prices independently from <b>10% to 200%</b>, with Easy/Hard and Cheap/Expensive labels at the slider ends. Dragging only edits a draft; press <b>Save</b> to apply it. Changing growth difficulty preserves your current stage progress instead of triggering an evolution. A hatch from an evolution line you have already graduated grows <b>2× faster</b>. Growth bonuses from items and badges add up (+25% and +25% make +50%), and the repeat boost multiplies their total; the <b>Bonuses</b> page on Home shows each one. Hover the hatch or growth bar on Home to see used tokens, the target, and progress as a percentage.
 </td>
 </tr>
 <tr>

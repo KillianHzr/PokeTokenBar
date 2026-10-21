@@ -1,9 +1,25 @@
 import SwiftUI
 
 extension CompanionStore {
-    /// "Repeat (already graduated) ×2", "Badges ×1.05", "Sun Flute ×1.25": one growth factor in words.
+    /// "Repeat (already graduated) ×2", "Badges +5%", "Sun Flute +25%": one growth factor in words.
     func growthFactorLine(_ factor: GrowthFactor) -> String {
-        "\(growthFactorName(factor.source)) ×\(l.multiplierNumber(factor.multiplier))"
+        "\(growthFactorName(factor.source)) \(growthFactorValue(factor))"
+    }
+
+    /// "×2" for the repeat boost, which multiplies; "+25%" for a bonus, which adds to the others.
+    func growthFactorValue(_ factor: GrowthFactor) -> String {
+        factor.source == .repeatBoost
+            ? "×\(l.multiplierNumber(factor.multiplier))"
+            : "+\(l.percentNumber((factor.multiplier - 1) * 100))%"
+    }
+
+    /// How the factors combine, when there is something to combine: the bonuses' sum, then the repeat boost.
+    func growthSumNote(_ factors: [GrowthFactor]) -> String? {
+        let bonuses = factors.filter { $0.source != .repeatBoost }
+        let repeatBoost = factors.first { $0.source == .repeatBoost }
+        guard !bonuses.isEmpty, bonuses.count >= 2 || repeatBoost != nil else { return nil }
+        return l.bonusSumNote(l.percentNumber(Self.bonusSum(bonuses) * 100),
+                              repeatMultiplier: repeatBoost.map { l.multiplierNumber($0.multiplier) })
     }
 
     func growthFactorName(_ source: GrowthFactor.Source) -> String {
@@ -59,7 +75,7 @@ struct BonusScreen: View {
         .padding(PopoverMetrics.padding)
     }
 
-    /// The current Pokémon's growth multiplier and each factor of it.
+    /// The current Pokémon's growth multiplier, each factor of it, and how they combine.
     private func currentGrowth(_ l: L) -> some View {
         let factors = store.currentGrowthFactors
         let total = store.currentGrowthTotal
@@ -88,8 +104,11 @@ struct BonusScreen: View {
                     icon(factor.source).frame(width: 22, height: 22)
                     Text(store.growthFactorName(factor.source)).font(.caption)
                     Spacer(minLength: 4)
-                    Text("×\(l.multiplierNumber(factor.multiplier))").font(.caption.weight(.semibold)).monospacedDigit()
+                    Text(store.growthFactorValue(factor)).font(.caption.weight(.semibold)).monospacedDigit()
                 }
+            }
+            if let note = store.growthSumNote(factors) {
+                Text(note).font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(10)
