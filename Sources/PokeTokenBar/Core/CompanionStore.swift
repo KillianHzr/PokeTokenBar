@@ -194,6 +194,8 @@ final class CompanionStore {
         if ownsSunFlute, mon.stageIndex >= mon.totalForms - 1 { speed *= CollectorBonus.sunFluteFinalStage }
         // The Sun Flute's mirror: the first stage of a Pokémon that will evolve.
         if ownsGracidea, mon.stageIndex == 0, mon.totalForms > 1 { speed *= CollectorBonus.gracideaFirstStage }
+        // A Pokémon that does not evolve: its whole planned line is one species (a Regi, Tauros, a Kanto Farfetch'd).
+        if ownsRelicStatue, mon.totalForms == 1 { speed *= CollectorBonus.relicStatueNoEvolution }
         if ownsBeastBall, SpeciesGoal.ultraBeasts.contains(mon.currentID) {
             speed *= CollectorBonus.beastBallUltraBeast
         }
@@ -1400,6 +1402,7 @@ final class CompanionStore {
     var ownsBoosterEnergy: Bool { itemCount(.boosterEnergy) > 0 }
     var ownsTealMask: Bool { itemCount(.tealMask) > 0 }
     var ownsTeraOrb: Bool { itemCount(.teraOrb) > 0 }
+    var ownsRelicStatue: Bool { itemCount(.relicStatue) > 0 }
 
     /// Zygarde Cube: +1% token growth EXP per 25 registered species, up to +40%.
     var zygardeCubeMultiplier: Double {

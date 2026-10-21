@@ -148,6 +148,7 @@ private struct ItemCard: View {
         case .boosterEnergy: return l.boosterEnergyEffectHint
         case .tealMask: return l.tealMaskEffectHint
         case .teraOrb: return l.teraOrbEffectHint
+        case .relicStatue: return l.relicStatueEffectHint
         case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,
              .soulBadge, .marshBadge, .volcanoBadge, .earthBadge,
              .zephyrBadge, .hiveBadge, .plainBadge, .fogBadge,

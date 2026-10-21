@@ -213,6 +213,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     case boosterEnergy
     case tealMask
     case teraOrb
+    case relicStatue
     case boulderBadge
     case cascadeBadge
     case thunderBadge
@@ -303,6 +304,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .boosterEnergy: return "booster-energy"
         case .tealMask: return "teal-mask"
         case .teraOrb: return "tera-orb"
+        case .relicStatue: return "relic-statue"
         case .leafStone: return "leaf-stone"
         case .fireStone: return "fire-stone"
         case .waterStone: return "water-stone"
@@ -345,6 +347,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .boosterEnergy: return "⚡"
         case .tealMask: return "🎭"
         case .teraOrb: return "💠"
+        case .relicStatue: return "🗿"
         case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,
              .soulBadge, .marshBadge, .volcanoBadge, .earthBadge,
              .zephyrBadge, .hiveBadge, .plainBadge, .fogBadge,
@@ -435,6 +438,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .boosterEnergy: return .species([SpeciesGoal(SpeciesGoal.paradoxes, needed: 4)])
         case .tealMask:    return .species([SpeciesGoal([1017, 1014, 1015, 1016])]) // Ogerpon, Loyal Three
         case .teraOrb:     return .species([SpeciesGoal([1007, 1008, 1024])])   // Koraidon, Miraidon, Terapagos
+        case .relicStatue: return .species([SpeciesGoal([377, 378, 379, 486, 894, 895])]) // All six Regis
         case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,
              .soulBadge, .marshBadge, .volcanoBadge, .earthBadge,
              .zephyrBadge, .hiveBadge, .plainBadge, .fogBadge,
@@ -501,6 +505,8 @@ enum CollectorBonus {
     /// Gracidea: the first stage of a Pokémon that will evolve. It used to double every Rare Candy, bought ones
     /// included, which stacked with the Soul Dew and the Rainbow Wing into four times the EXP per shop token.
     static let gracideaFirstStage = 1.25
+    /// Relic Statue: a Pokémon that does not evolve, like the Regis.
+    static let relicStatueNoEvolution = 1.25
     static let beastBallUltraBeast = 1.5
     static let rustedSwordLegendary = 1.25
     static let boosterEnergyParadox = 1.5

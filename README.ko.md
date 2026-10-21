@@ -213,6 +213,7 @@ Pi는 모델 여러 개를 세션 로그 하나로 흘려보낼 수 있습니다
 | **부스트에너지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/booster-energy.png" width="28" height="28" alt="부스트에너지"> | 패러독스 포켓몬 아무거나 4마리³ | 패러독스 포켓몬이 50% 더 빨리 성장해요 |
 | **벽록의가면** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/teal-mask.png" width="28" height="28" alt="벽록의가면"> | 오거폰, 조타구, 이야후, 기로치 | 풀·물·불꽃·바위타입 포켓몬이 20% 더 빨리 성장해요 |
 | **테라스탈오브** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/tera-orb.png" width="28" height="28" alt="테라스탈오브"> | 코라이돈, 미라이돈, 테라파고스 | 진화의 돌로 받은 알이 2배 빨리 부화해요 |
+| **고대의석상** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-statue.png" width="28" height="28" alt="고대의석상"> | 레지락, 레지아이스, 레지스틸, 레지기가스, 레지에레키, 레지드래고 | 진화하지 않는 포켓몬이 25% 빨리 자라요 |
 
 포켓몬이 태어날 확률을 바꾸는 건 천공의피리뿐이에요. 다른 유물은 모두 순수한 보너스라 다른 포켓몬의 확률을 낮추지 않아요.
 

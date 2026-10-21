@@ -70,10 +70,10 @@ final class CollectorItemsTests: XCTestCase {
     func testCollectorItemsAndAchievements() {
         let s = store()
         XCTAssertEqual(s.collectorItems(in: .evolutionStones).count, 10)
-        XCTAssertEqual(s.collectorItems(in: .legendaryArtifacts).count, 23)
+        XCTAssertEqual(s.collectorItems(in: .legendaryArtifacts).count, 24)
         XCTAssertEqual(s.collectorItems(in: .gymBadges).count, 18)
         XCTAssertEqual(Set(CompanionStore.achievementItems), Set(ItemKind.allCases.filter { $0.collectorGroup != nil }))
-        XCTAssertEqual(s.totalAchievementsCount, 194, "10 stones, 23 artifacts, 161 badge regions")
+        XCTAssertEqual(s.totalAchievementsCount, 195, "10 stones, 24 artifacts, 161 badge regions")
         XCTAssertEqual(s.purchasableItems, [.mint, .rareCandy, .shinyCharm], "the Shop sells what main sells")
 
         // An unlocked stone is an achievement to claim, never a Shop item.
@@ -322,7 +322,7 @@ final class CollectorItemsTests: XCTestCase {
         let artifacts = s.collectorItems(in: .legendaryArtifacts)
         XCTAssertEqual(artifacts.first, .clearBell, "unlocked and not owned comes first")
         XCTAssertEqual(artifacts.last, .soulDew, "owned passives sink to the bottom")
-        XCTAssertEqual(artifacts.count, 23)
+        XCTAssertEqual(artifacts.count, 24)
     }
 
     // MARK: Effects
@@ -398,6 +398,7 @@ final class CollectorItemsTests: XCTestCase {
             (.rustedSword, mon(150, rarity: .legendary), mon(147, rarity: .rare), CollectorBonus.rustedSwordLegendary),
             (.boosterEnergy, mon(984, rarity: .rare), mon(147, rarity: .rare), CollectorBonus.boosterEnergyParadox),
             (.tealMask, mon(74), mon(19), CollectorBonus.tealMaskTypes),                      // Geodude (Rock)
+            (.relicStatue, mon(128, forms: 1), mon(19), CollectorBonus.relicStatueNoEvolution), // Tauros vs Rattata
         ]
         let plain = store()
         for (item, boosted, other, bonus) in cases {
@@ -455,7 +456,7 @@ final class CollectorItemsTests: XCTestCase {
             (.rustedSword, [888, 889, 890]), (.reinsOfUnity, [896, 897, 898]),
             (.tealMask, [1014, 1015, 1016, 1017]), (.teraOrb, [1007, 1008, 1024]),
             (.beastBall, [793, 798, 803, 806]), (.boosterEnergy, [984, 990, 1009, 1023]),
-            (.revealGlass, [641, 642, 905]),
+            (.revealGlass, [641, 642, 905]), (.relicStatue, [377, 378, 379, 486, 894, 895]),
         ]
         for (item, ids) in goals {
             XCTAssertTrue(store(dex: entries(ids, rarity: .legendary)).isUnlocked(item), "\(item)")
