@@ -397,10 +397,36 @@ struct PokemonForm: RawRepresentable, Codable, Hashable, Sendable {
         catalog.keys.filter { (lineBaseIDs[$0] ?? $0) == baseID }.sorted()
     }
 
+    /// Lines whose species name their forms differently: one rolled form sets each species' own form, as in
+    /// the games (a counterfeit Poltchageist becomes an unremarkable Sinistcha, only a white-striped Basculin
+    /// becomes a Basculegion, male or female). Other lines share form names from one species to the next.
+    private static let lineVariants: [Int: [(form: String, species: [Int: String])]] = [
+        550: [("red-striped", [550: "red-striped"]), ("blue-striped", [550: "blue-striped"]),
+              ("white-striped-male", [550: "white-striped", 902: "male"]),
+              ("white-striped-female", [550: "white-striped", 902: "female"])],
+        554: [("standard", [554: "standard", 555: "standard"]), ("zen", [554: "standard", 555: "zen"]),
+              ("galar-standard", [554: "galar", 555: "galar-standard"]), ("galar-zen", [554: "galar", 555: "galar-zen"])],
+        1012: [("counterfeit", [1012: "counterfeit", 1013: "unremarkable"]),
+               ("artisan", [1012: "artisan", 1013: "masterpiece"])],
+    ]
+
+    /// Base of the line a catalogued species belongs to.
+    static func lineBase(of speciesID: Int) -> Int { lineBaseIDs[speciesID] ?? speciesID }
+
     /// Everything an individual of this line can carry, default first.
     static func lineForms(baseID: Int) -> [PokemonForm] {
+        if let variants = lineVariants[baseID] { return variants.map { PokemonForm($0.form) } }
         var seen = Set<PokemonForm>()
         return formSpecies(baseID: baseID).flatMap(forms(speciesID:)).filter { seen.insert($0).inserted }
+    }
+
+    /// The form one species of the line shows for an individual's line form, or nil when that species
+    /// does not carry it.
+    static func ownForm(speciesID: Int, lineForm form: PokemonForm) -> PokemonForm? {
+        if let variant = lineVariants[lineBase(of: speciesID)]?.first(where: { $0.form == form.rawValue }) {
+            return variant.species[speciesID].map { PokemonForm($0) }
+        }
+        return forms(speciesID: speciesID).contains(form) ? form : nil
     }
 
     /// The appearance of an individual at one species: its own form when that species has it,
@@ -408,7 +434,7 @@ struct PokemonForm: RawRepresentable, Codable, Hashable, Sendable {
     static func resolved(speciesID: Int, form: PokemonForm?) -> PokemonForm? {
         let forms = forms(speciesID: speciesID)
         guard let first = forms.first else { return nil }
-        return form.flatMap { forms.contains($0) ? $0 : nil } ?? first
+        return form.flatMap { ownForm(speciesID: speciesID, lineForm: $0) } ?? first
     }
 
     /// Normalizes the form an individual stores: nil for lines without forms, and the line default
@@ -416,7 +442,13 @@ struct PokemonForm: RawRepresentable, Codable, Hashable, Sendable {
     static func resolved(baseID: Int, form: PokemonForm?) -> PokemonForm? {
         let forms = lineForms(baseID: baseID)
         guard let first = forms.first else { return nil }
-        return form.flatMap { forms.contains($0) ? $0 : nil } ?? first
+        return form.flatMap { forms.contains($0) ? $0 : legacyLineForm(baseID: baseID, $0) } ?? first
+    }
+
+    /// Saves written before `lineVariants` stored one species' own form for those lines: the first line form
+    /// showing it (`galar` was a Galarian Darumaka, `masterpiece` an artisan Sinistcha, `female` a Basculegion).
+    private static func legacyLineForm(baseID: Int, _ form: PokemonForm) -> PokemonForm? {
+        lineVariants[baseID]?.first { $0.species.values.contains(form.rawValue) }.map { PokemonForm($0.form) }
     }
 
     static func isDefault(_ form: PokemonForm?, speciesID: Int) -> Bool {

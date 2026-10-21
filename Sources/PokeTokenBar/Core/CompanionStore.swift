@@ -308,7 +308,7 @@ final class CompanionStore {
     }
     var isFinalStage: Bool {
         guard let a = state.active, let line = currentLine else { return false }
-        return line.tree.node(withID: a.currentID)?.children.isEmpty ?? true
+        return line.tree.node(withID: a.currentID).map { Self.openChildren($0, form: a.form).isEmpty } ?? true
     }
     var stageText: String {
         guard let a = state.active else { return "" }
@@ -332,14 +332,15 @@ final class CompanionStore {
         if let current = line.tree.node(withID: a.currentID) {
             var node = current
             var guaranteedPrefix: [EvoNode] = []
-            while node.children.count == 1, let child = node.children.first {
+            while Self.openChildren(node, form: a.form).count == 1, let child = Self.openChildren(node, form: a.form).first {
                 guaranteedPrefix.append(child)
                 node = child
             }
 
-            if node.children.count > 1 {
+            let branches = Self.openChildren(node, form: a.form)
+            if branches.count > 1 {
                 out += guaranteedPrefix.map { futureLineItem($0.speciesID, active: a) }
-                let branchItems = node.children.map { ch in
+                let branchItems = branches.map { ch in
                     BranchEvolutionItem(
                         speciesID: ch.speciesID,
                         isCollected: isEvolutionCollected(speciesID: ch.speciesID, baseID: a.baseID)
@@ -566,38 +567,15 @@ final class CompanionStore {
         }
     }
 
-    /// Known branching evolution lines mapping a species to its reachable final evolution IDs.
-    static func branchingFinals(for speciesID: Int) -> [Int]? {
-        switch speciesID {
-        case 43, 44:
-            return [45, 182]        // Oddish, Gloom -> Vileplume, Bellossom
-        case 60, 61:
-            return [62, 186]        // Poliwag, Poliwhirl -> Poliwrath, Politoed
-        case 79:
-            return [80, 199]        // Slowpoke -> Slowbro, Slowking
-        case 133:
-            return [134, 135, 136, 196, 197, 470, 471, 700] // Eevee -> Vaporeon, Jolteon, Flareon, Espeon, Umbreon, Leafeon, Glaceon, Sylveon
-        case 236:
-            return [106, 107, 237]  // Tyrogue -> Hitmonlee, Hitmonchan, Hitmontop
-        case 265:
-            return [267, 269]       // Wurmple -> Beautifly, Dustox
-        case 266:
-            return [267]            // Silcoon -> Beautifly
-        case 268:
-            return [269]            // Cascoon -> Dustox
-        case 280, 281:
-            return [282, 475]       // Ralts, Kirlia -> Gardevoir, Gallade
-        case 290:
-            return [291, 292]       // Nincada -> Ninjask, Shedinja
-        case 361:
-            return [362, 478]       // Snorunt -> Glalie, Froslass
-        case 366:
-            return [367, 368]       // Clamperl -> Huntail, Gorebyss
-        case 412:
-            return [413, 414]       // Burmy -> Wormadam, Mothim
-        default:
-            return nil
-        }
+    /// Finals reachable from a species of a branching line (Wurmple, Eevee, Meowth, Applin...), for an
+    /// individual of this form; nil for finals and outside branching lines. Derived from the evolution tree
+    /// of every line (`PokemonEvolutionData`), form gates included: a Kanto Meowth only reaches Persian.
+    static func branchingFinals(for speciesID: Int, form: PokemonForm? = nil) -> [Int]? {
+        let open = form == nil ? (PokemonEvolutionData.children[speciesID] ?? [])
+                               : PokemonEvolutionData.children(of: speciesID, form: form)
+        guard !open.isEmpty,
+              PokemonEvolutionData.finals(from: PokemonEvolutionData.root(of: speciesID)).count > 1 else { return nil }
+        return PokemonEvolutionData.finals(from: speciesID, form: form)
     }
 
     private func hasUncollectedEvolutions(
@@ -606,14 +584,15 @@ final class CompanionStore {
         collectedSpecies: Set<DexSpeciesKey>
     ) -> Bool {
         if let currentLine, (currentLine.baseID == speciesID || currentLine.tree.node(withID: speciesID) != nil) {
-            let finals = currentLine.tree.node(withID: speciesID)?.finalIDs ?? currentLine.tree.finalIDs
+            let finals = currentLine.tree.node(withID: speciesID).map { Self.openFinals($0, form: form) }
+                ?? currentLine.tree.finalIDs
             if finals.count > 1 || finals != [speciesID] {
                 return finals.contains { finalID in
                     !collectedSpecies.contains(DexSpeciesKey(speciesID: finalID, form: form))
                 }
             }
         }
-        if let finals = Self.branchingFinals(for: speciesID) {
+        if let finals = Self.branchingFinals(for: speciesID, form: form) {
             return finals.contains { finalID in
                 !collectedSpecies.contains(DexSpeciesKey(speciesID: finalID, form: form))
             }
@@ -1217,7 +1196,8 @@ final class CompanionStore {
                 if !isRevealingDitto { Task { await revealDitto() } }
                 break
             }
-            if node.children.isEmpty {
+            // A species none of whose evolutions this form can take is final for it (a Kanto Farfetch'd).
+            if Self.openChildren(node, form: a.form).isEmpty {
                 graduate(); break
             } else {
                 let nextIndex = a.stageIndex + 1
@@ -1225,14 +1205,16 @@ final class CompanionStore {
                 if a.plannedPathIDs.indices.contains(nextIndex),
                    let planned = node.children.first(where: { $0.speciesID == a.plannedPathIDs[nextIndex] }) {
                     next = planned
-                } else {
-                    next = pickPlannedChild(node, baseID: a.baseID)
-                    let fallbackRoute = [node.speciesID] + makeEvolutionPlan(from: next, baseID: a.baseID)
+                } else if let picked = pickPlannedChild(node, baseID: a.baseID, form: a.form) {
+                    next = picked
+                    let fallbackRoute = [node.speciesID] + makeEvolutionPlan(from: next, baseID: a.baseID, form: a.form)
                     let repaired = Self.repairedPlan(realizedPath: a.pathIDs, stageIndex: a.stageIndex,
                                                      fallbackRoute: fallbackRoute)
                     state.active!.plannedPathIDs = repaired
                     state.active!.totalForms = repaired.count
                     AppLog.write("evolve: repaired invalid planned path for base \(a.baseID)")
+                } else {
+                    graduate(); break
                 }
                 state.active!.pathIDs = Array(a.pathIDs.prefix(a.stageIndex + 1)) + [next.speciesID]
                 state.active!.stageIndex += 1
@@ -1265,30 +1247,46 @@ final class CompanionStore {
     }
 
     /// 분기 노드의 모든 최종체가 이미 수집되었는지 여부. (단일 진화 종인 경우 해당 종 자체의 수집 여부)
-    func isBranchNodeCollected(_ node: EvoNode, baseID: Int) -> Bool {
-        if node.children.isEmpty {
-            return isEvolutionCollected(speciesID: node.speciesID, baseID: baseID)
-        }
-        return node.finalIDs.allSatisfy { isEvolutionCollected(speciesID: $0, baseID: baseID) }
+    func isBranchNodeCollected(_ node: EvoNode, baseID: Int, form: PokemonForm?) -> Bool {
+        Self.openFinals(node, form: form).allSatisfy { isEvolutionCollected(speciesID: $0, baseID: baseID) }
+    }
+
+    /// The evolutions of a node open to an individual of this form (`PokemonEvolutionData.formGates`).
+    static func openChildren(_ node: EvoNode, form: PokemonForm?) -> [EvoNode] {
+        node.children.filter { PokemonEvolutionData.allows($0.speciesID, from: node.speciesID, form: form) }
+    }
+
+    /// Finals an individual of this form can reach from a node of its loaded tree.
+    static func openFinals(_ node: EvoNode, form: PokemonForm?) -> [Int] {
+        let open = openChildren(node, form: form)
+        return open.isEmpty ? [node.speciesID] : open.flatMap { openFinals($0, form: form) }
     }
 
     /// 분기 진화 anti-duplicate: 미수집 분기가 있으면 이미 획득한 진화는 배제하고 미수집 분기 중에서만 추첨.
     /// 모든 분기를 전부 획득한 경우에만 전체 풀에서 무작위 선택.
-    private func pickPlannedChild(_ node: EvoNode, baseID: Int) -> EvoNode {
-        let uncollected = node.children.filter { !isBranchNodeCollected($0, baseID: baseID) }
-        let pool = uncollected.isEmpty ? node.children : uncollected
+    private func pickPlannedChild(_ node: EvoNode, baseID: Int, form: PokemonForm?) -> EvoNode? {
+        let open = Self.openChildren(node, form: form)
+        guard !open.isEmpty else { return nil }
+        let uncollected = open.filter { !isBranchNodeCollected($0, baseID: baseID, form: form) }
+        let pool = uncollected.isEmpty ? open : uncollected
         return pool[Int(rng.next() % UInt64(pool.count))]
     }
 
-    private func makeEvolutionPlan(from root: EvoNode, baseID: Int) -> [Int] {
+    /// Plans the evolutions an individual will take, among those open to its form: a Kanto Farfetch'd stays
+    /// a Farfetch'd, a Galarian one becomes Sirfetch'd.
+    private func makeEvolutionPlan(from root: EvoNode, baseID: Int, form: PokemonForm?) -> [Int] {
         var plan = [root.speciesID]
         var node = root
-        while !node.children.isEmpty {
-            let next = pickPlannedChild(node, baseID: baseID)
+        while let next = pickPlannedChild(node, baseID: baseID, form: form) {
             plan.append(next.speciesID)
             node = next
         }
         return plan
+    }
+
+    /// Whether every step of a plan is open to this form.
+    static func planFollowsForm(_ plan: [Int], form: PokemonForm?) -> Bool {
+        zip(plan, plan.dropFirst()).allSatisfy { PokemonEvolutionData.allows($1, from: $0, form: form) }
     }
 
     static func repairedPlan(realizedPath: [Int], stageIndex: Int, fallbackRoute: [Int]) -> [Int] {
@@ -1319,12 +1317,13 @@ final class CompanionStore {
         let candidate = longestValidPath(saved.plannedPathIDs, from: root)
         let canReusePlan = candidate.path == saved.plannedPathIDs
             && candidate.path.starts(with: realized.path)
-            && candidate.lastNode.children.isEmpty
+            && Self.openChildren(candidate.lastNode, form: saved.form).isEmpty
+            && Self.planFollowsForm(candidate.path, form: saved.form)
         let plan: [Int]
         if canReusePlan {
             plan = candidate.path
         } else {
-            let suffix = makeEvolutionPlan(from: realized.lastNode, baseID: saved.baseID)
+            let suffix = makeEvolutionPlan(from: realized.lastNode, baseID: saved.baseID, form: saved.form)
             plan = realized.path + suffix.dropFirst()
         }
         normalized.pathIDs = realized.path
@@ -2301,10 +2300,15 @@ final class CompanionStore {
            Self.dittoDisguiseHit(rarity: line.rarity, totalForms: line.totalForms, roll: rng.next()) {
             dittoDisguise = line.baseID
         }
-        let evolutionPlan = makeEvolutionPlan(from: line.tree, baseID: line.baseID)
+        var evolutionPlan = makeEvolutionPlan(from: line.tree, baseID: line.baseID, form: pendingForm)
         var profile = PokemonProfile.generate(seed: rng.next())
         if let details = pokemonDetailsByID[line.baseID] { profile.enrich(with: details) }
         let form = pendingForm ?? rollLineForm(baseID: line.baseID, type: typeGuarantee)
+        // The form is rolled last so owning forms never shifts the other rolls; a plan it cannot take (a
+        // Galarian Meowth planned into Persian) is redone for it, which only happens on form-gated lines.
+        if !Self.planFollowsForm(evolutionPlan, form: form) {
+            evolutionPlan = makeEvolutionPlan(from: line.tree, baseID: line.baseID, form: form)
+        }
         // A repeat only when this line already graduated in this form: an Alolan Dugtrio is new to the
         // Pokédex even after a Kanto one graduated, so it gets no repeat boost.
         let hasGrowthBoost = state.hasCollectedFinal(forBaseID: line.baseID, form: form)
@@ -2355,7 +2359,7 @@ final class CompanionStore {
         // 메타몽으로 전환 — rarity/forms 는 로드한 라인에서, isShiny/nature/dittoDisguise 는 유지.
         let previousRarity = m.rarity
         m.baseID = dittoLine.baseID
-        let evolutionPlan = makeEvolutionPlan(from: dittoLine.tree, baseID: dittoLine.baseID)
+        let evolutionPlan = makeEvolutionPlan(from: dittoLine.tree, baseID: dittoLine.baseID, form: nil)
         m.pathIDs = [dittoLine.baseID]
         m.plannedPathIDs = evolutionPlan
         m.stageIndex = 0
@@ -2419,8 +2423,9 @@ final class CompanionStore {
     /// hatch weight, not the capture rate: Mew, Celebi, Rayquaza and Shaymin have a capture rate of 45 but
     /// roll like Mewtwo. It is the only item that reweights the roll; the others only add growth bonuses.
     func hatchWeight(for e: BaseSpecies) -> Int {
-        var w = CollectionWeight.adjusted(e.hatchWeight, isCollected: state.hasCollectedFinal(forBaseID: e.id))
-        if ownsLegendCharm && e.hatchWeight <= PokemonOdds.legendaryHatchWeight {
+        var w = CollectionWeight.adjusted(e.hatchWeight, isCollected: state.isLineComplete(baseID: e.id))
+        // Legendaries and mythicals of the lowest weight only: Beldum (capture rate 3) is not one.
+        if ownsLegendCharm && e.isLegendary && e.hatchWeight <= PokemonOdds.legendaryHatchWeight {
             w *= LegendCharm.weightMultiplier
         }
         return w

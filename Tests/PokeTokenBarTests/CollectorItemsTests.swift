@@ -358,8 +358,9 @@ final class CollectorItemsTests: XCTestCase {
     /// Only the Azure Flute reweights the egg roll. Every other item is a pure bonus: owning the Clear Bell,
     /// the Griseous Orb or a badge never lowers another Pokémon's chances.
     func testAzureFluteIsTheOnlyItemThatChangesHatchOdds() {
-        let mewtwo = BaseSpecies(id: 150, captureRate: 3)
+        let mewtwo = BaseSpecies(id: 150, captureRate: 3, isUnbreedableLegendary: true)
         let mew = BaseSpecies(id: 151, captureRate: 45, isUnbreedableLegendary: true)
+        let beldum = BaseSpecies(id: 374, captureRate: 3)   // Mewtwo's weight, but not a legendary
         let others = [BaseSpecies(id: 92, captureRate: 190), BaseSpecies(id: 147, captureRate: 45),
                       BaseSpecies(id: 19, captureRate: 255), BaseSpecies(id: 489, captureRate: 30)]
         let plain = store()
@@ -373,7 +374,7 @@ final class CollectorItemsTests: XCTestCase {
         for e in others + [mewtwo, mew] {
             XCTAssertEqual(everything.hatchWeight(for: e), plain.hatchWeight(for: e), "#\(e.id)")
         }
-        for e in others {
+        for e in others + [beldum] {
             XCTAssertEqual(flute.hatchWeight(for: e), plain.hatchWeight(for: e), "#\(e.id)")
         }
     }

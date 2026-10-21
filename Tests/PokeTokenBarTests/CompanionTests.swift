@@ -2167,10 +2167,12 @@ final class CompanionIdentityTests: XCTestCase {
     }
 
     /// 이미 수집한 base 는 가중치 ½ — 경계 롤에서 선택 구간이 바뀌는 것으로 검증.
+    /// A line counts as collected once complete (`isLineComplete`), so the test uses lines without evolutions or
+    /// forms: Kangaskhan, Pinsir.
     func testSamplerHalvesCollectedWeight() async {
-        // 미수집: [200, 200] → 경계 200. id=1 수집 시: [100, 200] → 경계 100.
-        // roll ∈ [100, 200) 인 시드는 수집 전엔 id=1, 수집 후엔 id=2 를 뽑는다.
-        let index = [BaseSpecies(id: 1, captureRate: 200), BaseSpecies(id: 2, captureRate: 200)]
+        // 미수집: [200, 200] → 경계 200. id=115 수집 시: [100, 200] → 경계 100.
+        // roll ∈ [100, 200) 인 시드는 수집 전엔 id=115, 수집 후엔 id=127 를 뽑는다.
+        let index = [BaseSpecies(id: 115, captureRate: 200), BaseSpecies(id: 127, captureRate: 200)]
         // 같은 시드 → 같은 원시 롤값 v. 미수집 총합 400 / 수집 후 총합 300 으로 모듈로만 달라진다.
         // v%400 < 200 (미수집 → id=1) 이면서 v%300 ≥ 100 (수집 후 → id=2) 인 시드를 찾는다.
         var found: UInt64?
@@ -2184,12 +2186,12 @@ final class CompanionIdentityTests: XCTestCase {
         let p1 = IndexProvider(); p1.index = index
         let s1 = samplerStore(p1, seed: seed, preloadState: eggReadyState())
         await s1.hatchIfNeeded()
-        XCTAssertEqual(s1.state.active?.baseID, 1)
-        // id=1 수집 후: 같은 시드가 id=2 구간으로 밀림 (가중치 ½ 효과)
+        XCTAssertEqual(s1.state.active?.baseID, 115)
+        // id=115 수집 후: 같은 시드가 id=127 구간으로 밀림 (가중치 ½ 효과)
         let p2 = IndexProvider(); p2.index = index
-        let s2 = samplerStore(p2, seed: seed, preloadState: eggReadyState(collected: ["1:1"]))
+        let s2 = samplerStore(p2, seed: seed, preloadState: eggReadyState(collected: ["115:115"]))
         await s2.hatchIfNeeded()
-        XCTAssertEqual(s2.state.active?.baseID, 2, "수집済 가중치 ½ 로 선택 구간이 이동해야 한다")
+        XCTAssertEqual(s2.state.active?.baseID, 127, "수집済 가중치 ½ 로 선택 구간이 이동해야 한다")
     }
 
     /// A legendary that cannot hatch from an egg weighs 3 like Mewtwo, whatever its capture_rate. Mew,
