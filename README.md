@@ -189,7 +189,7 @@ Claimed once from the **Achievements** tab, active for as long as they sit in th
 
 | Artifact | Sprite | Unlocks with | Effect |
 | :--- | :---: | :--- | :--- |
-| **Azure Flute** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/azure-flute.png" width="28" height="28" alt="Azure Flute"> | The same legendary Pokémon graduated twice | Legendary Pokémon hatch 4× as often |
+| **Azure Flute** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/azure-flute.png" width="28" height="28" alt="Azure Flute"> | The same legendary Pokémon graduated twice | Legendary Pokémon hatch 2× as often |
 | **Silver Wing** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/silver-wing.png" width="28" height="28" alt="Silver Wing"> | Articuno, Zapdos, Moltres | Halves the tokens an egg needs to hatch |
 | **Old Sea Map** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/old-sea-map.png" width="28" height="28" alt="Old Sea Map"> | Mewtwo, Mew | +20% growth from token usage |
 | **Clear Bell** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/clear-bell.png" width="28" height="28" alt="Clear Bell"> | Raikou, Entei, Suicune | Rare-tier Pokémon grow 25% faster |

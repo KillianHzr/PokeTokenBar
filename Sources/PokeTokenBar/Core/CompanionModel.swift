@@ -532,7 +532,7 @@ enum EvolutionStone {
 
 /// Growth bonuses of the passive collector items. Each one only speeds a group of Pokémon up or adds a
 /// reward: none of them reweights the egg or form rolls, so owning an item never lowers anyone's chances.
-/// (The Azure Flute's legendary weight is the one deliberate exception, kept as it was.)
+/// (The Azure Flute's legendary weight is the one deliberate exception, now ×2.)
 enum CollectorBonus {
     /// Zygarde Cube: +1% token growth EXP per this many registered species, up to `zygardeMaxPercent`.
     static let zygardeSpeciesPerPercent = 25
@@ -563,8 +563,9 @@ enum CollectorBonus {
 
 /// Azure Flute balance constant (passive collector item).
 enum LegendCharm {
-    /// 보유 시 전설 포켓몬 부화 가중치 배율 (capture_rate 3 기준 출현 확률 4배 증가).
-    static let weightMultiplier = 4
+    /// 보유 시 전설 포켓몬 부화 가중치 배율 (capture_rate 3 기준 출현 확률 2배 증가). It was 4, which made a legendary
+    /// almost one rare egg in five.
+    static let weightMultiplier = 2
 }
 
 /// 이상한 사탕 밸런스 상수.

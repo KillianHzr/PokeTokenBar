@@ -1689,14 +1689,14 @@ struct L {
                      "Erhöht im Beutel die Chance, dass ein schillerndes Pokémon schlüpft.",
                      "Пока он у вас, повышает шанс, что вылупится шайни.")
         case .legendCharm:
-            return t("보유하면 전설의 포켓몬이 태어날 확률이 크게 올라가요.",
-                     "While owned, greatly increases the chance of hatching a legendary Pokémon.",
-                     "持っていると伝説のポケモンが生まれる確率が大きく上がります。",
-                     "Mientras lo tengas, aumenta considerablemente la probabilidad de eclosionar un Pokémon legendario.",
-                     "Tant que tu la possèdes, augmente grandement les chances de faire éclore un Pokémon légendaire.",
-                     "Enquanto estiver na bolsa, aumenta muito a chance de chocar um Pokémon lendário.",
-                     "Erhöht im Beutel die Chance auf ein legendäres Pokémon erheblich.",
-                     "Пока она у вас, значительно повышает шанс вылупления легендарного покемона.")
+            return t("보유하면 전설의 포켓몬이 태어날 확률이 2배가 돼요.",
+                     "While owned, doubles the chance of hatching a legendary Pokémon.",
+                     "持っていると伝説のポケモンが生まれる確率が2倍になります。",
+                     "Mientras lo tengas, duplica la probabilidad de eclosionar un Pokémon legendario.",
+                     "Tant que tu la possèdes, double les chances de faire éclore un Pokémon légendaire.",
+                     "Enquanto estiver na bolsa, dobra a chance de chocar um Pokémon lendário.",
+                     "Verdoppelt im Beutel die Chance auf ein legendäres Pokémon.",
+                     "Пока она у вас, вдвое повышает шанс вылупления легендарного покемона.")
         case .silverWing:
             return t("보유하면 알 부화에 필요한 토큰 소모량이 대폭 줄어듭니다.",
                      "While owned, significantly reduces the token threshold needed to hatch eggs.",
@@ -2139,7 +2139,7 @@ struct L {
         t("같은 전설의 포켓몬 2번 졸업", "Graduate the same legendary Pokémon twice", "同じ伝説のポケモンを2回卒業", "Gradúa dos veces al mismo Pokémon legendario", "Diplômer deux fois le même Pokémon légendaire", "Forme duas vezes o mesmo Pokémon lendário", "Dasselbe legendäre Pokémon zweimal verabschieden", "Выпустите одного и того же легендарного покемона дважды")
     }
     var shinyCharmEffectHint: String { t("이로치 확률 ↑ · 적용 중", "Shiny rate ↑ · active", "色違い率↑ · 適用中", "Prob. variocolor ↑ · activo", "Taux chromatique ↑ · actif", "Chance shiny ↑ · ativo", "Schillerchance ↑ · aktiv", "Шанс шайни ↑ · активен") }
-    var legendCharmEffectHint: String { t("전설 출현 4× · 적용 중", "Legendary rate 4× · active", "伝説出現 4× · 適用中", "Prob. legendario 4× · activo", "Taux légendaire 4× · actif", "Chance lendária 4× · ativo", "Legendäre Chance 4× · aktiv", "Шанс легендарных 4× · активен") }
+    var legendCharmEffectHint: String { t("전설 출현 2× · 적용 중", "Legendary rate 2× · active", "伝説出現 2× · 適用中", "Prob. legendario 2× · activo", "Taux légendaire 2× · actif", "Chance lendária 2× · ativo", "Legendäre Chance 2× · aktiv", "Шанс легендарных 2× · активен") }
     var silverWingEffectHint: String { t("부화 임계치 ½ · 적용 중", "Egg threshold ½ · active", "タマゴ必要量½ · 適用中", "Umbral eclosión ½ · activo", "Seuil d'éclosion ½ · actif", "Meta de choque ½ · ativo", "Ei-Schwelle ½ · aktiv", "Порог вылупления ½ · активен") }
     var oldSeaMapEffectHint: String { t("성장 경험치 +20% · 적용 중", "Growth EXP +20% · active", "育成EXP +20% · 適用中", "EXP crecimiento +20% · activo", "EXP croissance +20% · actif", "EXP crescimento +20% · ativo", "Wachstums-EP +20% · aktiv", "Опыт роста +20% · активен") }
     var clearBellEffectHint: String { t("희귀 성장 +25% · 적용 중", "Rare growth +25% · active", "レア育成 +25% · 適用中", "Crec. raros +25% · activo", "Croissance Rares +25% · actif", "Cresc. raros +25% · ativo", "Seltene wachsen +25% · aktiv", "Рост редких +25% · активен") }
