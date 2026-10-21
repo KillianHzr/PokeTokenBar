@@ -204,8 +204,9 @@ final class PokemonFormTests: XCTestCase {
         guard ProcessInfo.processInfo.environment["PTB_PARITY"] == "1" else {
             throw XCTSkip("set PTB_PARITY=1 to check PokéAPI sprites for every form")
         }
-        let withoutGIF: Set<String> = ["666-icy-snow", "1012-artisan", "1013-masterpiece", "1017-wellspring",
-                                       "1017-hearthflame", "1017-cornerstone", "1024-terastal", "1024-stellar"]
+        // PokéAPI has no GIF for these: Ogerpon and Terapagos in any form, and three single forms.
+        let withoutGIF: Set<String> = ["666-icy-snow", "1012-artisan", "1013-masterpiece", "1017", "1017-wellspring",
+                                       "1017-hearthflame", "1017-cornerstone", "1024", "1024-terastal", "1024-stellar"]
         func exists(_ url: URL) async throws -> Bool {
             var request = URLRequest(url: url)
             request.httpMethod = "HEAD"
