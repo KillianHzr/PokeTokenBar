@@ -1220,9 +1220,19 @@ struct CompanionState: Codable, Sendable {
 
     /// Hatch roll weights: a form counts as collected once every species of the line that shows it
     /// is owned in it, so a Sandy Burmy that became Mothim still leaves Sandy Wormadam to find.
-    /// Whether an egg of this line can still bring a form missing from the Pokédex (the Oval Charm's target).
-    func lineMissesForms(baseID: Int) -> Bool {
+    /// Forms an egg of this line rolls. A stone egg only rolls the forms that hatch with its type (no Alolan
+    /// Vulpix, Ice, from a Fire Stone), unless none does.
+    static func eggForms(baseID: Int, type: PokemonType?) -> [PokemonForm] {
         let forms = PokemonForm.rollableLineForms(baseID: baseID)
+        guard let type else { return forms }
+        let typed = forms.filter { PokemonTypeData.types(forSpeciesID: baseID, form: $0).contains(type) }
+        return typed.isEmpty ? forms : typed
+    }
+
+    /// Whether this egg can still bring a form of the line missing from the Pokédex (the Oval Charm's target):
+    /// only the forms it can roll count, so a Fire Stone egg does not pick Vulpix for its missing Alolan form.
+    func lineMissesForms(baseID: Int, type: PokemonType? = nil) -> Bool {
+        let forms = Self.eggForms(baseID: baseID, type: type)
         return !forms.isEmpty && !Set(forms).isSubset(of: collectedLineForms(baseID: baseID))
     }
 
@@ -1239,6 +1249,13 @@ struct CompanionState: Codable, Sendable {
     /// 도감 표시 모델은 계산하지 않는다. 위장 중인 메타몽의 이로치는 리빌 전까지 숨긴다.
     func ownsShinySpecies(_ speciesID: Int, form: PokemonForm? = nil) -> Bool {
         let form = PokemonForm.resolved(speciesID: speciesID, form: form)
+        // A Plate or Memory changes the look, not the individual: a shiny Arceus is shiny in every form it has.
+        if PokemonForm.unlockSource(speciesID: speciesID) != nil {
+            guard let form, collectedForms(speciesID: speciesID).contains(form) else { return false }
+            if dex.contains(where: { $0.isShiny && $0.chainOrder.contains(speciesID) }) { return true }
+            guard let active, active.pathIDs.prefix(active.stageIndex + 1).contains(speciesID) else { return false }
+            return active.displaysShiny
+        }
         if dex.contains(where: {
             $0.isShiny && $0.chainOrder.contains(speciesID)
                 && PokemonForm.resolved(speciesID: speciesID, form: $0.form) == form

@@ -436,6 +436,17 @@ read_when:
   `676-lareine`), so those GIFs were never found and the static PNG showed instead. `SpriteStore.spriteURLs`
   lists every place a sprite may be and the loader tries them in turn. Guard:
   `testAnimatedSpritesTryEveryPlaceTheFormMayBe`.
+- **A filter must read the list the roll it feeds will read.** The Oval Charm kept the species with a missing form
+  among every form their line can roll, but a stone egg's form roll keeps only the forms of the stone's type: a
+  Fire Stone picked Vulpix for its missing Alolan form (Ice), then hatched a Kanto Vulpix already collected. The
+  charm's tests used plain eggs only. `CompanionState.eggForms(baseID:type:)` is now the one list both read.
+  Guard: `testTheOvalCharmFollowsAStoneEggsType` (with the Kanto lines complete, so the Alolan form is the only
+  one missing).
+- **One rule per concept, in every place that shows it.** Arceus's and Silvally's Plate and Memory forms showed the
+  same individuals in the form picker, with their shininess, while `ownsShinySpecies` (the menu-bar and pet
+  representative) asked for a shiny individual in that very form: a shiny Arceus showed shiny in the picker and
+  plain in the menu bar. Both now follow "a Plate changes the look, not the individual". Guard:
+  `testAShinyArceusIsShinyInEveryFormItHas`.
 
 ## 외부 로그·사용량 소스
 
