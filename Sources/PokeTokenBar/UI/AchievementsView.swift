@@ -249,6 +249,13 @@ private struct AchievementCard: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.small)
+        } else if let type = kind.badgeType {
+            // A badge is never locked as a whole: show how many of its regions are claimed.
+            Label("\(store.claimedBadgeTierCount(type))/\(PokemonTypeData.badgeGenerations(for: type).count)",
+                  systemImage: "map")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
         } else {
             Label(l.lockedLabel, systemImage: "lock.fill")
                 .font(.caption2.weight(.semibold))
