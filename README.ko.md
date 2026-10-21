@@ -214,12 +214,14 @@ Pi는 모델 여러 개를 세션 로그 하나로 흘려보낼 수 있습니다
 | **벽록의가면** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/teal-mask.png" width="28" height="28" alt="벽록의가면"> | 오거폰, 조타구, 이야후, 기로치 | 풀·물·불꽃·바위타입 포켓몬이 20% 더 빨리 성장해요 |
 | **테라스탈오브** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/tera-orb.png" width="28" height="28" alt="테라스탈오브"> | 코라이돈, 미라이돈, 테라파고스 | 진화의 돌로 받은 알이 2배 빨리 부화해요 |
 | **고대의석상** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-statue.png" width="28" height="28" alt="고대의석상"> | 레지락, 레지아이스, 레지스틸, 레지기가스, 레지에레키, 레지드래고 | 진화하지 않는 포켓몬이 25% 빨리 자라요 |
+| **타입:널의 알** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/mystery-egg.png" width="28" height="28" alt="타입:널의 알"> | 실버디의 메모리 17개 모두⁴ | 지금 포켓몬을 놓아주고 타입:널이 태어나는 알을 받아요 |
 
 포켓몬이 태어날 확률을 바꾸는 건 천공의피리뿐이에요. 다른 유물은 모두 순수한 보너스라 다른 포켓몬의 확률을 낮추지 않아요.
 
 ¹ 암스타, 투구푸스, 프테라, 릴리요, 아말도, 램펄드, 바리톱스, 늑골라, 아케오스, 견고라스, 아마루르가, 파치래곤, 파치르돈, 어래곤, 어치르돈.
 ² 텅비드, 매시붕, 페로코체, 전수목, 철화구야, 종이신도, 악식킹, 베베놈, 아고용, 차곡차곡, 두파팡.
 ³ 위대한엄니, 우렁찬꼬리, 사나운버섯, 날개치는머리, 땅을기는날개, 모래털가죽, 무쇠바퀴, 무쇠보따리, 무쇠손, 무쇠머리, 무쇠독나방, 무쇠가시, 고동치는달, 무쇠무인, 굽이치는물결, 무쇠잎새, 꿰뚫는화염, 날뛰는우레, 무쇠암석, 무쇠감투.
+⁴ 실버디는 타입:널로 태어나 노말폼으로 진화해요. 도감에 있는 전설·환상의 포켓몬마다(놓아준 개체 포함) 그 타입의 메모리를 줘요(파이어: 불꽃·비행). 벌레타입 전설은 게노세크트뿐이에요. 실버디가 도감에 있으면 메모리마다 그 폼이 해금되고(도감의 폼 목록에 표시), 17개를 모두 모으면 타입:널의 알을 받아요.
 
 ### 체육관 배지
 

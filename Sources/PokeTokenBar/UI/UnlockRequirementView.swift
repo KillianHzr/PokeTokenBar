@@ -19,6 +19,21 @@ struct UnlockRequirementView: View {
             case .duplicateLegendary:
                 let copies = min(store.graduatedLegendaryCopies, 2)
                 counterRow(l.duplicateLegendaryGoal, count: copies, needed: 2, met: copies >= 2)
+            case .silvallyMemories:
+                let won = store.state.silvallyMemoryTypes
+                let needed = PokemonForm.memoryTypes.count
+                counterRow(l.silvallyMemoriesGoal, count: won.count, needed: needed, met: won.count >= needed)
+                if !compact {
+                    // Which Memories are still missing: each type, faded until a legendary of it is in the Pokédex.
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 56), spacing: 3)], alignment: .leading, spacing: 3) {
+                        ForEach(PokemonForm.memoryTypes, id: \.self) { type in
+                            Badge(l.typeName(type).uppercased(), tint: .type(type))
+                                .opacity(won.contains(type) ? 1 : 0.3)
+                                .accessibilityLabel(l.typeName(type))
+                                .accessibilityValue(won.contains(type) ? "" : l.formNotCollected)
+                        }
+                    }
+                }
             case .species:
                 let goals = store.unlockProgress(of: kind)
                 // Compact: only the goal that unlocked the item (all of them if none is met, e.g. an owned

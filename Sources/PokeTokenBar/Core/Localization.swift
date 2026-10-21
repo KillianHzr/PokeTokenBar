@@ -1563,6 +1563,7 @@ struct L {
         case .tealMask: return t("벽록의가면", "Teal Mask", "みどりのめん", "Máscara Turquesa", "Masque Turquoise", "Máscara Turquesa", "Türkisgrüne Maske", "Бирюзовая маска")
         case .teraOrb: return t("테라스탈오브", "Tera Orb", "テラスタルオーブ", "Orbe Teracristal", "Orbe Téracristal", "Orbe Terastal", "Terakristall-Orb", "Тера-сфера")
         case .relicStatue: return t("고대의석상", "Relic Statue", "こだいのせきぞう", "Efigie Antigua", "Vieux Santon", "Estátua Antiga", "Alte Statue", "Древняя статуя")
+        case .typeNullEgg: return t("타입:널의 알", "Type: Null Egg", "タイプ：ヌルのタマゴ", "Huevo de Código Cero", "Œuf de Type:0", "Ovo de Type: Null", "Typ:Null-Ei", "Яйцо Тип: Ноль")
         case .boulderBadge: return t("회색배지", "Boulder Badge", "グレーバッジ", "Medalla Roca", "Badge Roche", "Insígnia da Rocha", "Felsorden", "Каменный значок")
         case .cascadeBadge: return t("블루배지", "Cascade Badge", "ブルーバッジ", "Medalla Cascada", "Badge Cascade", "Insígnia da Cascata", "Quellorden", "Каскадный значок")
         case .thunderBadge: return t("오렌지배지", "Thunder Badge", "オレンジバッジ", "Medalla Trueno", "Badge Foudre", "Insígnia do Trovão", "Donnerorden", "Значок молнии")
@@ -1833,6 +1834,15 @@ struct L {
                      "Enquanto estiver na bolsa, ovos obtidos com uma pedra de evolução chocam 2 vezes mais rápido.",
                      "Lässt im Beutel Eier aus Entwicklungssteinen doppelt so schnell schlüpfen.",
                      "Пока она у вас, яйца, полученные за камень эволюции, вылупляются в 2 раза быстрее.")
+        case .typeNullEgg:
+            return t("실버디의 메모리 17개를 모은 보상. 지금 포켓몬을 놓아주고 타입:널이 확정으로 태어나는 알을 받아요.",
+                     "The reward for all 17 of Silvally's Memories. Send off your current Pokémon for an egg that hatches a Type: Null.",
+                     "シルヴァディのメモリ17個をそろえたごほうび。いまのポケモンを手放して、タイプ：ヌルが必ず生まれるタマゴを受け取ります。",
+                     "La recompensa por los 17 discos de Silvally. Suelta a tu Pokémon actual a cambio de un huevo del que saldrá Código Cero.",
+                     "La récompense des 17 ROM de Silvallié. Laisse partir ton Pokémon actuel contre un œuf qui fera éclore un Type:0.",
+                     "A recompensa pelas 17 Memórias de Silvally. Solte seu Pokémon atual em troca de um ovo que vai chocar um Type: Null.",
+                     "Die Belohnung für alle 17 Disks von Amigento. Gib dein aktuelles Pokémon ab für ein Ei, aus dem ein Typ:Null schlüpft.",
+                     "Награда за все 17 дисков Сильвалли. Отпустите текущего покемона ради яйца, из которого вылупится Тип: Ноль.")
         case .relicStatue:
             return t("보유하면 진화하지 않는 포켓몬이 25% 더 빨리 성장합니다.",
                      "While owned, a Pokémon that does not evolve grows 25% faster.",
@@ -2017,6 +2027,23 @@ struct L {
     }
     func anyOfGoal(_ needed: Int) -> String {
         t("이 중 \(needed)마리", "Any \(needed) of these", "このうち\(needed)匹", "\(needed) de estos", "\(needed) parmi ceux-ci", "\(needed) destes", "\(needed) davon", "Любые \(needed) из них")
+    }
+    var typeNullEggHint: String {
+        t("타입:널 확정", "Guaranteed Type: Null", "タイプ：ヌル確定", "Código Cero garantizado", "Type:0 garanti",
+          "Type: Null garantido", "Garantiert Typ:Null", "Гарантированно Тип: Ноль")
+    }
+    var silvallyMemoriesGoal: String {
+        t("실버디의 메모리 (타입별 전설 1마리)", "Silvally's Memories (a legendary of each type)",
+          "シルヴァディのメモリ (タイプごとに伝説1匹)", "Discos de Silvally (un legendario de cada tipo)",
+          "ROM de Silvallié (un légendaire de chaque type)", "Memórias de Silvally (um lendário de cada tipo)",
+          "Amigentos Disks (ein Legendäres pro Typ)", "Диски Сильвалли (легендарный каждого типа)")
+    }
+    /// One line above Silvally's forms: where they come from.
+    var memoryFormsHint: String {
+        t("타입별 전설의 포켓몬마다 폼이 하나씩 해금돼요.", "Each type's legendary Pokémon unlocks a form.",
+          "タイプごとの伝説のポケモンでフォルムが1つ解放されます。", "Cada Pokémon legendario de un tipo desbloquea una forma.",
+          "Chaque légendaire d'un type débloque une forme.", "Cada Pokémon lendário de um tipo desbloqueia uma forma.",
+          "Jedes legendäre Pokémon eines Typs schaltet eine Form frei.", "Каждый легендарный покемон типа открывает форму.")
     }
     var duplicateLegendaryGoal: String {
         t("같은 전설의 포켓몬 2번 졸업", "Graduate the same legendary Pokémon twice", "同じ伝説のポケモンを2回卒業", "Gradúa dos veces al mismo Pokémon legendario", "Diplômer deux fois le même Pokémon légendaire", "Forme duas vezes o mesmo Pokémon lendário", "Dasselbe legendäre Pokémon zweimal verabschieden", "Выпустите одного и того же легендарного покемона дважды")

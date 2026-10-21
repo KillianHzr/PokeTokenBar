@@ -410,14 +410,22 @@ struct PokemonForm: RawRepresentable, Codable, Hashable, Sendable {
                ("artisan", [1012: "artisan", 1013: "masterpiece"])],
     ]
 
-    /// Where a species gets its type forms when no egg rolls them: Arceus holds a Plate, as in the games, and
-    /// the gym badge of each type gives that Plate. Such a species hatches in its default form; the others
-    /// unlock for it (`CompanionState.itemUnlockedForms`).
+    /// Where a species gets its type forms when no egg rolls them, as in the games: Arceus holds a Plate, which
+    /// the gym badge of each type gives; Silvally holds a Memory, which a legendary or mythical Pokémon of that
+    /// type in the Pokédex gives. Such a species hatches or evolves in its default form; the others unlock for
+    /// it (`CompanionState.itemUnlockedForms`).
     enum UnlockSource: Sendable {
         case gymBadge
+        case legendaryType
     }
 
-    static let unlockSources: [Int: UnlockSource] = [493: .gymBadge]
+    static let unlockSources: [Int: UnlockSource] = [493: .gymBadge, 773: .legendaryType]
+
+    /// Type: Null, the base of Silvally's line: the egg the last Memory leads to hatches it.
+    static let typeNullSpeciesID = 772
+
+    /// Silvally's Memories: one per type but Normal, its default form.
+    static let memoryTypes = PokemonType.allCases.filter { $0 != .normal }
 
     static func unlockSource(speciesID: Int) -> UnlockSource? { unlockSources[speciesID] }
 

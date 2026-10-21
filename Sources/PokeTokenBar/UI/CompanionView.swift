@@ -1772,11 +1772,14 @@ struct PokemonDetailView: View {
         let allForms = PokemonForm.forms(speciesID: species.id)
         let selected = displayedSpecies.form
         let columns = Self.formPickerColumns(formCount: allForms.count)
-        let plates = store.state.plateTypes
+        let source = PokemonForm.unlockSource(speciesID: species.id)
+        let unlockedTypes = source == .legendaryType ? store.state.silvallyMemoryTypes : store.state.plateTypes
         return VStack(alignment: .leading, spacing: 6) {
             Text(store.l.formsCollected(forms.count, of: allForms.count)).font(.callout.weight(.semibold))
-            if PokemonForm.unlockSource(speciesID: species.id) == .gymBadge {
-                Text(store.l.plateFormsHint).font(.caption).foregroundStyle(.secondary)
+            switch source {
+            case .gymBadge?: Text(store.l.plateFormsHint).font(.caption).foregroundStyle(.secondary)
+            case .legendaryType?: Text(store.l.memoryFormsHint).font(.caption).foregroundStyle(.secondary)
+            case nil: EmptyView()
             }
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 3), count: columns), spacing: 4) {
                 ForEach(allForms, id: \.self) { form in
@@ -1804,10 +1807,17 @@ struct PokemonDetailView: View {
                                     .padding(.horizontal, 2)
                             }
                             .opacity(owned == nil ? 0.25 : 1)
-                            // The badge that gives this form's Plate, faded until one of its regions is claimed.
+                            // What unlocks the form, faded until won: the badge that gives Arceus's Plate (one region
+                            // claimed), or the type of the legendary that gives Silvally's Memory.
                             if let plate {
-                                ItemIconView(kind: plate.badgeItem, size: 14)
-                                    .opacity(plates.contains(plate) ? 1 : 0.35)
+                                Group {
+                                    if source == .gymBadge {
+                                        ItemIconView(kind: plate.badgeItem, size: 14)
+                                    } else {
+                                        Circle().fill(plate.color).frame(width: 9, height: 9).padding(2.5)
+                                    }
+                                }
+                                .opacity(unlockedTypes.contains(plate) ? 1 : 0.35)
                             }
                         }
                         .frame(maxWidth: .infinity).padding(.vertical, 3)
@@ -1825,7 +1835,8 @@ struct PokemonDetailView: View {
                     .disabled(owned == nil)
                     .accessibilityLabel("\(species.name) [\(label)]")
                     .accessibilityValue(owned == nil
-                                        ? [store.l.formNotCollected, plate.map { store.l.itemName($0.badgeItem) }]
+                                        ? [store.l.formNotCollected,
+                                           plate.map { source == .gymBadge ? store.l.itemName($0.badgeItem) : store.l.typeName($0) }]
                                             .compactMap { $0 }.joined(separator: ", ")
                                         : (owned?.isShiny == true ? store.l.dexShinyLabel : ""))
                     .accessibilityAddTraits(selected == form ? .isSelected : [])

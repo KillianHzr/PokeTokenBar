@@ -1234,8 +1234,11 @@ final class CompanionStore {
                 } else {
                     graduate(); break
                 }
+                // Evolving into a legendary (Solgaleo) wins its Memories; into Silvally, the forms they unlock.
+                let unlockedForms = itemFormSnapshot()
                 state.active!.pathIDs = Array(a.pathIDs.prefix(a.stageIndex + 1)) + [next.speciesID]
                 state.active!.stageIndex += 1
+                announceFormUnlocks(since: unlockedForms)
                 state.active!.usedAtStage = a.usedAtStage - thr   // 초과분 이월
                 if let details = pokemonDetailsByID[next.speciesID] {
                     state.active!.profile?.enrich(with: details)
@@ -1677,6 +1680,9 @@ final class CompanionStore {
         }
     }
 
+    /// Silvally's Memories won so far, out of `PokemonForm.memoryTypes`.
+    var silvallyMemoryCount: Int { state.silvallyMemoryTypes.count }
+
     /// Most graduated copies of a single legendary species (released copies excluded).
     var graduatedLegendaryCopies: Int {
         let graduated = state.dex.filter { $0.rarity == .legendary && !$0.isReleased }
@@ -1713,6 +1719,7 @@ final class CompanionStore {
         switch kind.unlock {
         case nil: return true
         case .duplicateLegendary: return graduatedLegendaryCopies >= 2
+        case .silvallyMemories: return silvallyMemoryCount >= PokemonForm.memoryTypes.count
         case .species: return unlockProgress(of: kind, registered: registered).contains(where: \.isMet)
         }
     }
@@ -1945,6 +1952,22 @@ final class CompanionStore {
         state.inventory[kind.rawValue] = itemCount(kind) - 1   // saved with the new egg
         replaceActiveWithEgg(price: 0, tier: nil, type: type)
         AppLog.write("stone used: \(kind.rawValue), discarded active, type=\(type.rawValue)")
+        return true
+    }
+
+    func canUseTypeNullEgg() -> Bool { hasActive && itemCount(.typeNullEgg) > 0 }
+
+    /// Uses the Type: Null Egg, the reward for all of Silvally's Memories: like a stone, the current Pokémon is
+    /// sent off for an egg, which hatches a Type: Null.
+    @discardableResult
+    func useTypeNullEgg() -> Bool {
+        guard canUseTypeNullEgg() else { return false }
+        state.inventory[ItemKind.typeNullEgg.rawValue] = itemCount(.typeNullEgg) - 1
+        replaceActiveWithEgg(price: 0, tier: nil, type: nil)
+        state.pendingHatchID = PokemonForm.typeNullSpeciesID
+        state.pendingForm = PokemonForm.resolved(baseID: PokemonForm.typeNullSpeciesID, form: nil)
+        save()
+        AppLog.write("type null egg used, discarded active")
         return true
     }
 
