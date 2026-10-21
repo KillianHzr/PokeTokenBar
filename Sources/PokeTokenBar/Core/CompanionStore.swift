@@ -1708,13 +1708,31 @@ final class CompanionStore {
     @discardableResult
     func claimAchievement(_ kind: ItemKind) -> Bool {
         guard kind.isAchievement, isUnlocked(kind), !isClaimed(kind) else { return false }
+        let count = grantAchievement(kind)
+        save()
+        notifyCompanionEvent(l.notifAchievementClaimedTitle, l.notifAchievementClaimedBody(l.itemName(kind), count: count))
+        return true
+    }
+
+    /// Claims every achievement ready to claim at once (the banner's "Claim all"): one save and one
+    /// notification for the lot. Returns how many achievements were claimed.
+    @discardableResult
+    func claimAllAchievements() -> Int {
+        let ready = Self.achievementItems.filter { isUnlocked($0) && !isClaimed($0) }
+        guard !ready.isEmpty else { return 0 }
+        ready.forEach { _ = grantAchievement($0) }
+        save()
+        notifyCompanionEvent(l.notifAchievementClaimedTitle, l.notifAchievementsClaimedBody(ready.count))
+        return ready.count
+    }
+
+    /// Records the claim and puts the reward in the Bag. Returns how many items it added.
+    private func grantAchievement(_ kind: ItemKind) -> Int {
         let count = kind.achievementRewardCount
         state.claimedAchievements.insert(kind.rawValue)
         state.inventory[kind.rawValue, default: 0] += count
-        save()
         AppLog.write("achievement claimed: \(kind.rawValue) count=\(count)")
-        notifyCompanionEvent(l.notifAchievementClaimedTitle, l.notifAchievementClaimedBody(l.itemName(kind), count: count))
-        return true
+        return count
     }
 
     /// Items for a specific achievement section, sorted: claimable first, then in-progress, then claimed.
@@ -2208,8 +2226,10 @@ final class CompanionStore {
         let evolutionPlan = makeEvolutionPlan(from: line.tree, baseID: line.baseID)
         var profile = PokemonProfile.generate(seed: rng.next())
         if let details = pokemonDetailsByID[line.baseID] { profile.enrich(with: details) }
-        let hasGrowthBoost = state.hasCollectedFinal(forBaseID: line.baseID)
         let form = pendingForm ?? rollLineForm(baseID: line.baseID, type: typeGuarantee)
+        // A repeat only when this line already graduated in this form: an Alolan Dugtrio is new to the
+        // Pokédex even after a Kanto one graduated, so it gets no repeat boost.
+        let hasGrowthBoost = state.hasCollectedFinal(forBaseID: line.baseID, form: form)
         // Checked before this individual joins the Pokédex: does it bring a form its line never had?
         let hasNewForm = form.map { !state.collectedLineForms(baseID: line.baseID).contains($0) } ?? false
         // 위장 중엔 이로치를 숨긴다 — 부화 알림·연출도 일반체로(정체는 리빌 때 공개).

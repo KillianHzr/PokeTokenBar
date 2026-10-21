@@ -357,6 +357,23 @@ read_when:
   because `lineNodes` only branched on species. The Gen 6 to 9 forms made this common. A coming stage now shows
   its forms as a branch when the current stage has no form of its own; Shellos into Gastrodon keeps its single
   stage, the form is already visible. Guard: `EvolutionFormBranchTests`.
+- **A repeat must be judged at the level the player collects.** `hatchCore` set the repeat growth boost
+  ("Growth ×2") with `hasCollectedFinal(forBaseID:)`, a line-level check from before forms existed. Once
+  regional forms joined, a first Alolan Dugtrio hatched as a repeat because a Kanto Dugtrio had graduated,
+  and the Magma Stone and Liberty Pass, which read the same flag, sided with the wrong line. The form tests
+  only checked which form hatched, never the flags derived from it. `hasCollectedFinal(forBaseID:form:)`
+  now looks for a graduated record of this form (records from before forms count as the default form; a
+  save whose Pokédex lost the record falls back to the line). Sweep: the species roll's uncollected weight
+  stays per line because it runs before any form is rolled, and the form roll already favors uncollected
+  forms. Unown letters used to keep species-based repeat growth on purpose (#288); every form now follows
+  the same rule, so a new letter is not a repeat. Guards: `RepeatBoostFormTests` (the line-level check fails
+  it) and `UnownTests.testOnlyALetterAlreadyGraduatedGetsRepeatGrowthAtEveryDifficulty`.
+- **A test of a shared, bounded cache must not depend on other tests' traffic.** `SpriteImageCacheTests` and
+  `UnownSpriteCacheTests` check that a loaded `NSImage` stays the same object in `SpriteLoader.imageCache`
+  (64 entries). When the Achievements layout test started opening on the Artifacts section, about sixty goal
+  sprites kept loading over the network on CI after it ended, evicted the images under test between two awaits,
+  and failed three identity assertions; locally the sprites come from disk at once, so nothing showed. Both
+  classes now lift the cache limit in `setUp` and restore it in `tearDown`.
 
 ## 외부 로그·사용량 소스
 

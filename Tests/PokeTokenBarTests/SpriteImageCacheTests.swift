@@ -6,6 +6,20 @@ import XCTest
 /// Reusing raw Data alone does not prevent View.init from reopening files and creating NSImages.
 @MainActor
 final class SpriteImageCacheTests: XCTestCase {
+    /// Other tests leave sprite views loading in the background (over the network on CI) into this shared
+    /// cache; with its 64-entry limit they could evict the image under test between two awaits. Unbounded
+    /// while these tests run, so the identity checks only see their own loads.
+    private var savedImageCacheLimit = 0
+
+    override func setUp() async throws {
+        savedImageCacheLimit = SpriteLoader.imageCache.countLimit
+        SpriteLoader.imageCache.countLimit = 0
+    }
+
+    override func tearDown() async throws {
+        SpriteLoader.imageCache.countLimit = savedImageCacheLimit
+    }
+
     func testSynchronousLoadsReuseImagesAndKeepVariantsSeparate() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("sprite-cache-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
