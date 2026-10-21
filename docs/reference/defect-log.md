@@ -361,6 +361,12 @@ read_when:
   forms. Unown letters used to keep species-based repeat growth on purpose (#288); every form now follows
   the same rule, so a new letter is not a repeat. Guards: `RepeatBoostFormTests` (the line-level check fails
   it) and `UnownTests.testOnlyALetterAlreadyGraduatedGetsRepeatGrowthAtEveryDifficulty`.
+- **A test of a shared, bounded cache must not depend on other tests' traffic.** `SpriteImageCacheTests` and
+  `UnownSpriteCacheTests` check that a loaded `NSImage` stays the same object in `SpriteLoader.imageCache`
+  (64 entries). When the Achievements layout test started opening on the Artifacts section, about sixty goal
+  sprites kept loading over the network on CI after it ended, evicted the images under test between two awaits,
+  and failed three identity assertions; locally the sprites come from disk at once, so nothing showed. Both
+  classes now lift the cache limit in `setUp` and restore it in `tearDown`.
 
 ## 외부 로그·사용량 소스
 

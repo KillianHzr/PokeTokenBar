@@ -1694,13 +1694,31 @@ final class CompanionStore {
     @discardableResult
     func claimAchievement(_ kind: ItemKind) -> Bool {
         guard kind.isAchievement, isUnlocked(kind), !isClaimed(kind) else { return false }
+        let count = grantAchievement(kind)
+        save()
+        notifyCompanionEvent(l.notifAchievementClaimedTitle, l.notifAchievementClaimedBody(l.itemName(kind), count: count))
+        return true
+    }
+
+    /// Claims every achievement ready to claim at once (the banner's "Claim all"): one save and one
+    /// notification for the lot. Returns how many achievements were claimed.
+    @discardableResult
+    func claimAllAchievements() -> Int {
+        let ready = Self.achievementItems.filter { isUnlocked($0) && !isClaimed($0) }
+        guard !ready.isEmpty else { return 0 }
+        ready.forEach { _ = grantAchievement($0) }
+        save()
+        notifyCompanionEvent(l.notifAchievementClaimedTitle, l.notifAchievementsClaimedBody(ready.count))
+        return ready.count
+    }
+
+    /// Records the claim and puts the reward in the Bag. Returns how many items it added.
+    private func grantAchievement(_ kind: ItemKind) -> Int {
         let count = kind.achievementRewardCount
         state.claimedAchievements.insert(kind.rawValue)
         state.inventory[kind.rawValue, default: 0] += count
-        save()
         AppLog.write("achievement claimed: \(kind.rawValue) count=\(count)")
-        notifyCompanionEvent(l.notifAchievementClaimedTitle, l.notifAchievementClaimedBody(l.itemName(kind), count: count))
-        return true
+        return count
     }
 
     /// Items for a specific achievement section, sorted: claimable first, then in-progress, then claimed.
