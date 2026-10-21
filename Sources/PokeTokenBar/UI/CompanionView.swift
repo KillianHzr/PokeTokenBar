@@ -723,18 +723,20 @@ struct CompanionHeader: View {
     private var eggImminent: Bool { store.isEgg && store.eggProgress >= 0.9 }
 
     /// The current Pokémon's growth multiplier: the repeat boost and every bonus that applies to it, in one badge.
-    /// Hover lists them; a click opens the Bonuses page.
+    /// Orange and named for a repeat, blue for bonuses alone. Hover lists them; a click opens the Bonuses page.
     @ViewBuilder
     private var growthBadge: some View {
         let total = store.currentGrowthTotal
         if total > 1.0001 {
-            let badge = Badge(store.l.growthBoost(total), tint: .orange, style: .tinted).fixedSize()
+            let isRepeat = store.state.active?.hasGrowthBoost == true
+            let badge = Badge(isRepeat ? store.l.repeatGrowthBoost(total) : store.l.growthBoost(total),
+                              tint: isRepeat ? .orange : .blue, style: .tinted).fixedSize()
             let breakdown = store.currentGrowthFactors.map(store.growthFactorLine).joined(separator: " · ")
             if let onOpenBonuses {
                 Button(action: onOpenBonuses) { badge }
                     .buttonStyle(.plain)
                     .help(breakdown)
-                    .accessibilityLabel(store.l.growthBoost(total))
+                    .accessibilityLabel(isRepeat ? store.l.repeatGrowthBoost(total) : store.l.growthBoost(total))
                     .accessibilityHint(breakdown)
             } else {
                 badge.help(breakdown)
@@ -814,9 +816,16 @@ struct CompanionHeader: View {
                     if store.hasActive {
                         // 단계 + 성격(부화 시 확정된 개체 아이덴티티)
                         let nature = store.currentNature.map { " · \($0.name(store.language))" } ?? ""
-                        HStack(spacing: 5) {
-                            Text(store.stageText + nature).font(.caption2).foregroundStyle(.secondary)
-                            growthBadge
+                        // The growth badge follows the stage, or goes under it when both don't fit on one line.
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: 5) {
+                                Text(store.stageText + nature).font(.caption2).foregroundStyle(.secondary).fixedSize()
+                                growthBadge
+                            }
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(store.stageText + nature).font(.caption2).foregroundStyle(.secondary)
+                                growthBadge
+                            }
                         }
                         LabeledProgressBar(value: store.progress,
                                            label: Self.progressDetail(used: store.state.active?.usedAtStage ?? 0,

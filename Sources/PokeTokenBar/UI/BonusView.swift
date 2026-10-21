@@ -63,6 +63,8 @@ struct BonusScreen: View {
     private func currentGrowth(_ l: L) -> some View {
         let factors = store.currentGrowthFactors
         let total = store.currentGrowthTotal
+        // Orange for a repeat, blue for bonuses alone, as on Home.
+        let tint: Color = store.state.active?.hasGrowthBoost == true ? .orange : .blue
         return VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
                 // The name needs the loaded line; until then the section keeps its generic title.
@@ -76,7 +78,7 @@ struct BonusScreen: View {
                 }
                 Spacer(minLength: 4)
                 Text(l.growthBoost(total)).font(.callout.weight(.bold)).monospacedDigit()
-                    .foregroundStyle(total > 1.0001 ? Color.orange : Color.secondary)
+                    .foregroundStyle(total > 1.0001 ? tint : Color.secondary)
             }
             if factors.isEmpty {
                 Text(l.bonusNoGrowth).font(.caption).foregroundStyle(.secondary)
@@ -91,7 +93,7 @@ struct BonusScreen: View {
             }
         }
         .padding(10)
-        .background(Color.orange.opacity(0.08))
+        .background(tint.opacity(0.08))
         .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
@@ -99,7 +101,7 @@ struct BonusScreen: View {
     private func icon(_ source: CompanionStore.GrowthFactor.Source) -> some View {
         switch source {
         case .repeatBoost: Image(systemName: "arrow.triangle.2.circlepath").foregroundStyle(.orange)
-        case .badges: Image(systemName: "rosette").foregroundStyle(.orange)
+        case .badges: Image(systemName: "rosette").foregroundStyle(.blue)
         case .item(let kind): ItemIconView(kind: kind, size: 22)
         }
     }

@@ -43,7 +43,7 @@ enum BadgeTint {
     /// nil = a PokeAPI type outside the 18 (stellar, shadow, unknown) → neutral gray.
     case type(PokemonType?)
     case rarity(Rarity?)
-    case accent, orange, secondary
+    case accent, orange, blue, secondary
 
     var color: Color {
         switch self {
@@ -51,6 +51,7 @@ enum BadgeTint {
         case .rarity(let rarity): rarityColor(rarity)
         case .accent: .accentColor
         case .orange: .orange
+        case .blue: .blue
         case .secondary: .secondary
         }
     }

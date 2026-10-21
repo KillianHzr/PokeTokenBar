@@ -1062,6 +1062,11 @@ struct L {
         let m = multiplierNumber(multiplier)
         return t("\(m)× 성장", "\(m)× growth", "成長 \(m)倍", "Crecimiento ×\(m)", "Croissance ×\(m)", "Crescimento ×\(m)", "\(m)× Wachstum", "Рост ×\(m)")
     }
+    /// The Home growth badge of a repeat: the word says why it is orange ("Repeat · 5.25× growth").
+    func repeatGrowthBoost(_ multiplier: Double) -> String {
+        let word = t("중복", "Repeat", "ダブり", "Repetido", "Doublon", "Repetido", "Wiederholung", "Повтор")
+        return "\(word) · \(growthBoost(multiplier))"
+    }
     var bonusTitle: String { t("보너스", "Bonuses", "ボーナス", "Bonificaciones", "Bonus", "Bônus", "Boni", "Бонусы") }
     var bonusOpen: String {
         t("모든 보너스 보기", "See all bonuses", "すべてのボーナスを見る", "Ver todas las bonificaciones",
