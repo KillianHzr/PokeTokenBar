@@ -694,6 +694,8 @@ struct CompanionHeader: View {
     let store: CompanionStore
     /// Opens a species' Pokédex detail page (`PopoverNavigation.openDexEntry`). nil = sprites inert.
     var onOpenDexEntry: ((String) -> Void)? = nil
+    /// Opens the Bonuses page from the growth badge. nil = the badge only explains itself on hover.
+    var onOpenBonuses: (() -> Void)? = nil
     // 연출 상태 — 부화/진화 순간 흰 플래시 + 스프링 스케일(본가 진화 신 오마주)
     @State private var flashOpacity: Double = 0
     @State private var celebScale: CGFloat = 1
@@ -719,6 +721,26 @@ struct CompanionHeader: View {
 
     /// 부화 임박(90%+) — 알이 흔들리고 문구가 바뀐다.
     private var eggImminent: Bool { store.isEgg && store.eggProgress >= 0.9 }
+
+    /// The current Pokémon's growth multiplier: the repeat boost and every bonus that applies to it, in one badge.
+    /// Hover lists them; a click opens the Bonuses page.
+    @ViewBuilder
+    private var growthBadge: some View {
+        let total = store.currentGrowthTotal
+        if total > 1.0001 {
+            let badge = Badge(store.l.growthBoost(total), tint: .orange, style: .tinted).fixedSize()
+            let breakdown = store.currentGrowthFactors.map(store.growthFactorLine).joined(separator: " · ")
+            if let onOpenBonuses {
+                Button(action: onOpenBonuses) { badge }
+                    .buttonStyle(.plain)
+                    .help(breakdown)
+                    .accessibilityLabel(store.l.growthBoost(total))
+                    .accessibilityHint(breakdown)
+            } else {
+                badge.help(breakdown)
+            }
+        }
+    }
 
     var body: some View {
         // Computed once per render and shared by the big sprite and the evolution line.
@@ -794,10 +816,7 @@ struct CompanionHeader: View {
                         let nature = store.currentNature.map { " · \($0.name(store.language))" } ?? ""
                         HStack(spacing: 5) {
                             Text(store.stageText + nature).font(.caption2).foregroundStyle(.secondary)
-                            if let multiplier = store.growthMultiplier {
-                                Badge(store.l.growthBoost(multiplier), tint: .orange, style: .tinted)
-                                    .fixedSize()
-                            }
+                            growthBadge
                         }
                         LabeledProgressBar(value: store.progress,
                                            label: Self.progressDetail(used: store.state.active?.usedAtStage ?? 0,
