@@ -548,16 +548,16 @@ struct EvoLineView: View {
                             VStack(spacing: 1) {
                                 Group {
                                     if item.isCollected {
-                                        SpriteView(speciesID: item.speciesID, size: thumb, shiny: shiny, form: form)
+                                        SpriteView(speciesID: item.speciesID, size: thumb, shiny: shiny, form: item.form ?? form)
                                             .opacity(0.4)
                                             .saturation(0.6)
                                     } else {
                                         // Silhouette noire (ombre) pour les évolutions non encore obtenues
-                                        SpriteView(speciesID: item.speciesID, size: thumb, shiny: false, form: form, isSilhouette: true)
+                                        SpriteView(speciesID: item.speciesID, size: thumb, shiny: false, form: item.form ?? form, isSilhouette: true)
                                     }
                                 }
                                 if let names {
-                                    Text(item.isCollected ? PokemonForm.displayName(names[item.speciesID] ?? "…", speciesID: item.speciesID, form: form, label: nil) : "???")
+                                    Text(item.isCollected ? PokemonForm.displayName(names[item.speciesID] ?? "…", speciesID: item.speciesID, form: item.form ?? form, label: nil) : "???")
                                         .font(.system(size: nameFontSize))
                                         .foregroundStyle(item.isCollected ? .secondary : .tertiary)
                                         .lineLimit(nameLineLimit)

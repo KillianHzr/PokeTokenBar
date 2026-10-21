@@ -350,6 +350,13 @@ read_when:
   every catalogued species from its PokéAPI line base (`evolutionRoots`, all 484 evolved species #1 to #1025),
   so a new catalogue entry without its base fails.
 
+- **An evolution that brings forms is a branch too.** The Home evolution row shows a species branch
+  (Wurmple, Eevee) as candidates, owned ones faded and the others as silhouettes, without saying which one
+  the individual will take. An evolution into one species with several forms (Dunsparce into two- or
+  three-segment Dudunsparce, Pichu into Alolan Raichu) showed a single faded sprite of the form already rolled,
+  because `lineNodes` only branched on species. The Gen 6 to 9 forms made this common. A coming stage now shows
+  its forms as a branch when the current stage has no form of its own; Shellos into Gastrodon keeps its single
+  stage, the form is already visible. Guard: `EvolutionFormBranchTests`.
 - **A repeat must be judged at the level the player collects.** `hatchCore` set the repeat growth boost
   ("Growth ×2") with `hasCollectedFinal(forBaseID:)`, a line-level check from before forms existed. Once
   regional forms joined, a first Alolan Dugtrio hatched as a repeat because a Kanto Dugtrio had graduated,
