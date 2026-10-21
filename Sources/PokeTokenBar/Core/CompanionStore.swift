@@ -152,14 +152,15 @@ final class CompanionStore {
     }
 
     /// 난이도를 반영한 알 부화 임계. 첫 실행 안내 문구도 이 값을 보여준다.
+    /// Items only halve it, with no floor: a 1M floor made the egg slower with them below difficulty 0.4.
     var eggHatchThreshold: Int {
         var threshold = PokemonBalance.scaled(PokemonBalance.eggHatchThreshold, by: growthDifficulty)
         if ownsSilverWing {
-            threshold = max(1_000_000, threshold / 2)
+            threshold /= 2
         }
         // Tera Orb: an egg from an evolution stone hatches twice as fast.
         if ownsTeraOrb, state.eggTypeGuarantee != nil {
-            threshold = max(1_000_000, threshold / 2)
+            threshold /= 2
         }
         return threshold
     }

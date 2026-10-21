@@ -1810,6 +1810,17 @@ struct L {
              .stormBadge, .mineralBadge, .glacierBadge, .risingBadge,
              .darkBadge, .fairyBadge:
             let step = percentNumber(CollectorBonus.badgeRegionBonus * 100)
+            // No type is weak to Normal: the Plain Badge boosts Normal-type Pokémon (`PokemonTypeData.isWeak`).
+            if kind == .plainBadge {
+                return t("지방마다 그 타입의 포켓몬을 모두 등록하면, 노말타입 포켓몬이 \(step)% 더 빨리 성장합니다(노말에 약한 타입은 없어요).",
+                         "Each region completed makes Normal-type Pokémon grow \(step)% faster (no type is weak to Normal).",
+                         "地方ごとにそのタイプのポケモンをすべて登録すると、ノーマルタイプのポケモンが\(step)%早く育ちます(ノーマルに弱いタイプはありません)。",
+                         "Cada región completada hace que los Pokémon de tipo Normal crezcan un \(step)% más rápido (ningún tipo es débil al Normal).",
+                         "Chaque région complétée fait grandir les Pokémon de type Normal \(step) % plus vite (aucun type n'est faible contre le Normal).",
+                         "Cada região completada faz os Pokémon do tipo Normal crescerem \(step)% mais rápido (nenhum tipo é vulnerável a Normal).",
+                         "Jede abgeschlossene Region lässt Pokémon vom Typ Normal \(step)% schneller wachsen (kein Typ ist schwach gegen Normal).",
+                         "Каждый завершённый регион ускоряет рост покемонов обычного типа на \(step)% (ни один тип не уязвим к обычному).")
+            }
             return t("지방마다 그 타입의 포켓몬을 모두 등록하면, 그 타입이 약점인 포켓몬이 \(step)% 더 빨리 성장합니다.",
                      "Each region completed makes Pokémon weak to this type grow \(step)% faster.",
                      "地方ごとにそのタイプのポケモンをすべて登録すると、そのタイプが弱点のポケモンが\(step)%早く育ちます。",
@@ -1986,8 +1997,11 @@ struct L {
     var libertyPassEffectHint: String { t("새 종 육성 25% 할인 · 적용 중", "New species raising -25% · active", "新種育成25%減 · 適用中", "Crianza de especie nueva -25% · activo", "Élevage nouvelle espèce -25% · actif", "Criação de espécie nova -25% · ativo", "Neue Art Zucht -25% · aktiv", "Новый вид -25% · активен") }
     var revealGlassEffectHint: String { t("이로치 분모 ½ · 적용 중", "Shiny denom ½ · active", "色違い分母½ · 適用中", "Denominador shiny ½ · activo", "Dénominateur shiny ½ · actif", "Denominador shiny ½ · ativo", "Schiller-Nenner ½ · aktiv", "Знаменатель шайни ½ · активен") }
     var dnaSplicersEffectHint: String { t("성장 경험치 +50% · 적용 중", "Growth EXP +50% · active", "育成EXP +50% · 適用中", "EXP crecimiento +50% · activo", "EXP croissance +50% · actif", "EXP crescimento +50% · ativo", "Wachstums-EP +50% · aktiv", "Опыт роста +50% · активен") }
-    func badgeEffectHint(_ percent: Double) -> String {
+    func badgeEffectHint(_ percent: Double, type: PokemonType? = nil) -> String {
         let p = percentNumber(percent)
+        if type == .normal {
+            return t("노말 성장 +\(p)% · 적용 중", "Normal growth +\(p)% · active", "ノーマル育成 +\(p)% · 適用中", "Crec. Normal +\(p)% · activo", "Croissance Normal +\(p) % · actif", "Cresc. Normal +\(p)% · ativo", "Normal-Wachstum +\(p)% · aktiv", "Рост обычных +\(p)% · активен")
+        }
         return t("약점 성장 +\(p)% · 적용 중", "Weakness growth +\(p)% · active", "弱点育成 +\(p)% · 適用中", "Crec. debilidad +\(p)% · activo", "Croissance faiblesse +\(p) % · actif", "Cresc. fraqueza +\(p)% · ativo", "Schwäche-Wachstum +\(p)% · aktiv", "Рост уязвимых +\(p)% · активен")
     }
     /// A percentage with at most one decimal, in the language's number format ("2.5", "2,5").

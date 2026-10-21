@@ -32,7 +32,7 @@ final class CollectorItemsTests: XCTestCase {
 
     private func store(used: Int = 0, dex: [DexEntry] = [], active: MonState? = nil,
                        inventory: [String: Int] = [:], collectedFinals: Set<String> = [],
-                       claimed: Set<String> = []) -> CompanionStore {
+                       claimed: Set<String> = [], growthDifficulty: Double? = nil) -> CompanionStore {
         var st = CompanionState()
         st.installBaselineSet = true
         st.usedSinceInstall = used
@@ -44,8 +44,16 @@ final class CollectorItemsTests: XCTestCase {
         st.claimedAchievements = claimed
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("collector-\(UUID().uuidString).json")
         try? JSONEncoder().encode(st).write(to: url)
+        guard let growthDifficulty else {
+            return CompanionStore(provider: CollectorStubProvider(), clock: { self.now }, fileURL: url,
+                                  rng: SeededRNG(seed: 1))
+        }
+        let suite = "collector-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.set(growthDifficulty, forKey: "growthDifficulty")
+        addTeardownBlock { UserDefaults.standard.removePersistentDomain(forName: suite) }
         return CompanionStore(provider: CollectorStubProvider(), clock: { self.now }, fileURL: url,
-                              rng: SeededRNG(seed: 1))
+                              rng: SeededRNG(seed: 1), defaults: defaults)
     }
 
     private func entry(_ chain: [Int], rarity: Rarity = .common, released: Bool = false) -> DexEntry {
@@ -495,10 +503,37 @@ final class CollectorItemsTests: XCTestCase {
         }
     }
 
-    func testSilverWingHalvesTheEggThreshold() {
-        let plain = store().eggHatchThreshold
-        XCTAssertEqual(store(inventory: [ItemKind.silverWing.rawValue: 1]).eggHatchThreshold,
-                       max(1_000_000, plain / 2))
+    /// The Silver Wing and the Tera Orb halve the egg at every difficulty. A 1M floor used to make the egg slower
+    /// with them below difficulty 0.4 (500k without, 1M with at 0.1).
+    func testEggItemsHalveTheThresholdAtEveryDifficulty() {
+        for difficulty in [0.1, 0.2, 0.3, 0.4, 1.0, 2.0] {
+            let plain = store(growthDifficulty: difficulty).eggHatchThreshold
+            XCTAssertEqual(plain, PokemonBalance.scaled(PokemonBalance.eggHatchThreshold, by: difficulty))
+            let wing = store(inventory: [ItemKind.silverWing.rawValue: 1], growthDifficulty: difficulty)
+            XCTAssertEqual(wing.eggHatchThreshold, plain / 2, "difficulty \(difficulty)")
+            let both = store(used: rich, dex: entries([154, 157, 160]), active: pikachu,
+                             inventory: [ItemKind.silverWing.rawValue: 1, ItemKind.teraOrb.rawValue: 1,
+                                         ItemKind.fireStone.rawValue: 1], growthDifficulty: difficulty)
+            XCTAssertTrue(both.useStone(.fireStone))
+            XCTAssertEqual(both.eggHatchThreshold, plain / 4, "difficulty \(difficulty)")
+        }
+    }
+
+    /// No type is weak to Normal, so the Plain Badge boosts Normal-type Pokémon, and its texts must say so.
+    func testPlainBadgeBoostsNormalTypesAndSaysSo() {
+        let s = store(claimed: ["plainBadge@1", "plainBadge@2"])
+        XCTAssertEqual(s.typeBadgeSpeedMultiplier(forSpeciesID: 143), 1.05, accuracy: 0.0001, "Snorlax")
+        XCTAssertEqual(s.typeBadgeSpeedMultiplier(forSpeciesID: 6), 1.0, "Charizard")
+        for lang in AppLanguage.allCases {
+            let l = L(lang)
+            // The stem of the type name, so a declined form ("обычного") still matches.
+            let normal = String(l.typeName(.normal).lowercased().prefix(5))
+            XCTAssertTrue(l.itemDescription(.plainBadge).lowercased().contains(normal), "\(lang)")
+            XCTAssertNotEqual(l.itemDescription(.plainBadge), l.itemDescription(.boulderBadge), "\(lang)")
+            XCTAssertTrue(l.badgeEffectHint(5, type: .normal).lowercased().contains(normal), "\(lang)")
+            XCTAssertNotEqual(l.badgeEffectHint(5, type: .normal), l.badgeEffectHint(5), "\(lang)")
+            XCTAssertEqual(l.badgeEffectHint(5, type: .rock), l.badgeEffectHint(5), "\(lang)")
+        }
     }
 
     /// Each claimed region adds 2.5% growth to Pokémon weak to its badge's type, across badges.
