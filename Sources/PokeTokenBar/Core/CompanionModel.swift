@@ -491,6 +491,26 @@ struct SpeciesGoal: Equatable, Sendable {
 }
 
 /// What the Pokédex must hold before a collector item's achievement can be claimed.
+/// The Bonuses page's sections: what each passive item improves. Badges are growth, shown together.
+enum BonusTheme: CaseIterable, Sendable {
+    case growth, eggs, shiny, shop, candies
+
+    static func of(_ kind: ItemKind) -> BonusTheme? {
+        if kind.badgeType != nil { return .growth }
+        switch kind {
+        case .oldSeaMap, .dnaSplicers, .zygardeCube, .clearBell, .griseousOrb, .prisonBottle, .sparklingStone,
+             .sunFlute, .gracidea, .relicStatue, .beastBall, .rustedSword, .boosterEnergy, .tealMask,
+             .magmaStone, .libertyPass:
+            return .growth
+        case .silverWing, .teraOrb, .legendCharm, .ovalCharm: return .eggs
+        case .shinyCharm, .revealGlass, .glimmeringCharm: return .shiny
+        case .rainbowWing, .jadeOrb: return .shop
+        case .soulDew, .reinsOfUnity: return .candies
+        default: return nil
+        }
+    }
+}
+
 enum ItemUnlock: Equatable, Sendable {
     /// Any one goal met is enough.
     case species([SpeciesGoal])

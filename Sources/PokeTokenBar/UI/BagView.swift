@@ -178,48 +178,8 @@ private struct ItemCard: View {
     }
     /// 사용 컨트롤 효과 힌트 ("+XP" / "성격 랜덤 변경").
     private func effectHint(_ l: L) -> String {
-        switch kind {
-        case .rareCandy: return "+\(TokenFormatter.compact(selectedCandyCount * store.rareCandyXP)) XP"
-        case .mint:      return l.mintEffectHint
-        case .shinyCharm: return l.shinyCharmEffectHint
-        case .legendCharm: return l.legendCharmEffectHint
-        case .silverWing: return l.silverWingEffectHint
-        case .oldSeaMap: return l.oldSeaMapEffectHint
-        case .clearBell: return l.clearBellEffectHint
-        case .rainbowWing: return l.rainbowWingEffectHint
-        case .magmaStone: return l.magmaStoneEffectHint
-        case .soulDew: return l.soulDewEffectHint
-        case .jadeOrb: return l.jadeOrbEffectHint
-        case .gracidea: return l.gracideaEffectHint
-        case .griseousOrb: return l.griseousOrbEffectHint
-        case .libertyPass: return l.libertyPassEffectHint
-        case .revealGlass: return l.revealGlassEffectHint
-        case .dnaSplicers: return l.dnaSplicersEffectHint
-        case .zygardeCube: return l.zygardeCubeEffectHint(Int((store.zygardeCubeMultiplier - 1) * 100 + 0.5))
-        case .prisonBottle: return l.prisonBottleEffectHint
-        case .sparklingStone: return l.sparklingStoneEffectHint
-        case .sunFlute: return l.sunFluteEffectHint
-        case .beastBall: return l.beastBallEffectHint
-        case .rustedSword: return l.rustedSwordEffectHint
-        case .reinsOfUnity: return l.reinsOfUnityEffectHint
-        case .boosterEnergy: return l.boosterEnergyEffectHint
-        case .tealMask: return l.tealMaskEffectHint
-        case .teraOrb: return l.teraOrbEffectHint
-        case .relicStatue: return l.relicStatueEffectHint
-        case .typeNullEgg: return l.typeNullEggHint
-        case .ovalCharm: return l.ovalCharmEffectHint
-        case .glimmeringCharm: return l.glimmeringCharmEffectHint
-        case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,
-             .soulBadge, .marshBadge, .volcanoBadge, .earthBadge,
-             .zephyrBadge, .hiveBadge, .plainBadge, .fogBadge,
-             .stormBadge, .mineralBadge, .glacierBadge, .risingBadge,
-             .darkBadge, .fairyBadge:
-            let tiers = kind.badgeType.map(store.claimedBadgeTierCount) ?? 0
-            return l.badgeEffectHint(Double(tiers) * CollectorBonus.badgeRegionBonus * 100, type: kind.badgeType)
-        case .leafStone, .fireStone, .waterStone, .thunderStone, .sunStone,
-             .moonStone, .duskStone, .iceStone, .dawnStone, .shinyStone:
-            return kind.stoneType.map(l.eggTypeGuaranteeHint) ?? ""
-        }
+        if kind == .rareCandy { return "+\(TokenFormatter.compact(selectedCandyCount * store.rareCandyXP)) XP" }
+        return store.effectHint(for: kind)
     }
     private func performUse() {
         switch kind {
@@ -313,5 +273,53 @@ private struct BadgeTile: View {
         .background(Color.secondary.opacity(0.06))
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .accessibilityElement(children: .combine)
+    }
+}
+
+extension CompanionStore {
+    /// An item's effect in a few words, as the Bag shows it under the item ("Final stage +25% · active").
+    func effectHint(for kind: ItemKind) -> String {
+        switch kind {
+        case .rareCandy: return "+\(TokenFormatter.compact(rareCandyXP)) XP"
+        case .mint:      return l.mintEffectHint
+        case .shinyCharm: return l.shinyCharmEffectHint
+        case .legendCharm: return l.legendCharmEffectHint
+        case .silverWing: return l.silverWingEffectHint
+        case .oldSeaMap: return l.oldSeaMapEffectHint
+        case .clearBell: return l.clearBellEffectHint
+        case .rainbowWing: return l.rainbowWingEffectHint
+        case .magmaStone: return l.magmaStoneEffectHint
+        case .soulDew: return l.soulDewEffectHint
+        case .jadeOrb: return l.jadeOrbEffectHint
+        case .gracidea: return l.gracideaEffectHint
+        case .griseousOrb: return l.griseousOrbEffectHint
+        case .libertyPass: return l.libertyPassEffectHint
+        case .revealGlass: return l.revealGlassEffectHint
+        case .dnaSplicers: return l.dnaSplicersEffectHint
+        case .zygardeCube: return l.zygardeCubeEffectHint(Int((zygardeCubeMultiplier - 1) * 100 + 0.5))
+        case .prisonBottle: return l.prisonBottleEffectHint
+        case .sparklingStone: return l.sparklingStoneEffectHint
+        case .sunFlute: return l.sunFluteEffectHint
+        case .beastBall: return l.beastBallEffectHint
+        case .rustedSword: return l.rustedSwordEffectHint
+        case .reinsOfUnity: return l.reinsOfUnityEffectHint
+        case .boosterEnergy: return l.boosterEnergyEffectHint
+        case .tealMask: return l.tealMaskEffectHint
+        case .teraOrb: return l.teraOrbEffectHint
+        case .relicStatue: return l.relicStatueEffectHint
+        case .typeNullEgg: return l.typeNullEggHint
+        case .ovalCharm: return l.ovalCharmEffectHint
+        case .glimmeringCharm: return l.glimmeringCharmEffectHint
+        case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,
+             .soulBadge, .marshBadge, .volcanoBadge, .earthBadge,
+             .zephyrBadge, .hiveBadge, .plainBadge, .fogBadge,
+             .stormBadge, .mineralBadge, .glacierBadge, .risingBadge,
+             .darkBadge, .fairyBadge:
+            let tiers = kind.badgeType.map(claimedBadgeTierCount) ?? 0
+            return l.badgeEffectHint(Double(tiers) * CollectorBonus.badgeRegionBonus * 100, type: kind.badgeType)
+        case .leafStone, .fireStone, .waterStone, .thunderStone, .sunStone,
+             .moonStone, .duskStone, .iceStone, .dawnStone, .shinyStone:
+            return kind.stoneType.map(l.eggTypeGuaranteeHint) ?? ""
+        }
     }
 }

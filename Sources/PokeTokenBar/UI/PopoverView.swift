@@ -61,6 +61,8 @@ final class PopoverNavigation {
     }
     /// The usage recap takes over the popover like Settings does; closing the popover drops it.
     var showingRecap = false { didSet { if showingRecap { dexDetailCollectionID = nil } } }
+    /// The Bonuses page takes over the popover the same way.
+    var showingBonuses = false { didSet { if showingBonuses { dexDetailCollectionID = nil } } }
     /// The Collection tab's open Pokédex detail page (`DexSpecies.collectionID`); nil = grid or log.
     /// It lives here so Home sprites can open it, but it only lasts while the collection content is
     /// on screen: leaving the tab, switching segment, or covering it with Settings/Recap drops it —
@@ -78,6 +80,7 @@ final class PopoverNavigation {
         showSettings = false
         expandAdvancedOnOpen = false
         showingRecap = false
+        showingBonuses = false
         tab = .home
     }
 
@@ -133,6 +136,8 @@ struct PopoverView: View {
                     .environment(updater)
             } else if nav.showingRecap {
                 RecapScreen(store: store, companion: companion) { nav.showingRecap = false }
+            } else if nav.showingBonuses {
+                BonusScreen(store: companion) { nav.showingBonuses = false }
             } else {
                 mainContent
             }
@@ -199,7 +204,8 @@ struct PopoverView: View {
                 // 고정 높이 — 상점/가방/컬렉션과 동일(팝오버가 화면을 넘어가는 것을 방지).
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
-                        CompanionHeader(store: companion) { nav.openDexEntry(collectionID: $0) }
+                        CompanionHeader(store: companion, onOpenDexEntry: { nav.openDexEntry(collectionID: $0) },
+                                        onOpenBonuses: { nav.showingBonuses = true })
                         Divider()
                         header
                         Divider()
@@ -248,6 +254,12 @@ struct PopoverView: View {
                 periodLabel(l.thisWeek, tokens: store.weekTotalTokens, cost: store.showsCost ? store.weekUsageCost : nil)
                 periodLabel(l.thisMonth, tokens: store.monthTotalTokens, cost: store.showsCost ? store.monthUsageCost : nil)
                 Spacer()
+                Button { nav.showingBonuses = true } label: {
+                    Image(systemName: "wand.and.stars")
+                }
+                .buttonStyle(.borderless)
+                .help(l.bonusOpen)
+                .accessibilityLabel(l.bonusOpen)
                 Button { nav.showingRecap = true } label: {
                     Image(systemName: "chart.bar.xaxis")
                 }
