@@ -358,7 +358,9 @@ read_when:
   now looks for a graduated record of this form (records from before forms count as the default form; a
   save whose Pokédex lost the record falls back to the line). Sweep: the species roll's uncollected weight
   stays per line because it runs before any form is rolled, and the form roll already favors uncollected
-  forms. Guard: `RepeatBoostFormTests` (the line-level check fails it).
+  forms. Unown letters used to keep species-based repeat growth on purpose (#288); every form now follows
+  the same rule, so a new letter is not a repeat. Guards: `RepeatBoostFormTests` (the line-level check fails
+  it) and `UnownTests.testOnlyALetterAlreadyGraduatedGetsRepeatGrowthAtEveryDifficulty`.
 
 ## 외부 로그·사용량 소스
 
