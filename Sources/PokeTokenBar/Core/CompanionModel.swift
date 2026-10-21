@@ -440,7 +440,12 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
              .zephyrBadge, .hiveBadge, .plainBadge, .fogBadge,
              .stormBadge, .mineralBadge, .glacierBadge, .risingBadge,
              .darkBadge, .fairyBadge:
-            return badgeType.map { .species([SpeciesGoal(PokemonTypeData.badgeSpecies(for: $0))]) }
+            // One goal per region (generation); each met goal is a tier to claim (`CompanionStore.badgeTiers`).
+            return badgeType.map { type in
+                .species(PokemonTypeData.badgeGenerations(for: type).map {
+                    SpeciesGoal(PokemonTypeData.badgeSpecies(for: type, generation: $0))
+                })
+            }
         }
     }
 }
@@ -503,6 +508,9 @@ enum CollectorBonus {
     static let griseousOrbGhostDragon = 1.3
     /// Rare Candies the Reins of Unity add to each graduation.
     static let reinsOfUnityCandies = 1
+    /// Growth bonus of one regional tier of a gym badge, for Pokémon weak to its type: 2.5% per region, so
+    /// 22.5% with the nine regions (20% for Dark, which has no Kanto tier).
+    static let badgeRegionBonus = 0.025
 }
 
 /// Azure Flute balance constant (passive collector item).
@@ -1051,6 +1059,23 @@ struct CompanionState: Codable, Sendable {
         guard let active else { return false }
         return active.pathIDs.prefix(active.stageIndex + 1).contains(speciesID)
             && PokemonForm.resolved(speciesID: speciesID, form: active.form) == form
+    }
+
+    /// Ledger key of one regional tier of a gym badge ("volcanoBadge@3" for Hoenn).
+    static func badgeTierKey(_ kind: ItemKind, generation: Int) -> String { "\(kind.rawValue)@\(generation)" }
+
+    /// Gym badges became regional tiers. A badge claimed or owned before that asked for its Kanto Pokémon
+    /// (Johto for Dark): it becomes that tier, once. Idempotent; runs wherever a state comes in.
+    mutating func migrateLegacyBadgeClaims() {
+        for kind in ItemKind.allCases {
+            guard let type = kind.badgeType else { continue }
+            let legacy = claimedAchievements.contains(kind.rawValue) || (inventory[kind.rawValue] ?? 0) > 0
+            let hasTiers = claimedAchievements.contains { $0.hasPrefix("\(kind.rawValue)@") }
+            claimedAchievements.remove(kind.rawValue)
+            if legacy, !hasTiers {
+                claimedAchievements.insert(Self.badgeTierKey(kind, generation: PokemonTypeData.badgeGeneration(for: type)))
+            }
+        }
     }
 
     func hasCollectedFinal(forBaseID baseID: Int) -> Bool {

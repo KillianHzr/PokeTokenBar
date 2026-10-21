@@ -153,7 +153,8 @@ private struct ItemCard: View {
              .zephyrBadge, .hiveBadge, .plainBadge, .fogBadge,
              .stormBadge, .mineralBadge, .glacierBadge, .risingBadge,
              .darkBadge, .fairyBadge:
-            return l.badgeEffectHint
+            let tiers = kind.badgeType.map(store.claimedBadgeTierCount) ?? 0
+            return l.badgeEffectHint(Double(tiers) * CollectorBonus.badgeRegionBonus * 100)
         case .leafStone, .fireStone, .waterStone, .thunderStone, .sunStone,
              .moonStone, .duskStone, .iceStone, .dawnStone, .shinyStone:
             return kind.stoneType.map(l.eggTypeGuaranteeHint) ?? ""

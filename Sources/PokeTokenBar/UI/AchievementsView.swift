@@ -30,9 +30,9 @@ struct AchievementsView: View {
         _selectedCategory = State(initialValue: category ?? Self.firstCategoryWithRewards(store) ?? .evolutionStones)
     }
 
-    /// Rewards ready to claim in one section: unlocked and not claimed yet.
+    /// Rewards ready to claim in one section: unlocked and not claimed yet (each badge region counts).
     static func readyCount(_ category: AchievementCategory, _ store: CompanionStore) -> Int {
-        store.achievementItems(in: category.collectorGroup).filter { !store.isClaimed($0) && store.isUnlocked($0) }.count
+        store.achievementTally(in: category.collectorGroup).ready
     }
 
     /// The first section, in tab order, with a reward ready to claim.
@@ -87,8 +87,8 @@ struct AchievementsView: View {
 
     /// Progress of the section on screen ("1 of 10 completed").
     private func categoryProgress(_ l: L) -> some View {
-        let items = store.achievementItems(in: selectedCategory.collectorGroup)
-        return Text(l.achievementsProgress(items.filter(store.isClaimed).count, items.count))
+        let tally = store.achievementTally(in: selectedCategory.collectorGroup)
+        return Text(l.achievementsProgress(tally.claimed, tally.total))
             .font(.caption2)
             .foregroundStyle(.secondary)
             .monospacedDigit()
@@ -174,8 +174,11 @@ private struct AchievementCard: View {
     }
 
     private var canClaim: Bool {
-        !isClaimed && store.isUnlocked(kind)
+        if kind.badgeType != nil { return readyTiers > 0 }
+        return !isClaimed && store.isUnlocked(kind)
     }
+
+    private var readyTiers: Int { store.badgeTiers(kind).filter(\.isReady).count }
 
     var body: some View {
         let l = store.l
@@ -207,10 +210,22 @@ private struct AchievementCard: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                    if let type = kind.badgeType {
+                        let maximum = Double(PokemonTypeData.badgeGenerations(for: type).count)
+                        Text(l.badgeBonus(Double(store.claimedBadgeTierCount(type)) * CollectorBonus.badgeRegionBonus * 100,
+                                          of: maximum * CollectorBonus.badgeRegionBonus * 100))
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(store.claimedBadgeTierCount(type) > 0 ? .green : .secondary)
+                            .monospacedDigit()
+                    }
                 }
             }
 
-            UnlockRequirementView(store: store, kind: kind, compact: isClaimed)
+            if kind.badgeType != nil {
+                BadgeRegionGrid(store: store, kind: kind)
+            } else {
+                UnlockRequirementView(store: store, kind: kind, compact: isClaimed)
+            }
         }
         .padding(10)
         .background(Color.secondary.opacity(0.06))
@@ -229,7 +244,7 @@ private struct AchievementCard: View {
                     .foregroundStyle(.green)
             }
         } else if canClaim {
-            Button(l.claim) {
+            Button(readyTiers > 1 ? "\(l.claim) (\(readyTiers))" : l.claim) {
                 store.claimAchievement(kind)
             }
             .buttonStyle(.borderedProminent)
@@ -239,5 +254,51 @@ private struct AchievementCard: View {
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.secondary)
         }
+    }
+}
+
+/// The regions of a gym badge: claimed ones checked, complete ones ready to claim, the others with their
+/// progress. Each region is the badge type's Pokémon from one generation.
+@MainActor
+private struct BadgeRegionGrid: View {
+    let store: CompanionStore
+    let kind: ItemKind
+
+    var body: some View {
+        let l = store.l
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 3), alignment: .leading, spacing: 4) {
+            ForEach(store.badgeTiers(kind), id: \.generation) { tier in
+                HStack(spacing: 3) {
+                    Text(l.regionName(generation: tier.generation))
+                        .font(.caption2.weight(.semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                    Spacer(minLength: 2)
+                    status(tier)
+                }
+                .padding(.horizontal, 6)
+                .padding(.vertical, 4)
+                .background(RoundedRectangle(cornerRadius: 6).fill(background(tier)))
+                .help("\(tier.progress.registered.count)/\(tier.progress.goal.needed)")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func status(_ tier: CompanionStore.BadgeTier) -> some View {
+        if tier.isClaimed {
+            Image(systemName: "checkmark").font(.caption2.weight(.bold)).foregroundStyle(.green)
+        } else if tier.isReady {
+            Image(systemName: "gift.fill").font(.caption2).foregroundStyle(Color.accentColor)
+        } else {
+            Text("\(tier.progress.count)/\(tier.progress.goal.needed)")
+                .font(.caption2).foregroundStyle(.secondary).monospacedDigit()
+        }
+    }
+
+    private func background(_ tier: CompanionStore.BadgeTier) -> Color {
+        if tier.isClaimed { return .green.opacity(0.14) }
+        if tier.isReady { return Color.accentColor.opacity(0.22) }
+        return .secondary.opacity(0.08)
     }
 }

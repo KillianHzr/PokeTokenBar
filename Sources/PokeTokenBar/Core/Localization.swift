@@ -1809,14 +1809,15 @@ struct L {
              .zephyrBadge, .hiveBadge, .plainBadge, .fogBadge,
              .stormBadge, .mineralBadge, .glacierBadge, .risingBadge,
              .darkBadge, .fairyBadge:
-            return t("보유하면 해당 타입이 약점인 포켓몬이 20% 더 빨리 성장합니다.",
-                     "While owned, Pokémon weak to this type grow 20% faster.",
-                     "持っていると該当タイプが弱点のポケモンが20%早く育ちます。",
-                     "Mientras la tengas, los Pokémon débiles a este tipo crecen un 20% más rápido.",
-                     "Tant que tu l'as, les Pokémon faibles contre ce type grandissent 20% plus vite.",
-                     "Enquanto estiver na bolsa, Pokémon vulneráveis a este tipo crescem 20% mais rápido.",
-                     "Lässt im Beutel Pokémon mit dieser Schwäche 20% schneller wachsen.",
-                     "Пока он у вас, покемоны, уязвимые к этому типу, растут на 20% быстрее.")
+            let step = percentNumber(CollectorBonus.badgeRegionBonus * 100)
+            return t("지방마다 그 타입의 포켓몬을 모두 등록하면, 그 타입이 약점인 포켓몬이 \(step)% 더 빨리 성장합니다.",
+                     "Each region completed makes Pokémon weak to this type grow \(step)% faster.",
+                     "地方ごとにそのタイプのポケモンをすべて登録すると、そのタイプが弱点のポケモンが\(step)%早く育ちます。",
+                     "Cada región completada hace que los Pokémon débiles a este tipo crezcan un \(step)% más rápido.",
+                     "Chaque région complétée fait grandir les Pokémon faibles contre ce type \(step) % plus vite.",
+                     "Cada região completada faz os Pokémon vulneráveis a este tipo crescerem \(step)% mais rápido.",
+                     "Jede abgeschlossene Region lässt Pokémon mit dieser Schwäche \(step)% schneller wachsen.",
+                     "Каждый завершённый регион ускоряет рост покемонов, уязвимых к этому типу, на \(step)%.")
         case .leafStone, .fireStone, .waterStone, .thunderStone,
              .sunStone, .moonStone, .iceStone, .duskStone,
              .dawnStone, .shinyStone:
@@ -1985,7 +1986,19 @@ struct L {
     var libertyPassEffectHint: String { t("새 종 육성 25% 할인 · 적용 중", "New species raising -25% · active", "新種育成25%減 · 適用中", "Crianza de especie nueva -25% · activo", "Élevage nouvelle espèce -25% · actif", "Criação de espécie nova -25% · ativo", "Neue Art Zucht -25% · aktiv", "Новый вид -25% · активен") }
     var revealGlassEffectHint: String { t("이로치 분모 ½ · 적용 중", "Shiny denom ½ · active", "色違い分母½ · 適用中", "Denominador shiny ½ · activo", "Dénominateur shiny ½ · actif", "Denominador shiny ½ · ativo", "Schiller-Nenner ½ · aktiv", "Знаменатель шайни ½ · активен") }
     var dnaSplicersEffectHint: String { t("성장 경험치 +50% · 적용 중", "Growth EXP +50% · active", "育成EXP +50% · 適用中", "EXP crecimiento +50% · activo", "EXP croissance +50% · actif", "EXP crescimento +50% · ativo", "Wachstums-EP +50% · aktiv", "Опыт роста +50% · активен") }
-    var badgeEffectHint: String { t("약점 성장 +20% · 적용 중", "Weakness growth +20% · active", "弱点育成 +20% · 適用中", "Crec. debilidad +20% · activo", "Croissance faiblesse +20% · actif", "Cresc. fraqueza +20% · ativo", "Schwäche-Wachstum +20% · aktiv", "Рост уязвимых +20% · активен") }
+    func badgeEffectHint(_ percent: Double) -> String {
+        let p = percentNumber(percent)
+        return t("약점 성장 +\(p)% · 적용 중", "Weakness growth +\(p)% · active", "弱点育成 +\(p)% · 適用中", "Crec. debilidad +\(p)% · activo", "Croissance faiblesse +\(p) % · actif", "Cresc. fraqueza +\(p)% · ativo", "Schwäche-Wachstum +\(p)% · aktiv", "Рост уязвимых +\(p)% · активен")
+    }
+    /// A percentage with at most one decimal, in the language's number format ("2.5", "2,5").
+    func percentNumber(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(0...1)).locale(lang.displayLocale))
+    }
+    /// A gym badge's growth bonus so far and at most ("+5% / 22.5%").
+    func badgeBonus(_ current: Double, of maximum: Double) -> String {
+        let c = percentNumber(current), m = percentNumber(maximum)
+        return t("+\(c)% / \(m)%", "+\(c)% / \(m)%", "+\(c)% / \(m)%", "+\(c)% / \(m)%", "+\(c) % / \(m) %", "+\(c)% / \(m)%", "+\(c)% / \(m)%", "+\(c)% / \(m)%")
+    }
     func zygardeCubeEffectHint(_ percent: Int) -> String { t("성장 경험치 +\(percent)% · 적용 중", "Growth EXP +\(percent)% · active", "育成EXP +\(percent)% · 適用中", "EXP crecimiento +\(percent)% · activo", "EXP croissance +\(percent)% · actif", "EXP crescimento +\(percent)% · ativo", "Wachstums-EP +\(percent)% · aktiv", "Опыт роста +\(percent)% · активен") }
     var prisonBottleEffectHint: String { t("새 모습 성장 +50% · 적용 중", "New form growth +50% · active", "新しい姿 育成 +50% · 適用中", "Crec. forma nueva +50% · activo", "Croissance forme nouvelle +50% · actif", "Cresc. forma nova +50% · ativo", "Neue Form +50% · aktiv", "Рост новой формы +50% · активен") }
     var sparklingStoneEffectHint: String {

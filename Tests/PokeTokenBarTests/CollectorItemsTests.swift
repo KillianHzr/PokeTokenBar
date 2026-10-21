@@ -65,7 +65,7 @@ final class CollectorItemsTests: XCTestCase {
         XCTAssertEqual(s.collectorItems(in: .legendaryArtifacts).count, 23)
         XCTAssertEqual(s.collectorItems(in: .gymBadges).count, 18)
         XCTAssertEqual(Set(CompanionStore.achievementItems), Set(ItemKind.allCases.filter { $0.collectorGroup != nil }))
-        XCTAssertEqual(s.totalAchievementsCount, 51)
+        XCTAssertEqual(s.totalAchievementsCount, 194, "10 stones, 23 artifacts, 161 badge regions")
         XCTAssertEqual(s.purchasableItems, [.mint, .rareCandy, .shinyCharm], "the Shop sells what main sells")
 
         // An unlocked stone is an achievement to claim, never a Shop item.
@@ -144,17 +144,47 @@ final class CollectorItemsTests: XCTestCase {
         XCTAssertTrue(store(dex: entries([377, 378, 379], rarity: .legendary)).isUnlocked(.magmaStone))
     }
 
-    /// A badge asks for every Kanto Pokémon of its type. Dark has none in Kanto, so its badge asks for Johto's.
-    func testBadgeNeedsEveryPokemonOfItsType() {
-        let fairy = PokemonTypeData.badgeSpecies(for: .fairy)
-        XCTAssertEqual(fairy, [35, 36, 39, 40, 122], "Kanto only: no Togepi, no Sylveon")
-        XCTAssertEqual(PokemonTypeData.badgeSpecies(for: .rock).count, 11)
-        XCTAssertEqual(PokemonTypeData.badgeGeneration(for: .dark), 2)
-        XCTAssertEqual(PokemonTypeData.badgeSpecies(for: .dark), [197, 198, 215, 228, 229, 248])
-        XCTAssertTrue(ItemKind.allCases.compactMap(\.badgeType).allSatisfy { !PokemonTypeData.badgeSpecies(for: $0).isEmpty },
-                      "no badge is free")
-        XCTAssertFalse(store(dex: entries(Array(fairy.dropFirst()))).isUnlocked(.fairyBadge))
-        XCTAssertTrue(store(dex: entries(fairy)).isUnlocked(.fairyBadge))
+    /// A badge has one region per generation: every Pokémon of its type from that generation. Dark has no
+    /// Kanto region, so its badge has eight; 161 regions in all.
+    func testBadgeRegionsFollowTheGenerations() {
+        XCTAssertEqual(PokemonTypeData.badgeGenerations(for: .fire), Array(1...9))
+        XCTAssertEqual(PokemonTypeData.badgeGenerations(for: .dark), Array(2...9))
+        XCTAssertEqual(PokemonTypeData.badgeSpecies(for: .fairy, generation: 1), [35, 36, 39, 40, 122])
+        XCTAssertEqual(PokemonTypeData.badgeSpecies(for: .fairy, generation: 2), [173, 174, 175, 176, 183, 184, 209, 210])
+        XCTAssertEqual(ItemKind.allCases.compactMap(\.badgeType)
+            .map { PokemonTypeData.badgeGenerations(for: $0).count }.reduce(0, +), 161)
+        let kanto = store(dex: entries([35, 36, 39, 40, 122])).badgeTiers(.fairyBadge)
+        XCTAssertEqual(kanto.filter(\.isReady).map(\.generation), [1])
+        XCTAssertFalse(store(dex: entries([35, 36, 39, 40])).badgeTiers(.fairyBadge).contains(where: \.isReady),
+                       "a region needs every one of its Pokémon")
+    }
+
+    /// Claiming a badge claims its ready regions; the badge waits in the Bag for the others.
+    func testClaimingABadgeClaimsItsReadyRegions() {
+        let s = store(dex: entries([35, 36, 39, 40, 122, 173, 174, 175, 176, 183, 184, 209, 210]))
+        XCTAssertEqual(s.achievementTally(in: .gymBadges).ready, 2, "Kanto and Johto Fairy")
+        XCTAssertTrue(s.claimAchievement(.fairyBadge))
+        XCTAssertTrue(s.isBadgeTierClaimed(.fairyBadge, generation: 1))
+        XCTAssertTrue(s.isBadgeTierClaimed(.fairyBadge, generation: 2))
+        XCTAssertEqual(s.claimedBadgeTierCount(.fairy), 2)
+        XCTAssertEqual(s.itemCount(.fairyBadge), 1)
+        XCTAssertFalse(s.isClaimed(.fairyBadge), "seven regions to go")
+        XCTAssertEqual(s.achievementTally(in: .gymBadges), CompanionStore.AchievementTally(ready: 0, claimed: 2, total: 161))
+        XCTAssertFalse(s.claimAchievement(.fairyBadge), "nothing left to claim")
+    }
+
+    /// Badges claimed before regions existed asked for Kanto (Johto for Dark): they become that region.
+    func testLegacyBadgesBecomeTheirFirstRegion() {
+        let s = store(inventory: [ItemKind.boulderBadge.rawValue: 1, ItemKind.darkBadge.rawValue: 1],
+                      claimed: [ItemKind.boulderBadge.rawValue])
+        XCTAssertTrue(s.isBadgeTierClaimed(.boulderBadge, generation: 1))
+        XCTAssertTrue(s.isBadgeTierClaimed(.darkBadge, generation: 2))
+        XCTAssertFalse(s.state.claimedAchievements.contains(ItemKind.boulderBadge.rawValue))
+        XCTAssertEqual(s.claimedBadgeTierCount(.rock), 1)
+        // A badge in the Bag through a later region is not mistaken for a Kanto one.
+        let later = store(inventory: [ItemKind.volcanoBadge.rawValue: 1], claimed: ["volcanoBadge@9"])
+        XCTAssertFalse(later.isBadgeTierClaimed(.volcanoBadge, generation: 1))
+        XCTAssertEqual(later.claimedBadgeTierCount(.fire), 1)
     }
 
     /// A species missing from the type table never hatches from a stone egg and ignores badges and the
@@ -470,13 +500,19 @@ final class CollectorItemsTests: XCTestCase {
                        max(1_000_000, plain / 2))
     }
 
-    func testBadgesStackOnPokemonWeakToThem() {
-        let s = store(inventory: [ItemKind.fairyBadge.rawValue: 1, ItemKind.glacierBadge.rawValue: 1])
-        // Dragonite (Dragon/Flying) is weak to both Fairy and Ice.
-        XCTAssertEqual(s.ownedBadgeCount(weakAgainst: 149), 2)
-        XCTAssertEqual(s.typeBadgeSpeedMultiplier(forSpeciesID: 149), 1.40, accuracy: 0.0001)
+    /// Each claimed region adds 2.5% growth to Pokémon weak to its badge's type, across badges.
+    func testBadgeRegionsStackOnPokemonWeakToThem() {
+        let s = store(claimed: ["fairyBadge@1", "fairyBadge@6", "glacierBadge@1"])
+        // Dragonite (Dragon/Flying) is weak to both Fairy and Ice: three regions.
+        XCTAssertEqual(s.ownedBadgeTierCount(weakAgainst: 149), 3)
+        XCTAssertEqual(s.typeBadgeSpeedMultiplier(forSpeciesID: 149), 1.075, accuracy: 0.0001)
         // Charizard (Fire/Flying) is weak to neither.
         XCTAssertEqual(s.typeBadgeSpeedMultiplier(forSpeciesID: 6), 1.0)
+        // Every region of every badge Dragonite is weak to: Dragon 9, Fairy 9, Ice 9, Rock 9 regions.
+        let all = store(claimed: Set([PokemonType.dragon, .fairy, .ice, .rock].flatMap { type in
+            PokemonTypeData.badgeGenerations(for: type).map { CompanionState.badgeTierKey(type.badgeItem, generation: $0) }
+        }))
+        XCTAssertEqual(all.typeBadgeSpeedMultiplier(forSpeciesID: 149), 1 + 4 * 0.225, accuracy: 0.0001)
     }
 
     /// Claiming a stone achievement puts five stones in the Bag for free. Using one works like buying an
@@ -520,6 +556,9 @@ final class CollectorItemsTests: XCTestCase {
         XCTAssertEqual(s.itemCount(.soulDew), 1)
         XCTAssertFalse(s.isClaimed(.waterStone), "a locked achievement stays locked")
         XCTAssertEqual(s.claimAllAchievements(), 0, "nothing left to claim")
+        let withRegion = store(dex: entries([35, 36, 39, 40, 122, 154, 157, 160]))
+        XCTAssertEqual(withRegion.claimAllAchievements(), 2, "the Fire Stone and the Kanto Fairy region")
+        XCTAssertTrue(withRegion.isBadgeTierClaimed(.fairyBadge, generation: 1))
         XCTAssertEqual(s.itemCount(.fireStone), EvolutionStone.achievementReward, "no second batch")
     }
 

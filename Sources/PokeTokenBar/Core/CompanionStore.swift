@@ -1392,23 +1392,22 @@ final class CompanionStore {
         return 1 + Double(percent) / 100
     }
 
-    /// 보유한 배지 중 특정 종에 효과적인 배지 개수 (약점 공격 가능 배지 또는 노말 배지의 경우 노말 종).
-    func ownedBadgeCount(weakAgainst speciesID: Int) -> Int {
-        var count = 0
-        for type in PokemonType.allCases {
-            if itemCount(type.badgeItem) > 0 && PokemonTypeData.isWeak(to: type, speciesID: speciesID) {
-                count += 1
-            }
+    /// Regional tiers claimed across the badges this species is weak to (Normal badges count for Normal types).
+    func ownedBadgeTierCount(weakAgainst speciesID: Int) -> Int {
+        PokemonType.allCases.reduce(0) { count, type in
+            PokemonTypeData.isWeak(to: type, speciesID: speciesID) ? count + claimedBadgeTierCount(type) : count
         }
-        return count
     }
 
-    /// Growth speed from badges: +20% per owned badge the species is weak to, cumulative. Growth only:
-    /// badges no longer touch the hatch odds.
+    /// Growth speed from badges: +2.5% per claimed regional tier of each badge the species is weak to,
+    /// cumulative. Growth only: badges never touch the hatch odds.
     func typeBadgeSpeedMultiplier(forSpeciesID speciesID: Int) -> Double {
-        let count = ownedBadgeCount(weakAgainst: speciesID)
-        guard count > 0 else { return 1.0 }
-        return 1.0 + 0.20 * Double(count)
+        1.0 + CollectorBonus.badgeRegionBonus * Double(ownedBadgeTierCount(weakAgainst: speciesID))
+    }
+
+    /// Regional tiers of this type's badge already claimed.
+    func claimedBadgeTierCount(_ type: PokemonType) -> Int {
+        PokemonTypeData.badgeGenerations(for: type).filter { isBadgeTierClaimed(type.badgeItem, generation: $0) }.count
     }
 
     /// 소유 아이템(개수>0): 가방 목록.
@@ -1653,7 +1652,32 @@ final class CompanionStore {
         return Dictionary(grouping: graduated, by: \.finalID).values.map(\.count).max() ?? 0
     }
 
+    /// One regional tier of a gym badge: the type's Pokémon from one generation.
+    struct BadgeTier: Equatable, Sendable {
+        let generation: Int
+        let progress: GoalProgress
+        let isClaimed: Bool
+        var isReady: Bool { progress.isMet && !isClaimed }
+    }
+
+    /// The regional tiers of a gym badge, in generation order. Empty for other items.
+    func badgeTiers(_ kind: ItemKind, registered: Set<Int>? = nil) -> [BadgeTier] {
+        guard let type = kind.badgeType else { return [] }
+        let registered = registered ?? registeredSpeciesIDs
+        return PokemonTypeData.badgeGenerations(for: type).map { generation in
+            let goal = SpeciesGoal(PokemonTypeData.badgeSpecies(for: type, generation: generation))
+            return BadgeTier(generation: generation,
+                             progress: GoalProgress(goal: goal, registered: goal.species.filter(registered.contains)),
+                             isClaimed: isBadgeTierClaimed(kind, generation: generation))
+        }
+    }
+
+    func isBadgeTierClaimed(_ kind: ItemKind, generation: Int) -> Bool {
+        state.claimedAchievements.contains(CompanionState.badgeTierKey(kind, generation: generation))
+    }
+
     /// Whether this item's achievement goal is met. Items without a Pokédex condition are always unlocked.
+    /// For a gym badge: one of its regional tiers is complete.
     func isUnlocked(_ kind: ItemKind, registered: Set<Int>? = nil) -> Bool {
         switch kind.unlock {
         case nil: return true
@@ -1668,31 +1692,53 @@ final class CompanionStore {
     static let achievementItems: [ItemKind] = ItemKind.allCases.filter(\.isAchievement)
 
     /// Whether this achievement was already claimed. Stones are used up, so the Bag cannot tell: the
-    /// ledger can. A passive item owned before the ledger existed counts as claimed.
+    /// ledger can. A passive item owned before the ledger existed counts as claimed. A gym badge is claimed
+    /// once every regional tier is.
     func isClaimed(_ kind: ItemKind) -> Bool {
-        state.claimedAchievements.contains(kind.rawValue) || (kind.isPassive && itemCount(kind) > 0)
+        if kind.badgeType != nil { return badgeTiers(kind).allSatisfy(\.isClaimed) }
+        return state.claimedAchievements.contains(kind.rawValue) || (kind.isPassive && itemCount(kind) > 0)
     }
 
-    /// Number of achievements ready to be claimed.
-    var unclaimedAchievementsCount: Int {
-        let registered = registeredSpeciesIDs
-        return Self.achievementItems.filter { isUnlocked($0, registered: registered) && !isClaimed($0) }.count
+    /// Achievements counted one per stone or artifact, and one per regional tier of each gym badge.
+    struct AchievementTally: Equatable, Sendable {
+        var ready = 0
+        var claimed = 0
+        var total = 0
     }
+
+    func achievementTally(in group: CollectorGroup? = nil) -> AchievementTally {
+        let registered = registeredSpeciesIDs
+        var tally = AchievementTally()
+        for kind in Self.achievementItems where group == nil || kind.collectorGroup == group {
+            if kind.badgeType != nil {
+                let tiers = badgeTiers(kind, registered: registered)
+                tally.ready += tiers.filter(\.isReady).count
+                tally.claimed += tiers.filter(\.isClaimed).count
+                tally.total += tiers.count
+            } else {
+                let claimed = isClaimed(kind)
+                tally.ready += !claimed && isUnlocked(kind, registered: registered) ? 1 : 0
+                tally.claimed += claimed ? 1 : 0
+                tally.total += 1
+            }
+        }
+        return tally
+    }
+
+    /// Number of achievements ready to be claimed (each badge tier counts).
+    var unclaimedAchievementsCount: Int { achievementTally().ready }
 
     /// Number of claimed achievements.
-    var claimedAchievementsCount: Int {
-        Self.achievementItems.filter(isClaimed).count
-    }
+    var claimedAchievementsCount: Int { achievementTally().claimed }
 
     /// Total number of achievements.
-    var totalAchievementsCount: Int {
-        Self.achievementItems.count
-    }
+    var totalAchievementsCount: Int { achievementTally().total }
 
     /// Claim an achievement reward once unlocked, adding it to the bag for free: one passive item, or
     /// `EvolutionStone.achievementReward` stones.
     @discardableResult
     func claimAchievement(_ kind: ItemKind) -> Bool {
+        if kind.badgeType != nil { return claimBadgeTiers(kind) > 0 }
         guard kind.isAchievement, isUnlocked(kind), !isClaimed(kind) else { return false }
         let count = grantAchievement(kind)
         save()
@@ -1704,12 +1750,38 @@ final class CompanionStore {
     /// notification for the lot. Returns how many achievements were claimed.
     @discardableResult
     func claimAllAchievements() -> Int {
-        let ready = Self.achievementItems.filter { isUnlocked($0) && !isClaimed($0) }
-        guard !ready.isEmpty else { return 0 }
-        ready.forEach { _ = grantAchievement($0) }
+        let registered = registeredSpeciesIDs
+        let items = Self.achievementItems.filter { $0.badgeType == nil && isUnlocked($0, registered: registered) && !isClaimed($0) }
+        let tiers = Self.achievementItems.flatMap { kind in
+            badgeTiers(kind, registered: registered).filter(\.isReady).map { (kind, $0.generation) }
+        }
+        guard !items.isEmpty || !tiers.isEmpty else { return 0 }
+        items.forEach { _ = grantAchievement($0) }
+        tiers.forEach { grantBadgeTier($0.0, generation: $0.1) }
         save()
-        notifyCompanionEvent(l.notifAchievementClaimedTitle, l.notifAchievementsClaimedBody(ready.count))
+        notifyCompanionEvent(l.notifAchievementClaimedTitle, l.notifAchievementsClaimedBody(items.count + tiers.count))
+        return items.count + tiers.count
+    }
+
+    /// Claims every ready regional tier of one gym badge. Returns how many tiers were claimed.
+    @discardableResult
+    func claimBadgeTiers(_ kind: ItemKind) -> Int {
+        let ready = badgeTiers(kind).filter(\.isReady)
+        guard !ready.isEmpty else { return 0 }
+        ready.forEach { grantBadgeTier(kind, generation: $0.generation) }
+        save()
+        let regions = ready.map { l.regionName(generation: $0.generation) }.joined(separator: ", ")
+        notifyCompanionEvent(l.notifAchievementClaimedTitle,
+                             l.notifAchievementClaimedBody("\(l.itemName(kind)) (\(regions))"))
         return ready.count
+    }
+
+    /// Records one regional tier and keeps the badge in the Bag, where its effect line lives.
+    private func grantBadgeTier(_ kind: ItemKind, generation: Int) {
+        let key = CompanionState.badgeTierKey(kind, generation: generation)
+        state.claimedAchievements.insert(key)
+        state.inventory[kind.rawValue] = 1
+        AppLog.write("achievement claimed: \(key)")
     }
 
     /// Records the claim and puts the reward in the Bag. Returns how many items it added.
@@ -1725,6 +1797,11 @@ final class CompanionStore {
     func achievementItems(in group: CollectorGroup) -> [ItemKind] {
         let registered = registeredSpeciesIDs
         func rank(_ kind: ItemKind) -> Int {
+            if kind.badgeType != nil {
+                let tiers = badgeTiers(kind, registered: registered)
+                if tiers.contains(where: \.isReady) { return 0 }
+                return tiers.allSatisfy(\.isClaimed) ? 2 : 1
+            }
             if isClaimed(kind) { return 2 }
             return isUnlocked(kind, registered: registered) ? 0 : 1
         }
