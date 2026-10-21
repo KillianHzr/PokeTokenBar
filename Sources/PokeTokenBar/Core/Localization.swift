@@ -1466,6 +1466,20 @@ struct L {
 
     // MARK: 가방 / 아이템
     var bag: String { t("가방", "Bag", "バッグ", "Bolsa", "Sac", "Bolsa", "Beutel", "Сумка") }
+    /// The Bag's first section: Shop items, candies, mints and stones.
+    var bagItemsTitle: String { t("아이템", "Items", "アイテム", "Artículos", "Objets", "Itens", "Gegenstände", "Предметы") }
+    /// One line above the Bag's badges, instead of each badge repeating it.
+    var bagBadgesHint: String {
+        let step = percentNumber(CollectorBonus.badgeRegionBonus * 100)
+        return t("지방마다 그 배지 타입에 약한 포켓몬이 \(step)% 더 빨리 성장해요(레귤러배지는 노말타입 포켓몬).",
+                 "Each region claimed makes Pokémon weak to the badge's type grow \(step)% faster (Normal-type Pokémon for the Plain Badge).",
+                 "地方ごとに、そのバッジのタイプに弱いポケモンが\(step)%早く育ちます(レギュラーバッジはノーマルタイプ)。",
+                 "Cada región reclamada hace que los Pokémon débiles al tipo de la medalla crezcan un \(step)% más rápido (los de tipo Normal con la Medalla Planicie).",
+                 "Chaque région récupérée fait grandir de \(step) % les Pokémon faibles contre le type du badge (les Pokémon Normal pour le Badge Plaine).",
+                 "Cada região resgatada faz os Pokémon vulneráveis ao tipo da insígnia crescerem \(step)% mais rápido (os do tipo Normal com a Insígnia da Planície).",
+                 "Jede abgeholte Region lässt Pokémon mit Schwäche gegen den Typ des Ordens \(step)% schneller wachsen (Normal-Pokémon beim Basisorden).",
+                 "Каждый полученный регион ускоряет на \(step)% рост покемонов, уязвимых к типу значка (обычных для Обычного значка).")
+    }
     var bagEmptyTitle: String { t("아직 가방이 비어있어요!", "Your bag is empty!", "バッグはまだ空っぽです！", "¡Tu bolsa todavía está vacía!", "Ton sac est encore vide !", "Sua bolsa ainda está vazia!", "Dein Beutel ist noch leer!", "Сумка пуста!") }
     var useItem: String { t("사용하기", "Use", "つかう", "Usar", "Utiliser", "Usar", "Verwenden", "Применить") }
     var use: String { t("사용", "Use", "つかう", "Usar", "Utiliser", "Usar", "Verwenden", "Применить") }
