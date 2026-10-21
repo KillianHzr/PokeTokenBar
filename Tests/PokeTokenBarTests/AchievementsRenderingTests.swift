@@ -63,7 +63,7 @@ final class AchievementsRenderingTests: XCTestCase {
 
     /// Three segments with their counts used to be wider than the popover: SwiftUI centered the wider stack,
     /// so the whole tab slid off both edges. Checked in every language with the widest labels: every reward
-    /// ready, so the segments carry counts up to three digits (10, 161, 25).
+    /// ready, so the segments carry counts up to three digits (10, 161, 27).
     func testCategoryPickerFitsTheTabWidthInEveryLanguage() async throws {
         for language in AppLanguage.allCases {
             let suite = "AchievementsWidth-\(UUID())"
@@ -78,7 +78,7 @@ final class AchievementsRenderingTests: XCTestCase {
             try JSONEncoder().encode(state).write(to: file)
             let store = CompanionStore(provider: AchievementsStubProvider(), fileURL: file, defaults: defaults)
             XCTAssertEqual(AchievementsView.AchievementCategory.allCases.map { AchievementsView.readyCount($0, store) },
-                           [10, 161, 25])
+                           [10, 161, 27])
 
             let host = NSHostingView(rootView: AchievementsView(store: store, nav: PopoverNavigation())
                 .frame(width: PopoverMetrics.contentWidth))
@@ -109,6 +109,13 @@ final class AchievementsRenderingTests: XCTestCase {
                  caughtAt: Date(timeIntervalSince1970: 1_790_000_000))
     } + [DexEntry(baseID: 150, finalID: 150, chainOrder: [150], rarity: .legendary,
                   caughtAt: Date(timeIntervalSince1970: 1_790_000_000))]
+      // Every other form too, for the Glimmering Charm.
+      + PokemonAssets.animatedSpeciesIDs.flatMap { id in
+          PokemonForm.forms(speciesID: id).dropFirst().map {
+              DexEntry(baseID: PokemonForm.lineBase(of: id), finalID: id, chainOrder: [id], rarity: .common,
+                       caughtAt: Date(timeIntervalSince1970: 1_790_000_000), form: $0)
+          }
+      }
 
     private func store(registering ids: [Int]) throws -> CompanionStore {
         let suite = "AchievementsTabs-\(UUID())"

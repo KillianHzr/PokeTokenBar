@@ -215,8 +215,10 @@ Pi는 모델 여러 개를 세션 로그 하나로 흘려보낼 수 있습니다
 | **테라스탈오브** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/tera-orb.png" width="28" height="28" alt="테라스탈오브"> | 코라이돈, 미라이돈, 테라파고스 | 진화의 돌로 받은 알이 2배 빨리 부화해요 |
 | **고대의석상** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-statue.png" width="28" height="28" alt="고대의석상"> | 레지락, 레지아이스, 레지스틸, 레지기가스, 레지에레키, 레지드래고 | 진화하지 않는 포켓몬이 25% 빨리 자라요 |
 | **타입:널의 알** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/mystery-egg.png" width="28" height="28" alt="타입:널의 알"> | 실버디의 메모리 17개 모두⁴ | 지금 포켓몬을 놓아주고 타입:널이 태어나는 알을 받아요 |
+| **둥근부적** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/oval-charm.png" width="28" height="28" alt="둥근부적"> | 모든 종 (1,025) | 남은 폼이 있는 동안, 아직 모으지 못한 폼이 있는 포켓몬만 그 폼으로 태어나요 |
+| **반짝이는부적** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/glimmering-charm.png" width="28" height="28" alt="반짝이는부적"> | 모든 폼 (1,280) | 태어나는 포켓몬이 모두 이로치예요 |
 
-포켓몬이 태어날 확률을 바꾸는 건 천공의피리뿐이에요. 다른 유물은 모두 순수한 보너스라 다른 포켓몬의 확률을 낮추지 않아요.
+포켓몬이 태어날 확률을 바꾸는 건 천공의피리와 둥근부적뿐이고, 둥근부적은 모든 종을 모은 뒤에만 받을 수 있어요. 다른 유물은 모두 순수한 보너스라 다른 포켓몬의 확률을 낮추지 않아요.
 
 ¹ 암스타, 투구푸스, 프테라, 릴리요, 아말도, 램펄드, 바리톱스, 늑골라, 아케오스, 견고라스, 아마루르가, 파치래곤, 파치르돈, 어래곤, 어치르돈.
 ² 텅비드, 매시붕, 페로코체, 전수목, 철화구야, 종이신도, 악식킹, 베베놈, 아고용, 차곡차곡, 두파팡.

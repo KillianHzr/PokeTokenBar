@@ -215,8 +215,10 @@ Pi は複数のモデルを一つのセッションログに流すことがあ�
 | **テラスタルオーブ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/tera-orb.png" width="28" height="28" alt="テラスタルオーブ"> | コライドン、ミライドン、テラパゴス | 進化の石のタマゴが2倍早くかえる |
 | **こだいのせきぞう** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-statue.png" width="28" height="28" alt="こだいのせきぞう"> | レジロック、レジアイス、レジスチル、レジギガス、レジエレキ、レジドラゴ | 進化しないポケモンが25%早く育つ |
 | **タイプ：ヌルのタマゴ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/mystery-egg.png" width="28" height="28" alt="タイプ：ヌルのタマゴ"> | シルヴァディのメモリ17個すべて⁴ | いまのポケモンを手放して、タイプ：ヌルが生まれるタマゴを受け取る |
+| **まるいおまもり** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/oval-charm.png" width="28" height="28" alt="まるいおまもり"> | すべての種 (1,025) | 残っているあいだ、まだ集めていないフォルムがあるポケモンだけがそのフォルムで生まれる |
+| **きらめくおまもり** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/glimmering-charm.png" width="28" height="28" alt="きらめくおまもり"> | すべてのフォルム (1,280) | 生まれるポケモンがすべて色違いになる |
 
-生まれるポケモンの確率を変えるのはてんかいのふえだけです。ほかのどうぐはすべて純粋なボーナスで、ほかのポケモンの確率を下げません。
+生まれるポケモンの確率を変えるのはてんかいのふえとまるいおまもりだけで、まるいおまもりはすべての種を集めてから手に入ります。ほかのどうぐはすべて純粋なボーナスで、ほかのポケモンの確率を下げません。
 
 ¹ オムスター、カブトプス、プテラ、ユレイドル、アーマルド、ラムパルド、トリデプス、アバゴーラ、アーケオス、ガチゴラス、アマルルガ、パッチラゴン、パッチルドン、ウオノラゴン、ウオチルドン。
 ² ウツロイド、マッシブーン、フェローチェ、デンジュモク、テッカグヤ、カミツルギ、アクジキング、ベベノム、アーゴヨン、ツンデツンデ、ズガドーン。

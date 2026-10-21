@@ -1420,6 +1420,8 @@ final class CompanionStore {
     var ownsTealMask: Bool { itemCount(.tealMask) > 0 }
     var ownsTeraOrb: Bool { itemCount(.teraOrb) > 0 }
     var ownsRelicStatue: Bool { itemCount(.relicStatue) > 0 }
+    var ownsOvalCharm: Bool { itemCount(.ovalCharm) > 0 }
+    var ownsGlimmeringCharm: Bool { itemCount(.glimmeringCharm) > 0 }
 
     /// Zygarde Cube: +1% token growth EXP per 25 registered species, up to +40%.
     var zygardeCubeMultiplier: Double {
@@ -1743,6 +1745,12 @@ final class CompanionStore {
         case nil: return true
         case .duplicateLegendary: return graduatedLegendaryCopies >= 2
         case .silvallyMemories: return silvallyMemoryCount >= PokemonForm.memoryTypes.count
+        case .allSpecies:
+            let progress = collectionProgress
+            return progress.species >= progress.speciesTotal
+        case .allForms:
+            let progress = collectionProgress
+            return progress.forms >= progress.formsTotal
         case .species: return unlockProgress(of: kind, registered: registered).contains(where: \.isMet)
         }
     }
@@ -2280,7 +2288,13 @@ final class CompanionStore {
             let typed = forms.filter { PokemonTypeData.types(forSpeciesID: baseID, form: $0).contains(type) }
             if !typed.isEmpty { forms = typed }
         }
-        return PokemonForm.roll(rng.next(), among: forms, collected: state.collectedLineForms(baseID: baseID))
+        let collected = state.collectedLineForms(baseID: baseID)
+        // The Oval Charm hatches a form still missing when the line has one.
+        if ownsOvalCharm {
+            let missing = forms.filter { !collected.contains($0) }
+            if !missing.isEmpty { forms = missing }
+        }
+        return PokemonForm.roll(rng.next(), among: forms, collected: collected)
     }
 
     /// Warms the localized names the hatch, evolution and graduation messages of this line show.
@@ -2395,7 +2409,10 @@ final class CompanionStore {
         // 개체 롤: shiny(1/64, 부적 1/48, Reveal Glass halves it)·성격(25종)은 부화 순간 확정, 진화해도 유지.
         // 알림 문구는 이 판정과 같은 분모를 보여준다.
         let shinyOdds = shinyDenominator
-        let isShiny = Self.rollsShiny(roll: rng.next(), charmOwned: ownsShinyCharm, revealGlassOwned: ownsRevealGlass)
+        // The Glimmering Charm, reward for every form, makes every hatch shiny; the roll is still drawn so the
+        // rolls after it stay the same.
+        let rolledShiny = Self.rollsShiny(roll: rng.next(), charmOwned: ownsShinyCharm, revealGlassOwned: ownsRevealGlass)
+        let isShiny = rolledShiny || ownsGlimmeringCharm
         let nature = PokemonNature.allCases[Int(rng.next() % UInt64(PokemonNature.allCases.count))]
         // 메타몽 위장 롤 — common·≥2형태에 한해 1/128. .app 게이트(&& 단락 → 비앱에선 rng 미소비로
         // 기존 테스트 RNG 시퀀스 무영향). 위장/리빌 로직은 상태 기반으로 별도 테스트한다.
@@ -2528,7 +2545,8 @@ final class CompanionStore {
     /// Roll weight of one base species: its hatch weight (halved once its line is collected), then the
     /// Azure Flute. Split out of `chooseBase` so the boost can be tested without a roll. The flute reads the
     /// hatch weight, not the capture rate: Mew, Celebi, Rayquaza and Shaymin have a capture rate of 45 but
-    /// roll like Mewtwo. It is the only item that reweights the roll; the others only add growth bonuses.
+    /// roll like Mewtwo. It is the only item that reweights the roll; the Oval Charm only narrows it to lines with
+    /// a form missing (`chooseBase`), and the others only add growth bonuses.
     func hatchWeight(for e: BaseSpecies) -> Int {
         var w = CollectionWeight.adjusted(e.hatchWeight, isCollected: state.isLineComplete(baseID: e.id))
         // Legendaries and mythicals of the lowest weight only: Beldum (capture rate 3) is not one.
@@ -2559,6 +2577,12 @@ final class CompanionStore {
             guard !index.isEmpty else {
                 AppLog.write("hatch: no candidate for guaranteed tier=\(tier?.rawValue ?? "none") type=\(typeGuarantee?.rawValue ?? "none"), egg kept; retry next tick")
                 return nil
+            }
+            // The Oval Charm, reward for every species: eggs only bring lines with a form still missing, while
+            // some are left within the egg's guarantees.
+            if ownsOvalCharm {
+                let missing = index.filter { state.lineMissesForms(baseID: $0.id) }
+                if !missing.isEmpty { index = missing }
             }
             let weights = index.map(hatchWeight(for:))
             let total = weights.reduce(0, +)

@@ -214,8 +214,10 @@ Claimed once from the **Achievements** tab, active for as long as they sit in th
 | **Tera Orb** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/tera-orb.png" width="28" height="28" alt="Tera Orb"> | Koraidon, Miraidon, Terapagos | Eggs from an evolution stone hatch twice as fast |
 | **Relic Statue** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-statue.png" width="28" height="28" alt="Relic Statue"> | Regirock, Regice, Registeel, Regigigas, Regieleki, Regidrago | A Pokémon that does not evolve grows 25% faster |
 | **Type: Null Egg** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/mystery-egg.png" width="28" height="28" alt="Type: Null Egg"> | All 17 of Silvally's Memories⁴ | Send off your Pokémon for an egg that hatches a Type: Null |
+| **Oval Charm** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/oval-charm.png" width="28" height="28" alt="Oval Charm"> | Every species (1,025) | Eggs only hatch Pokémon with a form you are missing, in a form you don't have, while some are left |
+| **Glimmering Charm** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/glimmering-charm.png" width="28" height="28" alt="Glimmering Charm"> | Every form (1,280) | Every Pokémon that hatches is shiny |
 
-Only the Azure Flute changes which Pokémon hatch; every other artifact is a pure bonus that never lowers another Pokémon's chances.
+Only the Azure Flute and the Oval Charm change which Pokémon hatch, and the Oval Charm only once every species is in your Pokédex; every other artifact is a pure bonus that never lowers another Pokémon's chances.
 
 ¹ Omastar, Kabutops, Aerodactyl, Cradily, Armaldo, Rampardos, Bastiodon, Carracosta, Archeops, Tyrantrum, Aurorus, Dracozolt, Arctozolt, Dracovish, Arctovish.
 ² Nihilego, Buzzwole, Pheromosa, Xurkitree, Celesteela, Kartana, Guzzlord, Poipole, Naganadel, Stakataka, Blacephalon.
