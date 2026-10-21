@@ -1,4 +1,6 @@
 import AppKit
+import ImageIO
+import UniformTypeIdentifiers
 
 /// 포켓몬 스프라이트를 런타임에 받아 로컬(Application Support)에 캐시. 레포/번들에 미포함.
 actor SpriteStore {
@@ -21,8 +23,11 @@ actor SpriteStore {
         self.directory = d
         try? FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
         Self.purgeMisattributedFormSprites(in: d)
-        // Only the app's own cache holds GIFs downloaded by earlier versions.
-        if directory == nil { Self.purgePixelAnimations(in: d) }
+        // Only the app's own cache holds sprites downloaded by earlier versions.
+        if directory == nil {
+            Self.purgePixelAnimations(in: d)
+            Self.purgePixelStills(in: d)
+        }
     }
 
     /// Gen 1-5 animations used to be Black and White's pixel GIFs; they are now Showdown's 3D renders, like Gen 6-9.
@@ -67,6 +72,31 @@ actor SpriteStore {
         "\(PokemonForm.assetName(speciesID: speciesID, form: form))-\(shiny ? "sh" : "")\(animated ? "a" : "s")"
     }
 
+    /// Stills used to be PokeAPI's pixel PNGs while the animations were 3D: a Pokémon changed style when it started
+    /// moving. They are now the animation's first frame (`stillData`). Deletes the app cache's species stills once
+    /// (`<id>[-<form>]-[sh]s.png`) so they are made again; items and the egg stay. Runs where the GIF purge runs.
+    nonisolated static func purgePixelStills(in directory: URL) {
+        let fm = FileManager.default
+        let marker = directory.appendingPathComponent(".showdown-stills-v1")
+        guard !fm.fileExists(atPath: marker.path) else { return }
+        for name in (try? fm.contentsOfDirectory(atPath: directory.path)) ?? []
+        where name.hasSuffix("s.png") && name.first?.isNumber == true {
+            try? fm.removeItem(at: directory.appendingPathComponent(name))
+        }
+        fm.createFile(atPath: marker.path, contents: nil)
+    }
+
+    /// A Pokémon's still: the first frame of its animation, as a PNG, so it looks the same moving or not.
+    nonisolated static func firstFrame(of gif: Data) -> Data? {
+        guard let source = CGImageSourceCreateWithData(gif as CFData, nil),
+              let frame = CGImageSourceCreateImageAtIndex(source, 0, nil) else { return nil }
+        let png = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(png, UTType.png.identifier as CFString, 1, nil)
+        else { return nil }
+        CGImageDestinationAddImage(destination, frame, nil)
+        return CGImageDestinationFinalize(destination) ? png as Data : nil
+    }
+
     /// Animated GIFs are Showdown's 3D renders (`other/showdown/`) for every generation. Static PNGs of separate
     /// varieties use the variety id (`10006.png`). Cache files keep the `<id>-<form>` name either way.
     static func spriteURL(speciesID: Int, animated: Bool, shiny: Bool, form: PokemonForm? = nil) -> URL {
@@ -105,6 +135,14 @@ actor SpriteStore {
         let file = directory.appendingPathComponent("\(key).\(ext)")
         if let d = try? Data(contentsOf: file) { remember(key, d); return d }
         if failedKeys.contains(key) { return nil }
+        // A still is the animation's first frame (the GIF is cached for the animation too); PokeAPI's pixel PNG
+        // only when there is no animation.
+        if !animated, let gif = await data(speciesID: speciesID, animated: true, shiny: shiny, form: form),
+           let still = Self.firstFrame(of: gif) {
+            try? still.write(to: file, options: .atomic)
+            remember(key, still)
+            return still
+        }
         var found: Data?
         for url in Self.spriteURLs(speciesID: speciesID, animated: animated, shiny: shiny, form: form) {
             guard let (d, resp) = try? await URLSession.shared.data(from: url) else { return nil }
@@ -181,6 +219,7 @@ enum SpriteLoader {
         let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("PokeTokenBar/sprites")
         SpriteStore.purgePixelAnimations(in: directory)
+        SpriteStore.purgePixelStills(in: directory)
         return directory
     }()
 
