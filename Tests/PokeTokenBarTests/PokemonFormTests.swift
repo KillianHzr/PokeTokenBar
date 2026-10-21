@@ -122,13 +122,31 @@ final class PokemonFormTests: XCTestCase {
         XCTAssertEqual(SpriteStore.spriteURL(speciesID: 492, animated: false, shiny: true, form: sky).absoluteString,
                        "\(base)/shiny/10006.png")
         XCTAssertEqual(SpriteStore.spriteURL(speciesID: 492, animated: true, shiny: true, form: sky).absoluteString,
-                       "\(base)/versions/generation-v/black-white/animated/shiny/492-sky.gif")
+                       "\(base)/other/showdown/shiny/10006.gif")
         XCTAssertEqual(SpriteStore.spriteURL(speciesID: 412, animated: false, shiny: false, form: sandy).absoluteString,
                        "\(base)/412-sandy.png")
         XCTAssertEqual(SpriteStore.spriteURL(speciesID: 492, animated: false, shiny: false, form: land).absoluteString,
                        "\(base)/492.png")
         XCTAssertEqual(SpriteStore.spriteURL(speciesID: 414, animated: true, shiny: false, form: sandy).absoluteString,
-                       "\(base)/versions/generation-v/black-white/animated/414.gif")
+                       "\(base)/other/showdown/414.gif")
+    }
+
+    /// Gen 1-5 GIFs cached from Black and White are deleted once, so they download again from Showdown; static
+    /// PNGs, Gen 6-9 GIFs and items stay, and a GIF cached after the purge is kept.
+    func testCachedPixelAnimationsArePurgedOnce() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("pixel-gifs-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let files = ["6-a.gif", "6-sha.gif", "201-b-a.gif", "649-a.gif", "6-s.png", "650-a.gif", "1025-sha.gif",
+                     "item-oval-charm.png", "egg.png"]
+        for name in files { FileManager.default.createFile(atPath: dir.appendingPathComponent(name).path, contents: Data([1])) }
+        SpriteStore.purgePixelAnimations(in: dir)
+        let left = Set(try FileManager.default.contentsOfDirectory(atPath: dir.path)).subtracting([".showdown-animations-v1"])
+        XCTAssertEqual(left, ["6-s.png", "650-a.gif", "1025-sha.gif", "item-oval-charm.png", "egg.png"])
+        FileManager.default.createFile(atPath: dir.appendingPathComponent("6-a.gif").path, contents: Data([2]))
+        SpriteStore.purgePixelAnimations(in: dir)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: dir.appendingPathComponent("6-a.gif").path),
+                      "the Showdown GIF downloaded after the purge stays")
     }
 
     func testCacheKeysSeparateFormsAndKeepDefaultKeys() {
@@ -161,22 +179,26 @@ final class PokemonFormTests: XCTestCase {
                                              form: PokemonForm("yellow")).absoluteString, "\(base)/shiny/669-yellow.png")
     }
 
-    /// The Gen 5 folder has no form added later, and Showdown drops a form's hyphens: the loader tries each place.
+    /// Animations are Showdown's 3D renders for every generation, like Gen 6-9. Showdown drops some forms' hyphens,
+    /// and lacks Burmy's cloaks: the loader tries each place, Black and White's pixel GIFs last.
     func testAnimatedSpritesTryEveryPlaceTheFormMayBe() {
         let base = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon"
         func urls(_ id: Int, _ form: String, shiny: Bool = false) -> [String] {
             SpriteStore.spriteURLs(speciesID: id, animated: true, shiny: shiny, form: PokemonForm(form)).map(\.absoluteString)
         }
         XCTAssertEqual(urls(550, "white-striped-female"),
-                       ["\(base)/versions/generation-v/black-white/animated/550-white-striped.gif",
-                        "\(base)/other/showdown/10247.gif"])
+                       ["\(base)/other/showdown/10247.gif",
+                        "\(base)/versions/generation-v/black-white/animated/550-white-striped.gif"])
+        XCTAssertEqual(urls(412, "sandy"),
+                       ["\(base)/other/showdown/412-sandy.gif",
+                        "\(base)/versions/generation-v/black-white/animated/412-sandy.gif"])
         XCTAssertEqual(urls(666, "high-plains", shiny: true),
                        ["\(base)/other/showdown/shiny/666-high-plains.gif", "\(base)/other/showdown/shiny/666-highplains.gif"])
         XCTAssertEqual(urls(676, "la-reine").last, "\(base)/other/showdown/676-lareine.gif")
         XCTAssertEqual(urls(669, "yellow"), ["\(base)/other/showdown/669-yellow.gif"])
         XCTAssertEqual(urls(37, "alola"), ["\(base)/other/showdown/10103.gif"])
         XCTAssertEqual(SpriteStore.spriteURLs(speciesID: 25, animated: true, shiny: false).map(\.absoluteString),
-                       ["\(base)/versions/generation-v/black-white/animated/25.gif", "\(base)/other/showdown/25.gif"])
+                       ["\(base)/other/showdown/25.gif", "\(base)/versions/generation-v/black-white/animated/25.gif"])
     }
 
     /// Sprites cached while those 40 forms pointed at other Pokémon are deleted once; later ones stay.

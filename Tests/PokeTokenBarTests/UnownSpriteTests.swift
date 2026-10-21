@@ -47,10 +47,10 @@ final class UnownSpriteTests: XCTestCase {
                            "\(base)/shiny/\(asset).png")
             XCTAssertEqual(SpriteStore.spriteURL(speciesID: 201, animated: true, shiny: false,
                                                   form: form).absoluteString,
-                           "\(base)/versions/generation-v/black-white/animated/\(asset).gif")
+                           "\(base)/other/showdown/\(asset).gif")
             XCTAssertEqual(SpriteStore.spriteURL(speciesID: 201, animated: true, shiny: true,
                                                   form: form).absoluteString,
-                           "\(base)/versions/generation-v/black-white/animated/shiny/\(asset).gif")
+                           "\(base)/other/showdown/shiny/\(asset).gif")
         }
     }
 

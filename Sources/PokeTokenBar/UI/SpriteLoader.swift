@@ -21,6 +21,24 @@ actor SpriteStore {
         self.directory = d
         try? FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
         Self.purgeMisattributedFormSprites(in: d)
+        // Only the app's own cache holds GIFs downloaded by earlier versions.
+        if directory == nil { Self.purgePixelAnimations(in: d) }
+    }
+
+    /// Gen 1-5 animations used to be Black and White's pixel GIFs; they are now Showdown's 3D renders, like Gen 6-9.
+    /// Deletes the app cache's Gen 1-5 GIFs once so they download again from Showdown. Static PNGs stay. A marker
+    /// file records that the purge ran. Runs from `SpriteStore.shared` and from `SpriteLoader.cacheDir`, whichever
+    /// reads the cache first (the menu bar reads it synchronously at launch).
+    nonisolated static func purgePixelAnimations(in directory: URL) {
+        let fm = FileManager.default
+        let marker = directory.appendingPathComponent(".showdown-animations-v1")
+        guard !fm.fileExists(atPath: marker.path) else { return }
+        for name in (try? fm.contentsOfDirectory(atPath: directory.path)) ?? [] where name.hasSuffix("a.gif") {
+            // "<id>[-<form>]-[sh]a.gif": the species id leads.
+            guard let id = Int(name.prefix { $0.isNumber }), (1...649).contains(id) else { continue }
+            try? fm.removeItem(at: directory.appendingPathComponent(name))
+        }
+        fm.createFile(atPath: marker.path, contents: nil)
     }
 
     /// Species whose form sprites were cached from another Pokémon's file: their catalogue entries took the form
@@ -49,15 +67,16 @@ actor SpriteStore {
         "\(PokemonForm.assetName(speciesID: speciesID, form: form))-\(shiny ? "sh" : "")\(animated ? "a" : "s")"
     }
 
-    /// PokeAPI names Gen 1-5 form GIFs `201-b`/`492-sky`; Gen 6+ animated GIFs live in `other/showdown/`.
-    /// Static PNGs of separate varieties use the variety id (`10006.png`). Cache files keep the `<id>-<form>` name either way.
+    /// Animated GIFs are Showdown's 3D renders (`other/showdown/`) for every generation. Static PNGs of separate
+    /// varieties use the variety id (`10006.png`). Cache files keep the `<id>-<form>` name either way.
     static func spriteURL(speciesID: Int, animated: Bool, shiny: Bool, form: PokemonForm? = nil) -> URL {
         spriteURLs(speciesID: speciesID, animated: animated, shiny: shiny, form: form)[0]
     }
 
-    /// Every place the sprite may be, most likely first. The Gen 5 folder has no form added after Gen 5 (the
-    /// white-striped Basculin's GIF is its variety `10247` in `showdown/`), and Showdown writes a form without
-    /// its hyphens (`666-highplains`, `676-lareine`).
+    /// Every place the sprite may be, most likely first. Showdown has every species, under the variety id for a
+    /// separate variety and without hyphens for some forms (`666-highplains`, `676-lareine`); Black and White's
+    /// pixel GIFs stay last, for a Gen 1-5 form Showdown lacks (Burmy's cloaks). Its folder has no form added after
+    /// Gen 5 (the white-striped Basculin is its variety `10247`).
     static func spriteURLs(speciesID: Int, animated: Bool, shiny: Bool, form: PokemonForm? = nil) -> [URL] {
         let color = shiny ? "shiny/" : ""
         let isRegional = form?.rawValue.contains("alola") == true
@@ -66,14 +85,13 @@ actor SpriteStore {
                       || form?.rawValue.contains("paldea") == true
         let name = PokemonForm.staticAssetName(speciesID: speciesID, form: form)
         guard animated else { return [URL(string: "\(base)/\(color)\(name).png")!] }
-        var names: [String] = []
-        if speciesID <= 649, !isRegional {
-            names.append("versions/generation-v/black-white/animated/\(color)\(PokemonForm.assetName(speciesID: speciesID, form: form))")
-        }
-        names.append("other/showdown/\(color)\(name)")
+        var names = ["other/showdown/\(color)\(name)"]
         let asset = PokemonForm.assetName(speciesID: speciesID, form: form)
         if asset == name, let form, asset != String(speciesID) {
             names.append("other/showdown/\(color)\(speciesID)-\(form.rawValue.replacingOccurrences(of: "-", with: ""))")
+        }
+        if speciesID <= 649, !isRegional {
+            names.append("versions/generation-v/black-white/animated/\(color)\(asset)")
         }
         var seen = Set<String>()
         return names.filter { seen.insert($0).inserted }.map { URL(string: "\(base)/\($0).gif")! }
@@ -160,8 +178,10 @@ actor SpriteStore {
 @MainActor
 enum SpriteLoader {
     static let cacheDir: URL = {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("PokeTokenBar/sprites")
+        SpriteStore.purgePixelAnimations(in: directory)
+        return directory
     }()
 
     /// 동기 시드와 async 로드가 NSImage 를 공유해 파일 읽기와 이미지 객체 생성을 반복하지 않는다.

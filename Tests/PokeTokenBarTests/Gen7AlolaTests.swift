@@ -52,11 +52,11 @@ final class Gen7AlolaTests: XCTestCase {
             "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/10103.png"
         )
 
-        // Standard Gen 1 animated sprite stays in Gen-V Black/White animated
+        // A Kanto Vulpix animates with its Showdown 3D render, like every generation
         let regularVulpixAnimated = SpriteStore.spriteURL(speciesID: 37, animated: true, shiny: false)
         XCTAssertEqual(
             regularVulpixAnimated.absoluteString,
-            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/37.gif"
+            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/37.gif"
         )
     }
 
