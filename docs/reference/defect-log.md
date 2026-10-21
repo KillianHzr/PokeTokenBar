@@ -375,6 +375,15 @@ read_when:
   and failed three identity assertions; locally the sprites come from disk at once, so nothing showed. Both
   classes now lift the cache limit in `setUp` and restore it in `tearDown`.
 
+- **A cache keyed by age only outlives a change of what it covers.** The hatch index (`base-index.json`) was
+  reused for 30 days whatever species range it was fetched for. One cached hours before the Gen 6 to 9 PRs
+  merged stopped at #649, so no Gen 6 to 9 species hatched for up to a month; only Gen 1 to 5 species and their
+  regional forms came out. The Gen 6 to 9 tests used stub providers, never a cached index. The snapshot now
+  records `maxSpeciesID`, and `PokeAPIClient.isFreshBaseIndex` reuses it only for the current
+  `PokemonAssets.animatedSpeciesIDs` range; an older snapshot stays the offline fallback. Sweep: the per-species
+  detail and name caches are keyed by species, so a wider range only adds entries. Guard:
+  `BaseIndexCacheRangeTests` (an age-only check fails it).
+
 ## 외부 로그·사용량 소스
 
 - **토큰 파일 파서는 외부 도구의 실제 직렬화 구조체(중첩 객체)를 반영해야 한다.** `jetski-standalone-oauth-token`
