@@ -192,6 +192,8 @@ final class CompanionStore {
         if ownsPrisonBottle, mon.hasNewForm { speed *= CollectorBonus.prisonBottleNewForm }
         if ownsSparklingStone, types.contains(.fairy) { speed *= CollectorBonus.sparklingStoneFairy }
         if ownsSunFlute, mon.stageIndex >= mon.totalForms - 1 { speed *= CollectorBonus.sunFluteFinalStage }
+        // The Sun Flute's mirror: the first stage of a Pokémon that will evolve.
+        if ownsGracidea, mon.stageIndex == 0, mon.totalForms > 1 { speed *= CollectorBonus.gracideaFirstStage }
         if ownsBeastBall, SpeciesGoal.ultraBeasts.contains(mon.currentID) {
             speed *= CollectorBonus.beastBallUltraBeast
         }
@@ -1621,13 +1623,11 @@ final class CompanionStore {
         return true
     }
 
-    /// Adds Rare Candies from any source. With the Gracidea, every candy obtained comes with one more.
-    /// Returns how many landed in the bag.
+    /// Adds Rare Candies from any source. Returns how many landed in the bag.
     @discardableResult
     private func addRareCandies(_ count: Int) -> Int {
-        let received = ownsGracidea ? count * 2 : count
-        state.inventory[ItemKind.rareCandy.rawValue, default: 0] += received
-        return received
+        state.inventory[ItemKind.rareCandy.rawValue, default: 0] += count
+        return count
     }
 
     // MARK: Collector items (unlocked by the Pokédex)

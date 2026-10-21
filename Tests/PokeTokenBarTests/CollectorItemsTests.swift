@@ -327,32 +327,29 @@ final class CollectorItemsTests: XCTestCase {
 
     // MARK: Effects
 
-    func testGracideaDoublesEveryCandyGrant() {
+    /// The Gracidea no longer touches Rare Candies: it doubled every one, bought ones included, which stacked
+    /// with the Soul Dew and the Rainbow Wing into four times the EXP per shop token.
+    func testGracideaNoLongerDoublesCandies() {
         let window = { (key: String, kind: WindowClass) in
             CandyWindow(key: key, name: "T", kind: kind, utilization: 100)
         }
-        let plain = store()
-        plain.grantCandies(from: [], limitsReady: true)
-        plain.grantCandies(from: [window("s", .session)], limitsReady: true)
-        XCTAssertEqual(plain.rareCandyCount, 1)
-
-        let flower = store(inventory: [ItemKind.gracidea.rawValue: 1])
+        let flower = store(used: rich, inventory: [ItemKind.gracidea.rawValue: 1])
         flower.grantCandies(from: [], limitsReady: true)
         flower.grantCandies(from: [window("s", .session)], limitsReady: true)
-        XCTAssertEqual(flower.rareCandyCount, 2)
-        flower.grantCandies(from: [window("w", .weekly)], limitsReady: true)
-        XCTAssertEqual(flower.rareCandyCount, 2 + RareCandy.weeklyGrant * 2)
-    }
-
-    func testGracideaDoublesBoughtCandies() {
-        let plain = store(used: rich)
-        XCTAssertTrue(plain.buy(.rareCandy))
-        XCTAssertEqual(plain.rareCandyCount, 1)
-
-        let flower = store(used: rich, inventory: [ItemKind.gracidea.rawValue: 1])
+        XCTAssertEqual(flower.rareCandyCount, 1)
         XCTAssertTrue(flower.buy(.rareCandy))
         XCTAssertEqual(flower.rareCandyCount, 2)
-        XCTAssertEqual(flower.state.spentTokens, flower.price(of: .rareCandy), "still one candy's price")
+    }
+
+    /// The Gracidea speeds up the first stage of a Pokémon that will evolve, the Sun Flute's mirror.
+    func testGracideaSpeedsUpTheFirstStageOfAPokemonThatWillEvolve() {
+        let flower = store(inventory: [ItemKind.gracidea.rawValue: 1])
+        XCTAssertEqual(flower.growthSpeedMultiplier(for: mon(1, forms: 3)), CollectorBonus.gracideaFirstStage,
+                       accuracy: 0.0001, "Bulbasaur")
+        XCTAssertEqual(flower.growthSpeedMultiplier(for: mon(1, stage: 1, forms: 3)), 1, accuracy: 0.0001, "Ivysaur")
+        XCTAssertEqual(flower.growthSpeedMultiplier(for: mon(128, forms: 1)), 1, accuracy: 0.0001,
+                       "Tauros does not evolve")
+        XCTAssertEqual(store().growthSpeedMultiplier(for: mon(1, forms: 3)), 1, accuracy: 0.0001)
     }
 
     /// Only the Azure Flute reweights the egg roll. Every other item is a pure bonus: owning the Clear Bell,
