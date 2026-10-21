@@ -350,6 +350,14 @@ read_when:
   every catalogued species from its PokéAPI line base (`evolutionRoots`, all 484 evolved species #1 to #1025),
   so a new catalogue entry without its base fails.
 
+- **An evolution that brings forms is a branch too.** The Home evolution row shows a species branch
+  (Wurmple, Eevee) as candidates, owned ones faded and the others as silhouettes, without saying which one
+  the individual will take. An evolution into one species with several forms (Dunsparce into two- or
+  three-segment Dudunsparce, Pichu into Alolan Raichu) showed a single faded sprite of the form already rolled,
+  because `lineNodes` only branched on species. The Gen 6 to 9 forms made this common. A coming stage now shows
+  its forms as a branch when the current stage has no form of its own; Shellos into Gastrodon keeps its single
+  stage, the form is already visible. Guard: `EvolutionFormBranchTests`.
+
 ## 외부 로그·사용량 소스
 
 - **토큰 파일 파서는 외부 도구의 실제 직렬화 구조체(중첩 객체)를 반영해야 한다.** `jetski-standalone-oauth-token`

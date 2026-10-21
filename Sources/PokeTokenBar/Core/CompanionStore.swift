@@ -337,7 +337,7 @@ final class CompanionStore {
             }
 
             if node.children.count > 1 {
-                out += guaranteedPrefix.map { EvoLineItem(.species($0.speciesID), .future) }
+                out += guaranteedPrefix.map { futureLineItem($0.speciesID, active: a) }
                 let branchItems = node.children.map { ch in
                     BranchEvolutionItem(
                         speciesID: ch.speciesID,
@@ -346,10 +346,24 @@ final class CompanionStore {
                 }
                 out.append(EvoLineItem(.branch(branchItems), .future))
             } else {
-                out += guaranteedPrefix.map { EvoLineItem(.species($0.speciesID), .future) }
+                out += guaranteedPrefix.map { futureLineItem($0.speciesID, active: a) }
             }
         }
         return out
+    }
+
+    /// A coming stage. When it brings forms the current stage doesn't show (Dunsparce into a two- or
+    /// three-segment Dudunsparce, Pichu into Alolan Raichu), its forms read like a branch: owned forms
+    /// faded, the others as silhouettes, without telling which one this individual will take.
+    private func futureLineItem(_ speciesID: Int, active a: MonState) -> EvoLineItem {
+        let forms = PokemonForm.forms(speciesID: speciesID)
+        guard forms.count > 1, !PokemonForm.hasForms(speciesID: a.currentID) else {
+            return EvoLineItem(.species(speciesID), .future)
+        }
+        let owned = state.collectedForms(speciesID: speciesID)
+        return EvoLineItem(.branch(forms.map {
+            BranchEvolutionItem(speciesID: speciesID, isCollected: owned.contains($0), form: $0)
+        }), .future)
     }
 
     static func realizedLineItems(pathIDs: [Int], stageIndex: Int) -> [EvoLineItem] {
