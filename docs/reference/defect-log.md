@@ -413,6 +413,15 @@ read_when:
   rate 3, not legendary) got ×4. `BaseSpecies.isLegendary` (PokéAPI legendary or mythical) is required to decode,
   so an index cached without it is fetched again. Guards: `testAzureFluteIsTheOnlyItemThatChangesHatchOdds`
   (Beldum) and `LegendaryHatchWeightTests`.
+- **A floor written for the default difficulty is a malus below it.** The Silver Wing and the Tera Orb halved the
+  egg threshold with `max(1_000_000, threshold / 2)`. The egg needs 5M × difficulty (0.1 to 2), so below 0.4 the
+  floor raised it: at 0.1, 500k without the item, 1M with it. The test asserted the same `max` expression at the
+  default difficulty, so it mirrored the code instead of checking the rule. The floor is gone. Sweep: no other
+  growth threshold has a fixed floor. Guard: `testEggItemsHalveTheThresholdAtEveryDifficulty` (difficulties 0.1
+  to 2).
+- **A shared text must hold for every case it covers.** All 18 badges said "Pokémon weak to this type grow
+  faster", but no type is weak to Normal: `PokemonTypeData.isWeak` makes the Plain Badge boost Normal-type
+  Pokémon, which the Bag and Achievements never said. Guard: `testPlainBadgeBoostsNormalTypesAndSaysSo`.
 
 ## 외부 로그·사용량 소스
 
