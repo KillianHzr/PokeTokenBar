@@ -1668,14 +1668,14 @@ struct L {
                      "Gewährt im Beutel zusätzliche 20% Rabatt beim Kauf von Eiern.",
                      "Пока она у вас, даёт дополнительную скидку 20% на покупку яиц.")
         case .gracidea:
-            return t("보유하면 이상한 사탕을 얻을 때마다 1개를 더 받습니다.",
-                     "While owned, every Rare Candy you get comes with one more.",
-                     "持っているとふしぎなアメを手に入れるたびに1個多くもらえます。",
-                     "Mientras la tengas, recibes un Caramelo Raro extra por cada uno que obtengas.",
-                     "Tant que tu la possèdes, chaque Super Bonbon obtenu t'en donne un de plus.",
-                     "Enquanto estiver na bolsa, cada Doce Raro obtido vem com mais um.",
-                     "Gibt im Beutel zu jedem erhaltenen Sonderbonbon ein weiteres dazu.",
-                     "Пока она у вас, за каждую полученную Редкую конфету даётся ещё одна.")
+            return t("보유하면 진화할 포켓몬이 첫 단계에서 25% 더 빨리 성장합니다.",
+                     "While owned, a Pokémon that will evolve grows 25% faster at its first stage.",
+                     "持っていると進化するポケモンが最初の段階で25%早く育ちます。",
+                     "Mientras la tengas, un Pokémon que evolucionará crece un 25% más rápido en su primera etapa.",
+                     "Tant que tu la possèdes, un Pokémon qui évoluera grandit 25% plus vite à son premier stade.",
+                     "Enquanto estiver na bolsa, um Pokémon que vai evoluir cresce 25% mais rápido no primeiro estágio.",
+                     "Lässt im Beutel Pokémon, die sich noch entwickeln, in ihrer ersten Stufe 25% schneller wachsen.",
+                     "Пока она у вас, покемон, который будет эволюционировать, растёт на 25% быстрее на первой стадии.")
         case .griseousOrb:
             return t("보유하면 고스트·드래곤 타입 포켓몬이 30% 더 빨리 성장합니다.",
                      "While owned, Ghost- and Dragon-type Pokémon grow 30% faster.",
@@ -2002,7 +2002,7 @@ struct L {
     var magmaStoneEffectHint: String { t("중복 육성 25% 할인 · 적용 중", "Duplicate raising -25% · active", "重複育成25%減 · 適用中", "Crianza repetida -25% · activo", "Élevage doublon -25% · actif", "Criação repetida -25% · ativo", "Doppelte Zucht -25% · aktiv", "Повторный рост -25% · активен") }
     var soulDewEffectHint: String { t("사탕 경험치 +50% · 적용 중", "Candy EXP +50% · active", "アメEXP +50% · 適用中", "EXP caramelo +50% · activo", "EXP bonbon +50% · actif", "EXP doce +50% · ativo", "Bonbon-EP +50% · aktiv", "Опыт конфет +50% · активен") }
     var jadeOrbEffectHint: String { t("알 추가할인 20% · 적용 중", "Egg discount 20% · active", "タマゴ20%引 · 適用中", "Descuento huevos 20% · activo", "Réduction œufs 20% · actif", "Desconto ovos 20% · ativo", "Ei-Rabatt 20% · aktiv", "Скидка на яйца 20% · активна") }
-    var gracideaEffectHint: String { t("사탕마다 +1 · 적용 중", "+1 per candy · active", "アメごとに+1 · 適用中", "+1 por caramelo · activo", "+1 par bonbon · actif", "+1 por doce · ativo", "+1 pro Bonbon · aktiv", "+1 за конфету · активна") }
+    var gracideaEffectHint: String { t("첫 단계 +25% · 적용 중", "First stage +25% · active", "最初の段階 +25% · 適用中", "Primera etapa +25% · activo", "Premier stade +25% · actif", "Primeiro estágio +25% · ativo", "Erste Stufe +25% · aktiv", "Первая стадия +25% · активна") }
     var griseousOrbEffectHint: String { t("고스트·드래곤 성장 +30% · 적용 중", "Ghost & Dragon growth +30% · active", "ゴースト・ドラゴン育成 +30% · 適用中", "Crec. Fantasma y Dragón +30% · activo", "Croissance Spectre et Dragon +30% · actif", "Cresc. Fantasma e Dragão +30% · ativo", "Geist & Drache +30% · aktiv", "Рост Призраков и Драконов +30% · активен") }
     var libertyPassEffectHint: String { t("새 종 육성 25% 할인 · 적용 중", "New species raising -25% · active", "新種育成25%減 · 適用中", "Crianza de especie nueva -25% · activo", "Élevage nouvelle espèce -25% · actif", "Criação de espécie nova -25% · ativo", "Neue Art Zucht -25% · aktiv", "Новый вид -25% · активен") }
     var revealGlassEffectHint: String { t("이로치 분모 ½ · 적용 중", "Shiny denom ½ · active", "色違い分母½ · 適用中", "Denominador shiny ½ · activo", "Dénominateur shiny ½ · actif", "Denominador shiny ½ · ativo", "Schiller-Nenner ½ · aktiv", "Знаменатель шайни ½ · активен") }
