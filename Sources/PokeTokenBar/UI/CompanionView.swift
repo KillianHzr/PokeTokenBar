@@ -816,7 +816,11 @@ struct CompanionHeader: View {
                             .lineLimit(1).minimumScaleFactor(0.8)
                         if store.currentIsShiny { Text("✨").font(.system(size: 11)) }
                         if let r = store.rarity {
-                            Badge(store.l.rarityLabel(r).uppercased(), tint: .rarity(r))
+                            if r == .legendary {
+                                LegendaryBadge(text: store.l.rarityLabel(r).uppercased())
+                            } else {
+                                Badge(store.l.rarityLabel(r).uppercased(), tint: .rarity(r))
+                            }
                         }
                     }
                     if store.hasActive, let id = store.currentSpeciesID {
@@ -898,7 +902,7 @@ struct CompanionHeader: View {
                     .font(.caption2).foregroundStyle(.orange)
             }
         }
-        .heroCard(color: store.themeColor)
+        .heroCard(color: store.themeColor, legendary: store.rarity == .legendary)
         // The current form's PokéAPI details, cached after the first fetch: they fill the individual's ability and
         // moves. Same ID as the sprite, so a disguised Ditto loads its disguise's.
         .task(id: store.currentSpeciesID.map { PokemonForm.detailsID(speciesID: $0, form: store.currentForm) }) {
