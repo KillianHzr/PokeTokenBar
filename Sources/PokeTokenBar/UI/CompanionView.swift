@@ -1417,6 +1417,12 @@ struct DexPageButton: View {
 /// Turns scroll-wheel / trackpad events into single page steps for the Dex grid.
 /// `scrollingDeltaY` already reflects the natural-scrolling setting, so a negative delta always
 /// means "move the content up" (reveal what comes next), exactly like a list would.
+/// What the Pokédex grid's still prefetch depends on: the page shown and the cells the filters keep.
+private struct StillPrefetchKey: Equatable {
+    let page: Int
+    let ids: [String]
+}
+
 struct DexScrollPager {
     /// Accumulated trackpad distance (pt) before a gesture flips the page.
     static let preciseThreshold: CGFloat = 24
@@ -1448,6 +1454,18 @@ struct DexScrollPager {
         // Phase-less precise devices have no gesture boundary, so only latch real gestures.
         firedThisGesture = !phase.isEmpty
         return result
+    }
+
+    /// Cell indices in the order their stills are made ahead: the next page, the previous one, then the pages
+    /// after, then the ones before. The current page loads its own cells.
+    static func prefetchOrder(count: Int, current: Int, pageSize: Int) -> [Int] {
+        let pageCount = max(1, (count + pageSize - 1) / pageSize)
+        let after = Array(stride(from: current + 2, to: pageCount, by: 1))
+        let before = Array(stride(from: current - 2, through: 0, by: -1))
+        var seen: Set<Int> = [current]
+        return ([current + 1, current - 1] + after + before)
+            .filter { (0..<pageCount).contains($0) && seen.insert($0).inserted }
+            .flatMap { page in (page * pageSize)..<min(count, (page + 1) * pageSize) }
     }
 
     static func pageAfterScroll(current: Int, pageCount: Int, step: Int) -> Int {
@@ -1574,6 +1592,17 @@ private struct DexGridView: View {
         .onChange(of: sortOption) { page = 0; selectedID = nil }
         .onChange(of: selectedRarity) { page = 0; selectedID = nil }
         .task { await store.backfillMissingDexNames() }
+        // The other pages' stills, made in the background so turning a page shows its Pokémon at once (each
+        // still comes from a GIF download the first time). Restarts when the page or the filters change.
+        .task(id: StillPrefetchKey(page: current, ids: visible.map(\.collectionID)), priority: .utility) {
+            let order = DexScrollPager.prefetchOrder(count: visible.count, current: current, pageSize: Self.pageSize)
+            await SpriteStore.shared.warmStills(order.map { index in
+                let species = visible[index]
+                // As `DexSpeciesCell` draws it: shiny only for a species with a single appearance.
+                return SpriteStore.StillRequest(speciesID: species.id,
+                                                shiny: species.isShiny && !PokemonForm.hasForms(speciesID: species.id))
+            })
+        }
     }
 
     private var emptySearchResults: some View {
