@@ -108,6 +108,9 @@ struct SpriteView: View {
     var minFrameDelay: TimeInterval = 0
     var form: PokemonForm? = nil
     var isSilhouette: Bool = false
+    /// Draws the Pokémon at one scale with its neighbors (`SpriteFit.sameScaleSize`) instead of filling the box:
+    /// for the Pokédex grid and evolution lines, where a Charmander sits next to a Charizard.
+    var sameScale: Bool = false
     private let spriteStore: SpriteStore
     @State private var subject: SpriteSubject
     @State private var up = false
@@ -116,8 +119,9 @@ struct SpriteView: View {
 
     init(speciesID: Int?, size: CGFloat = 84, bob: Bool = false, animated: Bool = false,
          shiny: Bool = false, minFrameDelay: TimeInterval = 0, spriteStore: SpriteStore = .shared,
-         form: PokemonForm? = nil, isSilhouette: Bool = false) {
+         form: PokemonForm? = nil, isSilhouette: Bool = false, sameScale: Bool = false) {
         self.speciesID = speciesID
+        self.sameScale = sameScale
         self.spriteStore = spriteStore
         self.size = size
         self.bob = bob
@@ -189,15 +193,16 @@ struct SpriteView: View {
     /// size×size 슬롯 안에서 이 이미지가 실제로 차지할 크기 — 원본 비율 유지(SpriteFit).
     /// 순수·테스트용. `.resizable()` 은 프레임을 그대로 채우므로(늘어남) 프레임을 미리 재서 넘긴다.
     /// 정사각 원본(정적 96×96·아이템 30×30)은 size×size 그대로라 기존 레이아웃과 동일하다.
-    static func imageSize(for image: NSImage, box: CGFloat) -> CGSize {
-        SpriteFit.size(for: image.size, box: box)
+    static func imageSize(for image: NSImage, box: CGFloat, sameScale: Bool = false) -> CGSize {
+        sameScale ? SpriteFit.sameScaleSize(for: image.size, box: box) : SpriteFit.size(for: image.size, box: box)
     }
 
     /// 비율 유지로 잰 이미지 프레임 + 바깥 size×size 슬롯. 바깥 슬롯을 유지하는 이유: 진화 라인·도감
     /// 그리드의 폭 계산(EvoLineView.rowWidth 등)이 칸을 정사각으로 전제한다 — 안쪽만 줄여야 안 흔들린다.
     @ViewBuilder
     private func fitted(_ image: NSImage) -> some View {
-        let fit = Self.imageSize(for: image, box: size)
+        // The egg (no species) keeps filling its box.
+        let fit = Self.imageSize(for: image, box: size, sameScale: sameScale && speciesID != nil)
         if isSilhouette {
             Image(nsImage: image)
                 .renderingMode(.template)
@@ -510,7 +515,7 @@ struct EvoLineView: View {
                 switch node.content {
                 case .species(let id):
                     VStack(spacing: 1) {
-                        SpriteView(speciesID: id, size: thumb, shiny: shiny, form: form)
+                        SpriteView(speciesID: id, size: thumb, shiny: shiny, form: form, sameScale: true)
                             .opacity(node.state == .future ? 0.32 : 1)
                             .saturation(node.state == .future ? 0.4 : 1)
                             .overlay(alignment: .bottom) {
@@ -548,12 +553,14 @@ struct EvoLineView: View {
                             VStack(spacing: 1) {
                                 Group {
                                     if item.isCollected {
-                                        SpriteView(speciesID: item.speciesID, size: thumb, shiny: shiny, form: item.form ?? form)
+                                        SpriteView(speciesID: item.speciesID, size: thumb, shiny: shiny, form: item.form ?? form,
+                                                   sameScale: true)
                                             .opacity(0.4)
                                             .saturation(0.6)
                                     } else {
                                         // Silhouette noire (ombre) pour les évolutions non encore obtenues
-                                        SpriteView(speciesID: item.speciesID, size: thumb, shiny: false, form: item.form ?? form, isSilhouette: true)
+                                        SpriteView(speciesID: item.speciesID, size: thumb, shiny: false, form: item.form ?? form,
+                                                   isSilhouette: true, sameScale: true)
                                     }
                                 }
                                 if let names {
@@ -2100,7 +2107,7 @@ private struct DexSpeciesCell: View {
                 // 이로치를 잡은 종은 이로치 스프라이트로 표시한다(상세 화면에서 일반/이로치 모습 전환 가능).
                 // 폼이 있는 종의 아이콘은 기본 폼 일반색으로 유지하고, 폼별 색은 상세 화면에서 보여준다.
                 SpriteView(speciesID: species.id, size: Self.thumb,
-                           shiny: formCount == nil && species.isShiny)
+                           shiny: formCount == nil && species.isShiny, sameScale: true)
                     .frame(width: Self.thumb, height: Self.thumb)
                     // Keep the raising badge over the sprite to leave room for the name.
                     .overlay(alignment: .bottom) {

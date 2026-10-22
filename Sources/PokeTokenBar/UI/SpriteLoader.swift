@@ -440,6 +440,19 @@ enum SpriteFit {
         size(for: pixelSize, width: box, height: box)
     }
 
+    /// Pixels of a Showdown render that fill a box when Pokémon are drawn at one scale (`sameScaleSize`). Showdown
+    /// renders every Pokémon at one scale (Charmander 48×57, Charizard 133×140), so one points-per-pixel keeps their
+    /// sizes: Charizard and Venusaur fill the box, Charmander takes under half of it.
+    static let sameScaleReference: CGFloat = 120
+
+    /// `size(for:box:)` for Pokémon shown side by side: drawn at `box / sameScaleReference` points per pixel, and
+    /// fitted down only when larger than the box. Fitting each one instead made a Charmander as big as a Charizard.
+    static func sameScaleSize(for pixelSize: CGSize, box: CGFloat) -> CGSize {
+        guard pixelSize.width > 0, pixelSize.height > 0 else { return size(for: pixelSize, box: box) }
+        let scale = min(box / sameScaleReference, box / pixelSize.width, box / pixelSize.height)
+        return CGSize(width: pixelSize.width * scale, height: pixelSize.height * scale)
+    }
+
     /// Same fit inside a `width`×`height` box. An empty source falls back to a square on the shorter side.
     static func size(for pixelSize: CGSize, width: CGFloat, height: CGFloat) -> CGSize {
         guard pixelSize.width > 0, pixelSize.height > 0 else {
