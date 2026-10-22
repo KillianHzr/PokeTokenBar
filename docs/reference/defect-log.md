@@ -1241,6 +1241,15 @@ read_when:
   `.allowsHitTesting(false)`. Guard: `testDetailSelectorChangesMountedPixelsAndReturnsToNormal` clicks low on the
   left half, where the glow was.
 
+- **A pixel test that fails only locally is a finding, not noise.** `LimitProgressRenderingTests` and
+  `DailyTrendStackTests` failed on every branch on the maintainer's Mac and were written off as "environment": CI builds with
+  Xcode 16 (macOS 15 SDK), the Mac with Xcode 26 (macOS 26 SDK). One was real: with the macOS 26 SDK the small linear
+  `ProgressView` is 3 pt tall, not 6, so the limit pace marker (track + 4 pt) stood 10 pt over a 3 pt bar in every
+  locally built app. `LimitProgressBar.trackHeight` now follows the SDK (`#if compiler(>=6.2)`). The other was test
+  noise: one edge pixel of the *same* trend view rendered twice differs by one unit of alpha with the macOS 26 SDK, so
+  byte-equality became a ±2/255 comparison (a changed color moves 255). When a test fails only locally, compare the
+  toolchains (`xcodebuild -version`, `xcrun --show-sdk-version`) before calling it flaky.
+
 ## 에너지 (상시 표시 애니메이션)
 
 - **절전용 정지 상태는 짝 알림 하나에만 복구를 맡기지 마라.** `screensDidSleep` 이 폴링 타이머를 끄고
