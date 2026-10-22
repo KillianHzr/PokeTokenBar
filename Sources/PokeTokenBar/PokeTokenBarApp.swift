@@ -105,7 +105,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             button.target = self
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])   // right click opens StatusItemMenu
             prepareSpriteLayer(on: button)   // 프레임 교체를 레이어 contents 로 — 설정이 먼저다
-            let egg = Self.eggImage(up: false)
+            let egg = Self.menuBarImage(from: EggRenderer.still(.plain), up: false)
             setStatusImage(egg, cgFrame: Self.cgFrame(from: egg))   // 초기 알도 같은 경로로(불변식)
         }
 
@@ -149,6 +149,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private func observeCompanionSprite() {
         withObservationTracking {
             _ = companion.representativeSubject
+            _ = companion.eggKind   // a guarantee bought redraws the egg
             _ = store.animationQuality
         } onChange: { [weak self] in
             Task { @MainActor in
@@ -320,7 +321,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         let id = subject.speciesID
         let shiny = subject.isShiny
         let form = subject.form
+        let egg = companion.eggKind
         let key = id.map { Self.menuSpriteKey(id: $0, shiny: shiny, floor: menuFrameFloor, form: form) }
+            ?? "egg-\(egg)-\(menuFrameFloor)"
         if key == menuSpriteKey, !menuFrames.isEmpty { return }   // 이미 이 개체로 애니메이션 중
         menuLoadTask?.cancel()
         menuLoadTask = nil
@@ -328,13 +331,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         menuLoadGen += 1
         let gen = menuLoadGen
 
-        guard let id else {                  // 알: 2프레임 bob
-            setMenuFrames(Self.eggFrames())
+        guard let id else {                  // The drawn egg's idle loop.
+            setMenuFrames(Self.eggFrames(egg, floor: menuFrameFloor))
             return
         }
         // Seed from the PNG cache immediately; a missing PNG must not delay the first GIF request.
         let cached = SpriteLoader.cachedImage(speciesID: id, shiny: shiny, form: form)
-        setMenuFrames(cached.map { Self.bobFrames(from: $0) } ?? Self.eggFrames())
+        setMenuFrames(cached.map { Self.bobFrames(from: $0) } ?? Self.bobFrames(from: EggRenderer.still(.plain)))
 
         // One owned task applies its static fallback before retrying GIFs. A late PNG response
         // can no longer overwrite a successfully loaded animation.
@@ -569,9 +572,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         [(menuBarImage(from: sprite, up: false), 0.5), (menuBarImage(from: sprite, up: true), 0.5)]
     }
 
-    /// 부화 전/로딩 중 알 글리프 2프레임 bob.
-    private static func eggFrames() -> [(image: NSImage, delay: TimeInterval)] {
-        [(eggImage(up: false), 0.5), (eggImage(up: true), 0.5)]
+    /// The drawn egg's idle loop at the menu's frame cap, composed to the bar's 22 pt.
+    private static func eggFrames(_ kind: EggKind, floor: TimeInterval) -> [(image: NSImage, delay: TimeInterval)] {
+        GIFDecoder.capFrameRate(EggRenderer.idleFrames(kind), floor: floor)
+            .map { (menuBarImage(from: $0.image, up: false), $0.delay) }
     }
 
     /// 메뉴바 프레임 기하 — **비율 유지**(SpriteFit). 순수·테스트용.
@@ -610,19 +614,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         let new = base.appendingPathComponent("PokeTokenBar")
         guard fm.fileExists(atPath: old.path), !fm.fileExists(atPath: new.path) else { return }
         try? fm.moveItem(at: old, to: new)
-    }
-
-    /// 스프라이트가 아직 없을 때(부화 전/로딩 중) 메뉴바에 표시하는 알 글리프.
-    private static func eggImage(up: Bool) -> NSImage {
-        let h: CGFloat = 22
-        let img = NSImage(size: NSSize(width: h, height: h))
-        img.lockFocus()
-        let off: CGFloat = up ? 1 : 0
-        let s = "🥚" as NSString
-        s.draw(in: NSRect(x: 2, y: off, width: h - 2, height: h - 2),
-               withAttributes: [.font: NSFont.systemFont(ofSize: 15)])
-        img.unlockFocus()
-        return img
     }
 
     /// 팝오버 콘텐츠(SwiftUI 호스팅) 생성. .transient 팝오버는 contentViewController 를 평생 보유해 닫혀도

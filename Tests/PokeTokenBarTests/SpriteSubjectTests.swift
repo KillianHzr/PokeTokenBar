@@ -103,14 +103,14 @@ final class SpriteSubjectTests: XCTestCase {
         XCTAssertEqual(next.loadedID, 26)
     }
 
-    /// 알 이미지 로드도 같은 규칙 — 취소면 무시, 아니면 반영하되 loadedID 는 알(nil) 그대로.
-    func testEggImageAppliesOnlyWhenNotCancelled() throws {
-        let egg = image(2)
-        XCTAssertNil(SpriteSubject(image: nil, loadedID: nil).applyingEgg(egg, cancelled: true))
-
-        let applied = try XCTUnwrap(SpriteSubject(image: nil, loadedID: nil).applyingEgg(egg, cancelled: false))
-        XCTAssertTrue(applied.image === egg)
-        XCTAssertNil(applied.loadedID)
+    /// Another egg (a guarantee bought): its image replaces the shown egg's; the same image changes nothing.
+    func testAnotherEggsImageReplacesTheShownEgg() {
+        let plain = image(2), rare = image(3)
+        let next = SpriteSubject(image: plain, loadedID: nil).becomingEgg(cachedEgg: rare)
+        XCTAssertTrue(next.image === rare)
+        XCTAssertNil(next.loadedID)
+        let same = SpriteSubject(image: plain, loadedID: nil)
+        XCTAssertTrue(same.becomingEgg(cachedEgg: plain).image === plain)
     }
 
     // MARK: GIF 프레임
