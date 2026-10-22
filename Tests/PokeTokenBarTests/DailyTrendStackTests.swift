@@ -73,8 +73,19 @@ final class DailyTrendStackTests: XCTestCase {
         let withIdle = try pixels(MonthDailyTrend(series: series, providers: one + [idle],
                                                   providerOrder: ["only", "idle"], showsCost: true,
                                                   today: "2026-08-24", l: L(.en)))
-        XCTAssertEqual(single, before, "프로바이더 1개인데 추이 행이 달라졌다")
-        XCTAssertEqual(withIdle, before, "이번 달 0 토큰 프로바이더가 쌓기를 켰다")
+        assertSameImage(single, before, "프로바이더 1개인데 추이 행이 달라졌다")
+        assertSameImage(withIdle, before, "이번 달 0 토큰 프로바이더가 쌓기를 켰다")
+    }
+
+    /// Same pixels, give or take the antialiasing jitter: with the macOS 26 SDK one edge pixel of the *same* view
+    /// rendered twice can differ by one unit of alpha. A changed color or bar height moves far more than 2/255.
+    private func assertSameImage(_ a: Data, _ b: Data, _ message: String,
+                                 file: StaticString = #filePath, line: UInt = #line) {
+        guard a.count == b.count else {
+            return XCTFail("\(message): \(a.count) bytes vs \(b.count)", file: file, line: line)
+        }
+        let worst = zip(a, b).reduce(0) { max($0, abs(Int($1.0) - Int($1.1))) }
+        XCTAssertLessThanOrEqual(worst, 2, "\(message): a channel moved by \(worst)/255", file: file, line: line)
     }
 
     // MARK: 구간 높이
