@@ -1534,9 +1534,9 @@ private struct DexGridView: View {
     /// 선택한 칸 — 하단 줄에 희귀도를 띄우고, 이로치를 잡은 종이면 스프라이트를 그 색으로 바꾼다.
     @State private var selectedID: String?
 
-    private static var columns: Int { DexLayoutProposal.current.columns }
-    private static var rows: Int { DexLayoutProposal.current.rows }
-    private static var pageSize: Int { columns * rows }      // 16
+    private static let columns = 4
+    private static let rows = 4
+    private static let pageSize = columns * rows      // 16
     private static let spacing: CGFloat = 4
 
     /// `returnAnchor` = the species whose detail page was just closed. The grid opens on its page,
@@ -2136,28 +2136,6 @@ private extension Array where Element == String {
     }
 }
 
-/// Pokédex grid layouts proposed for the redesign, switchable while the maintainer picks one.
-@MainActor
-enum DexLayoutProposal: CaseIterable {
-    case tinted, dots, circle, large, list
-    static var current: DexLayoutProposal = .tinted
-
-    var columns: Int {
-        switch self {
-        case .tinted, .dots, .circle: 4
-        case .large: 3
-        case .list: 1
-        }
-    }
-    var rows: Int {
-        switch self {
-        case .tinted, .dots, .circle: 4
-        case .large: 3
-        case .list: 7
-        }
-    }
-}
-
 /// 도감 한 칸 — 도감 번호 + 스프라이트 + 종 이름. 종 정보만 담는다(성격·획득 횟수는 로그의 몫).
 /// 정적 스프라이트만 쓴다(animated 생략) — 한 페이지 16칸을 GIF 로 동시 재생하면 CPU 가 안 된다.
 @MainActor
@@ -2182,15 +2160,7 @@ private struct DexSpeciesCell: View {
     private static let thumb: CGFloat = 56
 
     var body: some View {
-        Button(action: onTap) {
-            switch DexLayoutProposal.current {
-            case .tinted: tintedCell
-            case .dots: dotsCell
-            case .circle: circleCell
-            case .large: largeCell
-            case .list: listRow
-            }
-        }
+        Button(action: onTap) { cell }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
         .help(tooltip)
@@ -2231,13 +2201,16 @@ private struct DexSpeciesCell: View {
             .animation(.easeOut(duration: 0.12), value: isHovered)
     }
 
+    /// 번호 색 = 희귀도 — "전체" 보기에서도 칸마다 희귀도가 보인다. The star marks the representative.
     private var plainNumber: some View {
         HStack(spacing: 2) {
             Text("#\(species.id)")
             if isRepresentative { Image(systemName: "star.fill").font(.system(size: 7, weight: .bold)) }
         }
         .font(.system(size: 9, weight: .bold, design: .rounded))
-        .foregroundStyle(.secondary)
+        .foregroundStyle(rarityColor(species.rarity))
+        .padding(.horizontal, 4).padding(.vertical, 1)
+        .background(Capsule().fill(rarityColor(species.rarity).opacity(0.16)))
     }
 
     private var typeDots: some View {
@@ -2250,8 +2223,8 @@ private struct DexSpeciesCell: View {
         Group { if species.isShiny { Text("✨").font(.system(size: 9)) } }
     }
 
-    /// Proposal B: neutral cards, types as two dots.
-    private var dotsCell: some View {
+    /// A neutral card: the number in its rarity's color, the types as one or two dots, the sprite, the name.
+    private var cell: some View {
         neutralCard {
             VStack(spacing: 2) {
                 HStack { plainNumber; Spacer(minLength: 0); shinyMark; typeDots }
@@ -2261,159 +2234,6 @@ private struct DexSpeciesCell: View {
             }
             .padding(5)
         }
-    }
-
-    /// Proposal C: neutral cards, the sprite on a disc in its type colors.
-    private var circleCell: some View {
-        neutralCard {
-            VStack(spacing: 3) {
-                ZStack {
-                    Circle().fill(RadialGradient(colors: [typeColor.opacity(0.55), (types.dropFirst().first?.color ?? typeColor).opacity(0.18)],
-                                                 center: .center, startRadius: 2, endRadius: 30))
-                        .frame(width: 54, height: 54)
-                    sprite(50)
-                }
-                .overlay(alignment: .bottom) { if species.isRaising { raisingBadge.fixedSize() } }
-                Text(displayName).font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .lineLimit(1).minimumScaleFactor(0.8)
-            }
-            .padding(5)
-            .frame(maxWidth: .infinity)
-            .overlay(alignment: .topLeading) { plainNumber.padding(5) }
-            .overlay(alignment: .topTrailing) { shinyMark.padding(4) }
-        }
-    }
-
-    /// Proposal D: three larger cells per row, with the type chips.
-    private var largeCell: some View {
-        neutralCard(radius: 13) {
-            VStack(spacing: 3) {
-                ZStack {
-                    Circle().fill(RadialGradient(colors: [typeColor.opacity(0.5), .clear], center: .center,
-                                                 startRadius: 2, endRadius: 36))
-                        .frame(width: 70, height: 70)
-                    sprite(62)
-                }
-                .overlay(alignment: .bottom) { if species.isRaising { raisingBadge.fixedSize() } }
-                Text(displayName).font(.system(size: 12, weight: .bold, design: .rounded))
-                    .lineLimit(1).minimumScaleFactor(0.8)
-                TypeBadges(types: types.map(\.rawValue), language: store.language, size: 7, horizontalPadding: 4)
-            }
-            .padding(6)
-            .frame(maxWidth: .infinity)
-            .overlay(alignment: .topLeading) { plainNumber.padding(6) }
-            .overlay(alignment: .topTrailing) { shinyMark.padding(5) }
-        }
-    }
-
-    /// Proposal E: one Pokémon per row, like the games' Pokédex list.
-    private var listRow: some View {
-        neutralCard(radius: 10) {
-            HStack(spacing: 10) {
-                Text(String(format: "#%03d", species.id))
-                    .font(.system(size: 11, weight: .bold, design: .monospaced)).foregroundStyle(.secondary)
-                    .frame(width: 40, alignment: .leading)
-                ZStack {
-                    Circle().fill(typeColor.opacity(0.3)).frame(width: 36, height: 36)
-                    sprite(36)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 4) {
-                        Text(displayName).font(.system(size: 13, weight: .bold, design: .rounded)).lineLimit(1)
-                        shinyMark
-                        if species.isRaising { raisingBadge.fixedSize() }
-                    }
-                    TypeBadges(types: types.map(\.rawValue), language: store.language, size: 7, horizontalPadding: 4)
-                }
-                Spacer(minLength: 4)
-                Badge(store.l.rarityLabel(species.rarity).uppercased(), tint: .rarity(species.rarity)).fixedSize()
-            }
-            .padding(.horizontal, 10).padding(.vertical, 4)
-            .frame(maxHeight: .infinity)
-        }
-    }
-
-    /// Proposal A, the current one: cells washed with their type color.
-    private var tintedCell: some View {
-            VStack(spacing: 1) {
-                // 이로치를 잡은 종은 이로치 스프라이트로 표시한다(상세 화면에서 일반/이로치 모습 전환 가능).
-                // 폼이 있는 종의 아이콘은 기본 폼 일반색으로 유지하고, 폼별 색은 상세 화면에서 보여준다.
-                SpriteView(speciesID: species.id, size: Self.thumb,
-                           shiny: formCount == nil && species.isShiny, sameScale: true)
-                    .frame(width: Self.thumb, height: Self.thumb)
-                    // Keep the raising badge over the sprite to leave room for the name.
-                    .overlay(alignment: .bottom) {
-                        if species.isRaising { raisingBadge.fixedSize() }
-                    }
-                Text(formCount.map { "\(species.name) \($0)/\(formTotal)" } ?? species.name)
-                    .font(.system(size: 12))
-                    .lineLimit(2, reservesSpace: true)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity)
-            // Attach number and shiny markers to the full cell width.
-            .overlay(alignment: .topLeading) { numberTag }
-            .overlay(alignment: .topTrailing) {
-                // ✨ = 이 종의 이로치를 잡은 적이 있다는 표식.
-                if species.isShiny {
-                    Text("✨")
-                        .font(.system(size: 10))
-                        .padding(.horizontal, 2)
-                        .background(.regularMaterial, in: Capsule())
-                        .accessibilityLabel(store.l.dexShinyLabel)
-                }
-            }
-            .padding(2)
-            // Each cell washed with its Pokémon's type color, strongest at the top behind the sprite.
-            // 대표 = 영속적인 accent 배경, 방금 클릭한 칸 = 기존 accent 테두리.
-            // 서로 다른 카드여도 같은 강조 두 개가 선택된 것처럼 보이지 않는다.
-            .background {
-                let shape = RoundedRectangle(cornerRadius: 11, style: .continuous)
-                shape.fill(LinearGradient(colors: [typeColor.opacity(isSelected ? 0.34 : 0.22), typeColor.opacity(0.05)],
-                                          startPoint: .top, endPoint: .bottom))
-                    .overlay(shape.fill(isRepresentative ? Color.accentColor.opacity(0.16) : .clear))
-                    .overlay(shape.strokeBorder(typeColor.opacity(0.25)))
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
-            .overlay {
-                if isSelected {
-                    RoundedRectangle(cornerRadius: 11, style: .continuous)
-                        .strokeBorder(typeColor, lineWidth: 1.5)
-                }
-            }
-            // 호버 = 클릭 가능 피드백. 확대는 격자 간격 안에 머무는 폭으로만.
-            // 그림자는 카드 모양에만 — 칸 전체에 `.shadow` 를 걸면 번호·이름·스프라이트 글자마다 그림자가 진다.
-            .background {
-                if isHovered {
-                    RoundedRectangle(cornerRadius: 11, style: .continuous)
-                        .fill(Color(nsColor: .windowBackgroundColor))
-                        .shadow(color: .black.opacity(0.25), radius: 4, y: 2)
-                }
-            }
-            .scaleEffect(isHovered ? 1.04 : 1)
-            .animation(.easeOut(duration: 0.12), value: isHovered)
-    }
-
-    /// material 판 — 어두운 스프라이트 위에서도 읽히게(라이트/다크 자동).
-    /// 스프라이트 위 라벨에 이미 쓰는 패턴과 동일.
-    private var numberTag: some View {
-        HStack(spacing: 2) {
-            Text("#\(species.id)")
-            // 기존 번호 캡슐에 결합해 이로치(우측 상단)·키우는 중(스프라이트 하단)·이름과
-            // 새 자리를 다투지 않는다. 아이콘은 언어에 따라 폭이 달라지지 않고, 의미는 셀의
-            // 현지화된 툴팁·접근성 라벨이 보완한다.
-            if isRepresentative {
-                Image(systemName: "star.fill")
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundStyle(Color.accentColor)
-                    .accessibilityHidden(true)
-            }
-        }
-            // 번호 색 = 희귀도 — "전체" 보기에서도 칸마다 희귀도가 보인다.
-            .font(.system(size: 10, weight: .semibold))
-            .foregroundStyle(rarityColor(species.rarity))
-            .padding(.horizontal, 2)
-            .background(.regularMaterial, in: Capsule())
     }
 
     /// "키우는 중"은 현재 개체의 현재 형태 한 칸에만 표시한다. accent 틴트는 반투명이라
