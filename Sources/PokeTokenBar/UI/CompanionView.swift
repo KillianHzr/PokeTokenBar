@@ -908,7 +908,7 @@ struct CompanionHeader: View {
                     .font(.caption2).foregroundStyle(.orange)
             }
         }
-        .heroCard(color: store.themeColor, legendary: store.rarity == .legendary)
+        .heroCard(colors: store.themeColors, legendary: store.rarity == .legendary)
         // The current form's PokéAPI details, cached after the first fetch: they fill the individual's ability and
         // moves. Same ID as the sprite, so a disguised Ditto loads its disguise's.
         .task(id: store.currentSpeciesID.map { PokemonForm.detailsID(speciesID: $0, form: store.currentForm) }) {
@@ -1912,7 +1912,7 @@ struct PokemonDetailView: View {
     /// The species in its type color, as Home's hero card (a legendary gets the whole event).
     private var identityHeader: some View {
         let species = displayedSpecies
-        let typeColor = PokemonTypeData.types(forSpeciesID: species.id, form: species.form).first?.color ?? .gray
+        let typeColors = PokemonTypeData.types(forSpeciesID: species.id, form: species.form).prefix(2).map(\.color)
         return HStack(spacing: 14) {
             SpriteView(speciesID: species.id, size: 96, animated: true,
                        shiny: displayedShiny, spriteStore: spriteStore, form: species.form)
@@ -1949,7 +1949,7 @@ struct PokemonDetailView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .heroCard(color: typeColor, legendary: species.rarity == .legendary)
+        .heroCard(colors: typeColors.isEmpty ? [.gray] : Array(typeColors), legendary: species.rarity == .legendary)
     }
 
     private var appearancePicker: some View {

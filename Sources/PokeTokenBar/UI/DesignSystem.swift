@@ -23,20 +23,38 @@ extension View {
 
     /// The hero card: the card washed with `color`, strongest behind the sprite on the left.
     func heroCard(color: Color, padding: CGFloat = Design.cardPadding) -> some View {
-        self.padding(padding)
+        heroCard(colors: [color], padding: padding)
+    }
+
+    /// The hero card of a Pokémon with two types: the first type's color behind the sprite, blending into the
+    /// second's towards the bottom right, with a border going from one to the other. One color: one type.
+    func heroCard(colors: [Color], padding: CGFloat = Design.cardPadding) -> some View {
+        let first = colors.first ?? .gray
+        let second = colors.count > 1 ? colors[1] : nil
+        return self.padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background {
                 let shape = RoundedRectangle(cornerRadius: Design.cornerRadius + 2, style: .continuous)
-                shape.fill(LinearGradient(colors: [color.opacity(0.30), color.opacity(0.07)],
+                shape.fill(LinearGradient(colors: second.map { [first.opacity(0.32), $0.opacity(0.24)] }
+                                              ?? [first.opacity(0.30), first.opacity(0.07)],
                                           startPoint: .topLeading, endPoint: .bottomTrailing))
                     .overlay(alignment: .topLeading) {
-                        RadialGradient(colors: [color.opacity(0.45), .clear], center: .center, startRadius: 4,
+                        RadialGradient(colors: [first.opacity(0.45), .clear], center: .center, startRadius: 4,
                                        endRadius: 70)
                             .frame(width: 140, height: 140)
                             .offset(x: -18, y: -22)
                     }
+                    .overlay(alignment: .bottomTrailing) {
+                        if let second {
+                            RadialGradient(colors: [second.opacity(0.35), .clear], center: .center, startRadius: 4,
+                                           endRadius: 90)
+                                .frame(width: 180, height: 180)
+                                .offset(x: 40, y: 50)
+                        }
+                    }
                     .clipShape(shape)
-                    .overlay(shape.strokeBorder(color.opacity(0.35)))
+                    .overlay(shape.strokeBorder(LinearGradient(colors: [first.opacity(0.4), (second ?? first).opacity(0.4)],
+                                                               startPoint: .topLeading, endPoint: .bottomTrailing)))
             }
     }
 }
@@ -46,6 +64,8 @@ extension View {
 @MainActor
 struct LegendaryHeroBackground: View {
     let color: Color
+    /// A second type's color, which the card blends into towards the bottom right.
+    var secondColor: Color? = nil
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     static let gold = Color(.sRGB, red: 1.0, green: 0.80, blue: 0.30)
@@ -62,7 +82,8 @@ struct LegendaryHeroBackground: View {
             let t = reduceMotion ? 0 : context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 900)
             let shape = RoundedRectangle(cornerRadius: Design.cornerRadius + 2, style: .continuous)
             ZStack {
-                shape.fill(LinearGradient(colors: [color.opacity(0.42), Self.gold.opacity(0.10), color.opacity(0.10)],
+                shape.fill(LinearGradient(colors: [color.opacity(0.42), Self.gold.opacity(0.10),
+                                                   (secondColor ?? color).opacity(secondColor == nil ? 0.10 : 0.26)],
                                           startPoint: .topLeading, endPoint: .bottomTrailing))
                 // Light rays turning behind the sprite, on a golden glow.
                 AngularGradient(gradient: Gradient(stops: Self.rayStops), center: .center, angle: .degrees(t * 12))
@@ -78,7 +99,8 @@ struct LegendaryHeroBackground: View {
             }
             .clipShape(shape)
             // The same border as every hero card: the type color.
-            .overlay(shape.strokeBorder(color.opacity(0.35)))
+            .overlay(shape.strokeBorder(LinearGradient(colors: [color.opacity(0.4), (secondColor ?? color).opacity(0.4)],
+                                                       startPoint: .topLeading, endPoint: .bottomTrailing)))
         }
     }
 
@@ -138,13 +160,14 @@ struct LegendaryBadge: View {
 extension View {
     /// `heroCard`, or its legendary version for a legendary Pokémon.
     @ViewBuilder
-    func heroCard(color: Color, legendary: Bool) -> some View {
+    func heroCard(colors: [Color], legendary: Bool) -> some View {
         if legendary {
             self.padding(Design.cardPadding)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(LegendaryHeroBackground(color: color))
+                .background(LegendaryHeroBackground(color: colors.first ?? .gray,
+                                                    secondColor: colors.count > 1 ? colors[1] : nil))
         } else {
-            heroCard(color: color)
+            heroCard(colors: colors)
         }
     }
 }
@@ -285,6 +308,13 @@ extension CompanionStore {
 
     /// The color of the Pokémon being raised: its type's, gold for the egg.
     var themeColor: Color { themeType?.color ?? Design.eggColor }
+
+    /// Its types' colors, two for a dual type: what the hero card blends.
+    var themeColors: [Color] {
+        guard hasActive, let id = currentSpeciesID else { return [Design.eggColor] }
+        let colors = PokemonTypeData.types(forSpeciesID: id, form: currentForm).prefix(2).map(\.color)
+        return colors.isEmpty ? [Design.eggColor] : Array(colors)
+    }
 
     /// Text on a `themeColor` fill: dark on the light types (Electric, Ice, Fairy…) and the egg's gold.
     var themeTextColor: Color {

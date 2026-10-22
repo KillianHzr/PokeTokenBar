@@ -40,7 +40,7 @@ struct ShopView: View {
                 .font(.caption2).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .heroCard(color: store.themeColor)
+        .heroCard(colors: store.themeColors)
     }
 }
 
