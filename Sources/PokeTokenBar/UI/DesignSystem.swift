@@ -41,9 +41,8 @@ extension View {
     }
 }
 
-/// A legendary Pokémon is an event: its hero card gets light rays turning behind the sprite on a golden glow,
-/// twinkling stars and a holographic border going round. Animated only while the popover shows it, at a capped
-/// frame rate, and still with Reduce Motion.
+/// A legendary Pokémon is an event: its hero card gets light rays turning behind the sprite on a golden glow and
+/// twinkling stars. Animated only while the popover shows it, at a capped frame rate, and still with Reduce Motion.
 @MainActor
 struct LegendaryHeroBackground: View {
     let color: Color
@@ -55,13 +54,10 @@ struct LegendaryHeroBackground: View {
         let start = Double(ray) / 12
         return [.init(color: .clear, location: start), .init(color: gold.opacity(0.34), location: start + 1.0 / 24)]
     } + [.init(color: .clear, location: 1)]
-    static let holo: [Color] = [gold, Color(.sRGB, red: 1.0, green: 0.45, blue: 0.70),
-                                Color(.sRGB, red: 0.62, green: 0.48, blue: 1.0),
-                                Color(.sRGB, red: 0.35, green: 0.80, blue: 1.0), gold]
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { context in
-            // Seconds into a 15 min cycle (a whole number of turns for both rotations): angles built on the absolute
+            // Seconds into a 15 min cycle (a whole number of turns of the rays): angles built on the absolute
             // date (8e8 s) lose their precision once drawn.
             let t = reduceMotion ? 0 : context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 900)
             let shape = RoundedRectangle(cornerRadius: Design.cornerRadius + 2, style: .continuous)
@@ -81,13 +77,8 @@ struct LegendaryHeroBackground: View {
                 sparkles(t)
             }
             .clipShape(shape)
-            .overlay {
-                // A gradient filled then cut to the border: a gradient stroke renders as its first color in some
-                // renderers.
-                AngularGradient(colors: Self.holo, center: .center, angle: .degrees(t * 40))
-                    .mask(shape.strokeBorder(lineWidth: 2))
-                    .shadow(color: Self.gold.opacity(0.5), radius: 5)
-            }
+            // The same border as every hero card: the type color.
+            .overlay(shape.strokeBorder(color.opacity(0.35)))
         }
     }
 
