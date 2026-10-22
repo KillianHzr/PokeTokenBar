@@ -972,6 +972,15 @@ read_when:
 
 ## 표시·UI
 
+- **A row whose length comes from the data wraps, or it pushes the popover off its edges.** Home's evolution track
+  set its branch group `.fixedSize()`: Eevee's eight fit, Vivillon's twenty patterns (a Scatterbug's line) stood 511 pt
+  wide in a 300 pt track, and SwiftUI centered the wider card, cutting the whole popover on both sides. The ways now
+  sit in a `WrappingHStack`, eight a line at most (`EvolutionTrackView.branchMaxWidth`) so the stretches keep room
+  for the growth. The track's tests built
+  Eevee, Wurmple and Applin, whose ways fit on one line. Guard: `EvolutionTrackTests.testAWideBranchWrapsWithinTheTrack`
+  (511 pt without the fix). Sweep: the other `.fixedSize()` rows hold fixed option sets; evolution lines elsewhere
+  scroll (`EvoLineView.maxWidth`).
+
 - **What a species shows is decided from the whole species, not from its latest individual.** The Pokédex
   page picked Normal or Shiny from `allIndividuals.first`, the latest catch: a normal Vulpix caught after a
   shiny one opened the page in normal colors. The page also opened on the default form whatever the shiny
