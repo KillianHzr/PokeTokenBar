@@ -117,6 +117,8 @@ struct SettingsView: View {
                     }
                     .padding(16)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    // Switches, sliders and pickers in the color of the Pokémon being raised.
+                    .tint(companion.themeColor)
                 }
                 .onAppear {
                     companion.refreshSnapshots()
@@ -149,10 +151,10 @@ struct SettingsView: View {
                 }
             }
             .buttonStyle(.plain)
-            .foregroundStyle(Color.accentColor)
+            .foregroundStyle(companion.themeColor)
             .keyboardShortcut(.cancelAction)
             Spacer()
-            Text(l.settings).font(.headline)
+            Text(l.settings).font(.system(size: 15, weight: .bold, design: .rounded))
             Spacer()
             // 좌측 뒤로 버튼과 시각적 균형 (제목 중앙 정렬 유지)
             Text(l.back).opacity(0).accessibilityHidden(true)
@@ -948,14 +950,9 @@ struct SettingsView: View {
         _ title: String, @ViewBuilder content: () -> Content
     ) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.caption).fontWeight(.semibold).foregroundStyle(.secondary)
-                .textCase(.uppercase).padding(.leading, 4)
+            SectionTitle(text: title).padding(.leading, 4)
             VStack(spacing: 0) { content() }
-                .background(Color(nsColor: .controlBackgroundColor),
-                           in: RoundedRectangle(cornerRadius: 8))
-                .overlay(RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color(nsColor: .separatorColor).opacity(0.6), lineWidth: 1))
+                .designSurface()
         }
     }
 

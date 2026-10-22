@@ -55,6 +55,9 @@ extension View {
                     .clipShape(shape)
                     .overlay(shape.strokeBorder(LinearGradient(colors: [first.opacity(0.4), (second ?? first).opacity(0.4)],
                                                                startPoint: .topLeading, endPoint: .bottomTrailing)))
+                    // Decoration only: the glow reaches past the card, and would take the clicks of what sits above it
+                    // (the tab bar on Home, the Normal/Shiny picker in the Pokédex).
+                    .allowsHitTesting(false)
             }
     }
 }
@@ -165,7 +168,8 @@ extension View {
             self.padding(Design.cardPadding)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(LegendaryHeroBackground(color: colors.first ?? .gray,
-                                                    secondColor: colors.count > 1 ? colors[1] : nil))
+                                                    secondColor: colors.count > 1 ? colors[1] : nil)
+                    .allowsHitTesting(false))
         } else {
             heroCard(colors: colors)
         }

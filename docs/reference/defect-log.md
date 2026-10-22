@@ -1234,6 +1234,13 @@ read_when:
   counts; the former labels fail them in English, German, Spanish, Japanese and Russian. The other
   segmented pickers under `UI/` are unchanged by this PR and were not measured.
 
+- **A decoration that reaches past its view takes the clicks there.** The redesign's hero card draws a glow offset
+  up and left of the card; clipping hides it but does not stop hit testing, so the glow sat over the bottom-left of the
+  Pokédex page's Normal/Shiny picker (and of the Home tab button above the card) and swallowed those clicks. Found when
+  the rendering test that clicks Normal kept failing there and passing a bit to the right. Hero backgrounds are now
+  `.allowsHitTesting(false)`. Guard: `testDetailSelectorChangesMountedPixelsAndReturnsToNormal` clicks low on the
+  left half, where the glow was.
+
 ## 에너지 (상시 표시 애니메이션)
 
 - **절전용 정지 상태는 짝 알림 하나에만 복구를 맡기지 마라.** `screensDidSleep` 이 폴링 타이머를 끄고

@@ -1952,12 +1952,11 @@ struct PokemonDetailView: View {
     }
 
     private var appearancePicker: some View {
-        Picker(store.l.dexAppearance, selection: Binding(
-            get: { displayedShiny }, set: { selectedShiny = $0; selectedInstanceID = "" })) {
-            Text(store.l.dexNormalLabel).tag(false)
-            Text("✨ \(store.l.dexShinyLabel)").tag(true)
-        }
-        .pickerStyle(.segmented)
+        PillPicker(selection: Binding(get: { displayedShiny }, set: { selectedShiny = $0; selectedInstanceID = "" }),
+                   options: [(false, store.l.dexNormalLabel), (true, "✨ \(store.l.dexShinyLabel)")],
+                   accent: PokemonTypeData.types(forSpeciesID: species.id, form: displayedSpecies.form).first?.color
+                       ?? store.themeColor)
+            .accessibilityLabel(store.l.dexAppearance)
     }
 
     private var individualPicker: some View {
