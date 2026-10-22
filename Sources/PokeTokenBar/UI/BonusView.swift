@@ -86,14 +86,14 @@ struct BonusScreen: View {
                 // The name needs the loaded line; until then the section keeps its generic title.
                 if store.currentLine != nil {
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(store.displayName).font(.callout.weight(.semibold))
+                        Text(store.displayName).font(.system(size: 15, weight: .bold, design: .rounded))
                         Text(l.bonusCurrent).font(.caption2).foregroundStyle(.secondary)
                     }
                 } else {
                     Text(l.bonusCurrent).font(.callout.weight(.semibold))
                 }
                 Spacer(minLength: 4)
-                Text(l.growthBoost(total)).font(.callout.weight(.bold)).monospacedDigit()
+                Text(l.growthBoost(total)).font(.system(size: 16, weight: .bold, design: .rounded)).monospacedDigit()
                     .foregroundStyle(total > 1.0001 ? tint : Color.secondary)
             }
             if factors.isEmpty {
@@ -111,9 +111,7 @@ struct BonusScreen: View {
                 Text(note).font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(10)
-        .background(tint.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .heroCard(color: tint)
     }
 
     @ViewBuilder

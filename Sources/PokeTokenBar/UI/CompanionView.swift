@@ -1909,18 +1909,28 @@ struct PokemonDetailView: View {
         .task(id: species.id) { await store.loadFormNames(PokemonForm.nameResources(speciesID: species.id)) }
     }
 
+    /// The species in its type color, as Home's hero card (a legendary gets the whole event).
     private var identityHeader: some View {
         let species = displayedSpecies
+        let typeColor = PokemonTypeData.types(forSpeciesID: species.id, form: species.form).first?.color ?? .gray
         return HStack(spacing: 14) {
-            SpriteView(speciesID: species.id, size: 104, animated: true,
+            SpriteView(speciesID: species.id, size: 96, animated: true,
                        shiny: displayedShiny, spriteStore: spriteStore, form: species.form)
-                .frame(width: 104, height: 104)
+                .frame(width: 100, height: 100)
+                .background(alignment: .bottom) {
+                    Ellipse().fill(Color.black.opacity(0.18)).frame(width: 60, height: 10).blur(radius: 2)
+                }
             VStack(alignment: .leading, spacing: 5) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(species.name).font(.title3.weight(.bold))
-                    Spacer(minLength: 8)
-                    Text(store.l.rarityLabel(species.rarity))
-                        .font(.callout.weight(.semibold)).foregroundStyle(.secondary)
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(species.name).font(.system(size: 18, weight: .bold, design: .rounded))
+                        .lineLimit(1).minimumScaleFactor(0.75)
+                    Spacer(minLength: 4)
+                    if species.rarity == .legendary {
+                        LegendaryBadge(text: store.l.rarityLabel(species.rarity).uppercased()).fixedSize()
+                    } else {
+                        Badge(store.l.rarityLabel(species.rarity).uppercased(), tint: .rarity(species.rarity))
+                            .lineLimit(1).fixedSize()
+                    }
                 }
                 let types = PokemonTypeData.typeNames(speciesID: species.id, form: species.form,
                                                       fallback: store.pokemonDetails(speciesID: species.id, form: species.form)?.types)
@@ -1939,6 +1949,7 @@ struct PokemonDetailView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .heroCard(color: typeColor, legendary: species.rarity == .legendary)
     }
 
     private var appearancePicker: some View {
@@ -2029,13 +2040,39 @@ struct PokemonDetailView: View {
     }
 
     private func statRow(name: String, value: Int, iv: Int?, scaleMaximum: Int) -> some View {
-        HStack(spacing: 6) {
+        let color = Self.statColor(name)
+        return HStack(spacing: 6) {
             Text(store.l.statLabel(name)).frame(width: 74, alignment: .leading)
-            ProgressView(value: Double(value), total: Double(scaleMaximum)).tint(Color.accentColor)
-            Text("\(value)").monospacedDigit().frame(width: 30, alignment: .trailing)
+            Capsule().fill(Color.primary.opacity(0.08))
+                .overlay(alignment: .leading) {
+                    GeometryReader { geo in
+                        Capsule().fill(LinearGradient(colors: [color.opacity(0.75), color], startPoint: .leading,
+                                                      endPoint: .trailing))
+                            .frame(width: geo.size.width * min(1, Double(value) / Double(max(1, scaleMaximum))))
+                    }
+                }
+                .frame(height: 7)
+            Text("\(value)").font(.system(size: 12, weight: .bold, design: .rounded)).monospacedDigit()
+                .frame(width: 30, alignment: .trailing)
             if let iv { Text("IV \(iv)").foregroundStyle(.secondary).frame(width: 38, alignment: .trailing) }
         }
         .font(.system(size: 12))
+    }
+
+    /// Each stat in its color from the games' summary screens.
+    static func statColor(_ name: String) -> Color {
+        let hex: UInt32
+        switch name {
+        case "hp": hex = 0xFF5959
+        case "attack": hex = 0xF5AC78
+        case "defense": hex = 0xFAE078
+        case "special-attack": hex = 0x9DB7F5
+        case "special-defense": hex = 0xA7DB8D
+        case "speed": hex = 0xFA92B2
+        default: hex = 0xAAAAAA
+        }
+        return Color(.sRGB, red: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255,
+                     blue: Double(hex & 0xFF) / 255)
     }
 
     private func speciesSection(_ details: PokemonDetails) -> some View {
@@ -2074,7 +2111,9 @@ struct PokemonDetailView: View {
     }
 
     private func detailTitle(_ text: String) -> some View {
-        Text(text).font(.callout.weight(.semibold)).foregroundStyle(.secondary)
+        Text(text.uppercased())
+            .font(.system(size: 10, weight: .bold, design: .rounded)).tracking(0.6)
+            .foregroundStyle(.secondary)
     }
 
     private func valuePair(_ label: String, _ value: String, suffix: String? = nil) -> some View {
@@ -2088,9 +2127,7 @@ struct PokemonDetailView: View {
 
 private extension View {
     func detailCard() -> some View {
-        self.padding(9)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 9))
+        designCard()
     }
 }
 
