@@ -623,6 +623,8 @@ struct EvolutionTrackView: View {
     var onOpenDexEntry: ((String) -> Void)? = nil
 
     static let stopSize: CGFloat = 36
+    /// The bracket and eight 19 pt ways.
+    static let branchMaxWidth: CGFloat = 8 + 8 * 20
     private static let spriteSize: CGFloat = 30
 
     /// Index of the stage the individual is at; the stretch after it is the one growing.
@@ -719,7 +721,11 @@ struct EvolutionTrackView: View {
                 TrackBracket().stroke(Color.primary.opacity(0.35), lineWidth: 1).frame(width: 5)
                 branchRows(paths)
             }
-            .fixedSize()
+            // Eight ways a line at most (Eevee's), so the stretches keep room to show the growth; more wrap. Vivillon's
+            // twenty patterns on one line pushed the popover off its edges.
+            .frame(maxWidth: Self.branchMaxWidth, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .layoutPriority(1)
         }
     }
 
@@ -727,9 +733,9 @@ struct EvolutionTrackView: View {
     @ViewBuilder
     private func branchRows(_ paths: [[BranchEvolutionItem]]) -> some View {
         if paths.allSatisfy({ $0.count == 1 }) {
-            // Eevee's eight still fit beside a stop and a stretch.
+            // Eevee's eight still fit on one line beside a stop and a stretch; more wrap.
             let size: CGFloat = paths.count > 6 ? 19 : 22
-            HStack(spacing: 1) { ForEach(paths.map { $0[0] }) { candidate($0, size: size) } }
+            WrappingHStack(spacing: 1, lineSpacing: 1) { ForEach(paths.map { $0[0] }) { candidate($0, size: size) } }
         } else {
             VStack(alignment: .leading, spacing: 2) {
                 ForEach(Array(paths.enumerated()), id: \.offset) { _, path in

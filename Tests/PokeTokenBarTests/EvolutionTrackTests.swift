@@ -1,3 +1,5 @@
+import AppKit
+import SwiftUI
 import XCTest
 @testable import PokeTokenBar
 
@@ -97,6 +99,49 @@ final class EvolutionTrackTests: XCTestCase {
                                                     names: names, l: l), "\(l.toNextEvolution("425M")) · 32%")
     }
 
+    /// Vivillon's twenty patterns stood on one line wider than the card and pushed the popover off its edges. The ways
+    /// get the width the stops leave and wrap within it.
+    func testAWideBranchWrapsWithinTheTrack() async throws {
+        let patterns = PokemonForm.forms(speciesID: 666).map {
+            [BranchEvolutionItem(speciesID: 666, isCollected: false, form: $0)]
+        }
+        XCTAssertGreaterThan(patterns.count, 15)
+        let stops: [CompanionStore.EvolutionTrackStop] = [.reached(664, isCurrent: true), .coming(665, isCaught: false),
+                                                          .branch(patterns)]
+        let measured = MeasuredSize()
+        let width: CGFloat = 300
+        let view = EvolutionTrackView(stops: stops, progress: 0.2, tint: .gray, remaining: "1M to Spewpa · 20%",
+                                      amount: "1M", detail: "", l: L(.en))
+            .background(GeometryReader { geo in
+                Color.clear.onChange(of: geo.size, initial: true) { _, size in measured.size = size }
+            })
+            .frame(width: width)
+        let host = NSHostingView(rootView: AnyView(view))
+        host.frame = NSRect(x: 0, y: 0, width: width, height: 300)
+        let window = NSWindow(contentRect: NSRect(x: -10000, y: -10000, width: width, height: 300),
+                              styleMask: .borderless, backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.contentView = host
+        window.orderFront(nil)
+        defer { window.close() }
+        try await Task.sleep(for: .milliseconds(200))
+        host.layoutSubtreeIfNeeded()
+        XCTAssertLessThanOrEqual(measured.size.width, width + 0.5, "the track stays within its width")
+        XCTAssertGreaterThan(measured.size.height, EvolutionTrackView.stopSize + 30, "the patterns wrap onto more lines")
+        // Eevee's eight still stand on one line.
+        let eevee = (0..<8).map { [BranchEvolutionItem(speciesID: 134 + $0, isCollected: false)] }
+        measured.size = .zero
+        host.rootView = AnyView(EvolutionTrackView(stops: [.reached(133, isCurrent: true), .branch(eevee)], progress: 0.2,
+                                                   tint: .gray, remaining: "1M · 20%", amount: "1M", detail: "", l: L(.en))
+            .background(GeometryReader { geo in
+                Color.clear.onChange(of: geo.size, initial: true) { _, size in measured.size = size }
+            })
+            .frame(width: width))
+        try await Task.sleep(for: .milliseconds(200))
+        host.layoutSubtreeIfNeeded()
+        XCTAssertLessThan(measured.size.height, EvolutionTrackView.stopSize + 30, "one line for Eevee's eight")
+    }
+
     func testNoTrackForTheEgg() throws {
         let suite = "TrackEgg-\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -109,4 +154,9 @@ final class EvolutionTrackTests: XCTestCase {
         let store = CompanionStore(provider: TrackLineProvider(), fileURL: file, defaults: defaults)
         XCTAssertTrue(store.evolutionTrack.isEmpty)
     }
+}
+
+@MainActor
+private final class MeasuredSize {
+    var size: CGSize = .zero
 }
