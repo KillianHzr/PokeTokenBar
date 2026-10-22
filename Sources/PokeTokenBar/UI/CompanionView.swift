@@ -66,9 +66,10 @@ struct SpriteSubject: Equatable {
     }
 
     /// 주체가 알로 바뀌었다(졸업·새 알). 이전 **개체**의 이미지는 다른 주체의 픽셀이라 버린다.
-    /// 이미 알이던 경우(loadedID == nil)엔 손대지 않는다 — 시드된 알 이미지를 지워 🥚 글리프로 깜빡이게 하지 않기 위해.
+    /// An egg already shown changes only for another egg's image (a guarantee bought): nil never erases a seeded egg
+    /// into the 🥚 glyph.
     func becomingEgg(cachedEgg: NSImage?) -> SpriteSubject {
-        guard loadedID != nil else { return self }
+        if loadedID == nil, cachedEgg == nil || cachedEgg === image { return self }
         return SpriteSubject(image: cachedEgg, loadedID: nil)
     }
 
@@ -84,10 +85,6 @@ struct SpriteSubject: Equatable {
                                         loadedForm: PokemonForm.resolved(speciesID: id, form: form))
     }
 
-    /// 로드된 알 스프라이트를 반영한 결과(같은 이유로 취소면 nil). 알은 종이 없으므로 loadedID 는 그대로.
-    func applyingEgg(_ image: NSImage?, cancelled: Bool) -> SpriteSubject? {
-        cancelled ? nil : SpriteSubject(image: image, loadedID: loadedID)
-    }
 }
 
 /// 스프라이트 1개(런타임 로드 + 캐시). 없으면 알 글리프. bob 으로 가벼운 상하 움직임.
@@ -107,6 +104,8 @@ struct SpriteView: View {
     /// 팝오버 등 일시적 표시는 0(기본)으로 두어 네이티브 fps 유지.
     var minFrameDelay: TimeInterval = 0
     var form: PokemonForm? = nil
+    /// The egg drawn when there is no species: its guarantee decides its look.
+    var egg: EggKind = .plain
     var isSilhouette: Bool = false
     /// Draws the Pokémon at one scale with its neighbors (`SpriteFit.sameScaleSize`) instead of filling the box:
     /// for the Pokédex grid and evolution lines, where a Charmander sits next to a Charizard.
@@ -119,7 +118,7 @@ struct SpriteView: View {
 
     init(speciesID: Int?, size: CGFloat = 84, bob: Bool = false, animated: Bool = false,
          shiny: Bool = false, minFrameDelay: TimeInterval = 0, spriteStore: SpriteStore = .shared,
-         form: PokemonForm? = nil, isSilhouette: Bool = false, sameScale: Bool = false) {
+         form: PokemonForm? = nil, egg: EggKind = .plain, isSilhouette: Bool = false, sameScale: Bool = false) {
         self.speciesID = speciesID
         self.sameScale = sameScale
         self.spriteStore = spriteStore
@@ -129,15 +128,16 @@ struct SpriteView: View {
         self.shiny = shiny
         self.minFrameDelay = minFrameDelay
         self.form = form
+        self.egg = egg
         self.isSilhouette = isSilhouette
         // 캐시에 있으면 즉시(동기) 표시 — 재렌더 플래시 방지 + 정적 스냅샷에서도 보임.
         // speciesID==nil(알 상태)이면 알 스프라이트를 시드(없으면 body 가 🥚 폴백).
         let resolvedForm = speciesID.flatMap { PokemonForm.resolved(speciesID: $0, form: form) }
         let cached = speciesID.map { SpriteLoader.cachedImage(speciesID: $0, shiny: shiny, directory: spriteStore.directory,
-                                                            form: resolvedForm) } ?? SpriteLoader.cachedEggImage()
+                                                            form: resolvedForm) } ?? EggRenderer.still(egg)
         let cachedFrames = animated ? speciesID.map {
             SpriteLoader.cachedFrames(speciesID: $0, shiny: shiny, directory: spriteStore.directory, form: resolvedForm)
-        } ?? [] : []
+        } ?? EggRenderer.idleFrames(egg) : []
         _frames = State(initialValue: GIFDecoder.capFrameRate(cachedFrames, floor: minFrameDelay))
         _subject = State(initialValue: SpriteSubject(image: cached,
                                                     loadedID: (speciesID != nil && cached != nil) ? speciesID : nil,
@@ -152,9 +152,11 @@ struct SpriteView: View {
     /// 프레임은 하한에 맞춰 솎아낸 결과물이라, 빠지면 fps 설정 변경이 종 교체까지 안 먹는다
     /// (`AppDelegate.menuSpriteKey` 와 같은 이유). 순수·테스트용.
     static func frameTaskID(speciesID: Int?, shiny: Bool, floor: TimeInterval, animated: Bool = true,
-                            form: PokemonForm? = nil) -> String {
+                            form: PokemonForm? = nil, egg: EggKind = .plain) -> String {
         let resolved = speciesID.flatMap { PokemonForm.resolved(speciesID: $0, form: form) }
-        return "\(speciesID.map(String.init) ?? "nil")-\(shiny)-\(floor)-\(animated)-\(resolved?.rawValue ?? "")"
+        // An egg is told apart by its kind: buying a guarantee redraws it.
+        let subject = speciesID.map(String.init) ?? "egg-\(egg)"
+        return "\(subject)-\(shiny)-\(floor)-\(animated)-\(resolved?.rawValue ?? "")"
     }
 
     /// 디코드된 GIF 프레임 중 실제로 재생할 것 — 취소됐거나 2프레임 미만이면 빈 배열(정적 폴백).
@@ -232,25 +234,28 @@ struct SpriteView: View {
                 Text("🥚").font(.system(size: size * 0.62)).frame(width: size, height: size)
             }
         }
+        // The rarer guarantees' eggs glow in their color.
+        .background {
+            if speciesID == nil, let glow = egg.glow {
+                EggShape().fill(glow.opacity(0.45)).frame(width: size, height: size * 0.82).blur(radius: size * 0.08)
+            }
+        }
         // GIF 재생 중엔 bob 정지(프레임 자체가 움직임) — 폴백/정적일 때만 상하 움직임
         .offset(y: bob && frames.isEmpty && up ? -3 : 0)
         .task(id: Self.frameTaskID(speciesID: speciesID, shiny: shiny, floor: minFrameDelay,
-                                  animated: animated, form: resolvedForm)) {
+                                  animated: animated, form: resolvedForm, egg: egg)) {
             // animated 프레임은 id/shiny 변경 시 항상 초기화(이전 개체 프레임 잔상 방지)
             frames = animated ? GIFDecoder.capFrameRate(
                 speciesID.map { SpriteLoader.cachedFrames(speciesID: $0, shiny: shiny, directory: spriteStore.directory,
-                                                          form: resolvedForm) } ?? [],
+                                                          form: resolvedForm) } ?? EggRenderer.idleFrames(egg),
                 floor: minFrameDelay) : []
             frameIndex = 0
             guard let id = speciesID else {
-                // 알 상태 — 정적 알 스프라이트 로드(애니메이션 알은 없음). 실패/오프라인이면 body 가 🥚 폴백.
+                // 알 상태 — the drawn egg, still and idle loop rendered on the spot.
                 // 종 → 알(졸업·새 알)이면 이전 개체 이미지를 버려야 한다 — img 는 뷰 identity 가 살아있는 동안
                 // 유지되고 플로팅 펫 패널은 졸업 때 재생성되지 않아, 안 버리면 옛 포켓몬이 계속 떠 있다.
-                apply(subject.becomingEgg(cachedEgg: SpriteLoader.cachedEggImage()))
-                if subject.image == nil {
-                    let egg = await SpriteLoader.eggImage()
-                    if let next = subject.applyingEgg(egg, cancelled: Task.isCancelled) { apply(next) }
-                }
+                apply(subject.becomingEgg(cachedEgg: EggRenderer.still(egg)))
+                await playFrames()
                 return
             }
             // Drop the previous form before any await; cached pixels and metadata change atomically.
@@ -273,24 +278,29 @@ struct SpriteView: View {
                 // Nonanimated views still fetch the exact PNG variant once.
                 await loadStaticImage(for: id)
             }
-            guard !frames.isEmpty, !Task.isCancelled else { return }
-            // delay 기반 프레임 advance. .task 취소 시(speciesID 변경/뷰 소멸) 루프 종료 — 누수 없음
-            while !Task.isCancelled {
-                let delay = frames[frameIndex % frames.count].delay
-                // minFrameDelay>0(플로팅 펫): tolerance 로 wakeup 코얼레싱 — 메뉴바 `Timer.tolerance`
-                // 와 같은 규율(항상 뜬 표면의 idle 배터리 통제). 0 이면 코얼레싱 없이 네이티브.
-                // 코얼레싱 배수는 메뉴바와 공유한다 — 늦게만 발화하므로 크게 두면 재생이 늘어진다
-                // (`AppDelegate.menuFrameTolerance` 주석).
-                try? await Task.sleep(
-                    for: .seconds(delay),
-                    tolerance: minFrameDelay > 0 ? .seconds(delay * AppDelegate.menuFrameTolerance) : .zero)
-                if Task.isCancelled { break }
-                frameIndex = (frameIndex + 1) % frames.count
-            }
+            await playFrames()
         }
         .onAppear {
             guard bob else { return }
             withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) { up = true }
+        }
+    }
+
+    /// Plays `frames` until the task ends (another subject, the view gone). Nothing to play: returns.
+    private func playFrames() async {
+        guard !frames.isEmpty, !Task.isCancelled else { return }
+        // delay 기반 프레임 advance. .task 취소 시(speciesID 변경/뷰 소멸) 루프 종료 — 누수 없음
+        while !Task.isCancelled {
+            let delay = frames[frameIndex % frames.count].delay
+            // minFrameDelay>0(플로팅 펫): tolerance 로 wakeup 코얼레싱 — 메뉴바 `Timer.tolerance`
+            // 와 같은 규율(항상 뜬 표면의 idle 배터리 통제). 0 이면 코얼레싱 없이 네이티브.
+            // 코얼레싱 배수는 메뉴바와 공유한다 — 늦게만 발화하므로 크게 두면 재생이 늘어진다
+            // (`AppDelegate.menuFrameTolerance` 주석).
+            try? await Task.sleep(
+                for: .seconds(delay),
+                tolerance: minFrameDelay > 0 ? .seconds(delay * AppDelegate.menuFrameTolerance) : .zero)
+            if Task.isCancelled { break }
+            frameIndex = (frameIndex + 1) % frames.count
         }
     }
 }
@@ -934,7 +944,7 @@ struct CompanionHeader: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .center, spacing: 12) {
                 SpriteView(speciesID: store.currentSpeciesID, size: 80, bob: true, animated: true,
-                           shiny: store.currentIsShiny, form: store.currentForm)
+                           shiny: store.currentIsShiny, form: store.currentForm, egg: store.eggKind)
                     .frame(width: 84, height: 84)
                     // A soft ground shadow under the Pokémon, on the hero card's glow.
                     .background(alignment: .bottom) {

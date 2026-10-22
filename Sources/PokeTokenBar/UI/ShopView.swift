@@ -167,7 +167,7 @@ private struct EggCard: View {
             HStack(alignment: .top, spacing: 10) {
                 // 크롭+정사각 보정한 알. 레이아웃은 30(다른 아이템 아이콘과 정렬 일치)으로 두되 알 자체는 26으로
                 // 살짝 작게 — 프레임에 여백이 생겨 꽉 찬 "뚱뚱" 느낌이 줄고 크기도 약간 작아진다.
-                SpriteView(speciesID: nil, size: 26)
+                SpriteView(speciesID: nil, size: 26, egg: EggKind(tier: tier))
                     .frame(width: 30, height: 30)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
