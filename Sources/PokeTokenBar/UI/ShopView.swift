@@ -120,7 +120,7 @@ private struct ShopItemCard: View {
                     .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                 Spacer()
                 Button(selectedQuantity > 1 ? "\(l.buy) ×\(selectedQuantity)" : l.buy) { buyNow() }
-                    .buttonStyle(store.pillButton(prominent: true))
+                    .buttonStyle(.pill(prominent: true))
                 Button(l.cancel) { confirming = false }
                     .buttonStyle(.borderless).controlSize(.small)
             }
@@ -132,7 +132,7 @@ private struct ShopItemCard: View {
                 Spacer()
                 if store.canBuy(kind) {
                     Button(l.buy) { confirming = true }
-                        .buttonStyle(store.pillButton())
+                        .buttonStyle(.pill())
                 } else {
                     Text(l.notEnoughTokens)
                         .font(.caption2).foregroundStyle(.tertiary)

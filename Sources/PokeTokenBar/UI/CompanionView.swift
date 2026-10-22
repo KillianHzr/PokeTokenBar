@@ -846,7 +846,8 @@ struct CompanionHeader: View {
                         LabeledProgressBar(value: store.progress,
                                            label: Self.progressDetail(used: store.state.active?.usedAtStage ?? 0,
                                                                       total: store.threshold),
-                                           tint: store.themeColor)
+                                           // The rarity's color: in the type's, a Dark type's bar vanished on its card.
+                                           tint: rarityColor(store.rarity))
                         if store.tokensToNext > 0 {
                             let amount = TokenFormatter.compact(store.tokensToNext)
                             Text(store.isFinalStage ? store.l.toGraduation(amount) : store.l.toNextEvolution(amount))
@@ -875,7 +876,7 @@ struct CompanionHeader: View {
                         LabeledProgressBar(value: store.eggProgress,
                                            label: Self.progressDetail(used: store.state.eggUsage,
                                                                       total: store.eggHatchThreshold),
-                                           tint: store.themeColor)
+                                           tint: store.eggGuarantee.map { rarityColor($0) } ?? Design.eggColor)
                         if store.isEgg, store.isHatchRetryDelayed {
                             Text(store.l.eggHatchDelayed)
                                 .font(.caption2)
@@ -1139,8 +1140,7 @@ struct CollectionView: View {
         } else {
             VStack(alignment: .leading, spacing: 6) {
                 PillPicker(selection: $nav.showingCollectionLog,
-                           options: [(false, store.l.dexTitle), (true, store.l.catchLogTitle)],
-                           accent: store.themeColor)
+                           options: [(false, store.l.dexTitle), (true, store.l.catchLogTitle)])
 
                 filterToolbar
 
@@ -1953,9 +1953,7 @@ struct PokemonDetailView: View {
 
     private var appearancePicker: some View {
         PillPicker(selection: Binding(get: { displayedShiny }, set: { selectedShiny = $0; selectedInstanceID = "" }),
-                   options: [(false, store.l.dexNormalLabel), (true, "✨ \(store.l.dexShinyLabel)")],
-                   accent: PokemonTypeData.types(forSpeciesID: species.id, form: displayedSpecies.form).first?.color
-                       ?? store.themeColor)
+                   options: [(false, store.l.dexNormalLabel), (true, "✨ \(store.l.dexShinyLabel)")])
             .accessibilityLabel(store.l.dexAppearance)
     }
 

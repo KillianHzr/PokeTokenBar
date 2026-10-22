@@ -8,6 +8,9 @@ enum Design {
     static let sectionSpacing: CGFloat = 10
     /// The egg has no type: a warm gold until it hatches.
     static let eggColor = Color(.sRGB, red: 0.95, green: 0.72, blue: 0.30)
+    /// Buttons, pickers and charts: one color whatever the Pokémon. In its type's color, a Dark or Ghost type
+    /// made them dark on a dark popover and an Electric one yellow on white.
+    static let actionColor = Color(.sRGB, red: 0.27, green: 0.52, blue: 0.98)
 }
 
 extension View {
@@ -193,7 +196,7 @@ extension View {
 struct PillPicker<Value: Hashable>: View {
     @Binding var selection: Value
     let options: [(value: Value, title: String)]
-    var accent: Color = .accentColor
+    var accent: Color = Design.actionColor
 
     static var labelFont: NSFont { .systemFont(ofSize: 12, weight: .semibold) }
     static var minimumLabelScale: CGFloat { 0.75 }
@@ -234,8 +237,8 @@ struct PillPicker<Value: Hashable>: View {
 /// A capsule button. Prominent (Buy, Use, Claim): filled with `tint`; otherwise a faint wash of it. Disabled: grey.
 struct PillButtonStyle: ButtonStyle {
     var prominent = false
-    var tint: Color = .accentColor
-    /// Text on a prominent fill: dark on light colors (Electric yellow, the egg's gold), white otherwise.
+    var tint: Color = Design.actionColor
+    /// Text on a prominent fill.
     var textOnTint: Color = .white
 
     func makeBody(configuration: Configuration) -> some View {
@@ -304,31 +307,15 @@ struct CircleIconButton: View {
 }
 
 extension CompanionStore {
-    /// The type of the Pokémon being raised: its form's first type; nil for the egg.
-    var themeType: PokemonType? {
-        guard hasActive, let id = currentSpeciesID else { return nil }
-        return PokemonTypeData.types(forSpeciesID: id, form: currentForm).first
-    }
-
-    /// The color of the Pokémon being raised: its type's, gold for the egg.
-    var themeColor: Color { themeType?.color ?? Design.eggColor }
-
-    /// Its types' colors, two for a dual type: what the hero card blends.
+    /// The colors of the Pokémon being raised, two for a dual type: what the hero card blends. Gold for the egg.
     var themeColors: [Color] {
         guard hasActive, let id = currentSpeciesID else { return [Design.eggColor] }
         let colors = PokemonTypeData.types(forSpeciesID: id, form: currentForm).prefix(2).map(\.color)
         return colors.isEmpty ? [Design.eggColor] : Array(colors)
     }
+}
 
-    /// Text on a `themeColor` fill: dark on the light types (Electric, Ice, Fairy…) and the egg's gold.
-    var themeTextColor: Color {
-        let hex = themeType?.hex ?? 0xF2B84D
-        let r = Double((hex >> 16) & 0xFF) / 255, g = Double((hex >> 8) & 0xFF) / 255, b = Double(hex & 0xFF) / 255
-        return 0.299 * r + 0.587 * g + 0.114 * b > 0.62 ? Color.black.opacity(0.8) : .white
-    }
-
-    /// A pill button in the color of the Pokémon being raised.
-    func pillButton(prominent: Bool = false) -> PillButtonStyle {
-        PillButtonStyle(prominent: prominent, tint: themeColor, textOnTint: themeTextColor)
-    }
+extension ButtonStyle where Self == PillButtonStyle {
+    /// A capsule button in `Design.actionColor`: Buy, Use, Claim and their secondary actions.
+    static func pill(prominent: Bool = false) -> PillButtonStyle { PillButtonStyle(prominent: prominent) }
 }

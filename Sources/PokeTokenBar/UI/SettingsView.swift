@@ -117,8 +117,8 @@ struct SettingsView: View {
                     }
                     .padding(16)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    // Switches, sliders and pickers in the color of the Pokémon being raised.
-                    .tint(companion.themeColor)
+                    // Switches, sliders and pickers in the buttons' color, whatever the Pokémon.
+                    .tint(Design.actionColor)
                 }
                 .onAppear {
                     companion.refreshSnapshots()
@@ -151,7 +151,7 @@ struct SettingsView: View {
                 }
             }
             .buttonStyle(.plain)
-            .foregroundStyle(companion.themeColor)
+            .foregroundStyle(Design.actionColor)
             .keyboardShortcut(.cancelAction)
             Spacer()
             Text(l.settings).font(.system(size: 15, weight: .bold, design: .rounded))

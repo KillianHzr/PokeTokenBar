@@ -62,8 +62,7 @@ struct AchievementsView: View {
             header
 
             PillPicker(selection: $selectedCategory,
-                       options: AchievementCategory.allCases.map { ($0, Self.tabTitle($0, store)) },
-                       accent: store.themeColor)
+                       options: AchievementCategory.allCases.map { ($0, Self.tabTitle($0, store)) })
 
             categoryProgress(l)
 
@@ -242,7 +241,7 @@ private struct AchievementCard: View {
             Button(readyTiers > 1 ? "\(l.claim) (\(readyTiers))" : l.claim) {
                 store.claimAchievement(kind)
             }
-            .buttonStyle(store.pillButton(prominent: true))
+            .buttonStyle(.pill(prominent: true))
         } else if let type = kind.badgeType {
             // A badge is never locked as a whole: show how many of its regions are claimed.
             Label("\(store.claimedBadgeTierCount(type))/\(PokemonTypeData.badgeGenerations(for: type).count)",

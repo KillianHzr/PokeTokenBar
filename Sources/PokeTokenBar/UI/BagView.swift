@@ -35,8 +35,7 @@ struct BagView: View {
                     PillPicker(selection: Binding(get: { current }, set: { section = $0 }),
                                options: sections.map { s in
                                    (s, "\(title(s)) \(owned.filter { Section.of($0.kind) == s }.count)")
-                               },
-                               accent: store.themeColor)
+                               })
                 }
                 ScrollView {
                     if current == .badges {
@@ -85,7 +84,7 @@ struct BagView: View {
             Text(store.l.bagEmptyTitle)
                 .font(.callout.weight(.semibold))
             Button(store.l.shop) { nav.tab = .shop }
-                .buttonStyle(store.pillButton())
+                .buttonStyle(.pill())
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 28)
@@ -214,7 +213,7 @@ private struct ItemCard: View {
                         .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                     Spacer()
                     Button(kind == .rareCandy ? "\(l.use) ×\(selectedCandyCount)" : l.use) { useNow() }
-                        .buttonStyle(store.pillButton(prominent: true))
+                        .buttonStyle(.pill(prominent: true))
                     Button(l.cancel) { confirming = false }
                         .buttonStyle(.borderless).controlSize(.small)
                 }
@@ -224,7 +223,7 @@ private struct ItemCard: View {
                         .font(.caption2).foregroundStyle(.tertiary).monospacedDigit()
                     Spacer()
                     Button(l.useItem) { confirming = true }
-                        .buttonStyle(store.pillButton())
+                        .buttonStyle(.pill())
                 }
             }
         } else {

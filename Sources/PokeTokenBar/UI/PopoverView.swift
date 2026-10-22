@@ -11,7 +11,7 @@ struct PopoverTabPicker: View {
     @Binding var tab: PopoverTab
     let l: L
     let unclaimedAchievements: Int
-    var accent: Color = .accentColor
+    var accent: Color = Design.actionColor
 
     /// The labels' font, shared with the width test.
     static let labelFont = NSFont.systemFont(ofSize: 10, weight: .semibold)
@@ -232,8 +232,7 @@ struct PopoverView: View {
         @Bindable var nav = nav
         return VStack(alignment: .leading, spacing: 12) {
             updateBanner
-            PopoverTabPicker(tab: $nav.tab, l: l, unclaimedAchievements: companion.unclaimedAchievementsCount,
-                             accent: companion.themeColor)
+            PopoverTabPicker(tab: $nav.tab, l: l, unclaimedAchievements: companion.unclaimedAchievementsCount)
 
             if nav.tab == .collection {
                 CollectionView(store: companion, navigation: nav)
@@ -323,8 +322,7 @@ struct PopoverView: View {
                         providerOrder: store.registeredProviderIDs,
                         showsCost: store.showsCost,
                         today: LocalUsageReader.todayKey(),
-                        l: l,
-                        accent: companion.themeColor)
+                        l: l)
             .designCard()
     }
 
@@ -1159,7 +1157,7 @@ struct MonthDailyTrend: View {
     let today: String
     let l: L
     /// Today's bar and axis label: the color of the Pokémon being raised on Home.
-    var accent: Color = .accentColor
+    var accent: Color = Design.actionColor
 
     /// The hovered bar. Its day's numbers show in a tooltip above the bars, without the `.help` delay.
     /// The caption keeps today's combined readout either way — opening the popover shows today's
