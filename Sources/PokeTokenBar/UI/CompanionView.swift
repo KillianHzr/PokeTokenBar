@@ -500,7 +500,7 @@ struct EvoLineView: View {
         guard case .species(let id) = node.content else {
             return DexEntryLink(target: nil, hint: "", accessibilityName: nil, cornerRadius: 6, open: onOpenDexEntry)
         }
-        return dexLinkModifier(forSpeciesID: id, isCollected: true)
+        return dexLinkModifier(forSpeciesID: id, isCollected: node.state != .uncaught)
     }
 
     private var row: some View {
@@ -514,8 +514,10 @@ struct EvoLineView: View {
                 }
                 switch node.content {
                 case .species(let id):
+                    let uncaught = node.state == .uncaught
                     VStack(spacing: 1) {
-                        SpriteView(speciesID: id, size: thumb, shiny: shiny, form: form, sameScale: true)
+                        SpriteView(speciesID: id, size: thumb, shiny: shiny && !uncaught, form: form,
+                                   isSilhouette: uncaught, sameScale: true)
                             .opacity(node.state == .future ? 0.32 : 1)
                             .saturation(node.state == .future ? 0.4 : 1)
                             .overlay(alignment: .bottom) {
@@ -525,8 +527,10 @@ struct EvoLineView: View {
                             }
                         if let names {
                             // Labels are one thumbnail wide: only Unown's letter fits, the sprite shows other forms.
-                            Text(PokemonForm.displayName(names[id] ?? "…", speciesID: id, form: form, label: nil))
-                                .font(.system(size: nameFontSize)).foregroundStyle(.secondary)
+                            Text(uncaught ? "???"
+                                 : PokemonForm.displayName(names[id] ?? "…", speciesID: id, form: form, label: nil))
+                                .font(.system(size: nameFontSize))
+                                .foregroundStyle(uncaught ? .tertiary : .secondary)
                                 .lineLimit(nameLineLimit).minimumScaleFactor(nameMinimumScaleFactor)
                                 .multilineTextAlignment(.center)
                                 .frame(maxWidth: thumb + Self.nameSlack)
@@ -553,10 +557,11 @@ struct EvoLineView: View {
                             VStack(spacing: 1) {
                                 Group {
                                     if item.isCollected {
+                                        // Faded when it is a coming evolution (Home); a Pokédex page's family is caught.
                                         SpriteView(speciesID: item.speciesID, size: thumb, shiny: shiny, form: item.form ?? form,
                                                    sameScale: true)
-                                            .opacity(0.4)
-                                            .saturation(0.6)
+                                            .opacity(node.state == .future ? 0.4 : 1)
+                                            .saturation(node.state == .future ? 0.6 : 1)
                                     } else {
                                         // Silhouette noire (ombre) pour les évolutions non encore obtenues
                                         SpriteView(speciesID: item.speciesID, size: thumb, shiny: false, form: item.form ?? form,
@@ -1130,12 +1135,14 @@ struct CollectionView: View {
             emptyState
         } else if let id = nav.dexDetailCollectionID,
                   let species = store.dexSpecies.first(where: { $0.collectionID == id }) {
-            PokemonDetailView(store: store, species: species) {
+            PokemonDetailView(store: store, species: species, onBack: {
+                // A page opened from another's evolution family goes back to that one first.
+                if nav.returnToPreviousDexPage() { return }
                 // Back to the log would leave it for the next switch to the grid.
                 if !nav.showingCollectionLog { dexReturnAnchor = id }
                 nav.dexDetailCollectionID = nil
-            }
-                .id(species.collectionID)
+            }, initialForm: nav.dexDetailForm, onOpenDexPage: { page, current in nav.openDexPage(page, from: current) })
+                .id("\(species.collectionID)-\(nav.dexDetailForm?.rawValue ?? "")")
                 .frame(height: Self.contentHeight)
         } else {
             VStack(alignment: .leading, spacing: 6) {
@@ -1763,14 +1770,21 @@ struct PokemonDetailView: View {
     @State private var selectedForm: PokemonForm?
     @State private var selectedShiny: Bool?
 
+    /// Opens another page of the family (the target, then this page as it is shown, for Back).
+    private let onOpenDexPage: ((PopoverNavigation.DexPage, PopoverNavigation.DexPage) -> Void)?
+
     init(store: CompanionStore, species: CompanionStore.DexSpecies,
          onBack: @escaping () -> Void, selectedShiny: Bool? = nil,
-         spriteStore: SpriteStore = .shared) {
+         spriteStore: SpriteStore = .shared, initialForm: PokemonForm? = nil,
+         onOpenDexPage: ((PopoverNavigation.DexPage, PopoverNavigation.DexPage) -> Void)? = nil) {
         self.store = store
         self.species = species
         self.onBack = onBack
         self.spriteStore = spriteStore
+        self.onOpenDexPage = onOpenDexPage
         _selectedShiny = State(initialValue: selectedShiny)
+        // A family page opens in the form it was seen in, when this species was caught in it (`displayedSpecies`).
+        _selectedForm = State(initialValue: initialForm.flatMap { PokemonForm.resolved(speciesID: species.id, form: $0) })
     }
 
     private var formSpecies: [CompanionStore.DexSpecies] {
@@ -1940,42 +1954,67 @@ struct PokemonDetailView: View {
     private var identityHeader: some View {
         let species = displayedSpecies
         let typeColors = PokemonTypeData.types(forSpeciesID: species.id, form: species.form).prefix(2).map(\.color)
-        return HStack(spacing: 14) {
-            SpriteView(speciesID: species.id, size: 96, animated: true,
-                       shiny: displayedShiny, spriteStore: spriteStore, form: species.form)
-                .frame(width: 100, height: 100)
-                .background(alignment: .bottom) {
-                    Ellipse().fill(Color.black.opacity(0.18)).frame(width: 60, height: 10).blur(radius: 2)
-                }
-            VStack(alignment: .leading, spacing: 5) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(species.name).font(.system(size: 18, weight: .bold, design: .rounded))
-                        .lineLimit(1).minimumScaleFactor(0.75)
-                    if species.rarity == .legendary {
-                        LegendaryBadge(text: store.l.rarityLabel(species.rarity).uppercased()).fixedSize()
-                    } else {
-                        Badge(store.l.rarityLabel(species.rarity).uppercased(), tint: .rarity(species.rarity))
-                            .lineLimit(1).fixedSize()
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 14) {
+                SpriteView(speciesID: species.id, size: 96, animated: true,
+                           shiny: displayedShiny, spriteStore: spriteStore, form: species.form)
+                    .frame(width: 100, height: 100)
+                    .background(alignment: .bottom) {
+                        Ellipse().fill(Color.black.opacity(0.18)).frame(width: 60, height: 10).blur(radius: 2)
+                    }
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(species.name).font(.system(size: 18, weight: .bold, design: .rounded))
+                            .lineLimit(1).minimumScaleFactor(0.75)
+                        if species.rarity == .legendary {
+                            LegendaryBadge(text: store.l.rarityLabel(species.rarity).uppercased()).fixedSize()
+                        } else {
+                            Badge(store.l.rarityLabel(species.rarity).uppercased(), tint: .rarity(species.rarity))
+                                .lineLimit(1).fixedSize()
+                        }
+                    }
+                    let types = PokemonTypeData.typeNames(speciesID: species.id, form: species.form,
+                                                          fallback: store.pokemonDetails(speciesID: species.id, form: species.form)?.types)
+                    if !types.isEmpty {
+                        TypeBadges(types: types, language: store.language, size: 11,
+                                   horizontalPadding: 7, verticalPadding: 2)
+                    }
+                    if displayedShiny { Text("✨ \(store.l.dexShinyLabel)").font(.callout) }
+                    if let individual, store.isActiveDexEntry(individual) { Text(store.l.dexRaising).font(.callout).foregroundStyle(Color.accentColor) }
+                    let isRepresentative = store.isRepresentative(species)
+                    RepresentativeFooterButton(localization: store.l,
+                                               isRepresentative: isRepresentative) {
+                        _ = store.setRepresentativeSpeciesID(isRepresentative ? nil : species.id,
+                                                             form: species.form)
                     }
                 }
-                let types = PokemonTypeData.typeNames(speciesID: species.id, form: species.form,
-                                                      fallback: store.pokemonDetails(speciesID: species.id, form: species.form)?.types)
-                if !types.isEmpty {
-                    TypeBadges(types: types, language: store.language, size: 11,
-                               horizontalPadding: 7, verticalPadding: 2)
-                }
-                if displayedShiny { Text("✨ \(store.l.dexShinyLabel)").font(.callout) }
-                if let individual, store.isActiveDexEntry(individual) { Text(store.l.dexRaising).font(.callout).foregroundStyle(Color.accentColor) }
-                let isRepresentative = store.isRepresentative(species)
-                RepresentativeFooterButton(localization: store.l,
-                                           isRepresentative: isRepresentative) {
-                    _ = store.setRepresentativeSpeciesID(isRepresentative ? nil : species.id,
-                                                         form: species.form)
-                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            familyLine(species)
         }
         .heroCard(colors: typeColors.isEmpty ? [.gray] : Array(typeColors), legendary: species.rarity == .legendary)
+    }
+
+    /// What the species evolves from and into, under its identity like the line on Home's card. A caught one opens
+    /// its page in the same form, and Back comes back here; one not caught is a silhouette.
+    @ViewBuilder
+    private func familyLine(_ shown: CompanionStore.DexSpecies) -> some View {
+        let family = store.dexFamily(speciesID: shown.id, form: shown.form)
+        if !family.nodes.isEmpty {
+            let dex = store.dexSpecies
+            // The species itself is the page already open.
+            let links = Dictionary(dex.filter { $0.id != shown.id }.map { ($0.id, $0.collectionID) },
+                                   uniquingKeysWith: { first, _ in first })
+            let names = Dictionary(dex.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
+            EvoLineView(nodes: family.nodes, mysteryLabel: store.l.unknownNextEvolution, language: store.language,
+                        thumb: 34, shiny: displayedShiny, names: names,
+                        maxWidth: PopoverMetrics.scrollContentWidth - Design.cardPadding * 2, form: family.form,
+                        nameFontSize: 10, dexLinks: links,
+                        onOpenDexEntry: { target in
+                            onOpenDexPage?(.init(collectionID: target, form: family.form),
+                                           .init(collectionID: species.collectionID, form: shown.form))
+                        })
+        }
     }
 
     private var appearancePicker: some View {

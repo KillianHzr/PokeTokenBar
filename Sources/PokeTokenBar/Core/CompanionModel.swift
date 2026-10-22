@@ -727,6 +727,8 @@ enum EvoLineItemState: Equatable, Sendable {
     case done
     case current
     case future
+    /// Not in the Pokédex (a Pokédex page's evolution family): a silhouette that opens nothing.
+    case uncaught
 }
 
 struct EvoLineItem: Equatable, Sendable {

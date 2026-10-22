@@ -109,7 +109,36 @@ final class PopoverNavigation {
     /// It lives here so Home sprites can open it, but it only lasts while the collection content is
     /// on screen: leaving the tab, switching segment, or covering it with Settings/Recap drops it —
     /// the same lifetime it had as `CollectionView`'s own `@State`.
-    var dexDetailCollectionID: String?
+    var dexDetailCollectionID: String? {
+        didSet { if dexDetailCollectionID == nil { dexDetailForm = nil; dexDetailHistory = [] } }
+    }
+    /// The form the open page shows first when another page's evolution family opened it: Alolan Ninetales from
+    /// Alolan Vulpix. Nil from the grid, the log and Home.
+    var dexDetailForm: PokemonForm?
+    /// Pages left for another one through their evolution family, the latest last: Back returns to them first.
+    var dexDetailHistory: [DexPage] = []
+
+    /// One Pokédex page in one form.
+    struct DexPage: Equatable {
+        let collectionID: String
+        let form: PokemonForm?
+    }
+
+    /// Opens a page from the evolution family of `current`, which Back returns to.
+    func openDexPage(_ page: DexPage, from current: DexPage) {
+        guard page.collectionID != current.collectionID else { return }
+        dexDetailHistory.append(current)
+        dexDetailCollectionID = page.collectionID
+        dexDetailForm = page.form
+    }
+
+    /// Back from a page: the page it was opened from, if any. False when there is none (back to the grid or log).
+    func returnToPreviousDexPage() -> Bool {
+        guard let previous = dexDetailHistory.popLast() else { return false }
+        dexDetailCollectionID = previous.collectionID
+        dexDetailForm = previous.form
+        return true
+    }
     /// 프로바이더 탭 선택 — reset() 대상이 아님(팝오버를 다시 열어도 보던 서비스 유지).
     var providerID: String?
     /// Claude account tab in the limits section. Kept across openings, like `providerID`.

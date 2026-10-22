@@ -719,6 +719,48 @@ final class CompanionStore {
         dexSpecies.reduce(into: [:]) { links, species in links[species.id] = species.collectionID }
     }
 
+    /// The evolution family of a Pokédex species, for its page: what it evolves from, itself, then what it evolves
+    /// into. Stages follow one another until one evolves several ways: those show side by side and the line stops
+    /// there (each one's page goes on). Empty for a species that neither evolves nor evolves from anything.
+    ///
+    /// The family is seen in `form`, the page's: an Alolan Vulpix's leads to an Alolan Ninetales, a Galarian
+    /// Meowth's to Perrserker. A species without forms that only one form evolves into (Perrserker, Clodsire)
+    /// takes that form, so its Meowth is a Galarian one. The returned form is the one the line is drawn in.
+    /// A species not caught in that form is `uncaught`: a silhouette that opens nothing.
+    func dexFamily(speciesID: Int, form: PokemonForm?) -> (nodes: [EvoLineItem], form: PokemonForm?) {
+        var lineForm = form
+        if lineForm == nil, let gate = PokemonEvolutionData.formGates[speciesID], gate.forms.count == 1,
+           let only = gate.forms.first {
+            lineForm = PokemonForm(only)
+        }
+        func stage(_ id: Int) -> EvoLineItem {
+            EvoLineItem(.species(id), state.ownsSpecies(id, form: lineForm) ? .done : .uncaught)
+        }
+        var ancestors: [Int] = []
+        var id = speciesID
+        while let parent = PokemonEvolutionData.parents[id] {
+            ancestors.insert(parent, at: 0)
+            id = parent
+        }
+        var nodes = ancestors.map(stage) + [EvoLineItem(.species(speciesID), .current)]
+        var node = speciesID
+        while true {
+            let next = PokemonEvolutionData.children(of: node, form: lineForm)
+            if next.count == 1 {
+                nodes.append(stage(next[0]))
+                node = next[0]
+                continue
+            }
+            if next.count > 1 {
+                nodes.append(EvoLineItem(.branch(next.map {
+                    BranchEvolutionItem(speciesID: $0, isCollected: state.ownsSpecies($0, form: lineForm))
+                }), .done))
+            }
+            break
+        }
+        return (nodes.count > 1 ? nodes : [], lineForm)
+    }
+
     /// What a Pokédex species shows first, in its grid cell and when its page opens. Among the forms of a species
     /// that has them: a shiny form before a normal one (the representative's first), then the representative, then
     /// the first collected. A species without forms is itself. Either way, a species caught shiny shows shiny.
