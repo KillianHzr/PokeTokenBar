@@ -108,6 +108,7 @@ struct LegendaryHeroBackground: View {
 @MainActor
 struct LegendaryBadge: View {
     let text: String
+    var systemImage = "sparkles"
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -116,7 +117,7 @@ struct LegendaryBadge: View {
             let phase = reduceMotion ? 0.25
                 : context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 3) / 3
             HStack(spacing: 3) {
-                Image(systemName: "crown.fill").font(.system(size: 8, weight: .bold))
+                Image(systemName: systemImage).font(.system(size: 8, weight: .bold))
                 Text(text)
             }
             .font(.system(size: 9, weight: .heavy, design: .rounded))
