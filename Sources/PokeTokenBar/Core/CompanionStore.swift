@@ -442,6 +442,54 @@ final class CompanionStore {
         return out
     }
 
+    /// One stop of Home's evolution track.
+    enum EvolutionTrackStop: Equatable {
+        /// A stage this individual went through, or the one it is at.
+        case reached(Int, isCurrent: Bool)
+        /// A stage it will reach: the line goes on with one species. `isCaught`: in the Pokédex already.
+        case coming(Int, isCaught: Bool)
+        /// Where the line goes several ways: every path from there to a final stage (Wurmple into Silcoon then
+        /// Beautifly, or Cascoon then Dustox). A coming stage that brings forms (Dunsparce into a two- or
+        /// three-segment Dudunsparce) reads the same way, one path per form.
+        case branch([[BranchEvolutionItem]])
+        /// The end of the line: the final stage graduates.
+        case graduation
+    }
+
+    /// Home's evolution track: the stages reached, then every coming one up to the graduation, or up to where the
+    /// line goes several ways, with all the ways to its end. The individual's planned path stays hidden. Empty
+    /// while the line is not loaded or for the egg.
+    var evolutionTrack: [EvolutionTrackStop] {
+        guard let a = state.active, let line = currentLine else { return [] }
+        var stops = a.pathIDs.prefix(a.stageIndex + 1).enumerated().map { index, id in
+            EvolutionTrackStop.reached(id, isCurrent: index == a.stageIndex)
+        }
+        func caught(_ id: Int) -> Bool { isEvolutionCollected(speciesID: id, baseID: a.baseID) }
+        func paths(from node: EvoNode) -> [[BranchEvolutionItem]] {
+            let open = Self.openChildren(node, form: a.form)
+            guard !open.isEmpty else { return [[]] }
+            return open.flatMap { child in
+                paths(from: child).map { [BranchEvolutionItem(speciesID: child.speciesID, isCollected: caught(child.speciesID))] + $0 }
+            }
+        }
+        guard var node = line.tree.node(withID: a.currentID) else { return stops + [.graduation] }
+        while true {
+            let open = Self.openChildren(node, form: a.form)
+            if open.count > 1 {
+                stops.append(.branch(paths(from: node)))
+                return stops
+            }
+            guard let child = open.first else { break }
+            if case .branch(let forms) = futureLineItem(child.speciesID, active: a).content {
+                stops.append(.branch(forms.map { [$0] }))
+                return stops
+            }
+            stops.append(.coming(child.speciesID, isCaught: caught(child.speciesID)))
+            node = child
+        }
+        return stops + [.graduation]
+    }
+
     /// A coming stage. When it brings forms the current stage doesn't show (Dunsparce into a two- or
     /// three-segment Dudunsparce, Pichu into Alolan Raichu), its forms read like a branch: owned forms
     /// faded, the others as silhouettes, without telling which one this individual will take.

@@ -1053,6 +1053,8 @@ struct L {
           "⏳ Вылупление задерживается — повторим при следующем обновлении")
     }
     func toNextEvolution(_ amount: String) -> String { t("다음 진화까지 \(amount)", "\(amount) to next evolution", "次の進化まで \(amount)", "\(amount) para la siguiente evolución", "\(amount) avant la prochaine évolution", "\(amount) para a próxima evolução", "\(amount) bis zur nächsten Entwicklung", "Ещё \(amount) до следующей эволюции") }
+    /// Tokens left before the next stage, named: "95M to Charmeleon".
+    func toStage(_ amount: String, _ name: String) -> String { t("\(name)까지 \(amount)", "\(amount) to \(name)", "\(name)まで \(amount)", "\(amount) para \(name)", "\(amount) avant \(name)", "\(amount) para \(name)", "\(amount) bis \(name)", "Ещё \(amount) до \(name)") }
     func toGraduation(_ amount: String) -> String { t("졸업까지 \(amount)", "\(amount) to graduation", "卒業まで \(amount)", "\(amount) para graduarse", "\(amount) avant le diplôme", "\(amount) para se formar", "\(amount) bis zum Abschied", "Ещё \(amount) до выпуска") }
     /// A growth multiplier with at most two decimals, in the language's number format ("1.05", "3,6").
     func multiplierNumber(_ value: Double) -> String {

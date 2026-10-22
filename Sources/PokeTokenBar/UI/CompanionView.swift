@@ -590,6 +590,175 @@ struct EvoLineView: View {
     }
 }
 
+/// Home's evolution track: the line's stages as stops along a bar. The stretch from the current stage to the next stop
+/// fills with the growth; earlier stretches are full. Coming stages show as silhouettes until caught; where the line
+/// goes several ways, every way to its end stands at the end of the track behind a bracket; a final stage heads for
+/// the graduation cap. Caught species open their Pokédex page.
+@MainActor
+struct EvolutionTrackView: View {
+    let stops: [CompanionStore.EvolutionTrackStop]
+    let progress: Double
+    /// The rarity's color, like the growth bar it replaces.
+    let tint: Color
+    var shiny = false
+    var form: PokemonForm? = nil
+    /// What is left, under the track ("95M to Charmeleon · 24%"); `amount` is drawn bold inside it.
+    let remaining: String
+    let amount: String
+    /// The exact counts on hover ("60M / 187.5M · 32%").
+    let detail: String
+    let l: L
+    var names: [Int: String] = [:]
+    var dexLinks: [Int: String] = [:]
+    var onOpenDexEntry: ((String) -> Void)? = nil
+
+    static let stopSize: CGFloat = 36
+    private static let spriteSize: CGFloat = 30
+
+    /// Index of the stage the individual is at; the stretch after it is the one growing.
+    private var currentIndex: Int {
+        stops.firstIndex { if case .reached(_, true) = $0 { return true } else { return false } } ?? 0
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center, spacing: 0) {
+                ForEach(Array(stops.enumerated()), id: \.offset) { index, stop in
+                    if index > 0 { stretch(index) }
+                    stopView(stop)
+                }
+            }
+            Text(remainingText)
+                .font(.system(size: 10, weight: .medium, design: .rounded))
+                .foregroundStyle(.secondary).monospacedDigit()
+                .lineLimit(1).minimumScaleFactor(0.8)
+        }
+    }
+
+    private var remainingText: AttributedString {
+        var text = AttributedString(remaining)
+        if let range = text.range(of: amount) {
+            text[range].font = .system(size: 10, weight: .bold, design: .rounded)
+            text[range].foregroundColor = .primary
+        }
+        return text
+    }
+
+    /// The growing stretch tells its exact counts on hover.
+    @ViewBuilder
+    private func stretch(_ index: Int) -> some View {
+        if index == currentIndex + 1 {
+            bar(fill: min(1, max(0, progress))).help(detail)
+        } else {
+            bar(fill: index <= currentIndex ? 1 : 0)
+        }
+    }
+
+    private func bar(fill: Double) -> some View {
+        Capsule().fill(Color.primary.opacity(0.12))
+            .overlay(alignment: .leading) {
+                GeometryReader { geo in
+                    Capsule().fill(LinearGradient(colors: [tint.opacity(0.75), tint], startPoint: .leading,
+                                                  endPoint: .trailing))
+                        .frame(width: geo.size.width * fill)
+                }
+            }
+            .clipShape(Capsule())
+            .frame(minWidth: 10, maxWidth: .infinity)
+            .frame(height: 6)
+            .padding(.horizontal, 3)
+    }
+
+    private func link(_ id: Int, caught: Bool) -> DexEntryLink {
+        DexEntryLink(target: caught ? dexLinks[id] : nil, hint: l.dexOpenEntryHint,
+                     accessibilityName: names[id], cornerRadius: Self.stopSize / 2, open: onOpenDexEntry)
+    }
+
+    private func ring<Content: View>(dashed: Bool, highlight: Color? = nil,
+                                     @ViewBuilder _ content: () -> Content) -> some View {
+        content()
+            .frame(width: Self.stopSize, height: Self.stopSize)
+            .background(Circle().fill(highlight.map { $0.opacity(0.25) } ?? Color.primary.opacity(dashed ? 0 : 0.08)))
+            .overlay(Circle().strokeBorder(highlight ?? Color.primary.opacity(dashed ? 0.28 : 0),
+                                           style: StrokeStyle(lineWidth: highlight == nil ? 1 : 1.5,
+                                                              dash: dashed ? [3, 2] : [])))
+    }
+
+    @ViewBuilder
+    private func stopView(_ stop: CompanionStore.EvolutionTrackStop) -> some View {
+        switch stop {
+        case .reached(let id, let isCurrent):
+            ring(dashed: false, highlight: isCurrent ? tint : nil) {
+                SpriteView(speciesID: id, size: Self.spriteSize, shiny: shiny, form: form, sameScale: true)
+            }
+            .modifier(link(id, caught: true))
+        case .coming(let id, let isCaught):
+            ring(dashed: true) {
+                SpriteView(speciesID: id, size: Self.spriteSize, form: form, isSilhouette: !isCaught, sameScale: true)
+                    .opacity(isCaught ? 0.6 : 0.5)
+            }
+            .modifier(link(id, caught: isCaught))
+            .accessibilityLabel(isCaught ? (names[id] ?? "") : l.unknownNextEvolution)
+        case .graduation:
+            ring(dashed: true) {
+                Image(systemName: "graduationcap.fill").font(.system(size: 14)).foregroundStyle(tint)
+            }
+            .accessibilityHidden(true)
+        case .branch(let paths):
+            HStack(spacing: 3) {
+                TrackBracket().stroke(Color.primary.opacity(0.35), lineWidth: 1).frame(width: 5)
+                branchRows(paths)
+            }
+            .fixedSize()
+        }
+    }
+
+    /// The ways the line can go: one row when each is a single species (Eevee), else one row per path with arrows.
+    @ViewBuilder
+    private func branchRows(_ paths: [[BranchEvolutionItem]]) -> some View {
+        if paths.allSatisfy({ $0.count == 1 }) {
+            // Eevee's eight still fit beside a stop and a stretch.
+            let size: CGFloat = paths.count > 6 ? 19 : 22
+            HStack(spacing: 1) { ForEach(paths.map { $0[0] }) { candidate($0, size: size) } }
+        } else {
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(Array(paths.enumerated()), id: \.offset) { _, path in
+                    HStack(spacing: 2) {
+                        ForEach(Array(path.enumerated()), id: \.offset) { index, item in
+                            if index > 0 {
+                                Image(systemName: "arrow.right").font(.system(size: 6)).foregroundStyle(.tertiary)
+                            }
+                            candidate(item, size: 22)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func candidate(_ item: BranchEvolutionItem, size: CGFloat) -> some View {
+        SpriteView(speciesID: item.speciesID, size: size, shiny: item.isCollected && shiny,
+                   form: item.form ?? form, isSilhouette: !item.isCollected)
+            .opacity(item.isCollected ? 0.8 : 0.55)
+            .frame(width: size, height: size)
+            .modifier(DexEntryLink(target: item.isCollected ? dexLinks[item.speciesID] : nil, hint: l.dexOpenEntryHint,
+                                   accessibilityName: names[item.speciesID], cornerRadius: 5, open: onOpenDexEntry))
+            .help(item.isCollected ? (names[item.speciesID] ?? l.dexOpenEntryHint) : l.unknownNextEvolution)
+    }
+}
+
+/// [ on its side, opening right: groups the ways a line can go at the end of the track.
+private struct TrackBracket: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        p.move(to: CGPoint(x: rect.maxX, y: rect.minY + 1))
+        p.addLine(to: CGPoint(x: rect.minX, y: rect.minY + 1))
+        p.addLine(to: CGPoint(x: rect.minX, y: rect.maxY - 1))
+        p.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - 1))
+        return p
+    }
+}
+
 /// Growth bar. Hovering 300 ms grows it with a small spring "plop" and reveals the exact numbers
 /// ("X / Y · Z%") inside; leaving shrinks it back. The expanded height is always reserved, so the
 /// hover never moves the layout or resizes the popover.
@@ -835,28 +1004,17 @@ struct CompanionHeader: View {
                         if !types.isEmpty { TypeBadges(types: types, language: store.language) }
                     }
                     if store.hasActive {
-                        // 단계 + 성격(부화 시 확정된 개체 아이덴티티)
-                        let nature = store.currentNature.map { " · \($0.name(store.language))" } ?? ""
-                        // The growth badge follows the stage, or goes under it when both don't fit on one line.
-                        ViewThatFits(in: .horizontal) {
-                            HStack(spacing: 5) {
-                                Text(store.stageText + nature).font(.caption2).foregroundStyle(.secondary).fixedSize()
-                                growthBadge
-                            }
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(store.stageText + nature).font(.caption2).foregroundStyle(.secondary)
-                                growthBadge
-                            }
+                        // The individual's nature and growth; the stage reads off the track below.
+                        WrappingHStack(spacing: 5, lineSpacing: 4) {
+                            if let nature = store.currentNature { natureChip(nature) }
+                            growthBadge
                         }
-                        LabeledProgressBar(value: store.progress,
-                                           label: Self.progressDetail(used: store.state.active?.usedAtStage ?? 0,
-                                                                      total: store.threshold),
-                                           // The rarity's color: in the type's, a Dark type's bar vanished on its card.
-                                           tint: rarityColor(store.rarity))
-                        if store.tokensToNext > 0 {
-                            let amount = TokenFormatter.compact(store.tokensToNext)
-                            Text(store.isFinalStage ? store.l.toGraduation(amount) : store.l.toNextEvolution(amount))
-                                .font(.caption2).foregroundStyle(.tertiary)
+                        if store.evolutionTrack.isEmpty {
+                            // The line is still loading: the plain growth bar meanwhile.
+                            LabeledProgressBar(value: store.progress,
+                                               label: Self.progressDetail(used: store.state.active?.usedAtStage ?? 0,
+                                                                          total: store.threshold),
+                                               tint: rarityColor(store.rarity))
                         }
                     } else {
                         // 알 인큐베이션 — 부화까지 진행 (임박 시 문구·색 전환)
@@ -898,16 +1056,17 @@ struct CompanionHeader: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
-                    Text(statusLine).font(.caption2).foregroundStyle(.secondary)
+                    HStack(spacing: 4) {
+                        if store.hasActive { Image(systemName: statusSymbol).font(.system(size: 9)) }
+                        Text(statusLine)
+                    }
+                    .font(.caption2).foregroundStyle(.secondary)
                 }
                 Spacer()
             }
-            if store.hasActive, !store.lineNodes.isEmpty {
-                // 폭을 안 주면 분기 라인(이브이)이 넘쳐 팝오버 콘텐츠 전체가 좌우로 잘린다.
-                EvoLineView(nodes: store.lineNodes, mysteryLabel: store.l.unknownNextEvolution,
-                            language: store.language, shiny: store.currentIsShiny,
-                            maxWidth: PopoverMetrics.scrollContentWidth, form: store.currentForm,
-                            dexLinks: dexLinks, onOpenDexEntry: onOpenDexEntry)
+            let track = store.evolutionTrack
+            if store.hasActive, !track.isEmpty {
+                evolutionTrack(track, dexLinks: dexLinks)
             }
             if let g = store.justGraduated {
                 Text(store.l.graduated(g))
@@ -995,6 +1154,64 @@ struct CompanionHeader: View {
             withAnimation(.easeInOut(duration: 0.35).repeatForever(autoreverses: true)) { eggWiggle = true }
         } else {
             withAnimation(.default) { eggWiggle = false }
+        }
+    }
+
+    /// The individual's nature, a chip beside the growth badge.
+    private func natureChip(_ nature: PokemonNature) -> some View {
+        HStack(spacing: 3) {
+            Image(systemName: "leaf.fill").font(.system(size: 8, weight: .bold))
+            Text(nature.name(store.language)).font(.system(size: 10, weight: .semibold, design: .rounded))
+        }
+        .foregroundStyle(.primary.opacity(0.8))
+        .padding(.horizontal, 7).padding(.vertical, 3)
+        .background(Capsule().fill(Color.primary.opacity(0.12)))
+        .fixedSize()
+        .accessibilityElement(children: .combine)
+    }
+
+    /// The stages along a bar that fills with the growth; what is left under it, the next stage named.
+    private func evolutionTrack(_ track: [CompanionStore.EvolutionTrackStop], dexLinks: [Int: String]) -> some View {
+        let l = store.l
+        let amount = TokenFormatter.compact(store.tokensToNext)
+        let used = store.state.active?.usedAtStage ?? 0
+        let percent = store.threshold > 0 ? min(used, store.threshold) * 100 / store.threshold : 0
+        let names = store.currentLine.map { line in
+            Dictionary(uniqueKeysWithValues: line.names.keys.map { ($0, line.localizedName($0, store.language)) })
+        } ?? [:]
+        let percentText = (Double(percent) / 100).formatted(.percent.locale(store.language.displayLocale))
+        return EvolutionTrackView(stops: track, progress: store.progress, tint: rarityColor(store.rarity),
+                                  shiny: store.currentIsShiny, form: store.currentForm,
+                                  remaining: Self.trackCaption(track, amount: amount, percent: percentText,
+                                                               names: names, l: l),
+                                  amount: amount,
+                                  detail: Self.progressDetail(used: used, total: store.threshold), l: l,
+                                  names: names, dexLinks: dexLinks, onOpenDexEntry: onOpenDexEntry)
+    }
+
+    /// What is left before the track's next stop: that stage by name, an evolution when the line goes several ways,
+    /// or the graduation. "95M to Charmeleon · 24%".
+    nonisolated static func trackCaption(_ track: [CompanionStore.EvolutionTrackStop], amount: String, percent: String,
+                                         names: [Int: String], l: L) -> String {
+        let current = track.firstIndex { if case .reached(_, true) = $0 { return true } else { return false } } ?? 0
+        let toNext: String
+        switch current + 1 < track.count ? track[current + 1] : .graduation {
+        case .coming(let id, _): toNext = l.toStage(amount, names[id] ?? "#\(id)")
+        case .branch: toNext = l.toNextEvolution(amount)
+        case .graduation, .reached: toNext = l.toGraduation(amount)
+        }
+        return "\(toNext) · \(percent)"
+    }
+
+    /// The mood's symbol, before its line.
+    private var statusSymbol: String {
+        switch store.displayState {
+        case .sleep: return "moon.zzz.fill"
+        case .working: return "bolt.fill"
+        case .focus: return "flame.fill"
+        case .tired: return "battery.25"
+        case .levelUp: return "sparkles"
+        case .idle, .egg: return "leaf.fill"
         }
     }
 
