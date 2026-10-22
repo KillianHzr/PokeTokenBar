@@ -1778,19 +1778,17 @@ struct PokemonDetailView: View {
     }
 
     private var displayedSpecies: CompanionStore.DexSpecies {
-        let forms = formSpecies
-        return forms.first { $0.form == selectedForm }
-            ?? forms.first { store.isRepresentative($0) }
-            ?? forms.first ?? species
+        formSpecies.first { $0.form == selectedForm } ?? store.dexCover(for: species)
     }
 
     private var allIndividuals: [DexEntry] {
         store.pokemonIndividuals(speciesID: species.id, form: displayedSpecies.form)
     }
+    /// Shiny unless Normal is picked: a species caught shiny opens shiny, even when its latest catch is normal.
     private var displayedShiny: Bool {
         if let selectedShiny,
            selectedShiny ? displayedSpecies.isShiny : displayedSpecies.hasNormal { return selectedShiny }
-        return allIndividuals.first?.isShiny ?? displayedSpecies.isShiny
+        return displayedSpecies.isShiny
     }
     private var individuals: [DexEntry] {
         allIndividuals.filter { $0.isShiny == displayedShiny }
@@ -2177,9 +2175,12 @@ private struct DexSpeciesCell: View {
 
     private var formTotal: Int { PokemonForm.forms(speciesID: species.id).count }
 
+    /// The Pokémon the cell shows, the one its page opens on: shiny in the form caught shiny.
+    private var cover: CompanionStore.DexSpecies { store.dexCover(for: species) }
+
     /// The cell's tint: the species' first type in the form the cell shows.
     private var typeColor: Color {
-        PokemonTypeData.types(forSpeciesID: species.id, form: species.form).first?.color ?? .gray
+        PokemonTypeData.types(forSpeciesID: species.id, form: cover.form).first?.color ?? .gray
     }
 
     /// Larger thumbnails remain static so a full page does not animate concurrently.
@@ -2206,11 +2207,12 @@ private struct DexSpeciesCell: View {
         }
     }
 
-    private var types: [PokemonType] { PokemonTypeData.types(forSpeciesID: species.id, form: species.form) }
+    private var types: [PokemonType] { PokemonTypeData.types(forSpeciesID: species.id, form: cover.form) }
     private var displayName: String { formCount.map { "\(species.name) \($0)/\(formTotal)" } ?? species.name }
 
     private func sprite(_ size: CGFloat) -> some View {
-        SpriteView(speciesID: species.id, size: size, shiny: formCount == nil && species.isShiny, sameScale: true)
+        let cover = cover
+        return SpriteView(speciesID: species.id, size: size, shiny: cover.isShiny, form: cover.form, sameScale: true)
             .frame(width: size, height: size)
     }
 
