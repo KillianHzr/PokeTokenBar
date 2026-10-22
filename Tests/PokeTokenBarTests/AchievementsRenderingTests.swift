@@ -157,28 +157,24 @@ final class AchievementsRenderingTests: XCTestCase {
 
     /// The Achievements tab made the popover's segmented tab bar five labels wide. With a two-digit count it was
     /// wider than the popover in German, and Russian overflowed even without one.
+    /// Each tab gets a fifth of the popover's width; its label may shrink to `minimumLabelScale`, never further, in
+    /// every language. The bar itself lays out within the content width.
     func testTabBarFitsThePopoverInEveryLanguage() async throws {
+        // 3 pt padding on each side, 2 pt between the five tabs.
+        let tabWidth = (PopoverMetrics.contentWidth - 6 - 4 * 2) / 5
         for language in AppLanguage.allCases {
             var tab = PopoverTab.home
             let picker = PopoverTabPicker(tab: Binding(get: { tab }, set: { tab = $0 }), l: L(language),
                                           unclaimedAchievements: 41)
+            for item in picker.items() {
+                let width = (item.title as NSString).size(withAttributes: [.font: PopoverTabPicker.labelFont]).width
+                XCTAssertLessThanOrEqual(width * PopoverTabPicker.minimumLabelScale, tabWidth,
+                                         "\(language): \"\(item.title)\" is \(width) pt for a \(tabWidth) pt tab")
+            }
             let host = NSHostingView(rootView: picker.frame(width: PopoverMetrics.contentWidth))
-            let size = NSSize(width: PopoverMetrics.contentWidth, height: 40)
-            host.frame = NSRect(origin: .zero, size: size)
-            let window = NSWindow(contentRect: NSRect(origin: NSPoint(x: -10000, y: -10000), size: size),
-                                  styleMask: .borderless, backing: .buffered, defer: false)
-            window.isReleasedWhenClosed = false
-            window.contentView = host
-            window.orderFront(nil)
-            defer { window.close() }
-            try await Task.sleep(for: .milliseconds(50))
+            host.frame = NSRect(origin: .zero, size: NSSize(width: PopoverMetrics.contentWidth, height: 60))
             host.layoutSubtreeIfNeeded()
-
-            let control = try XCTUnwrap(descendants(of: host, NSSegmentedControl.self).first)
-            let frame = host.convert(control.bounds, from: control)
-            // The bezel is drawn 2 pt past the SwiftUI frame on each side.
-            XCTAssertGreaterThanOrEqual(frame.minX, -2.5, "\(language): tab bar \(frame) leaves \(host.bounds)")
-            XCTAssertLessThanOrEqual(frame.maxX, host.bounds.maxX + 2.5, "\(language): tab bar \(frame) leaves \(host.bounds)")
+            XCTAssertLessThanOrEqual(host.fittingSize.width, PopoverMetrics.contentWidth + 0.5, "\(language)")
         }
     }
 

@@ -592,17 +592,20 @@ struct EvoLineView: View {
 struct LabeledProgressBar: View {
     let value: Double
     let label: String
+    var tint: Color = .orange
     @State private var expanded = false
     @State private var hoverTask: Task<Void, Never>?
 
-    private static let collapsedHeight: CGFloat = 6
-    private static let expandedHeight: CGFloat = 12
+    private static let collapsedHeight: CGFloat = 8
+    private static let expandedHeight: CGFloat = 14
 
     var body: some View {
         Capsule().fill(Color.secondary.opacity(0.2))
             .overlay(alignment: .leading) {
                 GeometryReader { geo in
-                    Capsule().fill(Color.orange).frame(width: geo.size.width * min(1, max(0, value)))
+                    Capsule().fill(LinearGradient(colors: [tint.opacity(0.7), tint], startPoint: .leading,
+                                                  endPoint: .trailing))
+                        .frame(width: geo.size.width * min(1, max(0, value)))
                 }
             }
             .overlay {
@@ -756,11 +759,14 @@ struct CompanionHeader: View {
         let dexLinks = onOpenDexEntry == nil ? [:] : store.dexLinkTargets
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .center, spacing: 12) {
-                SpriteView(speciesID: store.currentSpeciesID, size: 76, bob: true, animated: true,
+                SpriteView(speciesID: store.currentSpeciesID, size: 80, bob: true, animated: true,
                            shiny: store.currentIsShiny, form: store.currentForm)
-                    .frame(width: 76, height: 76)
-                    .background(Color.secondary.opacity(0.06))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .frame(width: 84, height: 84)
+                    // A soft ground shadow under the Pokémon, on the hero card's glow.
+                    .background(alignment: .bottom) {
+                        Ellipse().fill(Color.black.opacity(0.18)).frame(width: 52, height: 9).blur(radius: 2)
+                            .offset(y: -2)
+                    }
                     .rotationEffect(.degrees(eggImminent && eggWiggle ? 5 : (eggImminent ? -5 : 0)))
                     .scaleEffect(celebScale)
                     .overlay(RoundedRectangle(cornerRadius: 12).fill(.white).opacity(flashOpacity))
@@ -806,7 +812,8 @@ struct CompanionHeader: View {
                         cornerRadius: 12, open: onOpenDexEntry))
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
-                        Text(store.displayName).font(.callout.weight(.semibold))
+                        Text(store.displayName).font(.system(size: 15, weight: .bold, design: .rounded))
+                            .lineLimit(1).minimumScaleFactor(0.8)
                         if store.currentIsShiny { Text("✨").font(.system(size: 11)) }
                         if let r = store.rarity {
                             Badge(store.l.rarityLabel(r).uppercased(), tint: .rarity(r))
@@ -833,7 +840,8 @@ struct CompanionHeader: View {
                         }
                         LabeledProgressBar(value: store.progress,
                                            label: Self.progressDetail(used: store.state.active?.usedAtStage ?? 0,
-                                                                      total: store.threshold))
+                                                                      total: store.threshold),
+                                           tint: store.themeColor)
                         if store.tokensToNext > 0 {
                             let amount = TokenFormatter.compact(store.tokensToNext)
                             Text(store.isFinalStage ? store.l.toGraduation(amount) : store.l.toNextEvolution(amount))
@@ -856,7 +864,8 @@ struct CompanionHeader: View {
                         }
                         LabeledProgressBar(value: store.eggProgress,
                                            label: Self.progressDetail(used: store.state.eggUsage,
-                                                                      total: store.eggHatchThreshold))
+                                                                      total: store.eggHatchThreshold),
+                                           tint: store.themeColor)
                         if store.isEgg, store.isHatchRetryDelayed {
                             Text(store.l.eggHatchDelayed)
                                 .font(.caption2)
@@ -889,6 +898,7 @@ struct CompanionHeader: View {
                     .font(.caption2).foregroundStyle(.orange)
             }
         }
+        .heroCard(color: store.themeColor)
         // The current form's PokéAPI details, cached after the first fetch: they fill the individual's ability and
         // moves. Same ID as the sprite, so a disguised Ditto loads its disguise's.
         .task(id: store.currentSpeciesID.map { PokemonForm.detailsID(speciesID: $0, form: store.currentForm) }) {
