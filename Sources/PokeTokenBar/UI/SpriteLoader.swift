@@ -9,8 +9,8 @@ actor SpriteStore {
     private let itemBase = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items"
     private var mem: [String: Data] = [:]
     private var memOrder: [String] = []   // LRU 순서(최근 접근이 뒤). 상한 초과 시 앞(오래된 것)부터 evict
-    /// Keys the server answered without a sprite (404…), so they are not requested again this session.
-    /// A request that failed to reach the server (offline) is not recorded: it must be retried later.
+    /// Keys the server answered it has no sprite for (404), so they are not requested again this session.
+    /// A request that failed (offline, rate limited, server error) is not recorded: it must be retried later.
     private var failedKeys: Set<String> = []
     // Raw PNG/GIF LRU cap: the Pokédex page (24 cells), the Achievements list (31 items plus the Pokémon
     // they ask for) and the bag must not thrash each other. SpriteLoader keeps its own NSImage cache.
@@ -144,17 +144,25 @@ actor SpriteStore {
             return still
         }
         var found: Data?
+        var missing = true
         for url in Self.spriteURLs(speciesID: speciesID, animated: animated, shiny: shiny, form: form) {
             guard let (d, resp) = try? await URLSession.shared.data(from: url) else { return nil }
-            if (resp as? HTTPURLResponse)?.statusCode == 200, !d.isEmpty { found = d; break }
+            let status = (resp as? HTTPURLResponse)?.statusCode
+            if status == 200, !d.isEmpty { found = d; break }
+            if status != 404 { missing = false }
         }
         guard let d = found else {
-            failedKeys.insert(key)
+            if missing { failedKeys.insert(key) }
             return nil
         }
         try? d.write(to: file, options: .atomic)   // torn write 방지 — 크래시/강제종료 시 손상 캐시가 남지 않게
         remember(key, d)
         return d
+    }
+
+    /// The server has no such sprite (it answered 404): not a request that failed and will be retried.
+    func isMissing(speciesID: Int, animated: Bool, shiny: Bool, form: PokemonForm? = nil) -> Bool {
+        failedKeys.contains(Self.cacheKey(speciesID: speciesID, animated: animated, shiny: shiny, form: form))
     }
 
     /// 아이템 스프라이트(정적 PNG, 이름 기반). 포켓몬과 같은 메모리/디스크 캐시 사용(키 "item-<name>",
@@ -175,7 +183,7 @@ actor SpriteStore {
         guard let url = URL(string: urlStr),
               let (d, resp) = try? await URLSession.shared.data(from: url) else { return nil }
         guard (resp as? HTTPURLResponse)?.statusCode == 200, !d.isEmpty else {
-            failedKeys.insert(key)
+            if (resp as? HTTPURLResponse)?.statusCode == 404 { failedKeys.insert(key) }
             return nil
         }
         try? d.write(to: file, options: .atomic)
@@ -286,7 +294,14 @@ enum SpriteLoader {
                                       directory: store.directory, form: form)
             if !cached.isEmpty { return cached }
             guard let data = await store.data(speciesID: speciesID, animated: true,
-                                             shiny: variant, form: form) else { continue }
+                                             shiny: variant, form: form) else {
+                // A shiny falls back to its normal colors only when the server has no shiny file. After a failed
+                // request it waits for the retry: settling on the normal animation kept a shiny in normal colors.
+                if variant, !(await store.isMissing(speciesID: speciesID, animated: true, shiny: true, form: form)) {
+                    return []
+                }
+                continue
+            }
             let key = SpriteStore.cacheKey(speciesID: speciesID, animated: true,
                                             shiny: variant, form: form)
             let frames = rememberFrames(data, file: store.directory.appendingPathComponent("\(key).gif"))

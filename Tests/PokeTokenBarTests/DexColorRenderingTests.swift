@@ -25,13 +25,19 @@ final class DexColorRenderingTests: XCTestCase {
     }
 
     private func withSprites(_ body: () throws -> Void) throws {
-        let keys = [false, true].map {
+        try withSprites([(606, false, nil, .red), (606, true, nil, .blue)], body)
+    }
+
+    /// These stills in the app's sprite cache while `body` runs.
+    private func withSprites(_ sprites: [(id: Int, shiny: Bool, form: PokemonForm?, color: NSColor)],
+                             _ body: () throws -> Void) throws {
+        let keys = sprites.map {
             SpriteLoader.cacheDir.appendingPathComponent(
-                SpriteStore.cacheKey(speciesID: 606, animated: false, shiny: $0) + ".png").path as NSString
+                SpriteStore.cacheKey(speciesID: $0.id, animated: false, shiny: $0.shiny, form: $0.form) + ".png").path as NSString
         }
         let previous = keys.map { SpriteLoader.imageCache.object(forKey: $0) }
-        for (key, color) in zip(keys, [NSColor.red, NSColor.blue]) {
-            SpriteLoader.imageCache.setObject(solidImage(color), forKey: key)
+        for (key, sprite) in zip(keys, sprites) {
+            SpriteLoader.imageCache.setObject(solidImage(sprite.color), forKey: key)
         }
         defer {
             for (key, image) in zip(keys, previous) {
@@ -113,12 +119,11 @@ final class DexColorRenderingTests: XCTestCase {
         }
     }
 
-    func testDetailSelectorChangesMountedPixelsAndReturnsToNormal() async throws {
-        let (store, file) = try fixture(shinyLast: true)
-        defer { try? FileManager.default.removeItem(at: file) }
+    /// Red normal and blue shiny Elgyem, still and animated, in a sprite folder of their own.
+    private func spriteDirectory() throws -> URL {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("detail-colors-\(UUID())")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: directory) }
+        addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
         for (shiny, color) in zip([false, true], [NSColor.red, NSColor.blue]) {
             let cgImage = try XCTUnwrap(solidImage(color).cgImage(forProposedRect: nil, context: nil, hints: nil))
             let bitmap = NSBitmapImageRep(cgImage: cgImage)
@@ -131,13 +136,18 @@ final class DexColorRenderingTests: XCTestCase {
             let animatedKey = SpriteStore.cacheKey(speciesID: 606, animated: true, shiny: shiny)
             try (data as Data).write(to: directory.appendingPathComponent(animatedKey + ".gif"))
         }
+        return directory
+    }
+
+    /// The Pokédex page of `store`'s Elgyem in a window, `selectedShiny` as the grid passes it.
+    private func mountDetail(_ store: CompanionStore, selectedShiny: Bool?) throws -> (NSHostingView<AnyView>, NSWindow) {
         let species = try XCTUnwrap(store.dexSpecies.first)
-        let view = PokemonDetailView(store: store, species: species, onBack: {}, selectedShiny: false,
-                                     spriteStore: SpriteStore(directory: directory))
+        let view = PokemonDetailView(store: store, species: species, onBack: {}, selectedShiny: selectedShiny,
+                                     spriteStore: SpriteStore(directory: try spriteDirectory()))
             .frame(width: PopoverMetrics.contentWidth, height: 520)
             .background(Color.white)
             .environment(\.colorScheme, .light)
-        let host = NSHostingView(rootView: view)
+        let host = NSHostingView(rootView: AnyView(view))
         host.frame = NSRect(x: 0, y: 0, width: PopoverMetrics.contentWidth, height: 520)
         let window = NSWindow(contentRect: NSRect(x: -10000, y: -10000,
             width: PopoverMetrics.contentWidth, height: 520), styleMask: .borderless, backing: .buffered, defer: false)
@@ -145,8 +155,29 @@ final class DexColorRenderingTests: XCTestCase {
         window.appearance = NSAppearance(named: .aqua)
         window.contentView = host
         window.orderFront(nil)
+        return (host, window)
+    }
+
+    /// A shiny Elgyem, then a normal one: the page opened on the latest catch, in normal colors. It opens shiny.
+    func testDetailOpensShinyWhenTheLatestCatchIsNormal() async throws {
+        let (store, file) = try fixture(shinyLast: false)
+        defer { try? FileManager.default.removeItem(at: file) }
+        let (host, window) = try mountDetail(store, selectedShiny: nil)
         defer { window.close() }
-        func descendants(_ view: NSView) -> [NSView] { [view] + view.subviews.flatMap(descendants) }
+        let bitmap = try await waitForDetailSprite(host, shiny: true)
+        XCTAssertGreaterThan(colorRows(bitmap, shiny: true).count, 40, "the page must open on the shiny sprite")
+        XCTAssertEqual(colorRows(bitmap, shiny: false).count, 0, "no normal sprite on a page that opens shiny")
+        let segmented = try XCTUnwrap(descendants(host).compactMap { $0 as? NSSegmentedControl }.first)
+        XCTAssertEqual(segmented.selectedSegment, 1, "the appearance picker opens on Shiny")
+    }
+
+    private func descendants(_ view: NSView) -> [NSView] { [view] + view.subviews.flatMap(descendants) }
+
+    func testDetailSelectorChangesMountedPixelsAndReturnsToNormal() async throws {
+        let (store, file) = try fixture(shinyLast: true)
+        defer { try? FileManager.default.removeItem(at: file) }
+        let (host, window) = try mountDetail(store, selectedShiny: false)
+        defer { window.close() }
         for (step, shiny) in [false, true, false].enumerated() {
             host.layoutSubtreeIfNeeded()
             let segmented = try XCTUnwrap(descendants(host).compactMap { $0 as? NSSegmentedControl }.first)
@@ -255,6 +286,45 @@ final class DexColorRenderingTests: XCTestCase {
                     XCTAssertEqual(shinyRows.count, 0, "normal species must not render shiny pixels in Pokédex grid")
                 }
             }
+        }
+    }
+
+    /// A shiny Alolan Vulpix, then a normal Kanto one: the cell of a species with forms always showed its default
+    /// form in normal colors. It shows the Pokémon its page opens on, the shiny Alolan Vulpix.
+    func testPokedexGridShowsTheShinyFormOfASpeciesWithForms() throws {
+        let kanto = PokemonForm("normal"), alola = PokemonForm("alola")
+        try withSprites([(37, false, kanto, .red), (37, true, alola, .blue)]) {
+            let file = FileManager.default.temporaryDirectory.appendingPathComponent("dex-color-\(UUID()).json")
+            defer { try? FileManager.default.removeItem(at: file) }
+            var state = CompanionState()
+            state.language = .en
+            state.dex = [(alola, true), (kanto, false)].enumerated().map { index, item in
+                DexEntry(baseID: 37, finalID: 37, chainOrder: [37], rarity: .common,
+                         caughtAt: Date(timeIntervalSince1970: 1_700_000_000 + Double(index)),
+                         isShiny: item.1, names: [37: ["en": "Vulpix"]], form: item.0)
+            }
+            try JSONEncoder().encode(state).write(to: file)
+            let store = CompanionStore(provider: ColorRenderingProvider(), fileURL: file)
+            let view = CollectionView(store: store, navigation: PopoverNavigation())
+                .frame(width: PopoverMetrics.contentWidth, height: 520)
+                .background(Color.white)
+                .environment(\.colorScheme, .light)
+            let host = NSHostingView(rootView: view)
+            host.frame = NSRect(x: 0, y: 0, width: PopoverMetrics.contentWidth, height: 520)
+            let window = NSWindow(contentRect: NSRect(x: -10000, y: -10000, width: PopoverMetrics.contentWidth, height: 520),
+                                  styleMask: .borderless, backing: .buffered, defer: false)
+            window.isReleasedWhenClosed = false
+            window.appearance = NSAppearance(named: .aqua)
+            window.contentView = host
+            window.orderFront(nil)
+            defer { window.close() }
+            host.layoutSubtreeIfNeeded()
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.1))
+            host.layoutSubtreeIfNeeded()
+            let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
+            host.cacheDisplay(in: host.bounds, to: bitmap)
+            XCTAssertGreaterThan(colorRows(bitmap, shiny: true).count, 20, "the shiny Alolan Vulpix in the cell")
+            XCTAssertEqual(colorRows(bitmap, shiny: false).count, 0, "not the normal Kanto Vulpix")
         }
     }
 }

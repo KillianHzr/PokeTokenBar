@@ -1732,19 +1732,17 @@ struct PokemonDetailView: View {
     }
 
     private var displayedSpecies: CompanionStore.DexSpecies {
-        let forms = formSpecies
-        return forms.first { $0.form == selectedForm }
-            ?? forms.first { store.isRepresentative($0) }
-            ?? forms.first ?? species
+        formSpecies.first { $0.form == selectedForm } ?? store.dexCover(for: species)
     }
 
     private var allIndividuals: [DexEntry] {
         store.pokemonIndividuals(speciesID: species.id, form: displayedSpecies.form)
     }
+    /// Shiny unless Normal is picked: a species caught shiny opens shiny, even when its latest catch is normal.
     private var displayedShiny: Bool {
         if let selectedShiny,
            selectedShiny ? displayedSpecies.isShiny : displayedSpecies.hasNormal { return selectedShiny }
-        return allIndividuals.first?.isShiny ?? displayedSpecies.isShiny
+        return displayedSpecies.isShiny
     }
     private var individuals: [DexEntry] {
         allIndividuals.filter { $0.isShiny == displayedShiny }
@@ -2097,17 +2095,16 @@ private struct DexSpeciesCell: View {
     @State private var isHovered = false
 
     private var formTotal: Int { PokemonForm.forms(speciesID: species.id).count }
-
     /// Larger thumbnails remain static so a full page does not animate concurrently.
     private static let thumb: CGFloat = 56
 
     var body: some View {
+        let cover = store.dexCover(for: species)
         Button(action: onTap) {
             VStack(spacing: 1) {
-                // 이로치를 잡은 종은 이로치 스프라이트로 표시한다(상세 화면에서 일반/이로치 모습 전환 가능).
-                // 폼이 있는 종의 아이콘은 기본 폼 일반색으로 유지하고, 폼별 색은 상세 화면에서 보여준다.
-                SpriteView(speciesID: species.id, size: Self.thumb,
-                           shiny: formCount == nil && species.isShiny, sameScale: true)
+                // The Pokémon its page opens on: a species caught shiny shows shiny, in the form caught shiny.
+                SpriteView(speciesID: species.id, size: Self.thumb, shiny: cover.isShiny, form: cover.form,
+                           sameScale: true)
                     .frame(width: Self.thumb, height: Self.thumb)
                     // Keep the raising badge over the sprite to leave room for the name.
                     .overlay(alignment: .bottom) {
