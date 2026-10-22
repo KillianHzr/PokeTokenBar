@@ -127,6 +127,32 @@ actor SpriteStore {
         return names.filter { seen.insert($0).inserted }.map { URL(string: "\(base)/\($0).gif")! }
     }
 
+    /// One still to make ahead of time.
+    struct StillRequest: Hashable, Sendable {
+        let speciesID: Int
+        let shiny: Bool
+    }
+
+    /// Makes these Pokémon's stills ahead, `concurrency` at a time, so a Pokédex page shows at once. Stills already on
+    /// disk are skipped and nothing is decoded: they only reach the cache. Stops when the task is cancelled.
+    func warmStills(_ requests: [StillRequest], concurrency: Int = 4) async {
+        var pending = requests.filter { request in
+            let key = Self.cacheKey(speciesID: request.speciesID, animated: false, shiny: request.shiny)
+            return !FileManager.default.fileExists(atPath: directory.appendingPathComponent("\(key).png").path)
+        }.makeIterator()
+        await withTaskGroup(of: Void.self) { group in
+            func start() -> Bool {
+                guard !Task.isCancelled, let request = pending.next() else { return false }
+                group.addTask { _ = await self.data(speciesID: request.speciesID, animated: false, shiny: request.shiny) }
+                return true
+            }
+            for _ in 0..<max(1, concurrency) {
+                guard start() else { break }
+            }
+            while await group.next() != nil { _ = start() }
+        }
+    }
+
     func data(speciesID: Int, animated: Bool, shiny: Bool = false, form: PokemonForm? = nil) async -> Data? {
         if animated, !PokemonAssets.hasAnimatedSprite(speciesID: speciesID) { return nil }
         let key = Self.cacheKey(speciesID: speciesID, animated: animated, shiny: shiny, form: form)
