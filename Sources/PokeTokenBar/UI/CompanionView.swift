@@ -1534,9 +1534,9 @@ private struct DexGridView: View {
     /// 선택한 칸 — 하단 줄에 희귀도를 띄우고, 이로치를 잡은 종이면 스프라이트를 그 색으로 바꾼다.
     @State private var selectedID: String?
 
-    private static let columns = 4
-    private static let rows = 4
-    private static let pageSize = columns * rows      // 16
+    private static var columns: Int { DexLayoutProposal.current.columns }
+    private static var rows: Int { DexLayoutProposal.current.rows }
+    private static var pageSize: Int { columns * rows }      // 16
     private static let spacing: CGFloat = 4
 
     /// `returnAnchor` = the species whose detail page was just closed. The grid opens on its page,
@@ -1924,7 +1924,6 @@ struct PokemonDetailView: View {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(species.name).font(.system(size: 18, weight: .bold, design: .rounded))
                         .lineLimit(1).minimumScaleFactor(0.75)
-                    Spacer(minLength: 4)
                     if species.rarity == .legendary {
                         LegendaryBadge(text: store.l.rarityLabel(species.rarity).uppercased()).fixedSize()
                     } else {
@@ -2137,6 +2136,28 @@ private extension Array where Element == String {
     }
 }
 
+/// Pokédex grid layouts proposed for the redesign, switchable while the maintainer picks one.
+@MainActor
+enum DexLayoutProposal: CaseIterable {
+    case tinted, dots, circle, large, list
+    static var current: DexLayoutProposal = .tinted
+
+    var columns: Int {
+        switch self {
+        case .tinted, .dots, .circle: 4
+        case .large: 3
+        case .list: 1
+        }
+    }
+    var rows: Int {
+        switch self {
+        case .tinted, .dots, .circle: 4
+        case .large: 3
+        case .list: 7
+        }
+    }
+}
+
 /// 도감 한 칸 — 도감 번호 + 스프라이트 + 종 이름. 종 정보만 담는다(성격·획득 횟수는 로그의 몫).
 /// 정적 스프라이트만 쓴다(animated 생략) — 한 페이지 16칸을 GIF 로 동시 재생하면 CPU 가 안 된다.
 @MainActor
@@ -2162,6 +2183,158 @@ private struct DexSpeciesCell: View {
 
     var body: some View {
         Button(action: onTap) {
+            switch DexLayoutProposal.current {
+            case .tinted: tintedCell
+            case .dots: dotsCell
+            case .circle: circleCell
+            case .large: largeCell
+            case .list: listRow
+            }
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+        .help(tooltip)
+        .accessibilityLabel(tooltip)
+        .contextMenu {
+            if formCount != nil {
+                Button(store.l.chooseForm, action: onTap)
+            } else {
+                Button {
+                    _ = store.setRepresentativeSpeciesID(isRepresentative ? nil : species.id)
+                } label: {
+                    Label(isRepresentative ? store.l.representativeFollowCurrent
+                                           : store.l.representativeSet,
+                          systemImage: isRepresentative ? "arrow.triangle.2.circlepath" : "star")
+                }
+            }
+        }
+    }
+
+    private var types: [PokemonType] { PokemonTypeData.types(forSpeciesID: species.id, form: species.form) }
+    private var displayName: String { formCount.map { "\(species.name) \($0)/\(formTotal)" } ?? species.name }
+
+    private func sprite(_ size: CGFloat) -> some View {
+        SpriteView(speciesID: species.id, size: size, shiny: formCount == nil && species.isShiny, sameScale: true)
+            .frame(width: size, height: size)
+    }
+
+    /// A neutral card, a hairline in the type color when selected; hover lifts it a little.
+    private func neutralCard<Content: View>(radius: CGFloat = 11, @ViewBuilder _ content: () -> Content) -> some View {
+        content()
+            .background(RoundedRectangle(cornerRadius: radius, style: .continuous).fill(Color.primary.opacity(isHovered ? 0.08 : 0.05)))
+            .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous)
+                .strokeBorder(isSelected ? typeColor : Color.primary.opacity(0.07), lineWidth: isSelected ? 1.5 : 1))
+            .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous)
+                .fill(isRepresentative ? Color.accentColor.opacity(0.12) : .clear).allowsHitTesting(false))
+            .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .scaleEffect(isHovered ? 1.03 : 1)
+            .animation(.easeOut(duration: 0.12), value: isHovered)
+    }
+
+    private var plainNumber: some View {
+        HStack(spacing: 2) {
+            Text("#\(species.id)")
+            if isRepresentative { Image(systemName: "star.fill").font(.system(size: 7, weight: .bold)) }
+        }
+        .font(.system(size: 9, weight: .bold, design: .rounded))
+        .foregroundStyle(.secondary)
+    }
+
+    private var typeDots: some View {
+        HStack(spacing: 3) {
+            ForEach(types.prefix(2), id: \.self) { type in Circle().fill(type.color).frame(width: 7, height: 7) }
+        }
+    }
+
+    private var shinyMark: some View {
+        Group { if species.isShiny { Text("✨").font(.system(size: 9)) } }
+    }
+
+    /// Proposal B: neutral cards, types as two dots.
+    private var dotsCell: some View {
+        neutralCard {
+            VStack(spacing: 2) {
+                HStack { plainNumber; Spacer(minLength: 0); shinyMark; typeDots }
+                sprite(50).overlay(alignment: .bottom) { if species.isRaising { raisingBadge.fixedSize() } }
+                Text(displayName).font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .lineLimit(1).minimumScaleFactor(0.8)
+            }
+            .padding(5)
+        }
+    }
+
+    /// Proposal C: neutral cards, the sprite on a disc in its type colors.
+    private var circleCell: some View {
+        neutralCard {
+            VStack(spacing: 3) {
+                ZStack {
+                    Circle().fill(RadialGradient(colors: [typeColor.opacity(0.55), (types.dropFirst().first?.color ?? typeColor).opacity(0.18)],
+                                                 center: .center, startRadius: 2, endRadius: 30))
+                        .frame(width: 54, height: 54)
+                    sprite(50)
+                }
+                .overlay(alignment: .bottom) { if species.isRaising { raisingBadge.fixedSize() } }
+                Text(displayName).font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .lineLimit(1).minimumScaleFactor(0.8)
+            }
+            .padding(5)
+            .frame(maxWidth: .infinity)
+            .overlay(alignment: .topLeading) { plainNumber.padding(5) }
+            .overlay(alignment: .topTrailing) { shinyMark.padding(4) }
+        }
+    }
+
+    /// Proposal D: three larger cells per row, with the type chips.
+    private var largeCell: some View {
+        neutralCard(radius: 13) {
+            VStack(spacing: 3) {
+                ZStack {
+                    Circle().fill(RadialGradient(colors: [typeColor.opacity(0.5), .clear], center: .center,
+                                                 startRadius: 2, endRadius: 36))
+                        .frame(width: 70, height: 70)
+                    sprite(62)
+                }
+                .overlay(alignment: .bottom) { if species.isRaising { raisingBadge.fixedSize() } }
+                Text(displayName).font(.system(size: 12, weight: .bold, design: .rounded))
+                    .lineLimit(1).minimumScaleFactor(0.8)
+                TypeBadges(types: types.map(\.rawValue), language: store.language, size: 7, horizontalPadding: 4)
+            }
+            .padding(6)
+            .frame(maxWidth: .infinity)
+            .overlay(alignment: .topLeading) { plainNumber.padding(6) }
+            .overlay(alignment: .topTrailing) { shinyMark.padding(5) }
+        }
+    }
+
+    /// Proposal E: one Pokémon per row, like the games' Pokédex list.
+    private var listRow: some View {
+        neutralCard(radius: 10) {
+            HStack(spacing: 10) {
+                Text(String(format: "#%03d", species.id))
+                    .font(.system(size: 11, weight: .bold, design: .monospaced)).foregroundStyle(.secondary)
+                    .frame(width: 40, alignment: .leading)
+                ZStack {
+                    Circle().fill(typeColor.opacity(0.3)).frame(width: 36, height: 36)
+                    sprite(36)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 4) {
+                        Text(displayName).font(.system(size: 13, weight: .bold, design: .rounded)).lineLimit(1)
+                        shinyMark
+                        if species.isRaising { raisingBadge.fixedSize() }
+                    }
+                    TypeBadges(types: types.map(\.rawValue), language: store.language, size: 7, horizontalPadding: 4)
+                }
+                Spacer(minLength: 4)
+                Badge(store.l.rarityLabel(species.rarity).uppercased(), tint: .rarity(species.rarity)).fixedSize()
+            }
+            .padding(.horizontal, 10).padding(.vertical, 4)
+            .frame(maxHeight: .infinity)
+        }
+    }
+
+    /// Proposal A, the current one: cells washed with their type color.
+    private var tintedCell: some View {
             VStack(spacing: 1) {
                 // 이로치를 잡은 종은 이로치 스프라이트로 표시한다(상세 화면에서 일반/이로치 모습 전환 가능).
                 // 폼이 있는 종의 아이콘은 기본 폼 일반색으로 유지하고, 폼별 색은 상세 화면에서 보여준다.
@@ -2219,24 +2392,6 @@ private struct DexSpeciesCell: View {
             }
             .scaleEffect(isHovered ? 1.04 : 1)
             .animation(.easeOut(duration: 0.12), value: isHovered)
-        }
-        .buttonStyle(.plain)
-        .onHover { isHovered = $0 }
-        .help(tooltip)
-        .accessibilityLabel(tooltip)
-        .contextMenu {
-            if formCount != nil {
-                Button(store.l.chooseForm, action: onTap)
-            } else {
-                Button {
-                    _ = store.setRepresentativeSpeciesID(isRepresentative ? nil : species.id)
-                } label: {
-                    Label(isRepresentative ? store.l.representativeFollowCurrent
-                                           : store.l.representativeSet,
-                          systemImage: isRepresentative ? "arrow.triangle.2.circlepath" : "star")
-                }
-            }
-        }
     }
 
     /// material 판 — 어두운 스프라이트 위에서도 읽히게(라이트/다크 자동).
