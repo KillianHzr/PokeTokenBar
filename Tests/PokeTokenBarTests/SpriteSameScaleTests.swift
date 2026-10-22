@@ -38,8 +38,8 @@ final class SpriteSameScaleTests: XCTestCase {
                                mysteryLabel: "", thumb: 40)
         let host = NSHostingView(rootView: line.background(Color.white))
         host.frame = NSRect(origin: .zero, size: host.fittingSize)
-        let heights = try redSpriteHeights(host)
-        XCTAssertEqual(heights.count, 2, "two red sprites: \(heights)")
+        let heights = try spriteHeights(host)
+        XCTAssertEqual(heights.count, 2, "two green sprites: \(heights)")
         XCTAssertEqual(heights.last ?? 0, 40, accuracy: 1.5, "the Charizard fills its 40 pt box")
         XCTAssertEqual(heights.first ?? 0, 57 * 40 / SpriteFit.sameScaleReference, accuracy: 1.5,
                        "the Charmander keeps its scale")
@@ -62,14 +62,15 @@ final class SpriteSameScaleTests: XCTestCase {
         let host = NSHostingView(rootView: CollectionView(store: store, navigation: PopoverNavigation())
             .frame(width: PopoverMetrics.contentWidth, height: 400).background(Color.white))
         host.frame = NSRect(x: 0, y: 0, width: PopoverMetrics.contentWidth, height: 400)
-        let heights = try redSpriteHeights(host)
-        XCTAssertEqual(heights.count, 2, "two red sprites: \(heights)")
-        XCTAssertEqual(heights.last ?? 0, 56, accuracy: 1.5, "the Charizard fills its 56 pt cell")
-        XCTAssertEqual(heights.first ?? 0, 57 * 56 / SpriteFit.sameScaleReference, accuracy: 1.5,
+        let heights = try spriteHeights(host)
+        XCTAssertEqual(heights.count, 2, "two green sprites: \(heights)")
+        // The grid's sprites are 50 pt.
+        XCTAssertEqual(heights.last ?? 0, 50, accuracy: 1.5, "the Charizard fills its 50 pt sprite box")
+        XCTAssertEqual(heights.first ?? 0, 57 * 50 / SpriteFit.sameScaleReference, accuracy: 1.5,
                        "the Charmander keeps its scale")
     }
 
-    /// Solid red stills for Charmander and Charizard at their Showdown sizes, where `SpriteView` looks first.
+    /// Solid green stills for Charmander and Charizard at their Showdown sizes, where `SpriteView` looks first.
     private func seedCharmanderAndCharizard() -> [NSString] {
         [(4, Self.charmander), (6, Self.charizard)].map { id, size in
             let key = SpriteStore.shared.directory
@@ -79,8 +80,8 @@ final class SpriteSameScaleTests: XCTestCase {
         }
     }
 
-    /// Heights in points of the red sprites, left to right: red columns grouped where they touch.
-    private func redSpriteHeights(_ host: NSView) throws -> [CGFloat] {
+    /// Heights in points of the green sprites, left to right: green columns grouped where they touch.
+    private func spriteHeights(_ host: NSView) throws -> [CGFloat] {
         host.layoutSubtreeIfNeeded()
         let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
         host.cacheDisplay(in: host.bounds, to: bitmap)
@@ -89,7 +90,8 @@ final class SpriteSameScaleTests: XCTestCase {
             var rows = Set<Int>()
             for y in 0..<bitmap.pixelsHigh {
                 guard let c = bitmap.colorAt(x: x, y: y)?.usingColorSpace(.deviceRGB) else { continue }
-                if c.redComponent > 0.8, c.greenComponent < 0.3, c.blueComponent < 0.3 { rows.insert(y) }
+                // Vivid green: no type dot of a Charmander or a Charizard (Fire, Flying) is.
+                if c.greenComponent > 0.85, c.redComponent < 0.45, c.blueComponent < 0.45 { rows.insert(y) }
             }
             guard !rows.isEmpty else { continue }
             if let last = groups.last, x - last.lastX <= 1 {
@@ -105,7 +107,7 @@ final class SpriteSameScaleTests: XCTestCase {
     private static func solid(_ size: CGSize) -> NSImage {
         let image = NSImage(size: size)
         image.lockFocus()
-        NSColor.red.setFill()
+        NSColor.green.setFill()
         NSRect(origin: .zero, size: size).fill()
         image.unlockFocus()
         return image

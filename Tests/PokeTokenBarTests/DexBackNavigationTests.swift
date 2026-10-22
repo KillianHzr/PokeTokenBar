@@ -61,14 +61,18 @@ final class DexBackNavigationTests: XCTestCase {
         let candidates: [String]
         let box: CGRect   // normalized, y-up
 
-        /// Spaces are ignored: Vision splits and joins words inconsistently.
+        /// Spaces are ignored: Vision splits and joins words inconsistently. A vertical edge next to a word can come
+        /// back as part of it: CI read Mon1 only as "Mon1|", so edge glyphs are trimmed before comparing. "Mon10|"
+        /// still reads Mon10, never Mon1.
         func reads(_ text: String, exactly: Bool) -> Bool {
             let wanted = text.replacingOccurrences(of: " ", with: "")
             return candidates.contains {
-                let candidate = $0.replacingOccurrences(of: " ", with: "")
+                let candidate = $0.replacingOccurrences(of: " ", with: "").trimmingCharacters(in: Self.edgeGlyphs)
                 return exactly ? candidate == wanted : candidate.contains(wanted)
             }
         }
+
+        private static let edgeGlyphs = CharacterSet(charactersIn: "|/\\[]()")
     }
 
     private func words(in host: NSView) throws -> [Word] {
@@ -118,6 +122,23 @@ final class DexBackNavigationTests: XCTestCase {
                 with: type, location: host.convert(point, to: nil), modifierFlags: [],
                 timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
                 context: nil, eventNumber: 0, clickCount: 1, pressure: 1)))
+        }
+    }
+
+    /// Clicks a SwiftUI link under a rendered label the way a mouse does: moved there first, since SwiftUI drops a
+    /// press away from where it last saw the pointer, then down and up as distinct events.
+    private var eventNumber = 0
+    private func click(_ word: Word, in host: NSView) async throws {
+        let y = host.isFlipped ? 1 - word.box.midY : word.box.midY   // Vision boxes are y-up
+        let point = host.convert(NSPoint(x: word.box.midX * host.bounds.width, y: y * host.bounds.height), to: nil)
+        let window = try XCTUnwrap(host.window)
+        for type in [NSEvent.EventType.mouseMoved, .leftMouseDown, .leftMouseUp] {
+            try await Task.sleep(for: .milliseconds(40))
+            eventNumber += 1
+            window.sendEvent(try XCTUnwrap(NSEvent.mouseEvent(
+                with: type, location: point, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                windowNumber: window.windowNumber, context: nil, eventNumber: eventNumber, clickCount: 1,
+                pressure: type == .leftMouseDown ? 1 : 0)))
         }
     }
 
@@ -197,6 +218,50 @@ final class DexBackNavigationTests: XCTestCase {
         navigation.showingCollectionLog = false
 
         try await waitForText("Mon5", in: root)
+    }
+
+    // MARK: Evolution family
+
+    /// A page's evolution family opens the other caught pages of the line, and Back walks back through them before
+    /// the grid. Mon1, Mon2 and Mon3 are the Bulbasaur line.
+    func testFamilyLineOpensItsPagesAndBackWalksBackThroughThem() async throws {
+        let store = try makeStore()
+        let navigation = PopoverNavigation()
+        navigation.tab = .collection
+        let root = host(store, navigation)
+        navigation.dexDetailCollectionID = "2"
+        try await waitForText("Mon3", exactly: true, in: root)
+        func waitForPage(_ id: String?) async throws {
+            let deadline = ContinuousClock.now + .seconds(3)
+            while navigation.dexDetailCollectionID != id && ContinuousClock.now < deadline {
+                try await Task.sleep(for: .milliseconds(50))
+            }
+            XCTAssertEqual(navigation.dexDetailCollectionID, id)
+        }
+        /// Every page has a Back label, so the press is retried until the page changes, not until a label shows.
+        func goBack(to id: String?) async throws {
+            for _ in 0..<5 where navigation.dexDetailCollectionID != id {
+                let back = try await waitForText(store.l.back, in: root)
+                try press(XCTUnwrap(back), in: root)
+                try await Task.sleep(for: .milliseconds(300))
+            }
+            try await waitForPage(id)
+        }
+        // Mon1 from Mon2's family; Mon2's page is where Back returns.
+        let mon1 = try await waitForText("Mon1", exactly: true, in: root)
+        try await click(XCTUnwrap(mon1), in: root)
+        try await waitForPage("1")
+        XCTAssertEqual(navigation.dexDetailHistory, [PopoverNavigation.DexPage(collectionID: "2", form: nil)])
+        // Mon3 from Mon1's family: two pages to come back through.
+        try await waitForText("Mon2", exactly: true, in: root)
+        let mon3 = try await waitForText("Mon3", exactly: true, in: root)
+        try await click(XCTUnwrap(mon3), in: root)
+        try await waitForPage("3")
+        try await goBack(to: "1")
+        try await goBack(to: "2")
+        try await goBack(to: nil)
+        try await waitForText("Mon5", in: root)
+        XCTAssertTrue(navigation.dexDetailHistory.isEmpty)
     }
 
     // MARK: Catch log

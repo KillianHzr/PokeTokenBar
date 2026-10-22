@@ -500,7 +500,7 @@ struct EvoLineView: View {
         guard case .species(let id) = node.content else {
             return DexEntryLink(target: nil, hint: "", accessibilityName: nil, cornerRadius: 6, open: onOpenDexEntry)
         }
-        return dexLinkModifier(forSpeciesID: id, isCollected: true)
+        return dexLinkModifier(forSpeciesID: id, isCollected: node.state != .uncaught)
     }
 
     private var row: some View {
@@ -514,8 +514,10 @@ struct EvoLineView: View {
                 }
                 switch node.content {
                 case .species(let id):
+                    let uncaught = node.state == .uncaught
                     VStack(spacing: 1) {
-                        SpriteView(speciesID: id, size: thumb, shiny: shiny, form: form, sameScale: true)
+                        SpriteView(speciesID: id, size: thumb, shiny: shiny && !uncaught, form: form,
+                                   isSilhouette: uncaught, sameScale: true)
                             .opacity(node.state == .future ? 0.32 : 1)
                             .saturation(node.state == .future ? 0.4 : 1)
                             .overlay(alignment: .bottom) {
@@ -525,8 +527,10 @@ struct EvoLineView: View {
                             }
                         if let names {
                             // Labels are one thumbnail wide: only Unown's letter fits, the sprite shows other forms.
-                            Text(PokemonForm.displayName(names[id] ?? "…", speciesID: id, form: form, label: nil))
-                                .font(.system(size: nameFontSize)).foregroundStyle(.secondary)
+                            Text(uncaught ? "???"
+                                 : PokemonForm.displayName(names[id] ?? "…", speciesID: id, form: form, label: nil))
+                                .font(.system(size: nameFontSize))
+                                .foregroundStyle(uncaught ? .tertiary : .secondary)
                                 .lineLimit(nameLineLimit).minimumScaleFactor(nameMinimumScaleFactor)
                                 .multilineTextAlignment(.center)
                                 .frame(maxWidth: thumb + Self.nameSlack)
@@ -553,10 +557,11 @@ struct EvoLineView: View {
                             VStack(spacing: 1) {
                                 Group {
                                     if item.isCollected {
+                                        // Faded when it is a coming evolution (Home); a Pokédex page's family is caught.
                                         SpriteView(speciesID: item.speciesID, size: thumb, shiny: shiny, form: item.form ?? form,
                                                    sameScale: true)
-                                            .opacity(0.4)
-                                            .saturation(0.6)
+                                            .opacity(node.state == .future ? 0.4 : 1)
+                                            .saturation(node.state == .future ? 0.6 : 1)
                                     } else {
                                         // Silhouette noire (ombre) pour les évolutions non encore obtenues
                                         SpriteView(speciesID: item.speciesID, size: thumb, shiny: false, form: item.form ?? form,
@@ -585,6 +590,175 @@ struct EvoLineView: View {
     }
 }
 
+/// Home's evolution track: the line's stages as stops along a bar. The stretch from the current stage to the next stop
+/// fills with the growth; earlier stretches are full. Coming stages show as silhouettes until caught; where the line
+/// goes several ways, every way to its end stands at the end of the track behind a bracket; a final stage heads for
+/// the graduation cap. Caught species open their Pokédex page.
+@MainActor
+struct EvolutionTrackView: View {
+    let stops: [CompanionStore.EvolutionTrackStop]
+    let progress: Double
+    /// The rarity's color, like the growth bar it replaces.
+    let tint: Color
+    var shiny = false
+    var form: PokemonForm? = nil
+    /// What is left, under the track ("95M to Charmeleon · 24%"); `amount` is drawn bold inside it.
+    let remaining: String
+    let amount: String
+    /// The exact counts on hover ("60M / 187.5M · 32%").
+    let detail: String
+    let l: L
+    var names: [Int: String] = [:]
+    var dexLinks: [Int: String] = [:]
+    var onOpenDexEntry: ((String) -> Void)? = nil
+
+    static let stopSize: CGFloat = 36
+    private static let spriteSize: CGFloat = 30
+
+    /// Index of the stage the individual is at; the stretch after it is the one growing.
+    private var currentIndex: Int {
+        stops.firstIndex { if case .reached(_, true) = $0 { return true } else { return false } } ?? 0
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center, spacing: 0) {
+                ForEach(Array(stops.enumerated()), id: \.offset) { index, stop in
+                    if index > 0 { stretch(index) }
+                    stopView(stop)
+                }
+            }
+            Text(remainingText)
+                .font(.system(size: 10, weight: .medium, design: .rounded))
+                .foregroundStyle(.secondary).monospacedDigit()
+                .lineLimit(1).minimumScaleFactor(0.8)
+        }
+    }
+
+    private var remainingText: AttributedString {
+        var text = AttributedString(remaining)
+        if let range = text.range(of: amount) {
+            text[range].font = .system(size: 10, weight: .bold, design: .rounded)
+            text[range].foregroundColor = .primary
+        }
+        return text
+    }
+
+    /// The growing stretch tells its exact counts on hover.
+    @ViewBuilder
+    private func stretch(_ index: Int) -> some View {
+        if index == currentIndex + 1 {
+            bar(fill: min(1, max(0, progress))).help(detail)
+        } else {
+            bar(fill: index <= currentIndex ? 1 : 0)
+        }
+    }
+
+    private func bar(fill: Double) -> some View {
+        Capsule().fill(Color.primary.opacity(0.12))
+            .overlay(alignment: .leading) {
+                GeometryReader { geo in
+                    Capsule().fill(LinearGradient(colors: [tint.opacity(0.75), tint], startPoint: .leading,
+                                                  endPoint: .trailing))
+                        .frame(width: geo.size.width * fill)
+                }
+            }
+            .clipShape(Capsule())
+            .frame(minWidth: 10, maxWidth: .infinity)
+            .frame(height: 6)
+            .padding(.horizontal, 3)
+    }
+
+    private func link(_ id: Int, caught: Bool) -> DexEntryLink {
+        DexEntryLink(target: caught ? dexLinks[id] : nil, hint: l.dexOpenEntryHint,
+                     accessibilityName: names[id], cornerRadius: Self.stopSize / 2, open: onOpenDexEntry)
+    }
+
+    private func ring<Content: View>(dashed: Bool, highlight: Color? = nil,
+                                     @ViewBuilder _ content: () -> Content) -> some View {
+        content()
+            .frame(width: Self.stopSize, height: Self.stopSize)
+            .background(Circle().fill(highlight.map { $0.opacity(0.25) } ?? Color.primary.opacity(dashed ? 0 : 0.08)))
+            .overlay(Circle().strokeBorder(highlight ?? Color.primary.opacity(dashed ? 0.28 : 0),
+                                           style: StrokeStyle(lineWidth: highlight == nil ? 1 : 1.5,
+                                                              dash: dashed ? [3, 2] : [])))
+    }
+
+    @ViewBuilder
+    private func stopView(_ stop: CompanionStore.EvolutionTrackStop) -> some View {
+        switch stop {
+        case .reached(let id, let isCurrent):
+            ring(dashed: false, highlight: isCurrent ? tint : nil) {
+                SpriteView(speciesID: id, size: Self.spriteSize, shiny: shiny, form: form, sameScale: true)
+            }
+            .modifier(link(id, caught: true))
+        case .coming(let id, let isCaught):
+            ring(dashed: true) {
+                SpriteView(speciesID: id, size: Self.spriteSize, form: form, isSilhouette: !isCaught, sameScale: true)
+                    .opacity(isCaught ? 0.6 : 0.5)
+            }
+            .modifier(link(id, caught: isCaught))
+            .accessibilityLabel(isCaught ? (names[id] ?? "") : l.unknownNextEvolution)
+        case .graduation:
+            ring(dashed: true) {
+                Image(systemName: "graduationcap.fill").font(.system(size: 14)).foregroundStyle(tint)
+            }
+            .accessibilityHidden(true)
+        case .branch(let paths):
+            HStack(spacing: 3) {
+                TrackBracket().stroke(Color.primary.opacity(0.35), lineWidth: 1).frame(width: 5)
+                branchRows(paths)
+            }
+            .fixedSize()
+        }
+    }
+
+    /// The ways the line can go: one row when each is a single species (Eevee), else one row per path with arrows.
+    @ViewBuilder
+    private func branchRows(_ paths: [[BranchEvolutionItem]]) -> some View {
+        if paths.allSatisfy({ $0.count == 1 }) {
+            // Eevee's eight still fit beside a stop and a stretch.
+            let size: CGFloat = paths.count > 6 ? 19 : 22
+            HStack(spacing: 1) { ForEach(paths.map { $0[0] }) { candidate($0, size: size) } }
+        } else {
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(Array(paths.enumerated()), id: \.offset) { _, path in
+                    HStack(spacing: 2) {
+                        ForEach(Array(path.enumerated()), id: \.offset) { index, item in
+                            if index > 0 {
+                                Image(systemName: "arrow.right").font(.system(size: 6)).foregroundStyle(.tertiary)
+                            }
+                            candidate(item, size: 22)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func candidate(_ item: BranchEvolutionItem, size: CGFloat) -> some View {
+        SpriteView(speciesID: item.speciesID, size: size, shiny: item.isCollected && shiny,
+                   form: item.form ?? form, isSilhouette: !item.isCollected)
+            .opacity(item.isCollected ? 0.8 : 0.55)
+            .frame(width: size, height: size)
+            .modifier(DexEntryLink(target: item.isCollected ? dexLinks[item.speciesID] : nil, hint: l.dexOpenEntryHint,
+                                   accessibilityName: names[item.speciesID], cornerRadius: 5, open: onOpenDexEntry))
+            .help(item.isCollected ? (names[item.speciesID] ?? l.dexOpenEntryHint) : l.unknownNextEvolution)
+    }
+}
+
+/// [ on its side, opening right: groups the ways a line can go at the end of the track.
+private struct TrackBracket: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        p.move(to: CGPoint(x: rect.maxX, y: rect.minY + 1))
+        p.addLine(to: CGPoint(x: rect.minX, y: rect.minY + 1))
+        p.addLine(to: CGPoint(x: rect.minX, y: rect.maxY - 1))
+        p.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - 1))
+        return p
+    }
+}
+
 /// Growth bar. Hovering 300 ms grows it with a small spring "plop" and reveals the exact numbers
 /// ("X / Y · Z%") inside; leaving shrinks it back. The expanded height is always reserved, so the
 /// hover never moves the layout or resizes the popover.
@@ -592,17 +766,20 @@ struct EvoLineView: View {
 struct LabeledProgressBar: View {
     let value: Double
     let label: String
+    var tint: Color = .orange
     @State private var expanded = false
     @State private var hoverTask: Task<Void, Never>?
 
-    private static let collapsedHeight: CGFloat = 6
-    private static let expandedHeight: CGFloat = 12
+    private static let collapsedHeight: CGFloat = 8
+    private static let expandedHeight: CGFloat = 14
 
     var body: some View {
         Capsule().fill(Color.secondary.opacity(0.2))
             .overlay(alignment: .leading) {
                 GeometryReader { geo in
-                    Capsule().fill(Color.orange).frame(width: geo.size.width * min(1, max(0, value)))
+                    Capsule().fill(LinearGradient(colors: [tint.opacity(0.7), tint], startPoint: .leading,
+                                                  endPoint: .trailing))
+                        .frame(width: geo.size.width * min(1, max(0, value)))
                 }
             }
             .overlay {
@@ -756,11 +933,14 @@ struct CompanionHeader: View {
         let dexLinks = onOpenDexEntry == nil ? [:] : store.dexLinkTargets
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .center, spacing: 12) {
-                SpriteView(speciesID: store.currentSpeciesID, size: 76, bob: true, animated: true,
+                SpriteView(speciesID: store.currentSpeciesID, size: 80, bob: true, animated: true,
                            shiny: store.currentIsShiny, form: store.currentForm)
-                    .frame(width: 76, height: 76)
-                    .background(Color.secondary.opacity(0.06))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .frame(width: 84, height: 84)
+                    // A soft ground shadow under the Pokémon, on the hero card's glow.
+                    .background(alignment: .bottom) {
+                        Ellipse().fill(Color.black.opacity(0.18)).frame(width: 52, height: 9).blur(radius: 2)
+                            .offset(y: -2)
+                    }
                     .rotationEffect(.degrees(eggImminent && eggWiggle ? 5 : (eggImminent ? -5 : 0)))
                     .scaleEffect(celebScale)
                     .overlay(RoundedRectangle(cornerRadius: 12).fill(.white).opacity(flashOpacity))
@@ -806,10 +986,16 @@ struct CompanionHeader: View {
                         cornerRadius: 12, open: onOpenDexEntry))
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
-                        Text(store.displayName).font(.callout.weight(.semibold))
+                        Text(store.displayName).font(.system(size: 15, weight: .bold, design: .rounded))
+                            .lineLimit(1).minimumScaleFactor(0.8)
                         if store.currentIsShiny { Text("✨").font(.system(size: 11)) }
                         if let r = store.rarity {
-                            Badge(store.l.rarityLabel(r).uppercased(), tint: .rarity(r))
+                            // The badge keeps its size; a long name shrinks or truncates instead.
+                            if r == .legendary {
+                                LegendaryBadge(text: store.l.rarityLabel(r).uppercased()).lineLimit(1).fixedSize()
+                            } else {
+                                Badge(store.l.rarityLabel(r).uppercased(), tint: .rarity(r)).lineLimit(1).fixedSize()
+                            }
                         }
                     }
                     if store.hasActive, let id = store.currentSpeciesID {
@@ -818,45 +1004,42 @@ struct CompanionHeader: View {
                         if !types.isEmpty { TypeBadges(types: types, language: store.language) }
                     }
                     if store.hasActive {
-                        // 단계 + 성격(부화 시 확정된 개체 아이덴티티)
-                        let nature = store.currentNature.map { " · \($0.name(store.language))" } ?? ""
-                        // The growth badge follows the stage, or goes under it when both don't fit on one line.
-                        ViewThatFits(in: .horizontal) {
-                            HStack(spacing: 5) {
-                                Text(store.stageText + nature).font(.caption2).foregroundStyle(.secondary).fixedSize()
-                                growthBadge
-                            }
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(store.stageText + nature).font(.caption2).foregroundStyle(.secondary)
-                                growthBadge
-                            }
+                        // The individual's nature and growth; the stage reads off the track below.
+                        WrappingHStack(spacing: 5, lineSpacing: 4) {
+                            if let nature = store.currentNature { natureChip(nature) }
+                            growthBadge
                         }
-                        LabeledProgressBar(value: store.progress,
-                                           label: Self.progressDetail(used: store.state.active?.usedAtStage ?? 0,
-                                                                      total: store.threshold))
-                        if store.tokensToNext > 0 {
-                            let amount = TokenFormatter.compact(store.tokensToNext)
-                            Text(store.isFinalStage ? store.l.toGraduation(amount) : store.l.toNextEvolution(amount))
-                                .font(.caption2).foregroundStyle(.tertiary)
+                        if store.evolutionTrack.isEmpty {
+                            // The line is still loading: the plain growth bar meanwhile.
+                            LabeledProgressBar(value: store.progress,
+                                               label: Self.progressDetail(used: store.state.active?.usedAtStage ?? 0,
+                                                                          total: store.threshold),
+                                               tint: rarityColor(store.rarity))
                         }
                     } else {
                         // 알 인큐베이션 — 부화까지 진행 (임박 시 문구·색 전환)
-                        HStack(spacing: 6) {
+                        // A badge that does not fit next to the status goes whole to the next line, never squeezed
+                        // onto two lines inside its capsule.
+                        WrappingHStack(spacing: 6, lineSpacing: 4) {
                             Text(eggImminent ? store.l.eggImminent : store.l.eggIncubating)
                                 .font(.caption2)
                                 .foregroundStyle(eggImminent ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
+                                .fixedSize()
                             // 등급 보증 알이면 무엇을 품고 있는지 — 도감 칩과 같은 라벨·색.
                             // 알 스프라이트는 한 장뿐이라 등급 구분은 이 배지가 유일한 신호다.
                             if let guarantee = store.eggGuarantee {
                                 Badge(store.l.eggGuaranteeHint(guarantee), tint: .rarity(guarantee))
+                                    .lineLimit(1).fixedSize()
                             }
                             if let typeGuarantee = store.eggTypeGuarantee {
                                 Badge(store.l.eggTypeGuaranteeHint(typeGuarantee), tint: .type(typeGuarantee))
+                                    .lineLimit(1).fixedSize()
                             }
                         }
                         LabeledProgressBar(value: store.eggProgress,
                                            label: Self.progressDetail(used: store.state.eggUsage,
-                                                                      total: store.eggHatchThreshold))
+                                                                      total: store.eggHatchThreshold),
+                                           tint: store.eggGuarantee.map { rarityColor($0) } ?? Design.eggColor)
                         if store.isEgg, store.isHatchRetryDelayed {
                             Text(store.l.eggHatchDelayed)
                                 .font(.caption2)
@@ -873,22 +1056,24 @@ struct CompanionHeader: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
-                    Text(statusLine).font(.caption2).foregroundStyle(.secondary)
+                    HStack(spacing: 4) {
+                        if store.hasActive { Image(systemName: statusSymbol).font(.system(size: 9)) }
+                        Text(statusLine)
+                    }
+                    .font(.caption2).foregroundStyle(.secondary)
                 }
                 Spacer()
             }
-            if store.hasActive, !store.lineNodes.isEmpty {
-                // 폭을 안 주면 분기 라인(이브이)이 넘쳐 팝오버 콘텐츠 전체가 좌우로 잘린다.
-                EvoLineView(nodes: store.lineNodes, mysteryLabel: store.l.unknownNextEvolution,
-                            language: store.language, shiny: store.currentIsShiny,
-                            maxWidth: PopoverMetrics.scrollContentWidth, form: store.currentForm,
-                            dexLinks: dexLinks, onOpenDexEntry: onOpenDexEntry)
+            let track = store.evolutionTrack
+            if store.hasActive, !track.isEmpty {
+                evolutionTrack(track, dexLinks: dexLinks)
             }
             if let g = store.justGraduated {
                 Text(store.l.graduated(g))
                     .font(.caption2).foregroundStyle(.orange)
             }
         }
+        .heroCard(colors: store.themeColors, legendary: store.rarity == .legendary)
         // The current form's PokéAPI details, cached after the first fetch: they fill the individual's ability and
         // moves. Same ID as the sprite, so a disguised Ditto loads its disguise's.
         .task(id: store.currentSpeciesID.map { PokemonForm.detailsID(speciesID: $0, form: store.currentForm) }) {
@@ -969,6 +1154,64 @@ struct CompanionHeader: View {
             withAnimation(.easeInOut(duration: 0.35).repeatForever(autoreverses: true)) { eggWiggle = true }
         } else {
             withAnimation(.default) { eggWiggle = false }
+        }
+    }
+
+    /// The individual's nature, a chip beside the growth badge.
+    private func natureChip(_ nature: PokemonNature) -> some View {
+        HStack(spacing: 3) {
+            Image(systemName: "leaf.fill").font(.system(size: 8, weight: .bold))
+            Text(nature.name(store.language)).font(.system(size: 10, weight: .semibold, design: .rounded))
+        }
+        .foregroundStyle(.primary.opacity(0.8))
+        .padding(.horizontal, 7).padding(.vertical, 3)
+        .background(Capsule().fill(Color.primary.opacity(0.12)))
+        .fixedSize()
+        .accessibilityElement(children: .combine)
+    }
+
+    /// The stages along a bar that fills with the growth; what is left under it, the next stage named.
+    private func evolutionTrack(_ track: [CompanionStore.EvolutionTrackStop], dexLinks: [Int: String]) -> some View {
+        let l = store.l
+        let amount = TokenFormatter.compact(store.tokensToNext)
+        let used = store.state.active?.usedAtStage ?? 0
+        let percent = store.threshold > 0 ? min(used, store.threshold) * 100 / store.threshold : 0
+        let names = store.currentLine.map { line in
+            Dictionary(uniqueKeysWithValues: line.names.keys.map { ($0, line.localizedName($0, store.language)) })
+        } ?? [:]
+        let percentText = (Double(percent) / 100).formatted(.percent.locale(store.language.displayLocale))
+        return EvolutionTrackView(stops: track, progress: store.progress, tint: rarityColor(store.rarity),
+                                  shiny: store.currentIsShiny, form: store.currentForm,
+                                  remaining: Self.trackCaption(track, amount: amount, percent: percentText,
+                                                               names: names, l: l),
+                                  amount: amount,
+                                  detail: Self.progressDetail(used: used, total: store.threshold), l: l,
+                                  names: names, dexLinks: dexLinks, onOpenDexEntry: onOpenDexEntry)
+    }
+
+    /// What is left before the track's next stop: that stage by name, an evolution when the line goes several ways,
+    /// or the graduation. "95M to Charmeleon · 24%".
+    nonisolated static func trackCaption(_ track: [CompanionStore.EvolutionTrackStop], amount: String, percent: String,
+                                         names: [Int: String], l: L) -> String {
+        let current = track.firstIndex { if case .reached(_, true) = $0 { return true } else { return false } } ?? 0
+        let toNext: String
+        switch current + 1 < track.count ? track[current + 1] : .graduation {
+        case .coming(let id, _): toNext = l.toStage(amount, names[id] ?? "#\(id)")
+        case .branch: toNext = l.toNextEvolution(amount)
+        case .graduation, .reached: toNext = l.toGraduation(amount)
+        }
+        return "\(toNext) · \(percent)"
+    }
+
+    /// The mood's symbol, before its line.
+    private var statusSymbol: String {
+        switch store.displayState {
+        case .sleep: return "moon.zzz.fill"
+        case .working: return "bolt.fill"
+        case .focus: return "flame.fill"
+        case .tired: return "battery.25"
+        case .levelUp: return "sparkles"
+        case .idle, .egg: return "leaf.fill"
         }
     }
 
@@ -1109,21 +1352,19 @@ struct CollectionView: View {
             emptyState
         } else if let id = nav.dexDetailCollectionID,
                   let species = store.dexSpecies.first(where: { $0.collectionID == id }) {
-            PokemonDetailView(store: store, species: species) {
+            PokemonDetailView(store: store, species: species, onBack: {
+                // A page opened from another's evolution family goes back to that one first.
+                if nav.returnToPreviousDexPage() { return }
                 // Back to the log would leave it for the next switch to the grid.
                 if !nav.showingCollectionLog { dexReturnAnchor = id }
                 nav.dexDetailCollectionID = nil
-            }
-                .id(species.collectionID)
+            }, initialForm: nav.dexDetailForm, onOpenDexPage: { page, current in nav.openDexPage(page, from: current) })
+                .id("\(species.collectionID)-\(nav.dexDetailForm?.rawValue ?? "")")
                 .frame(height: Self.contentHeight)
         } else {
             VStack(alignment: .leading, spacing: 6) {
-                Picker("", selection: $nav.showingCollectionLog) {
-                    Text(store.l.dexTitle).tag(false)
-                    Text(store.l.catchLogTitle).tag(true)
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
+                PillPicker(selection: $nav.showingCollectionLog,
+                           options: [(false, store.l.dexTitle), (true, store.l.catchLogTitle)])
 
                 filterToolbar
 
@@ -1746,14 +1987,21 @@ struct PokemonDetailView: View {
     @State private var selectedForm: PokemonForm?
     @State private var selectedShiny: Bool?
 
+    /// Opens another page of the family (the target, then this page as it is shown, for Back).
+    private let onOpenDexPage: ((PopoverNavigation.DexPage, PopoverNavigation.DexPage) -> Void)?
+
     init(store: CompanionStore, species: CompanionStore.DexSpecies,
          onBack: @escaping () -> Void, selectedShiny: Bool? = nil,
-         spriteStore: SpriteStore = .shared) {
+         spriteStore: SpriteStore = .shared, initialForm: PokemonForm? = nil,
+         onOpenDexPage: ((PopoverNavigation.DexPage, PopoverNavigation.DexPage) -> Void)? = nil) {
         self.store = store
         self.species = species
         self.onBack = onBack
         self.spriteStore = spriteStore
+        self.onOpenDexPage = onOpenDexPage
         _selectedShiny = State(initialValue: selectedShiny)
+        // A family page opens in the form it was seen in, when this species was caught in it (`displayedSpecies`).
+        _selectedForm = State(initialValue: initialForm.flatMap { PokemonForm.resolved(speciesID: species.id, form: $0) })
     }
 
     private var formSpecies: [CompanionStore.DexSpecies] {
@@ -1919,45 +2167,77 @@ struct PokemonDetailView: View {
         .task(id: species.id) { await store.loadFormNames(PokemonForm.nameResources(speciesID: species.id)) }
     }
 
+    /// The species in its type color, as Home's hero card (a legendary gets the whole event).
     private var identityHeader: some View {
         let species = displayedSpecies
-        return HStack(spacing: 14) {
-            SpriteView(speciesID: species.id, size: 104, animated: true,
-                       shiny: displayedShiny, spriteStore: spriteStore, form: species.form)
-                .frame(width: 104, height: 104)
-            VStack(alignment: .leading, spacing: 5) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(species.name).font(.title3.weight(.bold))
-                    Spacer(minLength: 8)
-                    Text(store.l.rarityLabel(species.rarity))
-                        .font(.callout.weight(.semibold)).foregroundStyle(.secondary)
+        let typeColors = PokemonTypeData.types(forSpeciesID: species.id, form: species.form).prefix(2).map(\.color)
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 14) {
+                SpriteView(speciesID: species.id, size: 96, animated: true,
+                           shiny: displayedShiny, spriteStore: spriteStore, form: species.form)
+                    .frame(width: 100, height: 100)
+                    .background(alignment: .bottom) {
+                        Ellipse().fill(Color.black.opacity(0.18)).frame(width: 60, height: 10).blur(radius: 2)
+                    }
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(species.name).font(.system(size: 18, weight: .bold, design: .rounded))
+                            .lineLimit(1).minimumScaleFactor(0.75)
+                        if species.rarity == .legendary {
+                            LegendaryBadge(text: store.l.rarityLabel(species.rarity).uppercased()).fixedSize()
+                        } else {
+                            Badge(store.l.rarityLabel(species.rarity).uppercased(), tint: .rarity(species.rarity))
+                                .lineLimit(1).fixedSize()
+                        }
+                    }
+                    let types = PokemonTypeData.typeNames(speciesID: species.id, form: species.form,
+                                                          fallback: store.pokemonDetails(speciesID: species.id, form: species.form)?.types)
+                    if !types.isEmpty {
+                        TypeBadges(types: types, language: store.language, size: 11,
+                                   horizontalPadding: 7, verticalPadding: 2)
+                    }
+                    if displayedShiny { Text("✨ \(store.l.dexShinyLabel)").font(.callout) }
+                    if let individual, store.isActiveDexEntry(individual) { Text(store.l.dexRaising).font(.callout).foregroundStyle(Color.accentColor) }
+                    let isRepresentative = store.isRepresentative(species)
+                    RepresentativeFooterButton(localization: store.l,
+                                               isRepresentative: isRepresentative) {
+                        _ = store.setRepresentativeSpeciesID(isRepresentative ? nil : species.id,
+                                                             form: species.form)
+                    }
                 }
-                let types = PokemonTypeData.typeNames(speciesID: species.id, form: species.form,
-                                                      fallback: store.pokemonDetails(speciesID: species.id, form: species.form)?.types)
-                if !types.isEmpty {
-                    TypeBadges(types: types, language: store.language, size: 11,
-                               horizontalPadding: 7, verticalPadding: 2)
-                }
-                if displayedShiny { Text("✨ \(store.l.dexShinyLabel)").font(.callout) }
-                if let individual, store.isActiveDexEntry(individual) { Text(store.l.dexRaising).font(.callout).foregroundStyle(Color.accentColor) }
-                let isRepresentative = store.isRepresentative(species)
-                RepresentativeFooterButton(localization: store.l,
-                                           isRepresentative: isRepresentative) {
-                    _ = store.setRepresentativeSpeciesID(isRepresentative ? nil : species.id,
-                                                         form: species.form)
-                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            familyLine(species)
+        }
+        .heroCard(colors: typeColors.isEmpty ? [.gray] : Array(typeColors), legendary: species.rarity == .legendary)
+    }
+
+    /// What the species evolves from and into, under its identity like the line on Home's card. A caught one opens
+    /// its page in the same form, and Back comes back here; one not caught is a silhouette.
+    @ViewBuilder
+    private func familyLine(_ shown: CompanionStore.DexSpecies) -> some View {
+        let family = store.dexFamily(speciesID: shown.id, form: shown.form)
+        if !family.nodes.isEmpty {
+            let dex = store.dexSpecies
+            // The species itself is the page already open.
+            let links = Dictionary(dex.filter { $0.id != shown.id }.map { ($0.id, $0.collectionID) },
+                                   uniquingKeysWith: { first, _ in first })
+            let names = Dictionary(dex.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
+            EvoLineView(nodes: family.nodes, mysteryLabel: store.l.unknownNextEvolution, language: store.language,
+                        thumb: 34, shiny: displayedShiny, names: names,
+                        maxWidth: PopoverMetrics.scrollContentWidth - Design.cardPadding * 2, form: family.form,
+                        nameFontSize: 10, dexLinks: links,
+                        onOpenDexEntry: { target in
+                            onOpenDexPage?(.init(collectionID: target, form: family.form),
+                                           .init(collectionID: species.collectionID, form: shown.form))
+                        })
         }
     }
 
     private var appearancePicker: some View {
-        Picker(store.l.dexAppearance, selection: Binding(
-            get: { displayedShiny }, set: { selectedShiny = $0; selectedInstanceID = "" })) {
-            Text(store.l.dexNormalLabel).tag(false)
-            Text("✨ \(store.l.dexShinyLabel)").tag(true)
-        }
-        .pickerStyle(.segmented)
+        PillPicker(selection: Binding(get: { displayedShiny }, set: { selectedShiny = $0; selectedInstanceID = "" }),
+                   options: [(false, store.l.dexNormalLabel), (true, "✨ \(store.l.dexShinyLabel)")])
+            .accessibilityLabel(store.l.dexAppearance)
     }
 
     private var individualPicker: some View {
@@ -2039,13 +2319,39 @@ struct PokemonDetailView: View {
     }
 
     private func statRow(name: String, value: Int, iv: Int?, scaleMaximum: Int) -> some View {
-        HStack(spacing: 6) {
+        let color = Self.statColor(name)
+        return HStack(spacing: 6) {
             Text(store.l.statLabel(name)).frame(width: 74, alignment: .leading)
-            ProgressView(value: Double(value), total: Double(scaleMaximum)).tint(Color.accentColor)
-            Text("\(value)").monospacedDigit().frame(width: 30, alignment: .trailing)
+            Capsule().fill(Color.primary.opacity(0.08))
+                .overlay(alignment: .leading) {
+                    GeometryReader { geo in
+                        Capsule().fill(LinearGradient(colors: [color.opacity(0.75), color], startPoint: .leading,
+                                                      endPoint: .trailing))
+                            .frame(width: geo.size.width * min(1, Double(value) / Double(max(1, scaleMaximum))))
+                    }
+                }
+                .frame(height: 7)
+            Text("\(value)").font(.system(size: 12, weight: .bold, design: .rounded)).monospacedDigit()
+                .frame(width: 30, alignment: .trailing)
             if let iv { Text("IV \(iv)").foregroundStyle(.secondary).frame(width: 38, alignment: .trailing) }
         }
         .font(.system(size: 12))
+    }
+
+    /// Each stat in its color from the games' summary screens.
+    static func statColor(_ name: String) -> Color {
+        let hex: UInt32
+        switch name {
+        case "hp": hex = 0xFF5959
+        case "attack": hex = 0xF5AC78
+        case "defense": hex = 0xFAE078
+        case "special-attack": hex = 0x9DB7F5
+        case "special-defense": hex = 0xA7DB8D
+        case "speed": hex = 0xFA92B2
+        default: hex = 0xAAAAAA
+        }
+        return Color(.sRGB, red: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255,
+                     blue: Double(hex & 0xFF) / 255)
     }
 
     private func speciesSection(_ details: PokemonDetails) -> some View {
@@ -2084,7 +2390,9 @@ struct PokemonDetailView: View {
     }
 
     private func detailTitle(_ text: String) -> some View {
-        Text(text).font(.callout.weight(.semibold)).foregroundStyle(.secondary)
+        Text(text.uppercased())
+            .font(.system(size: 10, weight: .bold, design: .rounded)).tracking(0.6)
+            .foregroundStyle(.secondary)
     }
 
     private func valuePair(_ label: String, _ value: String, suffix: String? = nil) -> some View {
@@ -2098,9 +2406,7 @@ struct PokemonDetailView: View {
 
 private extension View {
     func detailCard() -> some View {
-        self.padding(9)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 9))
+        designCard()
     }
 }
 
@@ -2124,63 +2430,20 @@ private struct DexSpeciesCell: View {
     @State private var isHovered = false
 
     private var formTotal: Int { PokemonForm.forms(speciesID: species.id).count }
+
+    /// The Pokémon the cell shows, the one its page opens on: shiny in the form caught shiny.
+    private var cover: CompanionStore.DexSpecies { store.dexCover(for: species) }
+
+    /// The cell's tint: the species' first type in the form the cell shows.
+    private var typeColor: Color {
+        PokemonTypeData.types(forSpeciesID: species.id, form: cover.form).first?.color ?? .gray
+    }
+
     /// Larger thumbnails remain static so a full page does not animate concurrently.
     private static let thumb: CGFloat = 56
 
     var body: some View {
-        let cover = store.dexCover(for: species)
-        Button(action: onTap) {
-            VStack(spacing: 1) {
-                // The Pokémon its page opens on: a species caught shiny shows shiny, in the form caught shiny.
-                SpriteView(speciesID: species.id, size: Self.thumb, shiny: cover.isShiny, form: cover.form,
-                           sameScale: true)
-                    .frame(width: Self.thumb, height: Self.thumb)
-                    // Keep the raising badge over the sprite to leave room for the name.
-                    .overlay(alignment: .bottom) {
-                        if species.isRaising { raisingBadge.fixedSize() }
-                    }
-                Text(formCount.map { "\(species.name) \($0)/\(formTotal)" } ?? species.name)
-                    .font(.system(size: 12))
-                    .lineLimit(2, reservesSpace: true)
-                    .multilineTextAlignment(.center)
-            }
-            .frame(maxWidth: .infinity)
-            // Attach number and shiny markers to the full cell width.
-            .overlay(alignment: .topLeading) { numberTag }
-            .overlay(alignment: .topTrailing) {
-                // ✨ = 이 종의 이로치를 잡은 적이 있다는 표식.
-                if species.isShiny {
-                    Text("✨")
-                        .font(.system(size: 10))
-                        .padding(.horizontal, 2)
-                        .background(.regularMaterial, in: Capsule())
-                        .accessibilityLabel(store.l.dexShinyLabel)
-                }
-            }
-            .padding(2)
-            // 대표 = 영속적인 accent 배경, 방금 클릭한 칸 = 기존 accent 테두리.
-            // 서로 다른 카드여도 같은 강조 두 개가 선택된 것처럼 보이지 않는다.
-            .background(isRepresentative ? Color.accentColor.opacity(0.16)
-                                         : Color.secondary.opacity(isSelected ? 0.16 : 0.06))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay {
-                if isSelected {
-                    RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(Color.accentColor, lineWidth: 1.5)
-                }
-            }
-            // 호버 = 클릭 가능 피드백. 확대는 격자 간격 안에 머무는 폭으로만.
-            // 그림자는 카드 모양에만 — 칸 전체에 `.shadow` 를 걸면 번호·이름·스프라이트 글자마다 그림자가 진다.
-            .background {
-                if isHovered {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color(nsColor: .windowBackgroundColor))
-                        .shadow(color: .black.opacity(0.25), radius: 4, y: 2)
-                }
-            }
-            .scaleEffect(isHovered ? 1.04 : 1)
-            .animation(.easeOut(duration: 0.12), value: isHovered)
-        }
+        Button(action: onTap) { cell }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
         .help(tooltip)
@@ -2200,26 +2463,61 @@ private struct DexSpeciesCell: View {
         }
     }
 
-    /// material 판 — 어두운 스프라이트 위에서도 읽히게(라이트/다크 자동).
-    /// 스프라이트 위 라벨에 이미 쓰는 패턴과 동일.
-    private var numberTag: some View {
+    private var types: [PokemonType] { PokemonTypeData.types(forSpeciesID: species.id, form: cover.form) }
+    private var displayName: String { formCount.map { "\(species.name) \($0)/\(formTotal)" } ?? species.name }
+
+    private func sprite(_ size: CGFloat) -> some View {
+        let cover = cover
+        return SpriteView(speciesID: species.id, size: size, shiny: cover.isShiny, form: cover.form, sameScale: true)
+            .frame(width: size, height: size)
+    }
+
+    /// A neutral card, a hairline in the type color when selected; hover lifts it a little.
+    private func neutralCard<Content: View>(radius: CGFloat = 11, @ViewBuilder _ content: () -> Content) -> some View {
+        content()
+            .background(RoundedRectangle(cornerRadius: radius, style: .continuous).fill(Color.primary.opacity(isHovered ? 0.08 : 0.05)))
+            .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous)
+                .strokeBorder(isSelected ? typeColor : Color.primary.opacity(0.07), lineWidth: isSelected ? 1.5 : 1))
+            .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous)
+                .fill(isRepresentative ? Color.accentColor.opacity(0.12) : .clear).allowsHitTesting(false))
+            .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .scaleEffect(isHovered ? 1.03 : 1)
+            .animation(.easeOut(duration: 0.12), value: isHovered)
+    }
+
+    /// 번호 색 = 희귀도 — "전체" 보기에서도 칸마다 희귀도가 보인다. The star marks the representative.
+    private var plainNumber: some View {
         HStack(spacing: 2) {
             Text("#\(species.id)")
-            // 기존 번호 캡슐에 결합해 이로치(우측 상단)·키우는 중(스프라이트 하단)·이름과
-            // 새 자리를 다투지 않는다. 아이콘은 언어에 따라 폭이 달라지지 않고, 의미는 셀의
-            // 현지화된 툴팁·접근성 라벨이 보완한다.
-            if isRepresentative {
-                Image(systemName: "star.fill")
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundStyle(Color.accentColor)
-                    .accessibilityHidden(true)
-            }
+            if isRepresentative { Image(systemName: "star.fill").font(.system(size: 7, weight: .bold)) }
         }
-            // 번호 색 = 희귀도 — "전체" 보기에서도 칸마다 희귀도가 보인다.
-            .font(.system(size: 10, weight: .semibold))
-            .foregroundStyle(rarityColor(species.rarity))
-            .padding(.horizontal, 2)
-            .background(.regularMaterial, in: Capsule())
+        .font(.system(size: 9, weight: .bold, design: .rounded))
+        .foregroundStyle(rarityColor(species.rarity))
+        .padding(.horizontal, 4).padding(.vertical, 1)
+        .background(Capsule().fill(rarityColor(species.rarity).opacity(0.16)))
+    }
+
+    private var typeDots: some View {
+        HStack(spacing: 3) {
+            ForEach(types.prefix(2), id: \.self) { type in Circle().fill(type.color).frame(width: 7, height: 7) }
+        }
+    }
+
+    private var shinyMark: some View {
+        Group { if species.isShiny { Text("✨").font(.system(size: 9)) } }
+    }
+
+    /// A neutral card: the number in its rarity's color, the types as one or two dots, the sprite, the name.
+    private var cell: some View {
+        neutralCard {
+            VStack(spacing: 2) {
+                HStack { plainNumber; Spacer(minLength: 0); shinyMark; typeDots }
+                sprite(50).overlay(alignment: .bottom) { if species.isRaising { raisingBadge.fixedSize() } }
+                Text(displayName).font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .lineLimit(1).minimumScaleFactor(0.8)
+            }
+            .padding(5)
+        }
     }
 
     /// "키우는 중"은 현재 개체의 현재 형태 한 칸에만 표시한다. accent 틴트는 반투명이라

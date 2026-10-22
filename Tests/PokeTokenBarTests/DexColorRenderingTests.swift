@@ -167,30 +167,54 @@ final class DexColorRenderingTests: XCTestCase {
         let bitmap = try await waitForDetailSprite(host, shiny: true)
         XCTAssertGreaterThan(colorRows(bitmap, shiny: true).count, 40, "the page must open on the shiny sprite")
         XCTAssertEqual(colorRows(bitmap, shiny: false).count, 0, "no normal sprite on a page that opens shiny")
-        let segmented = try XCTUnwrap(descendants(host).compactMap { $0 as? NSSegmentedControl }.first)
-        XCTAssertEqual(segmented.selectedSegment, 1, "the appearance picker opens on Shiny")
+        // The identity hero card says Shiny: the picker and the page agree.
+        let scale = CGFloat(bitmap.pixelsWide) / PopoverMetrics.contentWidth
+        let header = try XCTUnwrap(bitmap.cgImage?.cropping(to:
+            CGRect(x: 110 * scale, y: 60 * scale, width: 210 * scale, height: 140 * scale)))
+        let recognition = VNRecognizeTextRequest()
+        recognition.recognitionLevel = .accurate
+        recognition.recognitionLanguages = ["en-US"]
+        try VNImageRequestHandler(cgImage: header).perform([recognition])
+        let text = recognition.results?.compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ") ?? ""
+        XCTAssertTrue(text.contains("Shiny"), "the page opens on the shiny individual: \(text)")
     }
-
-    private func descendants(_ view: NSView) -> [NSView] { [view] + view.subviews.flatMap(descendants) }
 
     func testDetailSelectorChangesMountedPixelsAndReturnsToNormal() async throws {
         let (store, file) = try fixture(shinyLast: true)
         defer { try? FileManager.default.removeItem(at: file) }
         let (host, window) = try mountDetail(store, selectedShiny: false)
         defer { window.close() }
+        /// Clicks the appearance picker's segment: it is the first row of the page under the Back row (the species has no
+        /// forms), Normal on the left half, Shiny on the right.
+        var eventNumber = 0
+        func click(shiny: Bool) async throws {
+            // Low on the left half: where the hero card's glow, which reaches up past the card, used to take the click.
+            let point = NSPoint(x: PopoverMetrics.contentWidth * (shiny ? 0.72 : 0.22), y: 520 - 45)
+            // Moved first: SwiftUI follows the pointer, and a press away from where it last saw it is dropped.
+            for type in [NSEvent.EventType.mouseMoved, .leftMouseDown, .leftMouseUp] {
+                try await Task.sleep(for: .milliseconds(40))
+                eventNumber += 1
+                // Distinct timestamps and numbers: identical events are not taken as a new click.
+                if let event = NSEvent.mouseEvent(with: type, location: point, modifierFlags: [],
+                                                  timestamp: ProcessInfo.processInfo.systemUptime,
+                                                  windowNumber: window.windowNumber, context: nil, eventNumber: eventNumber,
+                                                  clickCount: 1, pressure: type == .leftMouseDown ? 1 : 0) {
+                    window.sendEvent(event)
+                }
+            }
+        }
         for (step, shiny) in [false, true, false].enumerated() {
             host.layoutSubtreeIfNeeded()
-            let segmented = try XCTUnwrap(descendants(host).compactMap { $0 as? NSSegmentedControl }.first)
-            segmented.selectedSegment = shiny ? 1 : 0
-            segmented.sendAction(segmented.action, to: segmented.target)
+            try await click(shiny: shiny)
             let bitmap = try await waitForDetailSprite(host, shiny: shiny)
             XCTAssertGreaterThan(colorRows(bitmap, shiny: shiny).count, 40,
                                  "step \(step): selected \(shiny ? "shiny" : "normal") sprite must appear within 5 seconds")
             XCTAssertEqual(colorRows(bitmap, shiny: !shiny).count, 0,
                            "step \(step): selected \(shiny ? "shiny" : "normal") must not retain the previous appearance")
             let scale = CGFloat(bitmap.pixelsWide) / PopoverMetrics.contentWidth
+            // The identity hero card under the appearance picker: name, types and the Shiny line.
             let header = try XCTUnwrap(bitmap.cgImage?.cropping(to:
-                CGRect(x: 90 * scale, y: 58 * scale, width: 220 * scale, height: 85 * scale)))
+                CGRect(x: 110 * scale, y: 60 * scale, width: 210 * scale, height: 140 * scale)))
             let recognition = VNRecognizeTextRequest()
             recognition.recognitionLevel = .accurate
             recognition.recognitionLanguages = ["en-US"]

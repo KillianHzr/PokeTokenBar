@@ -124,20 +124,28 @@ final class ZeroUsageHomeRenderingTests: XCTestCase {
         let request = VNRecognizeTextRequest()
         request.recognitionLanguages = ["ko-KR", "en-US"]
         request.recognitionLevel = .accurate
+        // CI runners have no GPU: Vision runs on the CPU there and reads small text differently ("미번 달" for
+        // "이번 달"). Reading on the CPU everywhere makes a local run fail where CI would.
+        if let cpu = try request.supportedComputeStageDevices[.main]?.first(where: {
+            if case .cpu = $0 { return true } else { return false }
+        }) {
+            request.setComputeDevice(cpu, for: .main)
+        }
         try VNImageRequestHandler(cgImage: XCTUnwrap(bitmap.cgImage)).perform([request])
         let text = request.results?.compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ") ?? ""
-        let normalizedText = text.replacingOccurrences(of: " ", with: "")
-        let chartCaption = companion.l.dailyTrend.replacingOccurrences(of: " ", with: "")
-        let chartVisible = (request.results ?? []).contains { observation in
-            // CI ranks "일벌" before "일별" at the same confidence. Vision returns at most 10 candidates.
-            // Match the exact caption only within this observation's most confident tie.
-            let alternatives = observation.topCandidates(10)
-            guard let maximumConfidence = alternatives.first?.confidence else { return false }
-            return alternatives.contains {
-                $0.confidence == maximumConfidence
-                    && $0.string.replacingOccurrences(of: " ", with: "").contains(chartCaption)
+        /// CI ranks "일벌" before "일별", and "미번 주" before "이번 주", at the same confidence. Vision returns at most
+        /// 10 candidates: the exact text must be in one observation's most confident tie.
+        func visible(_ label: String) -> Bool {
+            let wanted = label.replacingOccurrences(of: " ", with: "")
+            return (request.results ?? []).contains { observation in
+                let alternatives = observation.topCandidates(10)
+                guard let maximumConfidence = alternatives.first?.confidence else { return false }
+                return alternatives.contains {
+                    $0.confidence == maximumConfidence && $0.string.replacingOccurrences(of: " ", with: "").contains(wanted)
+                }
             }
         }
+        let chartVisible = visible(companion.l.dailyTrend)
         let candidates = (request.results ?? []).enumerated().map { index, observation in
             let alternatives = observation.topCandidates(10).map {
                 "\($0.string.debugDescription) confidence=\($0.confidence)"
@@ -146,8 +154,7 @@ final class ZeroUsageHomeRenderingTests: XCTestCase {
         }.joined(separator: "\n")
         let diagnostics = "OCR revision=\(request.revision) pixels=\(bitmap.pixelsWide)x\(bitmap.pixelsHigh)\n\(candidates)"
         for label in [companion.l.todayTokens, companion.l.thisWeek, companion.l.thisMonth] {
-            XCTAssertTrue(normalizedText.contains(label.replacingOccurrences(of: " ", with: "")),
-                          "Missing visible \(label): \(text)\n\(diagnostics)")
+            XCTAssertTrue(visible(label), "Missing visible \(label): \(text)\n\(diagnostics)")
         }
         if history && day > 1 {
             XCTAssertTrue(chartVisible,

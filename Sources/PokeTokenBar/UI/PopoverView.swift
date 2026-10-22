@@ -3,24 +3,66 @@ import SwiftUI
 
 enum PopoverTab { case home, shop, bag, collection, achievements }
 
-/// The popover's tab bar. A segmented control is as wide as its labels, so the five labels must fit
-/// `PopoverMetrics.contentWidth` in every language (`testTabBarFitsThePopoverInEveryLanguage`).
+/// The popover's tab bar: five equal tabs, an icon over a short label, the selected one on a pill in the color of
+/// the Pokémon being raised. Achievements ready to claim show as a count on the trophy. Each label must fit its
+/// fifth of `PopoverMetrics.contentWidth` in every language (`testTabBarFitsThePopoverInEveryLanguage`).
 @MainActor
 struct PopoverTabPicker: View {
     @Binding var tab: PopoverTab
     let l: L
     let unclaimedAchievements: Int
+    var accent: Color = Design.actionColor
+
+    /// The labels' font, shared with the width test.
+    static let labelFont = NSFont.systemFont(ofSize: 10, weight: .semibold)
+    /// Smallest scale a long label may shrink to before it no longer fits.
+    static let minimumLabelScale: CGFloat = 0.8
+
+    func items() -> [(tab: PopoverTab, title: String, icon: String)] {
+        [(.home, l.home, "house.fill"), (.shop, l.shop, "cart.fill"), (.bag, l.bag, "bag.fill"),
+         (.collection, l.collection, "books.vertical.fill"), (.achievements, l.achievements, "trophy.fill")]
+    }
 
     var body: some View {
-        Picker("", selection: $tab) {
-            Text(l.home).tag(PopoverTab.home)
-            Text(l.shop).tag(PopoverTab.shop)
-            Text(l.bag).tag(PopoverTab.bag)
-            Text(l.collection).tag(PopoverTab.collection)
-            Text(l.achievementsTab(unclaimed: unclaimedAchievements)).tag(PopoverTab.achievements)
+        HStack(spacing: 2) {
+            ForEach(items(), id: \.tab) { item in
+                let selected = tab == item.tab
+                Button { tab = item.tab } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: item.icon)
+                            .font(.system(size: 14, weight: .semibold))
+                            .frame(height: 16)
+                            .overlay(alignment: .topTrailing) {
+                                if item.tab == .achievements, unclaimedAchievements > 0 {
+                                    Text("\(unclaimedAchievements)")
+                                        .font(.system(size: 8, weight: .bold, design: .rounded))
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 4).padding(.vertical, 1)
+                                        .background(Capsule().fill(Color.red))
+                                        .offset(x: 10, y: -5)
+                                }
+                            }
+                        Text(item.title)
+                            .font(Font(Self.labelFont))
+                            .lineLimit(1)
+                            .minimumScaleFactor(Self.minimumLabelScale)
+                    }
+                    .foregroundStyle(selected ? AnyShapeStyle(accent) : AnyShapeStyle(.secondary))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+                    .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(selected ? accent.opacity(0.16) : .clear))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(item.tab == .achievements ? l.achievementsTab(unclaimed: unclaimedAchievements)
+                                                              : item.title)
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            }
         }
-        .pickerStyle(.segmented)
-        .labelsHidden()
+        .padding(3)
+        .background(RoundedRectangle(cornerRadius: 13, style: .continuous).fill(Color.primary.opacity(0.05)))
+        .animation(.easeOut(duration: 0.15), value: tab)
     }
 }
 
@@ -67,7 +109,36 @@ final class PopoverNavigation {
     /// It lives here so Home sprites can open it, but it only lasts while the collection content is
     /// on screen: leaving the tab, switching segment, or covering it with Settings/Recap drops it —
     /// the same lifetime it had as `CollectionView`'s own `@State`.
-    var dexDetailCollectionID: String?
+    var dexDetailCollectionID: String? {
+        didSet { if dexDetailCollectionID == nil { dexDetailForm = nil; dexDetailHistory = [] } }
+    }
+    /// The form the open page shows first when another page's evolution family opened it: Alolan Ninetales from
+    /// Alolan Vulpix. Nil from the grid, the log and Home.
+    var dexDetailForm: PokemonForm?
+    /// Pages left for another one through their evolution family, the latest last: Back returns to them first.
+    var dexDetailHistory: [DexPage] = []
+
+    /// One Pokédex page in one form.
+    struct DexPage: Equatable {
+        let collectionID: String
+        let form: PokemonForm?
+    }
+
+    /// Opens a page from the evolution family of `current`, which Back returns to.
+    func openDexPage(_ page: DexPage, from current: DexPage) {
+        guard page.collectionID != current.collectionID else { return }
+        dexDetailHistory.append(current)
+        dexDetailCollectionID = page.collectionID
+        dexDetailForm = page.form
+    }
+
+    /// Back from a page: the page it was opened from, if any. False when there is none (back to the grid or log).
+    func returnToPreviousDexPage() -> Bool {
+        guard let previous = dexDetailHistory.popLast() else { return false }
+        dexDetailCollectionID = previous.collectionID
+        dexDetailForm = previous.form
+        return true
+    }
     /// 프로바이더 탭 선택 — reset() 대상이 아님(팝오버를 다시 열어도 보던 서비스 유지).
     var providerID: String?
     /// Claude account tab in the limits section. Kept across openings, like `providerID`.
@@ -203,16 +274,13 @@ struct PopoverView: View {
             } else {
                 // 고정 높이 — 상점/가방/컬렉션과 동일(팝오버가 화면을 넘어가는 것을 방지).
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: Design.sectionSpacing) {
                         CompanionHeader(store: companion, onOpenDexEntry: { nav.openDexEntry(collectionID: $0) },
                                         onOpenBonuses: { nav.showingBonuses = true })
-                        Divider()
                         header
-                        Divider()
                         providerStatusBanner   // 인시던트 있을 때만 — 한도 가용 여부와 무관(API 다운=한도 nil 케이스에도)
                         if selectedProviderHasLimits {
-                            limitsSection
-                            Divider()
+                            limitsSection.designCard()
                         }
                     }
                     .reservesScrollerLane()
@@ -226,14 +294,26 @@ struct PopoverView: View {
 
     // MARK: 헤더 — 오늘 합계 + provider/토큰타입 분해
 
+    /// Today's usage, then the month's daily chart, then the selected tool's detail: one card each.
     private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(l.todayTokens)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            HStack(alignment: .firstTextBaseline) {
+        VStack(alignment: .leading, spacing: Design.sectionSpacing) {
+            todayCard
+            trendCard
+            providerCard
+        }
+    }
+
+    private var todayCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                SectionTitle(text: l.todayTokens, systemImage: "bolt.fill")
+                Spacer()
+                CircleIconButton(systemImage: "wand.and.stars", help: l.bonusOpen) { nav.showingBonuses = true }
+                CircleIconButton(systemImage: "chart.bar.xaxis", help: l.recapOpen) { nav.showingRecap = true }
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(TokenFormatter.compact(store.todayTotalTokens))
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
                     .monospacedDigit()
                 if store.todayTotalTokens >= 1_000 {
                     Text(TokenFormatter.grouped(store.todayTotalTokens))
@@ -244,53 +324,52 @@ struct PopoverView: View {
                 Spacer()
                 if store.showsCost {
                     UsageCostText(cost: store.todayUsageCost, l: l)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
+                        .font(.system(.callout, design: .rounded).weight(.semibold))
+                        .foregroundStyle(.green)
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background(Capsule().fill(Color.green.opacity(0.14)))
                 }
             }
+            // Keep period totals visible on quiet days too.
+            HStack(spacing: 8) {
+                periodTile(l.thisWeek, tokens: store.weekTotalTokens, cost: store.showsCost ? store.weekUsageCost : nil)
+                periodTile(l.thisMonth, tokens: store.monthTotalTokens, cost: store.showsCost ? store.monthUsageCost : nil)
+            }
+        }
+        .designCard()
+    }
 
-            // Keep period totals and saved-history navigation visible on quiet days too.
-            HStack(spacing: 14) {
-                periodLabel(l.thisWeek, tokens: store.weekTotalTokens, cost: store.showsCost ? store.weekUsageCost : nil)
-                periodLabel(l.thisMonth, tokens: store.monthTotalTokens, cost: store.showsCost ? store.monthUsageCost : nil)
-                Spacer()
-                Button { nav.showingBonuses = true } label: {
-                    Image(systemName: "wand.and.stars")
+    private var trendCard: some View {
+        MonthDailyTrend(series: store.monthDailyTotals,
+                        providers: store.snapshots.compactMap { snap in
+                            snap.monthDaily.map {
+                                DailyTrendStack.ProviderSeries(
+                                    id: snap.providerID, name: snap.displayName,
+                                    days: $0, reportsCost: snap.reportsCost)
+                            }
+                        },
+                        providerOrder: store.registeredProviderIDs,
+                        showsCost: store.showsCost,
+                        today: LocalUsageReader.todayKey(),
+                        l: l)
+            .designCard()
+    }
+
+    @ViewBuilder
+    private var providerCard: some View {
+        // 연결된 서비스가 2개 이상이면 작은 탭으로 서비스별 상세를 넘나든다
+        // (합계는 위에 유지 — 상세·한도만 탭 스코프).
+        let today = selectedSnapshot.flatMap { snap in snap.today.map { (snap, $0) } }
+        if store.snapshots.count > 1 || today != nil {
+            VStack(alignment: .leading, spacing: 8) {
+                if store.snapshots.count > 1 {
+                    providerTabBar
                 }
-                .buttonStyle(.borderless)
-                .help(l.bonusOpen)
-                .accessibilityLabel(l.bonusOpen)
-                Button { nav.showingRecap = true } label: {
-                    Image(systemName: "chart.bar.xaxis")
+                if let (snap, today) = today {
+                    providerRow(snapshot: snap, today: today)
                 }
-                .buttonStyle(.borderless)
-                .help(l.recapOpen)
-                .accessibilityLabel(l.recapOpen)
             }
-            .padding(.top, 2)
-
-            MonthDailyTrend(series: store.monthDailyTotals,
-                            providers: store.snapshots.compactMap { snap in
-                                snap.monthDaily.map {
-                                    DailyTrendStack.ProviderSeries(
-                                        id: snap.providerID, name: snap.displayName,
-                                        days: $0, reportsCost: snap.reportsCost)
-                                }
-                            },
-                            providerOrder: store.registeredProviderIDs,
-                            showsCost: store.showsCost,
-                            today: LocalUsageReader.todayKey(),
-                            l: l)
-
-            // 연결된 서비스가 2개 이상이면 작은 탭으로 서비스별 상세를 넘나든다
-            // (합계는 위에 유지 — 상세·한도만 탭 스코프).
-            if store.snapshots.count > 1 {
-                providerTabBar
-                    .padding(.top, 6)
-            }
-            if let snap = selectedSnapshot, let today = snap.today {
-                providerRow(snapshot: snap, today: today)
-            }
+            .designCard()
         }
     }
 
@@ -320,6 +399,29 @@ struct PopoverView: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+
+    private func periodTile(_ name: String, tokens: Int, cost: UsageCost?) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            // Small and grey, "이번 달" read as "미번 달" (Vision on CI): 11 pt semibold reads at a glance.
+            Text(name)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+            HStack(alignment: .firstTextBaseline, spacing: 5) {
+                Text(TokenFormatter.compact(tokens))
+                    .font(.system(.callout, design: .rounded).weight(.bold))
+                    .monospacedDigit()
+                if let cost {
+                    UsageCostText(cost: cost, l: l)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(.horizontal, 10).padding(.vertical, 7)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.05)))
     }
 
     private func providerRow(snapshot: ProviderSnapshot, today: DailyUsage) -> some View {
@@ -432,9 +534,7 @@ struct PopoverView: View {
     private var limitsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 4) {
-                Text(l.limitsOfficial)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                SectionTitle(text: l.limitsOfficial, systemImage: "gauge.with.dots.needle.33percent")
                 if selectedSnapshot?.providerID == "claude_code", !store.sessionKeyConfigured {
                     claudeKeychainHelpButton
                 }
@@ -1037,13 +1137,9 @@ struct PopoverView: View {
                 // 스피너 스왑을 두지 않는다 — 로컬 파싱이 보이는 오늘 숫자를 즉시 갱신하는데
                 // enrichment/한도(네트워크)까지 기다리는 스피너가 데이터보다 오래 돌아 불필요해 보였다.
                 // 중복 클릭은 refresh() 의 재진입 guard 가 무시하고, 피드백은 아래 "Updated" 시각이 준다.
-                Button {
+                CircleIconButton(systemImage: "arrow.clockwise", help: l.refreshNow) {
                     Task { await store.refresh() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
                 }
-                .buttonStyle(.borderless)
-                .help(l.refreshNow)
                 if let updated = store.lastUpdated {
                     (Text("\(l.updated) ") + Text(updated, style: .relative))
                         .font(.caption)
@@ -1058,28 +1154,12 @@ struct PopoverView: View {
             Spacer()
             // 끄기는 펫 우클릭. 켜기는 여기 — 숨기면 우클릭할 대상이 없다(#301).
             // Settings 체크박스와 같은 `floatingPetEnabled`. 홈 탭에만 두면 도감에서 못 켠다.
-            Button {
+            CircleIconButton(systemImage: store.floatingPetEnabled ? "eye" : "eye.slash",
+                             help: store.floatingPetEnabled ? l.floatingPetHideLabel : l.floatingPetEnableLabel) {
                 store.floatingPetEnabled.toggle()
-            } label: {
-                Image(systemName: store.floatingPetEnabled ? "eye" : "eye.slash")
             }
-            .buttonStyle(.borderless)
-            .help(store.floatingPetEnabled ? l.floatingPetHideLabel : l.floatingPetEnableLabel)
-            .accessibilityLabel(store.floatingPetEnabled ? l.floatingPetHideLabel : l.floatingPetEnableLabel)
-            Button {
-                nav.showSettings = true
-            } label: {
-                Image(systemName: "gearshape")
-            }
-            .buttonStyle(.borderless)
-            .help(l.settings)
-            Button {
-                NSApplication.shared.terminate(nil)
-            } label: {
-                Image(systemName: "power")
-            }
-            .buttonStyle(.borderless)
-            .help(l.quit)
+            CircleIconButton(systemImage: "gearshape", help: l.settings) { nav.showSettings = true }
+            CircleIconButton(systemImage: "power", help: l.quit) { NSApplication.shared.terminate(nil) }
         }
     }
 }
@@ -1106,6 +1186,8 @@ struct MonthDailyTrend: View {
     /// 오늘의 `localDay` 키 — 강조할 막대를 뷰가 시계를 다시 읽어 고르지 않게 주입한다.
     let today: String
     let l: L
+    /// Today's bar and axis label: the color of the Pokémon being raised on Home.
+    var accent: Color = Design.actionColor
 
     /// The hovered bar. Its day's numbers show in a tooltip above the bars, without the `.help` delay.
     /// The caption keeps today's combined readout either way — opening the popover shows today's
@@ -1142,19 +1224,21 @@ struct MonthDailyTrend: View {
             let stack = DailyTrendStack.ordered(providers)
             let colors = DailyTrendStack.colorIndices(for: stack.map(\.id), registry: providerOrder,
                                                       paletteCount: Self.providerPalette.count)
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 6) {
                 captionRow(peak: peak, showsPeak: DailyTrendMetrics.showsPeak(columns))
-                barRow(columns, peak: peak, stack: stack, colors: colors)
-                    .overlay(alignment: .bottomLeading) { hoverTooltip(columns, stack: stack, colors: colors) }
-                    .zIndex(1)   // the tooltip rises over the caption and the rows above
-                weekendTickRow(columns)
-                axisRow(columns)
+                VStack(spacing: 4) {
+                    barRow(columns, peak: peak, stack: stack, colors: colors)
+                        .background(gridLines)
+                        .overlay(alignment: .bottomLeading) { hoverTooltip(columns, stack: stack, colors: colors) }
+                        .zIndex(1)   // the tooltip rises over the caption and the rows above
+                    weekendTickRow(columns)
+                    axisRow(columns)
+                }
                 if DailyTrendStack.isStacked(stack) {
                     legend(stack, colors: colors)
                         .padding(.top, 2)
                 }
             }
-            .padding(.top, 4)
         }
     }
 
@@ -1163,25 +1247,47 @@ struct MonthDailyTrend: View {
     /// 최댓값을 남기는 이유: 막대 높이가 상대값이라 어딘가 한 곳은 절대 스케일을 적어야 한다.
     /// 쓴 날이 하루뿐이면 최댓값이 리드아웃과 같은 숫자라 생략한다.
     private func captionRow(peak: Int, showsPeak: Bool) -> some View {
-        HStack(spacing: 5) {
-            Text(l.dailyTrend)
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-            Text(Self.readout(series: series, today: today, showsCost: showsCost, l: l))
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.secondary)
-                .monospacedDigit()
-            Spacer()
-            if showsPeak {
-                Text(l.peakDay)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                Text(TokenFormatter.compact(peak))
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 5) {
+                SectionTitle(text: l.dailyTrend, systemImage: "chart.bar.fill")
+                Spacer()
+                if showsPeak {
+                    HStack(spacing: 3) {
+                        Text(l.peakDay).foregroundStyle(.secondary)
+                        Text(TokenFormatter.compact(peak)).fontWeight(.bold).monospacedDigit()
+                    }
+                    .font(.system(size: 10, design: .rounded))
+                    .padding(.horizontal, 7).padding(.vertical, 2)
+                    .background(Capsule().fill(Color.primary.opacity(0.07)))
+                }
+            }
+            // The same height with or without the peak pill: the chart must not jump on the 1st of the month.
+            .frame(height: 18)
+            HStack(spacing: 6) {
+                Circle().fill(accent).frame(width: 7, height: 7)
+                Text(Self.readout(series: series, today: today, showsCost: showsCost, l: l))
+                    .font(.system(.callout, design: .rounded).weight(.semibold))
                     .monospacedDigit()
             }
         }
+    }
+
+    /// Faint dashed guides at the peak and at half of it, behind the bars.
+    private var gridLines: some View {
+        VStack(spacing: 0) {
+            dashedLine
+            Spacer(minLength: 0)
+            dashedLine
+            Spacer(minLength: 0)
+            Rectangle().fill(Color.primary.opacity(0.10)).frame(height: 1)
+        }
+        .frame(height: DailyTrendMetrics.track)
+        .allowsHitTesting(false)
+    }
+
+    private var dashedLine: some View {
+        Line().stroke(Color.primary.opacity(0.10), style: StrokeStyle(lineWidth: 1, dash: [2, 3]))
+            .frame(height: 1)
     }
 
     /// Today's "8/24 (Mon) 5.2M $3.10", summed across providers. Empty for a day outside the
@@ -1197,12 +1303,18 @@ struct MonthDailyTrend: View {
     /// Swatch + name per provider, wrapping onto more lines rather than truncating — names are
     /// what tells providers apart once colors repeat.
     private func legend(_ stack: [DailyTrendStack.ProviderSeries], colors: [String: Int]) -> some View {
-        WrappingHStack(spacing: 8, lineSpacing: 2) {
+        WrappingHStack(spacing: 6, lineSpacing: 4) {
             ForEach(stack, id: \.id) { provider in
-                HStack(spacing: 3) {
-                    swatch(provider.id, colors)
-                    Text(provider.name).font(.caption2).foregroundStyle(.tertiary)
+                let color = color(for: provider.id, in: colors)
+                HStack(spacing: 4) {
+                    Circle().fill(color).frame(width: 7, height: 7)
+                    Text(provider.name).foregroundStyle(.secondary)
+                    Text(TokenFormatter.compact(provider.days.reduce(0) { $0 + $1.totalTokens }))
+                        .fontWeight(.semibold).monospacedDigit()
                 }
+                .font(.system(size: 10, design: .rounded))
+                .padding(.horizontal, 7).padding(.vertical, 3)
+                .background(Capsule().fill(color.opacity(0.14)))
                 .lineLimit(1)
                 .fixedSize()
             }
@@ -1210,7 +1322,7 @@ struct MonthDailyTrend: View {
     }
 
     private func swatch(_ providerID: String, _ colors: [String: Int]) -> some View {
-        RoundedRectangle(cornerRadius: 1)
+        Circle()
             .fill(color(for: providerID, in: colors))
             .frame(width: 6, height: 6)
     }
@@ -1256,13 +1368,13 @@ struct MonthDailyTrend: View {
         }
         .monospacedDigit()
         .lineLimit(1)
-        .padding(.horizontal, 7)
-        .padding(.vertical, 5)
-        .background(RoundedRectangle(cornerRadius: 6, style: .continuous)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 6)
+        .background(RoundedRectangle(cornerRadius: 9, style: .continuous)
             .fill(Color(nsColor: .windowBackgroundColor)))
-        .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous)
-            .strokeBorder(Color.secondary.opacity(0.35), lineWidth: 0.5))
-        .shadow(color: .black.opacity(0.25), radius: 4, y: 1)
+        .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous)
+            .strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.5))
+        .shadow(color: .black.opacity(0.3), radius: 8, y: 3)
     }
 
     private func barRow(_ columns: [DailyTrendColumn], peak: Int, stack: [DailyTrendStack.ProviderSeries],
@@ -1271,8 +1383,9 @@ struct MonthDailyTrend: View {
             ForEach(columns) { column in
                 if column.isFuture {
                     // 아직 오지 않은 날 — 막대도 바닥 눈금도 주말 밑줄도 없이 자리만 지킨다. 0 과 달리
-                    // "안 쓴 날"이 아니라 "아직 없는 날"이라 호버 대상도 아니다.
-                    Color.clear.frame(maxWidth: .infinity)
+                    // "안 쓴 날"이 아니라 "아직 없는 날"이라 호버 대상도 아니다. A faint dot shows the month's rest.
+                    Circle().fill(Color.primary.opacity(0.08)).frame(width: 3, height: 3)
+                        .frame(maxWidth: .infinity)
                 } else {
                     let isToday = column.date == today
                     // 사용 0 인 날은 바닥 눈금만 남으므로, 아주 조금 쓴 날과 높이로는 구분되지
@@ -1282,12 +1395,15 @@ struct MonthDailyTrend: View {
                     let segments = DailyTrendStack.isStacked(stack) && !isEmptyDay
                         ? DailyTrendStack.segments(on: column.date, stack: stack, barHeight: height) : []
                     Group {
-                        if segments.isEmpty {
-                            RoundedRectangle(cornerRadius: 1, style: .continuous)
-                                .fill(isToday ? Color.accentColor
-                                              : Color.secondary.opacity(hovered == column.date ? 0.8
-                                                                        : isEmptyDay ? 0.18 : 0.45))
+                        if isEmptyDay {
+                            Circle().fill(Color.secondary.opacity(0.3)).frame(width: 3, height: 3)
+                        } else if segments.isEmpty {
+                            let base = isToday ? accent : Color.primary.opacity(hovered == column.date ? 0.55 : 0.28)
+                            UnevenRoundedRectangle(topLeadingRadius: 3, topTrailingRadius: 3, style: .continuous)
+                                .fill(LinearGradient(colors: [base, base.opacity(isToday ? 0.55 : 0.6)],
+                                                     startPoint: .top, endPoint: .bottom))
                                 .frame(height: height)
+                                .shadow(color: isToday ? accent.opacity(0.5) : .clear, radius: 4)
                         } else {
                             stackedBar(segments, height: height, colors: colors,
                                        highlighted: isToday || hovered == column.date)
@@ -1309,13 +1425,14 @@ struct MonthDailyTrend: View {
                             colors: [String: Int], highlighted: Bool) -> some View {
         VStack(spacing: 0) {
             ForEach(segments.reversed(), id: \.providerID) { segment in
-                color(for: segment.providerID, in: colors)
-                    .opacity(highlighted ? 1 : 0.55)
+                let color = color(for: segment.providerID, in: colors)
+                LinearGradient(colors: [color, color.opacity(0.75)], startPoint: .top, endPoint: .bottom)
+                    .opacity(highlighted ? 1 : 0.6)
                     .frame(height: segment.height)
             }
         }
         .frame(height: height)
-        .clipShape(RoundedRectangle(cornerRadius: 1, style: .continuous))
+        .clipShape(UnevenRoundedRectangle(topLeadingRadius: 3, topTrailingRadius: 3, style: .continuous))
     }
 
     private func color(for providerID: String, in colors: [String: Int]) -> Color {
@@ -1327,10 +1444,10 @@ struct MonthDailyTrend: View {
     private func weekendTickRow(_ columns: [DailyTrendColumn]) -> some View {
         HStack(spacing: DailyTrendMetrics.spacing) {
             ForEach(columns) { column in
-                Rectangle()
+                Capsule()
                     .fill(DailyTrendMetrics.showsWeekendTick(column)
-                          ? Color.secondary.opacity(0.5) : Color.clear)
-                    .frame(height: DailyTrendMetrics.tickHeight)
+                          ? Color.secondary.opacity(0.4) : Color.clear)
+                    .frame(width: 5, height: DailyTrendMetrics.tickHeight)
                     .frame(maxWidth: .infinity)
             }
         }
@@ -1344,12 +1461,15 @@ struct MonthDailyTrend: View {
             ForEach(columns) { column in
                 Group {
                     if let label = DailyTrendMetrics.axisLabel(for: column.date, today: today) {
+                        let isToday = column.date == today
                         Text(label)
-                            .font(.caption2)
+                            .font(.system(size: 10, weight: isToday ? .bold : .medium, design: .rounded))
                             .monospacedDigit()
-                            .foregroundStyle(column.date == today ? AnyShapeStyle(Color.accentColor)
+                            .foregroundStyle(isToday ? AnyShapeStyle(Color.white)
                                              : column.isFuture ? AnyShapeStyle(.tertiary)
                                              : AnyShapeStyle(.secondary))
+                            .padding(.horizontal, isToday ? 5 : 0).padding(.vertical, isToday ? 1 : 0)
+                            .background(Capsule().fill(isToday ? accent : .clear))
                             .fixedSize(horizontal: true, vertical: false)
                     } else {
                         Color.clear.frame(height: 1)
@@ -1372,14 +1492,14 @@ struct DailyTrendColumn: Identifiable, Equatable {
 /// 추이 막대의 기하 — 뷰 밖의 순수 함수로 둔다. SwiftUI 안에 두면 헤드리스로 검증할 수 없고,
 /// 이 계산은 0 과 최댓값 경계에서 조용히 틀리기 쉽다(0 을 0pt 로 그리면 "그날이 없는" 것처럼 보인다).
 enum DailyTrendMetrics {
-    /// 막대 트랙 높이. 헤더가 이미 촘촘하므로 스파크라인 수준으로 낮게 잡는다.
-    static let track: CGFloat = 26
-    static let spacing: CGFloat = 1.5
+    /// 막대 트랙 높이. The chart has its own card on Home: tall enough to compare days at a glance.
+    static let track: CGFloat = 64
+    static let spacing: CGFloat = 2.5
     /// 사용 없는 날에 남기는 바닥 눈금. 0pt 로 그리면 그 날짜 칸이 사라진 것처럼 보이고, 축이
     /// 밀리지 않았다는 사실(=0 을 명시적으로 채웠다)이 화면에서 안 읽힌다.
     static let baseline: CGFloat = 1.5
     /// 주말 표시 밑줄 두께.
-    static let tickHeight: CGFloat = 1.5
+    static let tickHeight: CGFloat = 2
 
     /// `tokens` 를 `peak` 대비 비율로 트랙 안에 눕힌다.
     /// - `peak <= 0`: 스케일이 없다 → 전부 바닥 눈금 (호출부가 이미 게이트하지만 0 나눗셈은 막는다).
@@ -1780,4 +1900,14 @@ extension PaceTier {
     /// % 숫자색. 노랑 글자는 라이트 모드 배경에서 거의 안 읽혀 그 단계만 기본 글자색으로 둔다 —
     /// 단계는 채움 색과 툴팁이 여전히 말해 준다.
     var percentColor: Color { self == .slightlyOver ? .primary : color }
+}
+
+/// A horizontal line across its frame, for dashed guides.
+struct Line: Shape {
+    func path(in rect: CGRect) -> Path {
+        Path { path in
+            path.move(to: CGPoint(x: rect.minX, y: rect.midY))
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
+        }
+    }
 }

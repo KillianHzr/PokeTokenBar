@@ -48,23 +48,25 @@ final class AchievementsRenderingTests: XCTestCase {
         try await Task.sleep(for: .milliseconds(300))
         host.layoutSubtreeIfNeeded()
 
-        let picker = try XCTUnwrap(descendants(of: host, NSSegmentedControl.self).first)
-        XCTAssertEqual(picker.selectedSegment, AchievementsView.AchievementCategory.allCases.firstIndex(of: .legendaryArtifacts),
+        XCTAssertEqual(AchievementsView.firstCategoryWithRewards(store), .legendaryArtifacts,
                        "the tab opens on the section holding the Silver Wing")
+        // The list sits under the header, the claim banner and the category picker: inside the frame, the whole
+        // stack fits; past its bottom, SwiftUI centered a stack taller than the tab.
         let list = try XCTUnwrap(descendants(of: host, NSScrollView.self).first)
-        // Vertical only: the segmented control draws its bezel 2 pt past its SwiftUI frame on each side.
-        for (name, view) in [("category picker", picker as NSView), ("list", list)] {
-            let frame = host.convert(view.bounds, from: view)
-            XCTAssertGreaterThanOrEqual(frame.minY, -0.5, "\(name) \(frame) leaves the tab frame \(host.bounds)")
-            XCTAssertLessThanOrEqual(frame.maxY, host.bounds.maxY + 0.5,
-                                     "\(name) \(frame) leaves the tab frame \(host.bounds)")
-        }
+        let frame = host.convert(list.bounds, from: list)
+        XCTAssertGreaterThanOrEqual(frame.minY, -0.5, "list \(frame) leaves the tab frame \(host.bounds)")
+        XCTAssertLessThanOrEqual(frame.maxY, host.bounds.maxY + 0.5, "list \(frame) leaves the tab frame \(host.bounds)")
     }
 
     /// Three segments with their counts used to be wider than the popover: SwiftUI centered the wider stack,
     /// so the whole tab slid off both edges. Checked in every language with the widest labels: every reward
     /// ready, so the segments carry counts up to three digits (10, 161, 27).
     func testCategoryPickerFitsTheTabWidthInEveryLanguage() async throws {
+        let categories = AchievementsView.AchievementCategory.allCases
+        let labelWidth = PillPicker<AchievementsView.AchievementCategory>.labelWidth(count: categories.count,
+                                                                                    in: PopoverMetrics.contentWidth)
+        let font = PillPicker<AchievementsView.AchievementCategory>.labelFont
+        let scale = PillPicker<AchievementsView.AchievementCategory>.minimumLabelScale
         for language in AppLanguage.allCases {
             let suite = "AchievementsWidth-\(UUID())"
             let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -77,27 +79,13 @@ final class AchievementsRenderingTests: XCTestCase {
             state.dex = Self.everySpeciesTwiceMewtwo
             try JSONEncoder().encode(state).write(to: file)
             let store = CompanionStore(provider: AchievementsStubProvider(), fileURL: file, defaults: defaults)
-            XCTAssertEqual(AchievementsView.AchievementCategory.allCases.map { AchievementsView.readyCount($0, store) },
-                           [10, 161, 27])
-
-            let host = NSHostingView(rootView: AchievementsView(store: store, nav: PopoverNavigation())
-                .frame(width: PopoverMetrics.contentWidth))
-            let size = NSSize(width: PopoverMetrics.contentWidth, height: 520)
-            host.frame = NSRect(origin: .zero, size: size)
-            let window = NSWindow(contentRect: NSRect(origin: NSPoint(x: -10000, y: -10000), size: size),
-                                  styleMask: .borderless, backing: .buffered, defer: false)
-            window.isReleasedWhenClosed = false
-            window.contentView = host
-            window.orderFront(nil)
-            defer { window.close() }
-            try await Task.sleep(for: .milliseconds(100))
-            host.layoutSubtreeIfNeeded()
-
-            let picker = try XCTUnwrap(descendants(of: host, NSSegmentedControl.self).first)
-            let frame = host.convert(picker.bounds, from: picker)
-            // The bezel is drawn 2 pt past the SwiftUI frame on each side.
-            XCTAssertGreaterThanOrEqual(frame.minX, -2.5, "\(language): picker \(frame) leaves \(host.bounds)")
-            XCTAssertLessThanOrEqual(frame.maxX, host.bounds.maxX + 2.5, "\(language): picker \(frame) leaves \(host.bounds)")
+            XCTAssertEqual(categories.map { AchievementsView.readyCount($0, store) }, [10, 161, 27])
+            for category in categories {
+                let title = AchievementsView.tabTitle(category, store)
+                let width = (title as NSString).size(withAttributes: [.font: font]).width
+                XCTAssertLessThanOrEqual(width * scale, labelWidth,
+                                         "\(language): \"\(title)\" is \(width) pt for a \(labelWidth) pt segment")
+            }
         }
     }
 
@@ -157,28 +145,24 @@ final class AchievementsRenderingTests: XCTestCase {
 
     /// The Achievements tab made the popover's segmented tab bar five labels wide. With a two-digit count it was
     /// wider than the popover in German, and Russian overflowed even without one.
+    /// Each tab gets a fifth of the popover's width; its label may shrink to `minimumLabelScale`, never further, in
+    /// every language. The bar itself lays out within the content width.
     func testTabBarFitsThePopoverInEveryLanguage() async throws {
+        // 3 pt padding on each side, 2 pt between the five tabs.
+        let tabWidth = (PopoverMetrics.contentWidth - 6 - 4 * 2) / 5
         for language in AppLanguage.allCases {
             var tab = PopoverTab.home
             let picker = PopoverTabPicker(tab: Binding(get: { tab }, set: { tab = $0 }), l: L(language),
                                           unclaimedAchievements: 41)
+            for item in picker.items() {
+                let width = (item.title as NSString).size(withAttributes: [.font: PopoverTabPicker.labelFont]).width
+                XCTAssertLessThanOrEqual(width * PopoverTabPicker.minimumLabelScale, tabWidth,
+                                         "\(language): \"\(item.title)\" is \(width) pt for a \(tabWidth) pt tab")
+            }
             let host = NSHostingView(rootView: picker.frame(width: PopoverMetrics.contentWidth))
-            let size = NSSize(width: PopoverMetrics.contentWidth, height: 40)
-            host.frame = NSRect(origin: .zero, size: size)
-            let window = NSWindow(contentRect: NSRect(origin: NSPoint(x: -10000, y: -10000), size: size),
-                                  styleMask: .borderless, backing: .buffered, defer: false)
-            window.isReleasedWhenClosed = false
-            window.contentView = host
-            window.orderFront(nil)
-            defer { window.close() }
-            try await Task.sleep(for: .milliseconds(50))
+            host.frame = NSRect(origin: .zero, size: NSSize(width: PopoverMetrics.contentWidth, height: 60))
             host.layoutSubtreeIfNeeded()
-
-            let control = try XCTUnwrap(descendants(of: host, NSSegmentedControl.self).first)
-            let frame = host.convert(control.bounds, from: control)
-            // The bezel is drawn 2 pt past the SwiftUI frame on each side.
-            XCTAssertGreaterThanOrEqual(frame.minX, -2.5, "\(language): tab bar \(frame) leaves \(host.bounds)")
-            XCTAssertLessThanOrEqual(frame.maxX, host.bounds.maxX + 2.5, "\(language): tab bar \(frame) leaves \(host.bounds)")
+            XCTAssertLessThanOrEqual(host.fittingSize.width, PopoverMetrics.contentWidth + 0.5, "\(language)")
         }
     }
 

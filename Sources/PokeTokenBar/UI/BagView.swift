@@ -32,13 +32,10 @@ struct BagView: View {
             // 고정 높이 — 컬렉션과 동일(팝오버 재오픈 시 fitting size 축소 방지).
             VStack(alignment: .leading, spacing: 8) {
                 if sections.count > 1 {
-                    Picker("", selection: Binding(get: { current }, set: { section = $0 })) {
-                        ForEach(sections, id: \.self) { s in
-                            Text("\(title(s)) \(owned.filter { Section.of($0.kind) == s }.count)").tag(s)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
+                    PillPicker(selection: Binding(get: { current }, set: { section = $0 }),
+                               options: sections.map { s in
+                                   (s, "\(title(s)) \(owned.filter { Section.of($0.kind) == s }.count)")
+                               })
                 }
                 ScrollView {
                     if current == .badges {
@@ -87,8 +84,7 @@ struct BagView: View {
             Text(store.l.bagEmptyTitle)
                 .font(.callout.weight(.semibold))
             Button(store.l.shop) { nav.tab = .shop }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
+                .buttonStyle(.pill())
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 28)
@@ -159,9 +155,8 @@ private struct ItemCard: View {
             }
             useControls(l)
         }
-        .padding(10)
-        .background(Color.secondary.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .padding(12)
+        .designSurface(cornerRadius: Design.cornerRadius)
         .onChange(of: store.maxRareCandyUseCount) { _, _ in
             candyCount = selectedCandyCount
         }
@@ -218,7 +213,7 @@ private struct ItemCard: View {
                         .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                     Spacer()
                     Button(kind == .rareCandy ? "\(l.use) ×\(selectedCandyCount)" : l.use) { useNow() }
-                        .buttonStyle(.borderedProminent).controlSize(.small)
+                        .buttonStyle(.pill(prominent: true))
                     Button(l.cancel) { confirming = false }
                         .buttonStyle(.borderless).controlSize(.small)
                 }
@@ -228,7 +223,7 @@ private struct ItemCard: View {
                         .font(.caption2).foregroundStyle(.tertiary).monospacedDigit()
                     Spacer()
                     Button(l.useItem) { confirming = true }
-                        .buttonStyle(.bordered).controlSize(.small)
+                        .buttonStyle(.pill())
                 }
             }
         } else {
@@ -270,8 +265,7 @@ private struct BadgeTile: View {
         }
         .padding(6)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.secondary.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .designSurface(cornerRadius: 10)
         .accessibilityElement(children: .combine)
     }
 }

@@ -94,6 +94,7 @@ final class LocalizationInterpolationTests: XCTestCase {
             expect(lang, "eggFirstRunHint", l.eggFirstRunHint(a), a)
             expect(lang, "toNextEvolution", l.toNextEvolution(a), a)
             expect(lang, "toGraduation", l.toGraduation(a), a)
+            expect(lang, "toStage", l.toStage(a, b), a, b)
             expect(lang, "growthBoost", l.growthBoost(4242), l.multiplierNumber(4242))
             expect(lang, "eggThresholdSummary", l.eggThresholdSummary(a, instead: b), a, b)
             expect(lang, "shinyOddsSummary", l.shinyOddsSummary(4242), "4242")

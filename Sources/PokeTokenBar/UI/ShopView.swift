@@ -32,18 +32,15 @@ struct ShopView: View {
     }
 
     private func walletHeader(_ l: L) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(l.spendableTokens)
-                .font(.caption).foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 4) {
+            SectionTitle(text: l.spendableTokens, systemImage: "creditcard.fill")
             Text(TokenFormatter.compact(store.availableTokens))
-                .font(.system(size: 24, weight: .bold)).monospacedDigit()
+                .font(.system(size: 30, weight: .bold, design: .rounded)).monospacedDigit()
             Text(l.shopHint)
-                .font(.caption2).foregroundStyle(.tertiary)
+                .font(.caption2).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(10)
-        .background(Color.secondary.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .heroCard(colors: store.themeColors)
     }
 }
 
@@ -96,9 +93,8 @@ private struct ShopItemCard: View {
             }
             buyControls(l)
         }
-        .padding(10)
-        .background(Color.secondary.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .padding(12)
+        .designSurface(cornerRadius: Design.cornerRadius)
         .onChange(of: store.maxBuyCount(kind)) { _, _ in
             quantity = selectedQuantity
         }
@@ -124,7 +120,7 @@ private struct ShopItemCard: View {
                     .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                 Spacer()
                 Button(selectedQuantity > 1 ? "\(l.buy) ×\(selectedQuantity)" : l.buy) { buyNow() }
-                    .buttonStyle(.borderedProminent).controlSize(.small)
+                    .buttonStyle(.pill(prominent: true))
                 Button(l.cancel) { confirming = false }
                     .buttonStyle(.borderless).controlSize(.small)
             }
@@ -136,7 +132,7 @@ private struct ShopItemCard: View {
                 Spacer()
                 if store.canBuy(kind) {
                     Button(l.buy) { confirming = true }
-                        .buttonStyle(.bordered).controlSize(.small)
+                        .buttonStyle(.pill())
                 } else {
                     Text(l.notEnoughTokens)
                         .font(.caption2).foregroundStyle(.tertiary)
@@ -204,8 +200,7 @@ private struct EggCard: View {
                 store.buyEgg(tier)
             }
         }
-        .padding(10)
-        .background(Color.secondary.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .padding(12)
+        .designSurface(cornerRadius: Design.cornerRadius)
     }
 }

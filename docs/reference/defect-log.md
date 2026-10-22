@@ -1256,6 +1256,13 @@ read_when:
   counts; the former labels fail them in English, German, Spanish, Japanese and Russian. The other
   segmented pickers under `UI/` are unchanged by this PR and were not measured.
 
+- **A decoration that reaches past its view takes the clicks there.** The redesign's hero card draws a glow offset
+  up and left of the card; clipping hides it but does not stop hit testing, so the glow sat over the bottom-left of the
+  Pokédex page's Normal/Shiny picker (and of the Home tab button above the card) and swallowed those clicks. Found when
+  the rendering test that clicks Normal kept failing there and passing a bit to the right. Hero backgrounds are now
+  `.allowsHitTesting(false)`. Guard: `testDetailSelectorChangesMountedPixelsAndReturnsToNormal` clicks low on the
+  left half, where the glow was.
+
 - **A pixel test that fails only locally is a finding, not noise.** `LimitProgressRenderingTests` and
   `DailyTrendStackTests` failed on every branch on the maintainer's Mac and were written off as "environment": CI builds with
   Xcode 16 (macOS 15 SDK), the Mac with Xcode 26 (macOS 26 SDK). One was real: with the macOS 26 SDK the small linear
@@ -1494,3 +1501,12 @@ read_when:
   fail the historical-chart assertion. Keep explicit pixel density, candidate diagnostics,
   and both CI fixture PNGs so recognition failures can be checked against rendered pixels.
   Other OCR harnesses passed the same CI runs; this repair is limited to the failing fixture.
+  The UI redesign hit the same class twice on CI only: the period tiles' smaller label tied "이번 주" with "미번 주",
+  so the period labels now use the caption's rule (exact text within one observation's most confident tie), and
+  `DexBackNavigationTests` read Mon1 only as "Mon1|" next to a vertical edge, so its exact match trims edge glyphs
+  (`|/\[]()`), which still keeps "Mon10|" from reading as Mon1. Hiding the week label and dropping the log's return
+  anchor still fail those tests.
+  The week tile still failed on CI: its runners have no GPU, and Vision on the CPU read the 10 pt grey "이번 달" as
+  "미번 달" with "이번 달" in none of its ten candidates; the GPU path of a local run tied or read it right. The
+  test now reads on the CPU everywhere (`setComputeDevice`), which reproduced the CI reading on CI's own render, and
+  the tile labels are 11 pt semibold: read at confidence 1.0 on the CPU.

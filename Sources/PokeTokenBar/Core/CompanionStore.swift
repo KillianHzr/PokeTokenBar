@@ -442,6 +442,54 @@ final class CompanionStore {
         return out
     }
 
+    /// One stop of Home's evolution track.
+    enum EvolutionTrackStop: Equatable {
+        /// A stage this individual went through, or the one it is at.
+        case reached(Int, isCurrent: Bool)
+        /// A stage it will reach: the line goes on with one species. `isCaught`: in the Pokédex already.
+        case coming(Int, isCaught: Bool)
+        /// Where the line goes several ways: every path from there to a final stage (Wurmple into Silcoon then
+        /// Beautifly, or Cascoon then Dustox). A coming stage that brings forms (Dunsparce into a two- or
+        /// three-segment Dudunsparce) reads the same way, one path per form.
+        case branch([[BranchEvolutionItem]])
+        /// The end of the line: the final stage graduates.
+        case graduation
+    }
+
+    /// Home's evolution track: the stages reached, then every coming one up to the graduation, or up to where the
+    /// line goes several ways, with all the ways to its end. The individual's planned path stays hidden. Empty
+    /// while the line is not loaded or for the egg.
+    var evolutionTrack: [EvolutionTrackStop] {
+        guard let a = state.active, let line = currentLine else { return [] }
+        var stops = a.pathIDs.prefix(a.stageIndex + 1).enumerated().map { index, id in
+            EvolutionTrackStop.reached(id, isCurrent: index == a.stageIndex)
+        }
+        func caught(_ id: Int) -> Bool { isEvolutionCollected(speciesID: id, baseID: a.baseID) }
+        func paths(from node: EvoNode) -> [[BranchEvolutionItem]] {
+            let open = Self.openChildren(node, form: a.form)
+            guard !open.isEmpty else { return [[]] }
+            return open.flatMap { child in
+                paths(from: child).map { [BranchEvolutionItem(speciesID: child.speciesID, isCollected: caught(child.speciesID))] + $0 }
+            }
+        }
+        guard var node = line.tree.node(withID: a.currentID) else { return stops + [.graduation] }
+        while true {
+            let open = Self.openChildren(node, form: a.form)
+            if open.count > 1 {
+                stops.append(.branch(paths(from: node)))
+                return stops
+            }
+            guard let child = open.first else { break }
+            if case .branch(let forms) = futureLineItem(child.speciesID, active: a).content {
+                stops.append(.branch(forms.map { [$0] }))
+                return stops
+            }
+            stops.append(.coming(child.speciesID, isCaught: caught(child.speciesID)))
+            node = child
+        }
+        return stops + [.graduation]
+    }
+
     /// A coming stage. When it brings forms the current stage doesn't show (Dunsparce into a two- or
     /// three-segment Dudunsparce, Pichu into Alolan Raichu), its forms read like a branch: owned forms
     /// faded, the others as silhouettes, without telling which one this individual will take.
@@ -717,6 +765,48 @@ final class CompanionStore {
     /// species number maps to exactly one cell.
     var dexLinkTargets: [Int: String] {
         dexSpecies.reduce(into: [:]) { links, species in links[species.id] = species.collectionID }
+    }
+
+    /// The evolution family of a Pokédex species, for its page: what it evolves from, itself, then what it evolves
+    /// into. Stages follow one another until one evolves several ways: those show side by side and the line stops
+    /// there (each one's page goes on). Empty for a species that neither evolves nor evolves from anything.
+    ///
+    /// The family is seen in `form`, the page's: an Alolan Vulpix's leads to an Alolan Ninetales, a Galarian
+    /// Meowth's to Perrserker. A species without forms that only one form evolves into (Perrserker, Clodsire)
+    /// takes that form, so its Meowth is a Galarian one. The returned form is the one the line is drawn in.
+    /// A species not caught in that form is `uncaught`: a silhouette that opens nothing.
+    func dexFamily(speciesID: Int, form: PokemonForm?) -> (nodes: [EvoLineItem], form: PokemonForm?) {
+        var lineForm = form
+        if lineForm == nil, let gate = PokemonEvolutionData.formGates[speciesID], gate.forms.count == 1,
+           let only = gate.forms.first {
+            lineForm = PokemonForm(only)
+        }
+        func stage(_ id: Int) -> EvoLineItem {
+            EvoLineItem(.species(id), state.ownsSpecies(id, form: lineForm) ? .done : .uncaught)
+        }
+        var ancestors: [Int] = []
+        var id = speciesID
+        while let parent = PokemonEvolutionData.parents[id] {
+            ancestors.insert(parent, at: 0)
+            id = parent
+        }
+        var nodes = ancestors.map(stage) + [EvoLineItem(.species(speciesID), .current)]
+        var node = speciesID
+        while true {
+            let next = PokemonEvolutionData.children(of: node, form: lineForm)
+            if next.count == 1 {
+                nodes.append(stage(next[0]))
+                node = next[0]
+                continue
+            }
+            if next.count > 1 {
+                nodes.append(EvoLineItem(.branch(next.map {
+                    BranchEvolutionItem(speciesID: $0, isCollected: state.ownsSpecies($0, form: lineForm))
+                }), .done))
+            }
+            break
+        }
+        return (nodes.count > 1 ? nodes : [], lineForm)
     }
 
     /// What a Pokédex species shows first, in its grid cell and when its page opens. Among the forms of a species
