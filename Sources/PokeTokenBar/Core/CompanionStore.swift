@@ -719,6 +719,17 @@ final class CompanionStore {
         dexSpecies.reduce(into: [:]) { links, species in links[species.id] = species.collectionID }
     }
 
+    /// What a Pokédex species shows first, in its grid cell and when its page opens. Among the forms of a species
+    /// that has them: a shiny form before a normal one (the representative's first), then the representative, then
+    /// the first collected. A species without forms is itself. Either way, a species caught shiny shows shiny.
+    func dexCover(for species: DexSpecies) -> DexSpecies {
+        let forms = formSpecies(speciesID: species.id)
+        guard let first = forms.first else { return species }
+        let representative = forms.first { isRepresentative($0) }
+        if let representative, representative.isShiny { return representative }
+        return forms.first { $0.isShiny } ?? representative ?? first
+    }
+
     /// Collected form summaries for the detail picker; missing forms remain visible but disabled.
     func formSpecies(speciesID: Int) -> [DexSpecies] {
         guard PokemonForm.hasForms(speciesID: speciesID) else { return [] }

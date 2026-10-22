@@ -35,6 +35,18 @@ read_when:
   bounded backoff, cancellation during sleep/shiny download, unsupported species, and warm form
   caches. These tests are headless; they do not establish ongoing on-screen SwiftUI rendering.
 
+- **A failed request is not the server saying a sprite does not exist.** A shiny whose GIF request
+  failed (offline, timeout) fell straight to the cached normal GIF: `animationFrames` returned two
+  frames, so the recovery loop ended there and the shiny Pokémon played in normal colors until its
+  view was rebuilt. `SpriteStore` also recorded every non-200 answer (a 429 rate limit, a 5xx) as
+  missing for the session, which sent a shiny to its normal colors and an item to its emoji for good.
+  Only a 404 is a missing sprite now (`SpriteStore.isMissing`), and a shiny falls back to normal colors
+  only then; otherwise it keeps the still and asks for the shiny GIF again. PokeAPI has a shiny file
+  for every normal one, forms included, so that fallback no longer happens with the current catalogue.
+  `testShinyMissStillUsesNormalGIFWithoutWaiting` encoded the defect: its "miss" was a network
+  failure. Guards: `SpriteAnimationRecoveryTests` (shiny 404, failed and rate-limited shiny
+  requests, rate-limited item).
+
 - **움직이는 상세 화면은 첫 렌더부터 캐시된 GIF 프레임을 사용한다.** 정적 PNG는 96px 투명
   캔버스이고 GIF는 본체에 맞춘 작은 캔버스라, PNG를 먼저 보여준 뒤 같은 슬롯에 GIF를 맞추면
   정지한 작은 포켓몬이 뒤늦게 커진다. 디코드 프레임을 캐시해 시드와 재생에서 공유하고 GIF 요청을
@@ -959,6 +971,16 @@ read_when:
   초록인데 #174 가 다시 산다. (#174)
 
 ## 표시·UI
+
+- **What a species shows is decided from the whole species, not from its latest individual.** The Pokédex
+  page picked Normal or Shiny from `allIndividuals.first`, the latest catch: a normal Vulpix caught after a
+  shiny one opened the page in normal colors. The page also opened on the default form whatever the shiny
+  forms were, and the grid always drew a species with forms in its default form and normal colors, even
+  when only a shiny Alolan one was caught. `CompanionStore.dexCover` is now the one rule for both: a shiny
+  form first, then the representative, then the first collected; the page opens shiny when the shown form
+  was caught shiny. The tests opened the page with `selectedShiny` set, or with a shiny caught last, so the
+  latest-catch branch never ran. Guards: `DexCoverTests`, and in `DexColorRenderingTests` a page opened
+  after a normal catch and the grid cell of a species with forms.
 
 - **초기 설정 이동은 애니메이션 완료에 의존하지 않는다.** 세션 키 만료·등록 안내에서
   `startExpanded`로 연 고급 섹션의 animated `scrollTo`가 비활성·non-key native 호스트에서
