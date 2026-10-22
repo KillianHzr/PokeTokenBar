@@ -1138,12 +1138,9 @@ struct CollectionView: View {
                 .frame(height: Self.contentHeight)
         } else {
             VStack(alignment: .leading, spacing: 6) {
-                Picker("", selection: $nav.showingCollectionLog) {
-                    Text(store.l.dexTitle).tag(false)
-                    Text(store.l.catchLogTitle).tag(true)
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
+                PillPicker(selection: $nav.showingCollectionLog,
+                           options: [(false, store.l.dexTitle), (true, store.l.catchLogTitle)],
+                           accent: store.themeColor)
 
                 filterToolbar
 
@@ -2118,6 +2115,11 @@ private struct DexSpeciesCell: View {
 
     private var formTotal: Int { PokemonForm.forms(speciesID: species.id).count }
 
+    /// The cell's tint: the species' first type in the form the cell shows.
+    private var typeColor: Color {
+        PokemonTypeData.types(forSpeciesID: species.id, form: species.form).first?.color ?? .gray
+    }
+
     /// Larger thumbnails remain static so a full page does not animate concurrently.
     private static let thumb: CGFloat = 56
 
@@ -2152,22 +2154,28 @@ private struct DexSpeciesCell: View {
                 }
             }
             .padding(2)
+            // Each cell washed with its Pokémon's type color, strongest at the top behind the sprite.
             // 대표 = 영속적인 accent 배경, 방금 클릭한 칸 = 기존 accent 테두리.
             // 서로 다른 카드여도 같은 강조 두 개가 선택된 것처럼 보이지 않는다.
-            .background(isRepresentative ? Color.accentColor.opacity(0.16)
-                                         : Color.secondary.opacity(isSelected ? 0.16 : 0.06))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .background {
+                let shape = RoundedRectangle(cornerRadius: 11, style: .continuous)
+                shape.fill(LinearGradient(colors: [typeColor.opacity(isSelected ? 0.34 : 0.22), typeColor.opacity(0.05)],
+                                          startPoint: .top, endPoint: .bottom))
+                    .overlay(shape.fill(isRepresentative ? Color.accentColor.opacity(0.16) : .clear))
+                    .overlay(shape.strokeBorder(typeColor.opacity(0.25)))
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
             .overlay {
                 if isSelected {
-                    RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(Color.accentColor, lineWidth: 1.5)
+                    RoundedRectangle(cornerRadius: 11, style: .continuous)
+                        .strokeBorder(typeColor, lineWidth: 1.5)
                 }
             }
             // 호버 = 클릭 가능 피드백. 확대는 격자 간격 안에 머무는 폭으로만.
             // 그림자는 카드 모양에만 — 칸 전체에 `.shadow` 를 걸면 번호·이름·스프라이트 글자마다 그림자가 진다.
             .background {
                 if isHovered {
-                    RoundedRectangle(cornerRadius: 8)
+                    RoundedRectangle(cornerRadius: 11, style: .continuous)
                         .fill(Color(nsColor: .windowBackgroundColor))
                         .shadow(color: .black.opacity(0.25), radius: 4, y: 2)
                 }

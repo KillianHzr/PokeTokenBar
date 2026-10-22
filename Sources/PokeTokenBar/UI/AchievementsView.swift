@@ -61,13 +61,9 @@ struct AchievementsView: View {
         VStack(alignment: .leading, spacing: 10) {
             header
 
-            Picker("", selection: $selectedCategory) {
-                ForEach(AchievementCategory.allCases, id: \.self) { cat in
-                    Text(Self.tabTitle(cat, store)).tag(cat)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            PillPicker(selection: $selectedCategory,
+                       options: AchievementCategory.allCases.map { ($0, Self.tabTitle($0, store)) },
+                       accent: store.themeColor)
 
             categoryProgress(l)
 
@@ -227,9 +223,8 @@ private struct AchievementCard: View {
                 UnlockRequirementView(store: store, kind: kind, compact: isClaimed)
             }
         }
-        .padding(10)
-        .background(Color.secondary.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .padding(12)
+        .designSurface(cornerRadius: Design.cornerRadius)
     }
 
     @ViewBuilder
@@ -247,8 +242,7 @@ private struct AchievementCard: View {
             Button(readyTiers > 1 ? "\(l.claim) (\(readyTiers))" : l.claim) {
                 store.claimAchievement(kind)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.small)
+            .buttonStyle(store.pillButton(prominent: true))
         } else if let type = kind.badgeType {
             // A badge is never locked as a whole: show how many of its regions are claimed.
             Label("\(store.claimedBadgeTierCount(type))/\(PokemonTypeData.badgeGenerations(for: type).count)",

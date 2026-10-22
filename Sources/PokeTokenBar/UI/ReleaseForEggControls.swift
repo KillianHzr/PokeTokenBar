@@ -31,10 +31,10 @@ struct ReleaseForEggControls: View {
                         // 알 상태: 리롤 대상이 없어 실행만 막는다(canBuyEgg/canUseStone 게이트). 항목을 숨기는 대신
                         // 비활성 버튼으로 "있긴 하다"를 보이고, 사유는 아래 한 줄로.
                         Button(actionTitle) {}
-                            .buttonStyle(.bordered).controlSize(.small).disabled(true)
+                            .buttonStyle(store.pillButton()).disabled(true)
                     } else if isAvailable {
                         Button(actionTitle) { stage = .confirm }
-                            .buttonStyle(.bordered).controlSize(.small)
+                            .buttonStyle(store.pillButton())
                     } else {
                         Text(unavailableText).font(.caption2).foregroundStyle(.tertiary)
                     }
@@ -54,7 +54,7 @@ struct ReleaseForEggControls: View {
                 Button(actionTitle) {
                     if store.isHighValueCompanion { stage = .preciousConfirm } else { commit() }
                 }
-                .buttonStyle(.borderedProminent).controlSize(.small)
+                .buttonStyle(store.pillButton(prominent: true))
                 Button(l.cancel) { stage = .idle }
                     .buttonStyle(.borderless).controlSize(.small)
             }
@@ -64,7 +64,7 @@ struct ReleaseForEggControls: View {
                     .font(.caption2.weight(.semibold)).foregroundStyle(.orange).lineLimit(2)
                 Spacer()
                 Button(store.currentIsShiny && store.rarity != .legendary ? l.freshEggDiscardShiny : l.freshEggDiscardValuable) { commit() }
-                    .buttonStyle(.borderedProminent).controlSize(.small).tint(.orange)
+                    .buttonStyle(PillButtonStyle(prominent: true, tint: .orange))
                 Button(l.cancel) { stage = .idle }
                     .buttonStyle(.borderless).controlSize(.small)
             }

@@ -64,8 +64,7 @@ struct UnlockRequirementView: View {
             content
                 .padding(8)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.secondary.opacity(0.06))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .designSurface(cornerRadius: 10)
         }
     }
 

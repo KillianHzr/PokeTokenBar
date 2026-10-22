@@ -145,9 +145,8 @@ struct BonusScreen: View {
                         effect: store.bonusEffect(for: kind))
                 }
             }
-            .padding(10)
-            .background(Color.secondary.opacity(0.06))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .padding(12)
+            .designSurface(cornerRadius: Design.cornerRadius)
         }
     }
 

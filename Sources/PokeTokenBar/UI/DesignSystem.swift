@@ -149,6 +149,94 @@ extension View {
     }
 }
 
+extension View {
+    /// The surface of a list card (Shop, Bag, Achievements…): `designCard`'s fill and border around a view that
+    /// already has its padding.
+    func designSurface(cornerRadius: CGFloat = Design.cornerRadius) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        return background(shape.fill(Color.primary.opacity(0.045)))
+            .overlay(shape.strokeBorder(Color.primary.opacity(0.08)))
+            .clipShape(shape)
+    }
+}
+
+/// A segmented control drawn like the tab bar: equal segments, the selected one on a pill in `accent`. Each
+/// title must fit its segment, shrunk to `minimumLabelScale` at most, in every language.
+@MainActor
+struct PillPicker<Value: Hashable>: View {
+    @Binding var selection: Value
+    let options: [(value: Value, title: String)]
+    var accent: Color = .accentColor
+
+    static var labelFont: NSFont { .systemFont(ofSize: 12, weight: .semibold) }
+    static var minimumLabelScale: CGFloat { 0.75 }
+    /// The width a title gets in one of `count` segments across `width`: 3 pt padding, 2 pt between segments,
+    /// 4 pt inside each.
+    static func labelWidth(count: Int, in width: CGFloat) -> CGFloat {
+        (width - 6 - 2 * CGFloat(max(0, count - 1))) / CGFloat(max(1, count)) - 8
+    }
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(options.indices, id: \.self) { index in
+                let option = options[index]
+                let selected = option.value == selection
+                Button { selection = option.value } label: {
+                    Text(option.title)
+                        .font(Font(Self.labelFont))
+                        .lineLimit(1)
+                        .minimumScaleFactor(Self.minimumLabelScale)
+                        .foregroundStyle(selected ? AnyShapeStyle(accent) : AnyShapeStyle(.secondary))
+                        .padding(.horizontal, 4)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 5)
+                        .background(RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(selected ? accent.opacity(0.16) : .clear))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            }
+        }
+        .padding(3)
+        .background(RoundedRectangle(cornerRadius: 11, style: .continuous).fill(Color.primary.opacity(0.05)))
+        .animation(.easeOut(duration: 0.15), value: selection)
+    }
+}
+
+/// A capsule button. Prominent (Buy, Use, Claim): filled with `tint`; otherwise a faint wash of it. Disabled: grey.
+struct PillButtonStyle: ButtonStyle {
+    var prominent = false
+    var tint: Color = .accentColor
+    /// Text on a prominent fill: dark on light colors (Electric yellow, the egg's gold), white otherwise.
+    var textOnTint: Color = .white
+
+    func makeBody(configuration: Configuration) -> some View {
+        PillButtonLabel(configuration: configuration, style: self)
+    }
+
+    @MainActor
+    private struct PillButtonLabel: View {
+        let configuration: ButtonStyleConfiguration
+        let style: PillButtonStyle
+        @Environment(\.isEnabled) private var isEnabled
+
+        var body: some View {
+            let fill: Color = !isEnabled ? Color.primary.opacity(0.08)
+                : style.prominent ? style.tint : style.tint.opacity(0.15)
+            let text: Color = !isEnabled ? Color.secondary : style.prominent ? style.textOnTint : style.tint
+            configuration.label
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .lineLimit(1)
+                .foregroundStyle(text)
+                .padding(.horizontal, 12).padding(.vertical, 5)
+                .background(Capsule().fill(fill))
+                .opacity(configuration.isPressed ? 0.7 : 1)
+                .contentShape(Capsule())
+        }
+    }
+}
+
 /// Small uppercase title above a card's content.
 @MainActor
 struct SectionTitle: View {
@@ -189,10 +277,24 @@ struct CircleIconButton: View {
 }
 
 extension CompanionStore {
-    /// The color of the Pokémon being raised: its form's first type, gold for the egg.
-    var themeColor: Color {
-        guard hasActive, let id = currentSpeciesID,
-              let type = PokemonTypeData.types(forSpeciesID: id, form: currentForm).first else { return Design.eggColor }
-        return type.color
+    /// The type of the Pokémon being raised: its form's first type; nil for the egg.
+    var themeType: PokemonType? {
+        guard hasActive, let id = currentSpeciesID else { return nil }
+        return PokemonTypeData.types(forSpeciesID: id, form: currentForm).first
+    }
+
+    /// The color of the Pokémon being raised: its type's, gold for the egg.
+    var themeColor: Color { themeType?.color ?? Design.eggColor }
+
+    /// Text on a `themeColor` fill: dark on the light types (Electric, Ice, Fairy…) and the egg's gold.
+    var themeTextColor: Color {
+        let hex = themeType?.hex ?? 0xF2B84D
+        let r = Double((hex >> 16) & 0xFF) / 255, g = Double((hex >> 8) & 0xFF) / 255, b = Double(hex & 0xFF) / 255
+        return 0.299 * r + 0.587 * g + 0.114 * b > 0.62 ? Color.black.opacity(0.8) : .white
+    }
+
+    /// A pill button in the color of the Pokémon being raised.
+    func pillButton(prominent: Bool = false) -> PillButtonStyle {
+        PillButtonStyle(prominent: prominent, tint: themeColor, textOnTint: themeTextColor)
     }
 }
