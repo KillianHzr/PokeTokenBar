@@ -323,7 +323,8 @@ struct PopoverView: View {
                         providerOrder: store.registeredProviderIDs,
                         showsCost: store.showsCost,
                         today: LocalUsageReader.todayKey(),
-                        l: l)
+                        l: l,
+                        accent: companion.themeColor)
             .designCard()
     }
 
@@ -1157,6 +1158,8 @@ struct MonthDailyTrend: View {
     /// 오늘의 `localDay` 키 — 강조할 막대를 뷰가 시계를 다시 읽어 고르지 않게 주입한다.
     let today: String
     let l: L
+    /// Today's bar and axis label: the color of the Pokémon being raised on Home.
+    var accent: Color = .accentColor
 
     /// The hovered bar. Its day's numbers show in a tooltip above the bars, without the `.help` delay.
     /// The caption keeps today's combined readout either way — opening the popover shows today's
@@ -1193,19 +1196,21 @@ struct MonthDailyTrend: View {
             let stack = DailyTrendStack.ordered(providers)
             let colors = DailyTrendStack.colorIndices(for: stack.map(\.id), registry: providerOrder,
                                                       paletteCount: Self.providerPalette.count)
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 6) {
                 captionRow(peak: peak, showsPeak: DailyTrendMetrics.showsPeak(columns))
-                barRow(columns, peak: peak, stack: stack, colors: colors)
-                    .overlay(alignment: .bottomLeading) { hoverTooltip(columns, stack: stack, colors: colors) }
-                    .zIndex(1)   // the tooltip rises over the caption and the rows above
-                weekendTickRow(columns)
-                axisRow(columns)
+                VStack(spacing: 4) {
+                    barRow(columns, peak: peak, stack: stack, colors: colors)
+                        .background(gridLines)
+                        .overlay(alignment: .bottomLeading) { hoverTooltip(columns, stack: stack, colors: colors) }
+                        .zIndex(1)   // the tooltip rises over the caption and the rows above
+                    weekendTickRow(columns)
+                    axisRow(columns)
+                }
                 if DailyTrendStack.isStacked(stack) {
                     legend(stack, colors: colors)
                         .padding(.top, 2)
                 }
             }
-            .padding(.top, 4)
         }
     }
 
@@ -1214,25 +1219,47 @@ struct MonthDailyTrend: View {
     /// 최댓값을 남기는 이유: 막대 높이가 상대값이라 어딘가 한 곳은 절대 스케일을 적어야 한다.
     /// 쓴 날이 하루뿐이면 최댓값이 리드아웃과 같은 숫자라 생략한다.
     private func captionRow(peak: Int, showsPeak: Bool) -> some View {
-        HStack(spacing: 5) {
-            Text(l.dailyTrend)
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-            Text(Self.readout(series: series, today: today, showsCost: showsCost, l: l))
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.secondary)
-                .monospacedDigit()
-            Spacer()
-            if showsPeak {
-                Text(l.peakDay)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                Text(TokenFormatter.compact(peak))
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 5) {
+                SectionTitle(text: l.dailyTrend, systemImage: "chart.bar.fill")
+                Spacer()
+                if showsPeak {
+                    HStack(spacing: 3) {
+                        Text(l.peakDay).foregroundStyle(.secondary)
+                        Text(TokenFormatter.compact(peak)).fontWeight(.bold).monospacedDigit()
+                    }
+                    .font(.system(size: 10, design: .rounded))
+                    .padding(.horizontal, 7).padding(.vertical, 2)
+                    .background(Capsule().fill(Color.primary.opacity(0.07)))
+                }
+            }
+            // The same height with or without the peak pill: the chart must not jump on the 1st of the month.
+            .frame(height: 18)
+            HStack(spacing: 6) {
+                Circle().fill(accent).frame(width: 7, height: 7)
+                Text(Self.readout(series: series, today: today, showsCost: showsCost, l: l))
+                    .font(.system(.callout, design: .rounded).weight(.semibold))
                     .monospacedDigit()
             }
         }
+    }
+
+    /// Faint dashed guides at the peak and at half of it, behind the bars.
+    private var gridLines: some View {
+        VStack(spacing: 0) {
+            dashedLine
+            Spacer(minLength: 0)
+            dashedLine
+            Spacer(minLength: 0)
+            Rectangle().fill(Color.primary.opacity(0.10)).frame(height: 1)
+        }
+        .frame(height: DailyTrendMetrics.track)
+        .allowsHitTesting(false)
+    }
+
+    private var dashedLine: some View {
+        Line().stroke(Color.primary.opacity(0.10), style: StrokeStyle(lineWidth: 1, dash: [2, 3]))
+            .frame(height: 1)
     }
 
     /// Today's "8/24 (Mon) 5.2M $3.10", summed across providers. Empty for a day outside the
@@ -1248,12 +1275,18 @@ struct MonthDailyTrend: View {
     /// Swatch + name per provider, wrapping onto more lines rather than truncating — names are
     /// what tells providers apart once colors repeat.
     private func legend(_ stack: [DailyTrendStack.ProviderSeries], colors: [String: Int]) -> some View {
-        WrappingHStack(spacing: 8, lineSpacing: 2) {
+        WrappingHStack(spacing: 6, lineSpacing: 4) {
             ForEach(stack, id: \.id) { provider in
-                HStack(spacing: 3) {
-                    swatch(provider.id, colors)
-                    Text(provider.name).font(.caption2).foregroundStyle(.tertiary)
+                let color = color(for: provider.id, in: colors)
+                HStack(spacing: 4) {
+                    Circle().fill(color).frame(width: 7, height: 7)
+                    Text(provider.name).foregroundStyle(.secondary)
+                    Text(TokenFormatter.compact(provider.days.reduce(0) { $0 + $1.totalTokens }))
+                        .fontWeight(.semibold).monospacedDigit()
                 }
+                .font(.system(size: 10, design: .rounded))
+                .padding(.horizontal, 7).padding(.vertical, 3)
+                .background(Capsule().fill(color.opacity(0.14)))
                 .lineLimit(1)
                 .fixedSize()
             }
@@ -1261,7 +1294,7 @@ struct MonthDailyTrend: View {
     }
 
     private func swatch(_ providerID: String, _ colors: [String: Int]) -> some View {
-        RoundedRectangle(cornerRadius: 1)
+        Circle()
             .fill(color(for: providerID, in: colors))
             .frame(width: 6, height: 6)
     }
@@ -1307,13 +1340,13 @@ struct MonthDailyTrend: View {
         }
         .monospacedDigit()
         .lineLimit(1)
-        .padding(.horizontal, 7)
-        .padding(.vertical, 5)
-        .background(RoundedRectangle(cornerRadius: 6, style: .continuous)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 6)
+        .background(RoundedRectangle(cornerRadius: 9, style: .continuous)
             .fill(Color(nsColor: .windowBackgroundColor)))
-        .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous)
-            .strokeBorder(Color.secondary.opacity(0.35), lineWidth: 0.5))
-        .shadow(color: .black.opacity(0.25), radius: 4, y: 1)
+        .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous)
+            .strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.5))
+        .shadow(color: .black.opacity(0.3), radius: 8, y: 3)
     }
 
     private func barRow(_ columns: [DailyTrendColumn], peak: Int, stack: [DailyTrendStack.ProviderSeries],
@@ -1322,8 +1355,9 @@ struct MonthDailyTrend: View {
             ForEach(columns) { column in
                 if column.isFuture {
                     // 아직 오지 않은 날 — 막대도 바닥 눈금도 주말 밑줄도 없이 자리만 지킨다. 0 과 달리
-                    // "안 쓴 날"이 아니라 "아직 없는 날"이라 호버 대상도 아니다.
-                    Color.clear.frame(maxWidth: .infinity)
+                    // "안 쓴 날"이 아니라 "아직 없는 날"이라 호버 대상도 아니다. A faint dot shows the month's rest.
+                    Circle().fill(Color.primary.opacity(0.08)).frame(width: 3, height: 3)
+                        .frame(maxWidth: .infinity)
                 } else {
                     let isToday = column.date == today
                     // 사용 0 인 날은 바닥 눈금만 남으므로, 아주 조금 쓴 날과 높이로는 구분되지
@@ -1333,12 +1367,15 @@ struct MonthDailyTrend: View {
                     let segments = DailyTrendStack.isStacked(stack) && !isEmptyDay
                         ? DailyTrendStack.segments(on: column.date, stack: stack, barHeight: height) : []
                     Group {
-                        if segments.isEmpty {
-                            RoundedRectangle(cornerRadius: 1, style: .continuous)
-                                .fill(isToday ? Color.accentColor
-                                              : Color.secondary.opacity(hovered == column.date ? 0.8
-                                                                        : isEmptyDay ? 0.18 : 0.45))
+                        if isEmptyDay {
+                            Circle().fill(Color.secondary.opacity(0.3)).frame(width: 3, height: 3)
+                        } else if segments.isEmpty {
+                            let base = isToday ? accent : Color.primary.opacity(hovered == column.date ? 0.55 : 0.28)
+                            UnevenRoundedRectangle(topLeadingRadius: 3, topTrailingRadius: 3, style: .continuous)
+                                .fill(LinearGradient(colors: [base, base.opacity(isToday ? 0.55 : 0.6)],
+                                                     startPoint: .top, endPoint: .bottom))
                                 .frame(height: height)
+                                .shadow(color: isToday ? accent.opacity(0.5) : .clear, radius: 4)
                         } else {
                             stackedBar(segments, height: height, colors: colors,
                                        highlighted: isToday || hovered == column.date)
@@ -1360,13 +1397,14 @@ struct MonthDailyTrend: View {
                             colors: [String: Int], highlighted: Bool) -> some View {
         VStack(spacing: 0) {
             ForEach(segments.reversed(), id: \.providerID) { segment in
-                color(for: segment.providerID, in: colors)
-                    .opacity(highlighted ? 1 : 0.55)
+                let color = color(for: segment.providerID, in: colors)
+                LinearGradient(colors: [color, color.opacity(0.75)], startPoint: .top, endPoint: .bottom)
+                    .opacity(highlighted ? 1 : 0.6)
                     .frame(height: segment.height)
             }
         }
         .frame(height: height)
-        .clipShape(RoundedRectangle(cornerRadius: 1, style: .continuous))
+        .clipShape(UnevenRoundedRectangle(topLeadingRadius: 3, topTrailingRadius: 3, style: .continuous))
     }
 
     private func color(for providerID: String, in colors: [String: Int]) -> Color {
@@ -1378,10 +1416,10 @@ struct MonthDailyTrend: View {
     private func weekendTickRow(_ columns: [DailyTrendColumn]) -> some View {
         HStack(spacing: DailyTrendMetrics.spacing) {
             ForEach(columns) { column in
-                Rectangle()
+                Capsule()
                     .fill(DailyTrendMetrics.showsWeekendTick(column)
-                          ? Color.secondary.opacity(0.5) : Color.clear)
-                    .frame(height: DailyTrendMetrics.tickHeight)
+                          ? Color.secondary.opacity(0.4) : Color.clear)
+                    .frame(width: 5, height: DailyTrendMetrics.tickHeight)
                     .frame(maxWidth: .infinity)
             }
         }
@@ -1395,12 +1433,15 @@ struct MonthDailyTrend: View {
             ForEach(columns) { column in
                 Group {
                     if let label = DailyTrendMetrics.axisLabel(for: column.date, today: today) {
+                        let isToday = column.date == today
                         Text(label)
-                            .font(.caption2)
+                            .font(.system(size: 10, weight: isToday ? .bold : .medium, design: .rounded))
                             .monospacedDigit()
-                            .foregroundStyle(column.date == today ? AnyShapeStyle(Color.accentColor)
+                            .foregroundStyle(isToday ? AnyShapeStyle(Color.white)
                                              : column.isFuture ? AnyShapeStyle(.tertiary)
                                              : AnyShapeStyle(.secondary))
+                            .padding(.horizontal, isToday ? 5 : 0).padding(.vertical, isToday ? 1 : 0)
+                            .background(Capsule().fill(isToday ? accent : .clear))
                             .fixedSize(horizontal: true, vertical: false)
                     } else {
                         Color.clear.frame(height: 1)
@@ -1423,14 +1464,14 @@ struct DailyTrendColumn: Identifiable, Equatable {
 /// 추이 막대의 기하 — 뷰 밖의 순수 함수로 둔다. SwiftUI 안에 두면 헤드리스로 검증할 수 없고,
 /// 이 계산은 0 과 최댓값 경계에서 조용히 틀리기 쉽다(0 을 0pt 로 그리면 "그날이 없는" 것처럼 보인다).
 enum DailyTrendMetrics {
-    /// 막대 트랙 높이. 헤더가 이미 촘촘하므로 스파크라인 수준으로 낮게 잡는다.
-    static let track: CGFloat = 26
-    static let spacing: CGFloat = 1.5
+    /// 막대 트랙 높이. The chart has its own card on Home: tall enough to compare days at a glance.
+    static let track: CGFloat = 64
+    static let spacing: CGFloat = 2.5
     /// 사용 없는 날에 남기는 바닥 눈금. 0pt 로 그리면 그 날짜 칸이 사라진 것처럼 보이고, 축이
     /// 밀리지 않았다는 사실(=0 을 명시적으로 채웠다)이 화면에서 안 읽힌다.
     static let baseline: CGFloat = 1.5
     /// 주말 표시 밑줄 두께.
-    static let tickHeight: CGFloat = 1.5
+    static let tickHeight: CGFloat = 2
 
     /// `tokens` 를 `peak` 대비 비율로 트랙 안에 눕힌다.
     /// - `peak <= 0`: 스케일이 없다 → 전부 바닥 눈금 (호출부가 이미 게이트하지만 0 나눗셈은 막는다).
@@ -1825,4 +1866,14 @@ extension PaceTier {
     /// % 숫자색. 노랑 글자는 라이트 모드 배경에서 거의 안 읽혀 그 단계만 기본 글자색으로 둔다 —
     /// 단계는 채움 색과 툴팁이 여전히 말해 준다.
     var percentColor: Color { self == .slightlyOver ? .primary : color }
+}
+
+/// A horizontal line across its frame, for dashed guides.
+struct Line: Shape {
+    func path(in rect: CGRect) -> Path {
+        Path { path in
+            path.move(to: CGPoint(x: rect.minX, y: rect.midY))
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
+        }
+    }
 }
