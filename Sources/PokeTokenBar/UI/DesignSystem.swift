@@ -50,6 +50,11 @@ struct LegendaryHeroBackground: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     static let gold = Color(.sRGB, red: 1.0, green: 0.80, blue: 0.30)
+    /// Twelve rays, each clear → gold → clear, ending where they start: no seam where the circle closes.
+    static let rayStops: [Gradient.Stop] = (0..<12).flatMap { ray -> [Gradient.Stop] in
+        let start = Double(ray) / 12
+        return [.init(color: .clear, location: start), .init(color: gold.opacity(0.34), location: start + 1.0 / 24)]
+    } + [.init(color: .clear, location: 1)]
     static let holo: [Color] = [gold, Color(.sRGB, red: 1.0, green: 0.45, blue: 0.70),
                                 Color(.sRGB, red: 0.62, green: 0.48, blue: 1.0),
                                 Color(.sRGB, red: 0.35, green: 0.80, blue: 1.0), gold]
@@ -64,9 +69,9 @@ struct LegendaryHeroBackground: View {
                 shape.fill(LinearGradient(colors: [color.opacity(0.42), Self.gold.opacity(0.10), color.opacity(0.10)],
                                           startPoint: .topLeading, endPoint: .bottomTrailing))
                 // Light rays turning behind the sprite, on a golden glow.
-                AngularGradient(colors: Array(repeating: [Self.gold.opacity(0.32), .clear], count: 8).flatMap { $0 },
-                                center: .center, angle: .degrees(t * 12))
-                    .mask(RadialGradient(colors: [.white, .clear], center: .center, startRadius: 6, endRadius: 95))
+                AngularGradient(gradient: Gradient(stops: Self.rayStops), center: .center, angle: .degrees(t * 12))
+                    .mask(RadialGradient(colors: [.white, .white.opacity(0.6), .clear], center: .center,
+                                         startRadius: 4, endRadius: 92))
                     .frame(width: 200, height: 200)
                     .position(x: 54, y: 52)
                 RadialGradient(colors: [Self.gold.opacity(0.55), .clear], center: .center, startRadius: 2,
@@ -107,25 +112,38 @@ struct LegendaryHeroBackground: View {
     }
 }
 
-/// The "LEGENDARY" pill of a legendary hero card: gold, with a gloss.
+/// The "LEGENDARY" pill of a legendary hero card: flat gold with a shine sweeping across every few seconds. No
+/// bevel, border or shadow.
 @MainActor
 struct LegendaryBadge: View {
     let text: String
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        HStack(spacing: 3) {
-            Image(systemName: "crown.fill").font(.system(size: 8, weight: .bold))
-            Text(text)
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { context in
+            // 0…1 over 3 s; the shine crosses during the first half, then rests.
+            let phase = reduceMotion ? 0.25
+                : context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 3) / 3
+            HStack(spacing: 3) {
+                Image(systemName: "crown.fill").font(.system(size: 8, weight: .bold))
+                Text(text)
+            }
+            .font(.system(size: 9, weight: .heavy, design: .rounded))
+            .foregroundStyle(Color(.sRGB, red: 0.36, green: 0.22, blue: 0.0))
+            .padding(.horizontal, 7).padding(.vertical, 2)
+            .background {
+                GeometryReader { geo in
+                    let width = geo.size.width
+                    LinearGradient(colors: [.clear, .white.opacity(0.75), .clear], startPoint: .leading,
+                                   endPoint: .trailing)
+                        .frame(width: 22)
+                        .rotationEffect(.degrees(20))
+                        .offset(x: -30 + (width + 60) * min(1, phase * 2))
+                }
+                .background(LegendaryHeroBackground.gold)
+                .clipShape(Capsule())
+            }
         }
-        .font(.system(size: 9, weight: .heavy, design: .rounded))
-        .foregroundStyle(Color(.sRGB, red: 0.35, green: 0.20, blue: 0.0))
-        .padding(.horizontal, 7).padding(.vertical, 2)
-        .background(Capsule().fill(LinearGradient(colors: [Color(.sRGB, red: 1.0, green: 0.92, blue: 0.55),
-                                                           LegendaryHeroBackground.gold,
-                                                           Color(.sRGB, red: 0.93, green: 0.62, blue: 0.18)],
-                                                  startPoint: .top, endPoint: .bottom)))
-        .overlay(Capsule().strokeBorder(Color.white.opacity(0.5), lineWidth: 0.5))
-        .shadow(color: LegendaryHeroBackground.gold.opacity(0.6), radius: 3)
     }
 }
 

@@ -816,10 +816,11 @@ struct CompanionHeader: View {
                             .lineLimit(1).minimumScaleFactor(0.8)
                         if store.currentIsShiny { Text("✨").font(.system(size: 11)) }
                         if let r = store.rarity {
+                            // The badge keeps its size; a long name shrinks or truncates instead.
                             if r == .legendary {
-                                LegendaryBadge(text: store.l.rarityLabel(r).uppercased())
+                                LegendaryBadge(text: store.l.rarityLabel(r).uppercased()).lineLimit(1).fixedSize()
                             } else {
-                                Badge(store.l.rarityLabel(r).uppercased(), tint: .rarity(r))
+                                Badge(store.l.rarityLabel(r).uppercased(), tint: .rarity(r)).lineLimit(1).fixedSize()
                             }
                         }
                     }
@@ -853,17 +854,22 @@ struct CompanionHeader: View {
                         }
                     } else {
                         // 알 인큐베이션 — 부화까지 진행 (임박 시 문구·색 전환)
-                        HStack(spacing: 6) {
+                        // A badge that does not fit next to the status goes whole to the next line, never squeezed
+                        // onto two lines inside its capsule.
+                        WrappingHStack(spacing: 6, lineSpacing: 4) {
                             Text(eggImminent ? store.l.eggImminent : store.l.eggIncubating)
                                 .font(.caption2)
                                 .foregroundStyle(eggImminent ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
+                                .fixedSize()
                             // 등급 보증 알이면 무엇을 품고 있는지 — 도감 칩과 같은 라벨·색.
                             // 알 스프라이트는 한 장뿐이라 등급 구분은 이 배지가 유일한 신호다.
                             if let guarantee = store.eggGuarantee {
                                 Badge(store.l.eggGuaranteeHint(guarantee), tint: .rarity(guarantee))
+                                    .lineLimit(1).fixedSize()
                             }
                             if let typeGuarantee = store.eggTypeGuarantee {
                                 Badge(store.l.eggTypeGuaranteeHint(typeGuarantee), tint: .type(typeGuarantee))
+                                    .lineLimit(1).fixedSize()
                             }
                         }
                         LabeledProgressBar(value: store.eggProgress,
