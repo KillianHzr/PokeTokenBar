@@ -1501,3 +1501,8 @@ read_when:
   fail the historical-chart assertion. Keep explicit pixel density, candidate diagnostics,
   and both CI fixture PNGs so recognition failures can be checked against rendered pixels.
   Other OCR harnesses passed the same CI runs; this repair is limited to the failing fixture.
+  The UI redesign hit the same class twice on CI only: the period tiles' smaller label tied "이번 주" with "미번 주",
+  so the period labels now use the caption's rule (exact text within one observation's most confident tie), and
+  `DexBackNavigationTests` read Mon1 only as "Mon1|" next to a vertical edge, so its exact match trims edge glyphs
+  (`|/\\[]()`), which still keeps "Mon10|" from reading as Mon1. Hiding the week label and dropping the log's return
+  anchor still fail those tests.

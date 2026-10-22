@@ -61,14 +61,18 @@ final class DexBackNavigationTests: XCTestCase {
         let candidates: [String]
         let box: CGRect   // normalized, y-up
 
-        /// Spaces are ignored: Vision splits and joins words inconsistently.
+        /// Spaces are ignored: Vision splits and joins words inconsistently. A vertical edge next to a word can come
+        /// back as part of it: CI read Mon1 only as "Mon1|", so edge glyphs are trimmed before comparing. "Mon10|"
+        /// still reads Mon10, never Mon1.
         func reads(_ text: String, exactly: Bool) -> Bool {
             let wanted = text.replacingOccurrences(of: " ", with: "")
             return candidates.contains {
-                let candidate = $0.replacingOccurrences(of: " ", with: "")
+                let candidate = $0.replacingOccurrences(of: " ", with: "").trimmingCharacters(in: Self.edgeGlyphs)
                 return exactly ? candidate == wanted : candidate.contains(wanted)
             }
         }
+
+        private static let edgeGlyphs = CharacterSet(charactersIn: "|/\\[]()")
     }
 
     private func words(in host: NSView) throws -> [Word] {
