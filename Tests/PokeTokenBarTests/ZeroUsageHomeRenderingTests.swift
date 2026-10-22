@@ -124,6 +124,13 @@ final class ZeroUsageHomeRenderingTests: XCTestCase {
         let request = VNRecognizeTextRequest()
         request.recognitionLanguages = ["ko-KR", "en-US"]
         request.recognitionLevel = .accurate
+        // CI runners have no GPU: Vision runs on the CPU there and reads small text differently ("미번 달" for
+        // "이번 달"). Reading on the CPU everywhere makes a local run fail where CI would.
+        if let cpu = try request.supportedComputeStageDevices[.main]?.first(where: {
+            if case .cpu = $0 { return true } else { return false }
+        }) {
+            request.setComputeDevice(cpu, for: .main)
+        }
         try VNImageRequestHandler(cgImage: XCTUnwrap(bitmap.cgImage)).perform([request])
         let text = request.results?.compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ") ?? ""
         /// CI ranks "일벌" before "일별", and "미번 주" before "이번 주", at the same confidence. Vision returns at most

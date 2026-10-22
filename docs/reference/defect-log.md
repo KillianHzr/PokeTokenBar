@@ -1506,3 +1506,7 @@ read_when:
   `DexBackNavigationTests` read Mon1 only as "Mon1|" next to a vertical edge, so its exact match trims edge glyphs
   (`|/\[]()`), which still keeps "Mon10|" from reading as Mon1. Hiding the week label and dropping the log's return
   anchor still fail those tests.
+  The week tile still failed on CI: its runners have no GPU, and Vision on the CPU read the 10 pt grey "이번 달" as
+  "미번 달" with "이번 달" in none of its ten candidates; the GPU path of a local run tied or read it right. The
+  test now reads on the CPU everywhere (`setComputeDevice`), which reproduced the CI reading on CI's own render, and
+  the tile labels are 11 pt semibold: read at confidence 1.0 on the CPU.

@@ -374,8 +374,9 @@ struct PopoverView: View {
 
     private func periodTile(_ name: String, tokens: Int, cost: UsageCost?) -> some View {
         VStack(alignment: .leading, spacing: 2) {
+            // Small and grey, "이번 달" read as "미번 달" (Vision on CI): 11 pt semibold reads at a glance.
             Text(name)
-                .font(.caption2)
+                .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
             HStack(alignment: .firstTextBaseline, spacing: 5) {
