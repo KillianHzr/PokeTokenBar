@@ -108,7 +108,6 @@ struct LegendaryHeroBackground: View {
 @MainActor
 struct LegendaryBadge: View {
     let text: String
-    var systemImage = "sparkles"
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -116,10 +115,7 @@ struct LegendaryBadge: View {
             // 0…1 over 3 s; the shine crosses during the first half, then rests.
             let phase = reduceMotion ? 0.25
                 : context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 3) / 3
-            HStack(spacing: 3) {
-                Image(systemName: systemImage).font(.system(size: 8, weight: .bold))
-                Text(text)
-            }
+            Text(text)
             .font(.system(size: 9, weight: .heavy, design: .rounded))
             .foregroundStyle(Color(.sRGB, red: 0.36, green: 0.22, blue: 0.0))
             .padding(.horizontal, 7).padding(.vertical, 2)
