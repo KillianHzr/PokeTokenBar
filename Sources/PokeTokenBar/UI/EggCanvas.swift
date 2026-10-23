@@ -196,9 +196,11 @@ enum EggLight {
         return t * t * (3 - 2 * t)
     }
 
-    /// Deterministic value noise in 0...1.
-    static func noise(_ x: Double, _ y: Double) -> Double {
+    /// Deterministic value noise in 0...1. With `periodY` it repeats every that many units along y, so a pattern
+    /// scrolled by whole periods over the loop loops seamlessly.
+    static func noise(_ x: Double, _ y: Double, periodY: Int? = nil) -> Double {
         func hash(_ i: Int, _ j: Int) -> Double {
+            let j = periodY.map { ((j % $0) + $0) % $0 } ?? j
             var h = UInt64(bitPattern: Int64(i &* 374_761_393 &+ j &* 668_265_263))
             h = (h ^ (h >> 13)) &* 1_274_126_177
             return Double((h ^ (h >> 16)) & 0xFFFF) / 65535

@@ -34,6 +34,10 @@ struct EggSurfacePoint {
     /// The normal, in the image's frame (for the light).
     let normal: EggVector
     let px: Int, py: Int
+    /// How far the egg has turned on itself in this frame.
+    var yaw: Double = 0
+    /// Where the frame is in the loop, 0..<2π.
+    var phase: Double = 0
 }
 
 /// What the egg's own surface looks like in a design.
@@ -50,6 +54,11 @@ struct EggSurface {
     /// A crack around the top, at a height for each angle around: the cap above it lifts by `gap` egg units.
     var cap: ((Double) -> Double)? = nil
     var capGap: (Double) -> Double = { _ in 0 }
+    /// Glowing parts, unshaded: lava veins.
+    var emission: ((EggSurfacePoint) -> EggColor?)? = nil
+    /// A shape that is not an egg, in its own frame (it turns with the yaw): where a ray from a point along a direction
+    /// enters it, and the outward normal there. Replaces the egg's profile and `silhouette`.
+    var solid: ((EggVector, EggVector) -> (point: EggVector, normal: EggVector)?)? = nil
 }
 
 /// A custom egg: its surface, what is drawn behind and in front of it, its outline.
@@ -97,6 +106,16 @@ enum EggDesigns {
             let tx = x * cosY + z * sinY, tz = -x * sinY + z * cosY
             return EggSurfacePoint(x: tx, y: y, z: tz, angle: atan2(tx, tz), normal: normal, px: px, py: py)
         }
+        // A shape of its own: the ray toward the pixel, in the shape's frame; its normal back in the image's.
+        func hitSolid(_ u: Double, _ v: Double, _ px: Int, _ py: Int,
+                      _ solid: (EggVector, EggVector) -> (point: EggVector, normal: EggVector)?) -> EggSurfacePoint? {
+            let x = u * cosT + v * sinT, y = -u * sinT + v * cosT, z = 2.0
+            let origin: EggVector = (x * cosY + z * sinY, y, -x * sinY + z * cosY)
+            guard let (o, n) = solid(origin, (-sinY, 0, -cosY)) else { return nil }
+            let nx = n.x * cosY - n.z * sinY, nz = n.x * sinY + n.z * cosY
+            let normal: EggVector = (nx * cosT - n.y * sinT, nx * sinT + n.y * cosT, nz)
+            return EggSurfacePoint(x: o.x, y: o.y, z: o.z, angle: atan2(o.x, o.z), normal: normal, px: px, py: py)
+        }
         for py in 0..<canvas.size {
             for px in 0..<canvas.size {
                 var sum = (0.0, 0.0, 0.0), count = 0.0
@@ -104,7 +123,9 @@ enum EggDesigns {
                     let u = (Double(px) + 0.5 + sx - f.cx) * upp
                     let v = (f.cy - Double(py) - 0.5 - sy - Double(f.lift)) * upp
                     var point: EggSurfacePoint?
-                    if let cap = surface.cap {
+                    if let solid = surface.solid {
+                        point = hitSolid(u, v, px, py, solid)
+                    } else if let cap = surface.cap {
                         // The cap, lifted, over the crack; the rest below it.
                         let gap = surface.capGap(f.phase)
                         if let top = hit(u, v - gap, px, py), top.y >= cap(top.angle) { point = top }
@@ -112,11 +133,13 @@ enum EggDesigns {
                     } else {
                         point = hit(u, v, px, py)
                     }
-                    guard let p = point, surface.keep?(p) ?? true else { continue }
+                    guard var p = point, surface.keep?(p) ?? true else { continue }
+                    p.yaw = f.yaw
+                    p.phase = f.phase
                     let n = surface.normal?(p.normal, p) ?? p.normal
                     let occlusion = 0.88 + 0.12 * EggLight.smoothstep(-1, -0.2, p.y)
-                    let c = EggLight.shade(surface.albedo(p), normal: n, gloss: surface.gloss,
-                                           shininess: surface.shininess, occlusion: occlusion)
+                    let c = surface.emission?(p) ?? EggLight.shade(surface.albedo(p), normal: n, gloss: surface.gloss,
+                                                                   shininess: surface.shininess, occlusion: occlusion)
                     sum.0 += c.r; sum.1 += c.g; sum.2 += c.b
                     count += 1
                 }
@@ -124,6 +147,55 @@ enum EggDesigns {
                 canvas.set(px, py, EggColor(sum.0 / count, sum.1 / count, sum.2 / count))
             }
         }
+    }
+
+    /// Where a ray enters a convex solid cut by planes (outward normal, distance from the center), and that plane's
+    /// normal.
+    static func enter(_ planes: [(n: EggVector, d: Double)], _ o: EggVector,
+                      _ dir: EggVector) -> (point: EggVector, normal: EggVector)? {
+        var near = -Double.infinity, far = Double.infinity, normal: EggVector = (0, 0, 1)
+        for plane in planes {
+            let along = plane.n.x * dir.x + plane.n.y * dir.y + plane.n.z * dir.z
+            let gap = plane.d - (plane.n.x * o.x + plane.n.y * o.y + plane.n.z * o.z)
+            if abs(along) < 1e-9 {
+                if gap < 0 { return nil }
+                continue
+            }
+            let t = gap / along
+            if along < 0 {
+                if t > near { near = t; normal = plane.n }
+            } else {
+                far = min(far, t)
+            }
+        }
+        guard near > -.infinity, near <= far else { return nil }
+        return ((o.x + dir.x * near, o.y + dir.y * near, o.z + dir.z * near), normal)
+    }
+
+    /// A deterministic value in 0..<1 for a lattice point.
+    static func hash(_ i: Int, _ j: Int, _ k: Int, seed: Int) -> Double {
+        var h = UInt64(bitPattern: Int64(i &* 374_761_393 &+ j &* 668_265_263 &+ k &* 1_440_662_683 &+ seed &* 1_013_904_223))
+        h = (h ^ (h >> 13)) &* 1_274_126_177
+        h ^= h >> 16
+        return Double(h & 0xFFFF) / 65536
+    }
+
+    /// Cellular noise: the distances to the nearest and the second nearest of points scattered one per unit cell.
+    static func cells(_ x: Double, _ y: Double, _ z: Double) -> (near: Double, second: Double) {
+        let xi = Int(x.rounded(.down)), yi = Int(y.rounded(.down)), zi = Int(z.rounded(.down))
+        var near = 9.0, second = 9.0
+        for i in xi - 1...xi + 1 {
+            for j in yi - 1...yi + 1 {
+                for k in zi - 1...zi + 1 {
+                    let dx = Double(i) + hash(i, j, k, seed: 1) - x
+                    let dy = Double(j) + hash(i, j, k, seed: 2) - y
+                    let dz = Double(k) + hash(i, j, k, seed: 3) - z
+                    let d = (dx * dx + dy * dy + dz * dz).squareRoot()
+                    if d < near { second = near; near = d } else if d < second { second = d }
+                }
+            }
+        }
+        return (near, second)
     }
 
     // MARK: Surface helpers
@@ -188,35 +260,115 @@ enum EggDesigns {
         return EggDesign(surface: surface, outline: EggColor(0.36, 0.32, 0.27))
     }
 
-    /// Flames rise all around it and lick its sides; the shell glows like an ember.
+    /// A shell of cooled lava, its cracks glowing; it sits in a fire rising all around it, embers flying off.
     static var fire: EggDesign {
-        let red = EggColor(0.86, 0.27, 0.12), orange = EggColor(1, 0.58, 0.16), yellow = EggColor(1, 0.88, 0.38)
-        let surface = EggSurface(albedo: { p in
-            let heat = EggLight.smoothstep(0.6, -0.9, p.y)
-            let base = red.mixed(with: orange, heat * 0.7)
-            return base.mixed(with: yellow, spots(p, [(-0.5, -0.4, 0.16), (0.5, -0.1, 0.12), (0.1, 0.4, 0.1),
-                                                      (1.3, -0.5, 0.15), (-1.4, 0.2, 0.13)]) * 0.85)
-        }, gloss: 0.35)
+        let crust = EggColor(0.2, 0.13, 0.13), ember = EggColor(0.58, 0.13, 0.07)
+        func crack(_ p: EggSurfacePoint) -> (edge: Double, width: Double) {
+            let c = cells(p.x * 2.4 + 7, p.y * 2.4, p.z * 2.4)
+            let width = (0.05 + 0.08 * EggLight.smoothstep(0.7, -0.9, p.y)) * (0.92 + 0.12 * sin(p.phase * 2))
+            return (c.second - c.near, width)
+        }
+        var surface = EggSurface(albedo: { p in
+            let (edge, width) = crack(p)
+            let glow = EggLight.smoothstep(width * 3.2, width, edge) * 0.8 + EggLight.smoothstep(0.1, -1, p.y) * 0.3
+            return crust.mixed(with: ember, min(1, glow))
+        }, gloss: 0.3, shininess: 30)
+        surface.emission = { p in
+            let (edge, width) = crack(p)
+            guard edge < width else { return nil }
+            return edge < width * 0.45 ? flame[3] : flame[2]
+        }
         return EggDesign(surface: surface, back: { canvas, f in
-            // Tongues around the egg, from its sides up over its top, each flickering on its own beat.
-            let spots: [(Double, Double, Double)] = [(-0.95, -0.55, 0.9), (-1, 0.05, 1.1), (-0.85, 0.55, 1.0),
-                                                     (-0.45, 0.92, 1.15), (0.05, 1.05, 1.3), (0.5, 0.9, 1.1),
-                                                     (0.88, 0.5, 1.0), (1, 0.0, 1.1), (0.95, -0.55, 0.9)]
-            for (i, (sx, sy, size)) in spots.enumerated() {
-                let side = sx
-                let (bx, by) = f.pixel(sx * EggProfile.radius(sy) * 0.95 / max(0.3, abs(sx)), sy)
-                let flicker = 0.75 + 0.25 * sin(f.phase * 3 + Double(i) * 1.7)
-                canvas.flame(baseX: bx, baseY: by, height: 11 * size * flicker, width: 3.6 * size,
-                             lean: side * 0.35 + 0.1 * sin(f.phase * 2 + Double(i)), outer: red, middle: orange, core: yellow)
+            paintFire(&canvas, f, front: false)
+            // Embers rising off the flames, cooling as they go; behind the egg, so never on its shell.
+            for i in 0..<12 {
+                let speed = Double(1 + i % 2)
+                let age = (f.t * speed + Double(i) * 0.37).truncatingRemainder(dividingBy: 1)
+                let side: Double = i.isMultiple(of: 2) ? -1 : 1
+                let x0 = side * (0.8 + 0.3 * hash(i, 0, 0, seed: 9))
+                let ex = x0 * (1 - age * 0.6) + 0.1 * sin(age * 10 + Double(i))
+                let (px, py) = f.pixel(ex, -0.4 + age * 1.9)
+                let color = age < 0.3 ? flame[4] : age < 0.6 ? flame[3] : flame[2]
+                canvas.fill(px - 0.5, py - 0.5, px + 0.5, py + 0.5) { _, _ in color }
             }
         }, front: { canvas, f in
-            for (i, sx) in [-0.55, 0.6].enumerated() {
-                let (bx, by) = f.pixel(sx, -0.86)
-                let flicker = 0.7 + 0.3 * sin(f.phase * 3 + Double(i) * 2.3)
-                canvas.flame(baseX: bx, baseY: by + 3, height: 8 * flicker, width: 2.6, lean: sx * 0.3,
-                             outer: red, middle: orange, core: yellow)
+            paintFire(&canvas, f, front: true)
+        }, outline: EggColor(0.28, 0.05, 0.03))
+    }
+
+    /// The fire's tones, from its cool edge to its white-hot heart.
+    static let flame = [EggColor(0.62, 0.1, 0.05), EggColor(0.93, 0.28, 0.07), EggColor(1, 0.55, 0.1),
+                        EggColor(1, 0.83, 0.28), EggColor(1, 0.96, 0.72)]
+
+    /// Points around the egg's outline, closer together toward its ends, for distances to it.
+    private static let outlinePoints: [(Double, Double)] = (0...96).flatMap { i -> [(Double, Double)] in
+        let y = -cos(Double(i) / 96 * .pi)
+        return [(EggProfile.radius(y), y), (-EggProfile.radius(y), y)]
+    }
+
+    /// The fire around the egg (or, in front, over its foot), in bands of its tones; lone pixels dropped.
+    private static func paintFire(_ canvas: inout EggCanvas, _ f: EggFrame, front: Bool) {
+        let size = canvas.size
+        var heat = [Double](repeating: -1, count: size * size)
+        if front {
+            for py in 0..<size {
+                for px in 0..<size { heat[py * size + px] = footFire(f, Double(px) + 0.5, Double(py) + 0.5) }
             }
-        }, outline: EggColor(0.42, 0.1, 0.05))
+        } else {
+            // A skin of heat around the egg, hottest at its foot, carried straight up into tongues of a length that
+            // changes from column to column and over the loop.
+            var skin = [Double](repeating: 0, count: size * size)
+            for py in 0..<size {
+                for px in 0..<size { skin[py * size + px] = fireSkin(f, Double(px) + 0.5, Double(py) + 0.5) }
+            }
+            for px in 0..<size {
+                let length = 4 + 16 * EggLight.noise(Double(px) * 0.3 + 5, f.t * 6, periodY: 6)
+                for py in 0..<size {
+                    var best = skin[py * size + px]
+                    for k in 1..<22 where py + k < size {
+                        best = max(best, skin[(py + k) * size + px] * (1 - Double(k) / length))
+                    }
+                    guard best > 0 else { continue }
+                    let flicker = EggLight.noise(Double(px) * 0.5 + 9, Double(py) * 0.25 + f.t * 16, periodY: 16)
+                    heat[py * size + px] = best * 1.1 - flicker * 0.35 + 0.05
+                }
+            }
+        }
+        func lit(_ x: Int, _ y: Int) -> Bool { x >= 0 && y >= 0 && x < size && y < size && heat[y * size + x] > 0 }
+        for py in 0..<size {
+            for px in 0..<size where heat[py * size + px] > 0 {
+                let neighbors = [lit(px - 1, py), lit(px + 1, py), lit(px, py - 1), lit(px, py + 1)].filter { $0 }.count
+                guard neighbors >= 2 else { continue }
+                let h = heat[py * size + px]
+                canvas.set(px, py, flame[h < 0.2 ? 0 : h < 0.42 ? 1 : h < 0.64 ? 2 : h < 0.84 ? 3 : 4])
+            }
+        }
+    }
+
+    /// A pixel in the egg's frame: (x, y) in egg units, and whether it is on the egg.
+    private static func eggPoint(_ f: EggFrame, _ px: Double, _ py: Double) -> (x: Double, y: Double, inside: Bool) {
+        let u = (px - f.cx) * f.unitsPerPixel, v = (f.cy - py - Double(f.lift)) * f.unitsPerPixel
+        let x = u * cos(f.tilt) + v * sin(f.tilt), y = -u * sin(f.tilt) + v * cos(f.tilt)
+        return (x, y, abs(y) < 1 && abs(x) < EggProfile.radius(y))
+    }
+
+    /// The heat in a thin skin around the egg: 1 against it, 0 a few pixels out; hotter toward its foot.
+    private static func fireSkin(_ f: EggFrame, _ px: Double, _ py: Double) -> Double {
+        let (x, y, inside) = eggPoint(f, px, py)
+        guard !inside, abs(x) < 1.1, y > -1.25, y < 1.2 else { return inside ? 1 : 0 }
+        var nearest = 9.0
+        for (ox, oy) in outlinePoints { nearest = min(nearest, (x - ox) * (x - ox) + (y - oy) * (y - oy)) }
+        let thickness = 0.14 + 0.1 * EggLight.smoothstep(0.3, -1, y)
+        return max(0, 1 - nearest.squareRoot() / thickness) * (0.78 + 0.22 * EggLight.smoothstep(0.4, -0.9, y))
+    }
+
+    /// The flames licking the egg's foot, over it.
+    private static func footFire(_ f: EggFrame, _ px: Double, _ py: Double) -> Double {
+        let (x, y, inside) = eggPoint(f, px, py)
+        guard inside else { return -1 }
+        let noise = 0.65 * EggLight.noise(x * 4.5 + 20, y * 2.5 - f.t * 8, periodY: 8)
+            + 0.35 * EggLight.noise(x * 10 + 40, y * 5 - f.t * 16, periodY: 16)
+        return EggLight.smoothstep(-0.5, -1, y) * 1.25 - noise * 0.75
     }
 
     /// A drop's pointed top, waves around it, bubbles rising beside it.
@@ -260,7 +412,7 @@ enum EggDesigns {
         }, gloss: 0.45)
         return EggDesign(surface: surface, back: { canvas, f in
             for i in 0..<4 where sin(f.phase * 4 + Double(i) * 1.9) > 0.1 {
-                let a = Double(i) * .pi / 2 + 0.6 + f.phase * 0.3
+                let a = Double(i) * .pi / 2 + 0.6 + 0.4 * sin(f.phase)
                 let x = f.cx + cos(a) * 25, y = f.cy - 2 + sin(a) * 23 - Double(f.lift)
                 let s = 3.5
                 canvas.path([(x - s, y - s), (x + 0.5, y - 0.5), (x - 0.5, y + 0.5), (x + s, y + s)], width: 1.6,
@@ -351,36 +503,52 @@ enum EggDesigns {
                 if t > 0.6 { canvas.ball(bx, by + 5 + (t - 0.6) * 25, 1.6, goo, gloss: 0.5) }
             }
             for i in 0..<2 {
-                let t = (f.t * 1.5 + Double(i) * 0.5).truncatingRemainder(dividingBy: 1)
+                let t = (f.t * 2 + Double(i) * 0.5).truncatingRemainder(dividingBy: 1)
                 if t < 0.8 { canvas.ball(f.cx + (i == 0 ? -8 : 7), 10 - t * 6, 1 + t * 1.6, goo, gloss: 0.6) }
             }
         }, outline: EggColor(0.25, 0.08, 0.3))
     }
 
-    /// Half buried in a mound of earth, cracked, dust rising at its edges.
+    /// Sandstone rippled by the wind, a sand tomb whirling around it.
     static var ground: EggDesign {
-        let sand = EggColor(0.9, 0.8, 0.55), earth = color(.ground).mixed(with: .black, 0.15)
-        let crack = EggColor(0.42, 0.3, 0.15)
+        let sand = EggColor(0.9, 0.76, 0.5), ripple = EggColor(0.74, 0.56, 0.32)
         let surface = EggSurface(albedo: { p in
             let (a, y) = front(p)
-            let line1 = abs(a - (0.12 + 0.1 * abs(((y * 6).truncatingRemainder(dividingBy: 1)) * 2 - 1))) < 0.025 && y > 0
-            let line2 = abs(a + 0.4 - 0.08 * sin(y * 14)) < 0.022 && y < 0.5 && y > -0.3
-            return line1 || line2 ? crack : sand.mixed(with: earth, EggLight.smoothstep(0.6, -0.8, p.y) * 0.5)
-        }, gloss: 0.2)
-        return EggDesign(surface: surface, front: { canvas, f in
-            // The mound stays on the ground while the egg wobbles in it.
-            let cx = f.cx, cy = 58.0
-            canvas.fill(cx - 28, cy - 9, cx + 28, cy + 6) { x, y in
-                let dx = (x - cx) / 27, dy = (y - cy) / 8
-                guard dx * dx + dy * dy <= 1, y > cy - 8 + 3 * dx * dx else { return nil }
-                let top = EggLight.smoothstep(cy - 4, cy - 8, y)
-                let grain = EggLight.noise(x * 0.7, y * 0.7) > 0.72 ? 0.12 : 0
-                return earth.mixed(with: EggColor(0.86, 0.7, 0.45), top * 0.6).mixed(with: .black, grain)
+            let wave = ((y + 0.05 * sin(a * 7) + 2) * 7).truncatingRemainder(dividingBy: 1)
+            return wave < 0.2 ? ripple : sand.mixed(with: ripple, EggLight.smoothstep(0.4, -1, p.y) * 0.35)
+        }, gloss: 0.15)
+        return EggDesign(surface: surface, back: { canvas, f in sandstorm(&canvas, f, behind: true) },
+                         front: { canvas, f in sandstorm(&canvas, f, behind: false) },
+                         outline: EggColor(0.36, 0.24, 0.1))
+    }
+
+    /// Three bands of sand spiraling up around the egg, each turning once over the loop, and loose grains; seen a
+    /// little from above, so the far side is higher. Only the side asked for: behind the egg or in front of it.
+    private static func sandstorm(_ canvas: inout EggCanvas, _ f: EggFrame, behind: Bool) {
+        let tones = [EggColor(0.96, 0.86, 0.62), EggColor(0.86, 0.69, 0.42), EggColor(0.72, 0.54, 0.32)]
+        func place(_ angle: Double, _ y: Double) -> (x: Double, y: Double, near: Bool) {
+            let r = 0.92 + 0.22 * (y + 1) / 2
+            let ex = r * cos(angle), ez = r * sin(angle)
+            let (px, py) = f.pixel(ex, y - ez * 0.22)
+            return (px, py, ez > 0)
+        }
+        for band in 0..<3 {
+            for step in 0..<70 {
+                let s = Double(step) / 70
+                let angle = f.phase + Double(band) * 2.1 + s * 3.6
+                let point = place(angle, -0.8 + Double(band) * 0.62 + s * 0.3)
+                guard point.near != behind else { continue }
+                let tone = point.near ? tones[band % 2] : tones[2]
+                canvas.ball(point.x, point.y, 0.8 + 1.3 * sin(s * .pi), tone, gloss: 0)
             }
-            for i in 0..<3 where sin(f.phase * 2 + Double(i) * 2) > 0.3 {
-                canvas.ball(cx + Double(i - 1) * 20, 50 - 3 * sin(f.phase + Double(i)), 1.2, EggColor(0.8, 0.68, 0.45))
-            }
-        }, outline: EggColor(0.32, 0.22, 0.1))
+        }
+        for i in 0..<24 {
+            let speed = Double(1 + i % 2)
+            let angle = f.phase * speed + hash(i, 0, 0, seed: 7) * 2 * .pi
+            let point = place(angle, -1 + 2.1 * hash(i, 1, 0, seed: 7))
+            guard point.near != behind else { continue }
+            canvas.set(Int(point.x), Int(point.y), tones[i % 3])
+        }
     }
 
     /// Two feathered wings at its sides, beating.
@@ -464,35 +632,51 @@ enum EggDesigns {
         }, outline: EggColor(0.22, 0.3, 0.05))
     }
 
-    /// Its lower half is rough stone, its top an egg cracking out of it; pebbles bounce at its foot.
+    /// An egg of stone, chiseled flat all around, speckled, a quartz vein through it; pebbles hop at its foot.
     static var rock: EggDesign {
-        let shell = EggColor(0.93, 0.9, 0.82), stone = color(.rock).mixed(with: EggColor(0.5, 0.48, 0.45), 0.5)
-        let crack = EggColor(0.4, 0.35, 0.3)
-        func border(_ angle: Double) -> Double { 0.02 + 0.12 * EggLight.noise(angle * 2.2 + 5, 1.5) }
+        let stone = EggColor(0.66, 0.6, 0.5), dark = EggColor(0.44, 0.39, 0.33), light = EggColor(0.82, 0.77, 0.68)
+        let quartz = EggColor(0.95, 0.94, 0.9), vein = EggLight.normalize((0.5, 0.8, 0.3))
         var surface = EggSurface(albedo: { p in
-            if p.y < border(p.angle) {
-                let speck = EggLight.noise(p.angle * 9, p.y * 9) > 0.7 ? 0.12 : 0
-                return stone.mixed(with: .black, speck)
-            }
-            let (a, y) = front(p)
-            if abs(a - 0.05 - 0.06 * sin(y * 20)) < 0.022 && y < 0.6 { return crack }
-            return shell
-        }, gloss: 0.25)
-        // Lumps along the stone's outline and facets on its faces.
-        surface.silhouette = { y, side in
-            y < 0.1 ? 1 + 0.1 * (EggLight.noise(y * 5 + 3, side * 4 + 7) - 0.4) : 1
-        }
-        surface.normal = { n, p in
-            guard p.y < border(p.angle) else { return n }
-            let jx = (EggLight.noise(p.angle * 3, p.y * 3) - 0.5) * 0.7, jy = (EggLight.noise(p.angle * 3 + 9, p.y * 3) - 0.5) * 0.7
-            return EggLight.normalize((((n.x + jx) * 2).rounded() / 2, ((n.y + jy) * 2).rounded() / 2, max(0.3, n.z)))
-        }
+            let patch = 0.5 * EggLight.noise(p.x * 3 + 11, p.y * 3) + 0.5 * EggLight.noise(p.z * 3 + 3, p.y * 3 + 7)
+            var c = stone.mixed(with: dark, EggLight.smoothstep(0.45, 0.7, patch) * 0.55)
+            let grain = EggLight.noise((p.x + p.z) * 13 + 5, p.y * 13)
+            if grain > 0.8 { c = c.mixed(with: .black, 0.22) } else if grain < 0.12 { c = c.mixed(with: light, 0.6) }
+            // A quartz vein through the stone: a slab, so it wraps around it as it turns.
+            let across = vein.x * p.x + vein.y * p.y + vein.z * p.z - 0.05 + 0.04 * (EggLight.noise(p.x * 6, p.z * 6) - 0.5)
+            if abs(across) < 0.045 { return quartz.mixed(with: stone, EggLight.noise(p.x * 20, p.y * 20) * 0.3) }
+            return c
+        }, gloss: 0.15, shininess: 20)
+        surface.solid = { o, dir in enter(rockPlanes, o, dir) }
         return EggDesign(surface: surface, front: { canvas, f in
-            for (i, dx) in [-14.0, 15.0].enumerated() {
-                let hop = abs(sin(f.phase * 2 + Double(i) * 1.4)) * 3
-                canvas.ellipse(f.cx + dx, 59 - hop, 2.6, 2, stone.mixed(with: .white, 0.1), gloss: 0.1)
+            for (i, dx) in [-17.0, 18.0].enumerated() {
+                let hop = abs(sin(f.phase * 2 + Double(i) * 1.4)) * 4
+                canvas.polygon([(f.cx + dx - 3.5, 61.5 - hop), (f.cx + dx - 2, 56.5 - hop), (f.cx + dx + 2, 57 - hop),
+                                (f.cx + dx + 3.5, 61.5 - hop)], light)
             }
-        }, outline: EggColor(0.25, 0.23, 0.2))
+        }, outline: EggColor(0.24, 0.22, 0.19))
+    }
+
+    /// Points of the egg's surface, for the planes that touch it.
+    private static let eggSurfacePoints: [EggVector] = (0...40).flatMap { i -> [EggVector] in
+        let y = -cos(Double(i) / 40 * .pi), r = EggProfile.radius(y)
+        return (0..<48).map { k in (r * sin(Double(k) / 48 * 2 * .pi), y, r * cos(Double(k) / 48 * 2 * .pi)) }
+    }
+
+    /// The stone egg's faces: planes touching the egg from directions spread all around, each pushed in by up to
+    /// `depth`, and a flat foot.
+    private static let rockPlanes = chiseledEgg(faces: 30, depth: 0.08)
+
+    private static func chiseledEgg(faces: Int, depth: Double) -> [(n: EggVector, d: Double)] {
+        var planes: [(n: EggVector, d: Double)] = (0..<faces).map { i in
+            let y = 1 - 2 * (Double(i) + 0.5) / Double(faces), ring = (1 - y * y).squareRoot()
+            let a = Double(i) * 2.399963 + hash(i, 1, 0, seed: 5) * 0.6
+            let n = EggLight.normalize((ring * sin(a) + (hash(i, 2, 0, seed: 5) - 0.5) * 0.3,
+                                        y + (hash(i, 3, 0, seed: 5) - 0.5) * 0.3, ring * cos(a)))
+            let touch = eggSurfacePoints.map { n.x * $0.x + n.y * $0.y + n.z * $0.z }.max() ?? 1
+            return (n, touch * (1 - depth * hash(i, 4, 0, seed: 5)))
+        }
+        planes.append(((0, -1, 0), 0.95))
+        return planes
     }
 
     /// Its bottom melts into a wavy ghost's tail, fading out; it watches you; wisps drift around.

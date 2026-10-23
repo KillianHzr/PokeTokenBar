@@ -1462,6 +1462,14 @@ read_when:
   height). Measure a new cap against every canvas in the dex, not the cached few; the guard is
   `testWideSpriteFillsMenuBarHeightUntilTheWidthCap` with the real Swanna and Tynamo canvases.
 
+- **A drawn idle loop moves everything by whole cycles.** The custom eggs (`EggDesigns`) are 24 frames played in a
+  loop. The electric egg's sparks turned 0.3 of a turn per loop and the poison egg's bubbles rose 1.5 times, so both
+  jumped where the loop restarts. **Why it was missed:** the designs were approved on stills and GIF sheets, where
+  the jump is one frame in 2.16 s. Every motion in a design takes the phase times a whole number, and noise scrolled
+  over the loop moves by whole `periodY`s (`EggLight.noise`). Regression guard:
+  `EggDesignsTests.testEveryLoopMovesAndClosesWithoutAJump` renders every design at phase 0 and 2π and compares them;
+  it caught both loops, and a flame scroll of 8 over a period of 6 fails it.
+
 ## 프로세스 제어·업데이트
 
 - **"나중에"는 이 버전을 다시 안 보여 주는 스킵이지, 다음에 또 물어보기가 아니다.** `skipCurrent()` 가
