@@ -1002,18 +1002,19 @@ struct CompanionHeader: View {
                         hint: store.l.dexOpenEntryHint, accessibilityName: store.displayName,
                         cornerRadius: 12, open: onOpenDexEntry))
                 VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Text(store.displayName).font(.system(size: 15, weight: .bold, design: .rounded))
-                            .lineLimit(1).minimumScaleFactor(0.8)
-                        if store.currentIsShiny { Text("✨").font(.system(size: 11)) }
-                        if let r = store.rarity {
-                            // The badge keeps its size; a long name shrinks or truncates instead.
-                            if r == .legendary {
-                                LegendaryBadge(text: store.l.rarityLabel(r).uppercased()).lineLimit(1).fixedSize()
-                            } else {
-                                Badge(store.l.rarityLabel(r).uppercased(), tint: .rarity(r)).lineLimit(1).fixedSize()
-                            }
+                    // The rarity above the name, so a long name ("Alolan Ninetales") wraps whole instead of being cut
+                    // short beside the badge.
+                    if let r = store.rarity {
+                        if r == .legendary {
+                            LegendaryBadge(text: store.l.rarityLabel(r).uppercased()).lineLimit(1).fixedSize()
+                        } else {
+                            Badge(store.l.rarityLabel(r).uppercased(), tint: .rarity(r)).lineLimit(1).fixedSize()
                         }
+                    }
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(store.displayName).font(.system(size: 15, weight: .bold, design: .rounded))
+                            .lineLimit(2).fixedSize(horizontal: false, vertical: true)
+                        if store.currentIsShiny { Text("✨").font(.system(size: 11)) }
                     }
                     if store.hasActive, let id = store.currentSpeciesID {
                         let types = PokemonTypeData.typeNames(speciesID: id, form: store.currentForm,

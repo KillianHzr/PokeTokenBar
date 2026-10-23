@@ -972,6 +972,12 @@ read_when:
 
 ## 표시·UI
 
+- **A name beside a badge that keeps its size is the one cut short.** Home's card put the rarity badge after the
+  name, `.fixedSize()`, and the name on one line (`minimumScaleFactor(0.8)`): a long name or form ("Galarian
+  Darmanitan Zen Mode") read "Galarian Darm…". The badge now sits above the name, which wraps on two lines. Guard:
+  `HomeNameRenderingTests` (CPU OCR, a three-word name). The Pokédex page keeps its badge right after the name, as
+  asked; its name shrinks to 75% before it truncates.
+
 - **A row whose length comes from the data wraps, or it pushes the popover off its edges.** Home's evolution track
   set its branch group `.fixedSize()`: Eevee's eight fit, Vivillon's twenty patterns (a Scatterbug's line) stood 511 pt
   wide in a 300 pt track, and SwiftUI centered the wider card, cutting the whole popover on both sides. The ways now
