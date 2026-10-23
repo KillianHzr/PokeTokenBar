@@ -3,11 +3,13 @@ import SwiftUI
 import XCTest
 @testable import PokeTokenBar
 
-/// A type's egg and the Type: Null Egg are drawn by designs of their own: flames, a stone, a sand tomb… Every egg the
-/// app shows for them comes from their design, each its own, hard-edged like the sprites, looping without a jump.
+/// The rarer guarantees, the types and the Type: Null Egg are drawn by designs of their own: gems, flames, a stone, a
+/// sand tomb… Every egg the app shows for them comes from their design, each its own, hard-edged like the sprites,
+/// looping without a jump.
 @MainActor
 final class EggDesignsTests: XCTestCase {
-    private static let designed: [EggKind] = PokemonType.allCases.map { .type($0) } + [.typeNull]
+    private static let designed: [EggKind] = [.tier(.uncommon), .tier(.rare)] + PokemonType.allCases.map { .type($0) }
+        + [.typeNull]
 
     /// The RGBA bytes of an image.
     private func bytes(_ image: CGImage) throws -> [UInt8] {
@@ -20,8 +22,8 @@ final class EggDesignsTests: XCTestCase {
         try bytes(try XCTUnwrap(image.cgImage(forProposedRect: nil, context: nil, hints: nil)))
     }
 
-    /// The renderer hands every designed kind its design, and only those: the plain and rarity eggs keep their spots.
-    func testEveryTypeAndTypeNullHasItsOwnEgg() throws {
+    /// The renderer hands every designed kind its design, and only those: the plain egg keeps its spots.
+    func testEveryGuaranteeHasItsOwnEgg() throws {
         var seen: [[UInt8]] = []
         for kind in Self.designed {
             XCTAssertNotNil(EggDesigns.design(for: kind), "\(kind)")
@@ -35,10 +37,8 @@ final class EggDesignsTests: XCTestCase {
             XCTAssertFalse(seen.contains(pixels), "\(kind) looks like another egg")
             seen.append(pixels)
         }
-        for kind in [EggKind.plain, .tier(.uncommon), .tier(.rare)] {
-            XCTAssertNil(EggDesigns.still(kind))
-            XCTAssertEqual(EggRenderer.still(kind).size, NSSize(width: EggRenderer.pixels, height: EggRenderer.pixels))
-        }
+        XCTAssertNil(EggDesigns.still(.plain))
+        XCTAssertEqual(EggRenderer.still(.plain).size, NSSize(width: EggRenderer.pixels, height: EggRenderer.pixels))
     }
 
     /// Like the sprites: every pixel opaque or empty, the egg in the middle, empty corners.
@@ -103,9 +103,13 @@ final class EggDesignsTests: XCTestCase {
             defer { window.close() }
             try await Task.sleep(for: .milliseconds(200))
             host.layoutSubtreeIfNeeded()
-            let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
+            // At 2× whatever the screen: CI's runners draw at 1×, a Retina Mac at 2×.
+            let bitmap = try XCTUnwrap(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 160, pixelsHigh: 160,
+                bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB,
+                bytesPerRow: 0, bitsPerPixel: 0))
+            bitmap.size = host.bounds.size
             host.cacheDisplay(in: host.bounds, to: bitmap)
-            var flames = 0, lava = 0
+            var flames = 0.0, lava = 0.0
             for y in 0..<bitmap.pixelsHigh {
                 for x in 0..<bitmap.pixelsWide {
                     guard let c = bitmap.colorAt(x: x, y: y)?.usingColorSpace(.sRGB) else { continue }
@@ -113,8 +117,10 @@ final class EggDesignsTests: XCTestCase {
                     if max(c.redComponent, c.greenComponent, c.blueComponent) < 0.35 { lava += 1 }
                 }
             }
-            XCTAssertGreaterThan(flames, 1800, "animated \(animated): the fire egg's flames")
-            XCTAssertGreaterThan(lava, 900, "animated \(animated): the fire egg's lava shell")
+            // Shares of the box: about 10% flames and 8% lava; the spotted egg has 3 to 4.5% and about 1%.
+            let pixels = Double(bitmap.pixelsWide * bitmap.pixelsHigh)
+            XCTAssertGreaterThan(flames / pixels, 0.07, "animated \(animated): the fire egg's flames")
+            XCTAssertGreaterThan(lava / pixels, 0.04, "animated \(animated): the fire egg's lava shell")
         }
     }
 }

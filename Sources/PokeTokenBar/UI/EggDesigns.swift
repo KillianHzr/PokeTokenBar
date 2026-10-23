@@ -69,8 +69,8 @@ struct EggDesign {
     var outline: EggColor
 }
 
-/// The custom eggs: one per type and Type: Null's, each its own shape and things around it, rendered like the plain
-/// eggs (`EggRenderer`) on a wider canvas so flames, wings or a ring fit.
+/// The custom eggs: a gem for each rarer guarantee, one per type and Type: Null's, each its own shape and things around
+/// it, rendered like the plain egg (`EggRenderer`) on a wider canvas so flames, wings or a ring fit.
 enum EggDesigns {
     /// Pixels across: the egg is 48 pixels tall in it, the rest is room for what surrounds it.
     static let pixels = 64
@@ -222,6 +222,8 @@ enum EggDesigns {
         switch kind {
         case .type(let type): return design(for: type)
         case .typeNull: return typeNull
+        case .tier(.uncommon): return emerald
+        case .tier(.rare): return sapphire
         case .plain, .tier: return nil
         }
     }
@@ -632,7 +634,7 @@ enum EggDesigns {
         }, outline: EggColor(0.22, 0.3, 0.05))
     }
 
-    /// An egg of stone, chiseled flat all around, speckled, a quartz vein through it; pebbles hop at its foot.
+    /// An egg of stone, chiseled flat all around, speckled, a quartz vein through it.
     static var rock: EggDesign {
         let stone = EggColor(0.66, 0.6, 0.5), dark = EggColor(0.44, 0.39, 0.33), light = EggColor(0.82, 0.77, 0.68)
         let quartz = EggColor(0.95, 0.94, 0.9), vein = EggLight.normalize((0.5, 0.8, 0.3))
@@ -647,13 +649,7 @@ enum EggDesigns {
             return c
         }, gloss: 0.15, shininess: 20)
         surface.solid = { o, dir in enter(rockPlanes, o, dir) }
-        return EggDesign(surface: surface, front: { canvas, f in
-            for (i, dx) in [-17.0, 18.0].enumerated() {
-                let hop = abs(sin(f.phase * 2 + Double(i) * 1.4)) * 4
-                canvas.polygon([(f.cx + dx - 3.5, 61.5 - hop), (f.cx + dx - 2, 56.5 - hop), (f.cx + dx + 2, 57 - hop),
-                                (f.cx + dx + 3.5, 61.5 - hop)], light)
-            }
-        }, outline: EggColor(0.24, 0.22, 0.19))
+        return EggDesign(surface: surface, outline: EggColor(0.24, 0.22, 0.19))
     }
 
     /// Points of the egg's surface, for the planes that touch it.
@@ -664,7 +660,38 @@ enum EggDesigns {
 
     /// The stone egg's faces: planes touching the egg from directions spread all around, each pushed in by up to
     /// `depth`, and a flat foot.
-    private static let rockPlanes = chiseledEgg(faces: 30, depth: 0.08)
+    private static let rockPlanes = chiseledEgg(faces: 40, depth: 0.06)
+
+    /// How far the egg reaches in a direction: where a plane facing it touches the egg.
+    private static func touch(_ n: EggVector) -> Double {
+        eggSurfacePoints.map { n.x * $0.x + n.y * $0.y + n.z * $0.z }.max() ?? 1
+    }
+
+    /// The face of a cut solid a point lies on: the plane it is closest to.
+    static func face(_ planes: [(n: EggVector, d: Double)], _ p: EggSurfacePoint) -> Int {
+        var best = 0, gap = Double.infinity
+        for (i, plane) in planes.enumerated() {
+            let g = abs(plane.n.x * p.x + plane.n.y * p.y + plane.n.z * p.z - plane.d)
+            if g < gap { gap = g; best = i }
+        }
+        return best
+    }
+
+    /// A jeweler's cut of the egg: rings of faces around it, each ring's faces between the last ring's, a table on top
+    /// and a flat foot.
+    private static func cutEgg(rings: [(elevation: Double, count: Int)]) -> [(n: EggVector, d: Double)] {
+        var planes: [(n: EggVector, d: Double)] = []
+        for (r, ring) in rings.enumerated() {
+            for k in 0..<ring.count {
+                let a = (Double(k) + (r.isMultiple(of: 2) ? 0 : 0.5)) / Double(ring.count) * 2 * .pi
+                let n: EggVector = (cos(ring.elevation) * sin(a), sin(ring.elevation), cos(ring.elevation) * cos(a))
+                planes.append((n, touch(n)))
+            }
+        }
+        planes.append(((0, 1, 0), touch((0, 1, 0)) * 0.96))
+        planes.append(((0, -1, 0), 0.95))
+        return planes
+    }
 
     private static func chiseledEgg(faces: Int, depth: Double) -> [(n: EggVector, d: Double)] {
         var planes: [(n: EggVector, d: Double)] = (0..<faces).map { i in
@@ -672,8 +699,7 @@ enum EggDesigns {
             let a = Double(i) * 2.399963 + hash(i, 1, 0, seed: 5) * 0.6
             let n = EggLight.normalize((ring * sin(a) + (hash(i, 2, 0, seed: 5) - 0.5) * 0.3,
                                         y + (hash(i, 3, 0, seed: 5) - 0.5) * 0.3, ring * cos(a)))
-            let touch = eggSurfacePoints.map { n.x * $0.x + n.y * $0.y + n.z * $0.z }.max() ?? 1
-            return (n, touch * (1 - depth * hash(i, 4, 0, seed: 5)))
+            return (n, touch(n) * (1 - depth * hash(i, 4, 0, seed: 5)))
         }
         planes.append(((0, -1, 0), 0.95))
         return planes
@@ -845,6 +871,65 @@ enum EggDesigns {
                                k.isMultiple(of: 2) ? EggColor(0.32, 0.34, 0.38) : EggColor(0.24, 0.5, 0.52))
             }
         }, outline: EggColor(0.12, 0.13, 0.16))
+    }
+
+    // MARK: Rarity eggs
+
+    private static let gemPlanes = cutEgg(rings: [(-1.0, 8), (-0.5, 8), (0, 8), (0.45, 8), (0.9, 8), (1.25, 6)])
+
+    /// A gem cut from the egg: each face its own shade of the stone's color, glossy, so faces flash as it turns.
+    private static func gemSurface(_ color: EggColor) -> EggSurface {
+        var surface = EggSurface(albedo: { p in
+            let tone = hash(face(gemPlanes, p), 0, 0, seed: 21)
+            return tone < 0.5 ? color.mixed(with: .black, (0.5 - tone) * 0.7) : color.mixed(with: .white, (tone - 0.5) * 0.7)
+        }, gloss: 0.9, shininess: 70)
+        surface.solid = { o, dir in enter(gemPlanes, o, dir) }
+        return surface
+    }
+
+    /// Sparkles flashing in turn, at points of the egg's frame.
+    private static func sparkles(_ canvas: inout EggCanvas, _ f: EggFrame, _ spots: [(Double, Double)],
+                                 _ color: EggColor) {
+        for (i, (x, y)) in spots.enumerated() {
+            let pulse = max(0, sin(f.phase * 2 + Double(i) * 2.4))
+            guard pulse > 0.3 else { continue }
+            let (px, py) = f.pixel(x, y)
+            canvas.sparkle(px, py, 1.5 + 3 * pulse * pulse, color)
+        }
+    }
+
+    /// The Uncommon-or-better egg: an emerald cut from the egg, glinting.
+    static var emerald: EggDesign {
+        let emerald = EggColor(rarityColor(.uncommon)).mixed(with: .black, 0.2)
+        return EggDesign(surface: gemSurface(emerald), front: { canvas, f in
+            sparkles(&canvas, f, [(-0.55, 0.55), (0.6, -0.1), (0.05, -0.75)], EggColor(0.92, 1, 0.94))
+        }, outline: emerald.mixed(with: .black, 0.7))
+    }
+
+    /// The Rare-or-better egg: a sapphire cut from the egg, set in gold claws, glinting more.
+    static var sapphire: EggDesign {
+        let sapphire = EggColor(rarityColor(.rare)).mixed(with: .black, 0.25), gold = EggColor(0.98, 0.78, 0.3)
+        var surface = gemSurface(sapphire)
+        let stone = surface.albedo
+        surface.albedo = { p in
+            let r = (p.x * p.x + p.z * p.z).squareRoot()
+            // The cup, its rim scalloped, and four claws up the sides, each ending in a bead.
+            if p.y < -0.74 + 0.04 * abs(sin(p.angle * 4)) { return gold }
+            for k in 0..<4 {
+                let clawAngle = (Double(k) + 0.5) * .pi / 2
+                var d = abs(p.angle - clawAngle).truncatingRemainder(dividingBy: 2 * .pi)
+                if d > .pi { d = 2 * .pi - d }
+                if p.y < -0.12, d * r < 0.05 + 0.08 * (1 - EggLight.smoothstep(-0.74, -0.12, p.y)) { return gold }
+                let tipR = EggProfile.radius(-0.08)
+                let dx = p.x - tipR * sin(clawAngle), dy = p.y + 0.08, dz = p.z - tipR * cos(clawAngle)
+                if dx * dx + dy * dy + dz * dz < 0.085 * 0.085 { return gold.mixed(with: .white, 0.25) }
+            }
+            return stone(p)
+        }
+        return EggDesign(surface: surface, front: { canvas, f in
+            sparkles(&canvas, f, [(-0.6, 0.6), (0.62, 0.1), (0.1, 0.95), (-0.75, -0.25), (0.5, -0.55)],
+                     EggColor(0.9, 0.95, 1))
+        }, outline: sapphire.mixed(with: .black, 0.7))
     }
 
     // MARK: Frames

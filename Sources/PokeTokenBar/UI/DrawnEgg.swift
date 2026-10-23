@@ -42,9 +42,9 @@ struct EggShape: Shape {
     }
 }
 
-/// Which egg it is: what it guarantees decides its look. A plain egg has green spots on a cream shell, a rarity's egg a
-/// shell in the rarity's color with cream spots; a type's egg and the Type: Null Egg have designs of their own
-/// (`EggDesigns`).
+/// Which egg it is: what it guarantees decides its look. A plain egg has green spots on a cream shell; the rarer
+/// guarantees, the types and the Type: Null Egg have designs of their own (`EggDesigns`): an emerald, a sapphire set in
+/// gold, flames around a lava shell... A rarity without a design has a shell in its color with cream spots.
 enum EggKind: Hashable, Sendable {
     case plain
     case tier(Rarity)

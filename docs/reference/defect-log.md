@@ -1470,6 +1470,12 @@ read_when:
   `EggDesignsTests.testEveryLoopMovesAndClosesWithoutAJump` renders every design at phase 0 and 2π and compares them;
   it caught both loops, and a flame scroll of 8 over a period of 6 fails it.
 
+- **A render test that counts pixels fixes its scale.** `testSpriteViewDrawsTheFireEgg` counted flame and lava
+  pixels in `bitmapImageRepForCachingDisplay`, which follows the screen: 160×160 on a Retina Mac, 80×80 on CI's
+  runners. Thresholds measured locally failed on CI with a quarter of the pixels. **Why it was missed:** the local
+  run and the fault injections all drew at 2×. Capture into an explicit 2× `NSBitmapImageRep` and compare shares of
+  the box, not counts. The other render tests' absolute thresholds (`DrawnEggTests`' "an egg is drawn") hold at 1×.
+
 ## 프로세스 제어·업데이트
 
 - **"나중에"는 이 버전을 다시 안 보여 주는 스킵이지, 다음에 또 물어보기가 아니다.** `skipCurrent()` 가
