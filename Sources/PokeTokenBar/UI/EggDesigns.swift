@@ -403,24 +403,67 @@ enum EggDesigns {
         }, outline: EggColor(0.1, 0.25, 0.5))
     }
 
-    /// A lightning band around it; sparks crackle on and off around it.
+    /// Overcharged: a crackling aura around it, its jagged edge and its arcs redrawn every frame, bolts leaping off
+    /// it; the shell flashes.
     static var electric: EggDesign {
-        let yellow = color(.electric), black = EggColor(0.16, 0.14, 0.1)
-        let surface = EggSurface(albedo: { p in
-            let saw = abs((p.angle / (2 * .pi) * 6 + 10).truncatingRemainder(dividingBy: 1) * 2 - 1)
-            let edge = -0.02 + 0.2 * (saw - 0.5)
-            if abs(p.y - edge) < 0.075 { return black }
-            return yellow.mixed(with: .white, EggLight.smoothstep(-0.2, 0.9, p.y) * 0.25)
-        }, gloss: 0.45)
+        let yellow = color(.electric), deep = EggColor(0.92, 0.6, 0.05)
+        let glow = EggColor(1, 0.84, 0.22), pale = EggColor(1, 0.95, 0.6), white = EggColor(1, 1, 0.94)
+        let surface = EggSurface(albedo: { (p: EggSurfacePoint) -> EggColor in
+            let base = yellow.mixed(with: deep, EggLight.smoothstep(0.4, -1, p.y) * 0.5)
+            return loopFrame(p.phase / (2 * .pi)) % 6 == 0 ? base.mixed(with: .white, 0.4) : base
+        }, gloss: 0.55)
         return EggDesign(surface: surface, back: { canvas, f in
-            for i in 0..<4 where sin(f.phase * 4 + Double(i) * 1.9) > 0.1 {
-                let a = Double(i) * .pi / 2 + 0.6 + 0.4 * sin(f.phase)
-                let x = f.cx + cos(a) * 25, y = f.cy - 2 + sin(a) * 23 - Double(f.lift)
-                let s = 3.5
-                canvas.path([(x - s, y - s), (x + 0.5, y - 0.5), (x - 0.5, y + 0.5), (x + s, y + s)], width: 1.6,
-                            EggColor(1, 0.97, 0.55))
+            let frame = Double(loopFrame(f.t))
+            for py in 0..<canvas.size {
+                for px in 0..<canvas.size {
+                    let (x, y, inside) = eggPoint(f, Double(px) + 0.5, Double(py) + 0.5)
+                    guard !inside, abs(x) < 1.25, abs(y) < 1.38 else { continue }
+                    var nearest = 9.0
+                    for (ox, oy) in outlinePoints { nearest = min(nearest, (x - ox) * (x - ox) + (y - oy) * (y - oy)) }
+                    // A jagged edge: spikes around it, changing every frame.
+                    let spike = EggLight.noise(atan2(y + 0.05, x) * 7 + frame * 3.3, frame * 1.9)
+                    let reach = 0.11 + 0.32 * spike * spike, d = nearest.squareRoot()
+                    guard d < reach else { continue }
+                    let crackle = abs(EggLight.noise(Double(px) * 0.3 + frame * 7.3, Double(py) * 0.3) - 0.5)
+                    canvas.set(px, py, crackle < 0.035 ? white : d < reach * 0.45 ? pale : glow)
+                }
             }
-        }, outline: EggColor(0.36, 0.28, 0.02))
+        }, front: { canvas, f in
+            let frame = loopFrame(f.t)
+            for k in 0..<2 {
+                let angle = hash(frame, k, 0, seed: 43) * 2 * .pi
+                lightning(&canvas, f, from: rim(f, angle, out: 0.02), to: rim(f, angle + 0.2, out: 0.6), seed: 50 + k)
+            }
+        }, outline: EggColor(0.45, 0.3, 0.02))
+    }
+
+    /// The frame of the loop at `t` (0..<1), the loop's end counting as its start.
+    static func loopFrame(_ t: Double) -> Int {
+        Int((t * Double(EggRenderer.frameCount)).rounded()) % EggRenderer.frameCount
+    }
+
+    /// A lightning arc between two points of the canvas: jagged, its kinks redrawn every frame, a white core in a
+    /// yellow glow.
+    static func lightning(_ canvas: inout EggCanvas, _ f: EggFrame, from a: (Double, Double), to b: (Double, Double),
+                          seed: Int) {
+        let frame = loopFrame(f.t), kinks = 5
+        let dx = b.0 - a.0, dy = b.1 - a.1, length = max(1, (dx * dx + dy * dy).squareRoot())
+        var points: [(Double, Double)] = [a]
+        for k in 1..<kinks {
+            let t = Double(k) / Double(kinks), offset = (hash(seed, frame, k, seed: 31) - 0.5) * 4.8
+            points.append((a.0 + dx * t - dy / length * offset, a.1 + dy * t + dx / length * offset))
+        }
+        points.append(b)
+        canvas.path(points, width: 2.8, EggColor(1, 0.86, 0.25))
+        canvas.path(points, width: 1.4, EggColor(1, 1, 0.9))
+    }
+
+    /// A point of the egg's outline at an angle (0 right, π/2 top), pushed out by `out` egg units, in pixels.
+    private static func rim(_ f: EggFrame, _ angle: Double, out: Double) -> (Double, Double) {
+        let y = sin(angle) * 0.96
+        let x = cos(angle) * EggProfile.radius(y)
+        let l = max(0.01, (x * x + y * y).squareRoot())
+        return f.pixel(x + x / l * out, y + y / l * out)
     }
 
     /// Leaf veins on the shell; two leaves sprout from the top and sway.
