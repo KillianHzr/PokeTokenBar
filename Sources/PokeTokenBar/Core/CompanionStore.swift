@@ -2179,6 +2179,7 @@ final class CompanionStore {
         guard canUseTypeNullEgg() else { return false }
         state.inventory[ItemKind.typeNullEgg.rawValue] = itemCount(.typeNullEgg) - 1
         replaceActiveWithEgg(price: 0, tier: nil, type: nil)
+        state.eggFromTypeNullEgg = true
         state.pendingHatchID = PokemonForm.typeNullSpeciesID
         state.pendingForm = PokemonForm.resolved(baseID: PokemonForm.typeNullSpeciesID, form: nil)
         save()
@@ -2203,6 +2204,7 @@ final class CompanionStore {
         isHatchRetryDelayed = false
         state.eggTier = tier          // 등급 보증(nil = 보증 없음)
         state.eggTypeGuarantee = type // 진화의 돌의 타입 보증(nil = 보증 없음)
+        state.eggFromTypeNullEgg = false
         state.pendingHatchID = nil    // 새 보증으로 처음부터 롤(활성 포켓몬이 있는 동안엔 원래 비어 있다)
         state.pendingForm = nil
         prefetchedLineID = nil
@@ -2588,6 +2590,7 @@ final class CompanionStore {
         state.eggTier = nil   // 보증은 이 부화로 소비된다(다음 알은 다시 무보증)
         let typeGuarantee = state.eggTypeGuarantee   // still restricts the form rolled below
         state.eggTypeGuarantee = nil
+        state.eggFromTypeNullEgg = false
         // 개체 롤: shiny(1/64, 부적 1/48, Reveal Glass halves it)·성격(25종)은 부화 순간 확정, 진화해도 유지.
         // 알림 문구는 이 판정과 같은 분모를 보여준다.
         let shinyOdds = shinyDenominator

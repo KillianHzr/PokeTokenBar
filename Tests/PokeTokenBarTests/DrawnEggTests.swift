@@ -124,6 +124,45 @@ final class DrawnEggTests: XCTestCase {
         XCTAssertGreaterThan(abs(right - left), 2, "the spots turn with the egg")
     }
 
+    /// The Type: Null Egg hatches in its own riveted steel egg. A plain egg that pre-rolled Type: Null stays a plain
+    /// egg: the roll is not given away. An older save, without the mark, has a plain egg.
+    func testTheTypeNullEggIsItsOwn() throws {
+        func store(_ edit: (inout CompanionState) -> Void) throws -> CompanionStore {
+            let suite = "TypeNullEgg-\(UUID())"
+            let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+            addTeardownBlock { defaults.removePersistentDomain(forName: suite) }
+            let file = FileManager.default.temporaryDirectory.appendingPathComponent("\(suite).json")
+            addTeardownBlock { try? FileManager.default.removeItem(at: file) }
+            var state = CompanionState()
+            state.installBaselineSet = true
+            edit(&state)
+            try JSONEncoder().encode(state).write(to: file)
+            return CompanionStore(provider: PokeAPIClient.shared, fileURL: file, defaults: defaults)
+        }
+        let raising = try store {
+            $0.active = MonState(baseID: 4, pathIDs: [4], plannedPathIDs: [4], stageIndex: 0, usedAtStage: 0,
+                                 rarity: .common, totalForms: 1, nature: .hardy)
+            $0.inventory[ItemKind.typeNullEgg.rawValue] = 1
+        }
+        XCTAssertTrue(raising.useTypeNullEgg())
+        XCTAssertEqual(raising.eggKind, .typeNull)
+        XCTAssertTrue(raising.buyEgg(nil) == false || raising.eggKind != .typeNull, "a new egg is not the Type: Null one")
+
+        let preRolled = try store { $0.pendingHatchID = PokemonForm.typeNullSpeciesID }
+        XCTAssertEqual(preRolled.eggKind, .plain, "a plain egg that pre-rolled Type: Null")
+
+        let older = try JSONDecoder().decode(CompanionState.self, from: JSONEncoder().encode(CompanionState()))
+        XCTAssertFalse(older.eggFromTypeNullEgg)
+    }
+
+    /// Riveted steel: gray, neither cream nor tinted.
+    func testTheTypeNullEggIsSteel() throws {
+        let steel = try averageColor(EggRenderer.still(.typeNull))
+        XCTAssertLessThan(abs(steel.r - steel.g), 0.06)
+        XCTAssertLessThan(abs(steel.g - steel.b), 0.08)
+        XCTAssertLessThan(steel.r, 0.8, "darker than the cream eggs")
+    }
+
     func testAnotherEggIsAnotherTask() {
         XCTAssertNotEqual(SpriteView.frameTaskID(speciesID: nil, shiny: false, floor: 0, egg: .plain),
                           SpriteView.frameTaskID(speciesID: nil, shiny: false, floor: 0, egg: .tier(.rare)))

@@ -59,7 +59,7 @@ enum EggKind: Hashable, Sendable {
     var isColoredShell: Bool { if case .tier = self { return true } else { return false } }
 
     /// What is painted on the shell.
-    var pattern: EggPattern { self == .typeNull ? .helmetChimera : .spots }
+    var pattern: EggPattern { self == .typeNull ? .riveted : .spots }
 
     /// Cream, the rarity's color, or cream barely tinted with the type's.
     var shell: EggColor {
@@ -91,14 +91,8 @@ enum EggKind: Hashable, Sendable {
 enum EggPattern: CaseIterable, Hashable, Sendable {
     /// Round spots in `EggKind.marks`.
     case spots
-    /// A riveted metal helmet over the top, like Type: Null's mask.
-    case helmet
-    /// Steel plates: a seam down the front and around the middle, rivets along them.
+    /// Steel plates, Type: Null's: a seam down the front and around the middle, rivets along them.
     case riveted
-    /// Spots in many types' colors: the egg gathers every Memory.
-    case chimera
-    /// The helmet over the top, the many-colored spots below.
-    case helmetChimera
 }
 
 /// An sRGB color the renderer can mix per pixel.
@@ -178,7 +172,7 @@ enum EggRenderer {
         let light = normalize((-0.55, 0.62, 0.56))
         let half = normalize((light.0, light.1, light.2 + 1))
         // Glossier: the colored shells and metal.
-        let colored = kind.isColoredShell || pattern == .helmet || pattern == .riveted || pattern == .helmetChimera
+        let colored = kind.isColoredShell || pattern == .riveted
         let shell = kind.shell, marks = kind.marks
         let painter = SurfacePainter(pattern: pattern, shell: shell, marks: marks)
         let (sinT, cosT) = (sin(tilt), cos(tilt))
@@ -221,7 +215,7 @@ enum EggRenderer {
                 data[i + 3] = 255
             }
         }
-        outline(&data, n: n, color: (pattern == .spots || pattern == .chimera ? shell : marks).mixed(with: .black, 0.7))
+        outline(&data, n: n, color: (pattern == .spots ? shell : marks).mixed(with: .black, 0.7))
         let provider = CGDataProvider(data: Data(data) as CFData)
         return provider.flatMap {
             CGImage(width: n, height: n, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: n * 4,
@@ -236,11 +230,6 @@ enum EggRenderer {
         let pattern: EggPattern
         let shell: EggColor
         let marks: EggColor
-        /// The many-colored spots: Fire, Water, Grass, Electric, Psychic, Dragon, Fairy, Dark, cycling.
-        let chimeraColors: [EggColor] = [PokemonType.fire, .water, .grass, .electric, .psychic, .dragon, .fairy, .dark]
-            .map { EggColor($0.color) }
-        static let steel = EggColor(0.36, 0.38, 0.43)
-        static let steelLight = EggColor(0.62, 0.64, 0.69)
         static let rivet = EggColor(0.86, 0.85, 0.80)
         static let seam = EggColor(0.22, 0.23, 0.27)
 
@@ -249,12 +238,6 @@ enum EggRenderer {
             switch pattern {
             case .spots:
                 return shell.mixed(with: marks, spot(x, y, z).mask)
-            case .chimera:
-                return chimera(x, y, z)
-            case .helmet:
-                return helmet(angle: angle, y: y) ?? shell
-            case .helmetChimera:
-                return helmet(angle: angle, y: y) ?? chimera(x, y, z)
             case .riveted:
                 let gray = EggColor(0.62, 0.64, 0.68)
                 // A seam down the front and one around the middle, rivets along both.
@@ -272,24 +255,7 @@ enum EggRenderer {
             }
         }
 
-        /// The helmet over the top: its rim waves a little, rivets line it, a ridge runs up the front.
-        private func helmet(angle: Double, y: Double) -> EggColor? {
-            let rim = 0.1 + 0.06 * cos(angle)
-            guard y > rim else { return nil }
-            if y < rim + 0.035 { return Self.seam }
-            for k in 0..<12 where distance(angle: angle, y: y, toAngle: Double(k) * .pi / 6, y: rim + 0.11) < 0.045 {
-                return Self.rivet
-            }
-            if abs(angle) < 0.13, y > rim + 0.16 { return Self.steelLight }
-            return Self.steel
-        }
-
-        private func chimera(_ x: Double, _ y: Double, _ z: Double) -> EggColor {
-            let hit = spot(x, y, z)
-            return shell.mixed(with: chimeraColors[hit.index % chimeraColors.count], hit.mask)
-        }
-
-        /// The nearest spot covering this point, and how much it covers it.
+        /// How much of the nearest spot covers this point.
         private func spot(_ x: Double, _ y: Double, _ z: Double) -> (mask: Double, index: Int) {
             var best = (mask: 0.0, index: 0)
             for (index, (theta, sy, radius)) in EggRenderer.spots.enumerated() {
@@ -341,6 +307,9 @@ enum EggRenderer {
 }
 
 extension CompanionStore {
-    /// The egg being incubated: what it guarantees decides its look.
-    var eggKind: EggKind { EggKind(tier: eggGuarantee, type: eggTypeGuarantee) }
+    /// The egg being incubated: the Type: Null Egg's, or what it guarantees.
+    var eggKind: EggKind {
+        if state.active == nil, state.eggFromTypeNullEgg { return .typeNull }
+        return EggKind(tier: eggGuarantee, type: eggTypeGuarantee)
+    }
 }
