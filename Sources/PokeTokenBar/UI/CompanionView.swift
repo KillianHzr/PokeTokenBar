@@ -23,8 +23,9 @@ struct ItemIconView: View {
     init(kind: ItemKind, size: CGFloat = 30) {
         self.kind = kind
         self.size = size
-        // 캐시에 있으면 즉시(동기) 표시 — 재렌더 플래시 방지.
-        _img = State(initialValue: kind.spriteName.flatMap { SpriteLoader.cachedItemImage(name: $0) })
+        // 캐시에 있으면 즉시(동기) 표시 — 재렌더 플래시 방지. The Type: Null Egg is the egg the app draws for it.
+        _img = State(initialValue: kind == .typeNullEgg ? EggRenderer.still(.typeNull)
+                     : kind.spriteName.flatMap { SpriteLoader.cachedItemImage(name: $0) })
     }
 
     var body: some View {

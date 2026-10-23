@@ -42,12 +42,15 @@ struct EggShape: Shape {
     }
 }
 
-/// Which egg it is: what it guarantees decides its look. A plain egg and a type's egg have spots on a cream shell, in
-/// the type's color for a type; a rarity's egg has a shell in the rarity's color with cream spots.
+/// Which egg it is: what it guarantees decides its look. A plain egg has green spots on a cream shell; the rarer
+/// guarantees, the types and the Type: Null Egg have designs of their own (`EggDesigns`): an emerald, a sapphire set in
+/// gold, flames around a lava shell... A rarity without a design has a shell in its color with cream spots.
 enum EggKind: Hashable, Sendable {
     case plain
     case tier(Rarity)
     case type(PokemonType)
+    /// The Type: Null Egg, reward for all of Silvally's Memories.
+    case typeNull
 
     /// The egg a guarantee hatches from: the type when there is one, else the rarity.
     init(tier: Rarity?, type: PokemonType? = nil) {
@@ -62,6 +65,7 @@ enum EggKind: Hashable, Sendable {
         case .plain: return .cream
         case .tier(let rarity): return EggColor(rarityColor(rarity)).mixed(with: .white, 0.12)
         case .type(let type): return EggColor.cream.mixed(with: EggColor(type.color), 0.1)
+        case .typeNull: return EggColor(0.84, 0.84, 0.86)
         }
     }
 
@@ -70,6 +74,7 @@ enum EggKind: Hashable, Sendable {
         case .plain: return .eggGreen
         case .tier: return .cream
         case .type(let type): return EggColor(type.color)
+        case .typeNull: return EggColor(0.33, 0.35, 0.40)
         }
     }
 
@@ -111,9 +116,10 @@ enum EggRenderer {
     @MainActor private static var stills: [EggKind: NSImage] = [:]
     @MainActor private static var loops: [EggKind: [(image: NSImage, delay: TimeInterval)]] = [:]
 
-    /// The egg at rest: the first frame of its loop.
+    /// The egg at rest: the first frame of its loop. A kind with a design of its own is drawn by `EggDesigns`.
     @MainActor
     static func still(_ kind: EggKind) -> NSImage {
+        if let designed = EggDesigns.still(kind) { return designed }
         if let cached = stills[kind] { return cached }
         let image = nsImage(render(kind, yaw: 0, tilt: 0, lift: 0))
         stills[kind] = image
@@ -123,6 +129,7 @@ enum EggRenderer {
     /// The idle loop: up and down by two pixels, turning ±30° on itself, rocking ±5°.
     @MainActor
     static func idleFrames(_ kind: EggKind) -> [(image: NSImage, delay: TimeInterval)] {
+        if let designed = EggDesigns.idleFrames(kind) { return designed }
         if let cached = loops[kind] { return cached }
         let frames = (0..<frameCount).map { i -> (image: NSImage, delay: TimeInterval) in
             let phase = 2 * Double.pi * Double(i) / Double(frameCount)
@@ -249,6 +256,9 @@ enum EggRenderer {
 }
 
 extension CompanionStore {
-    /// The egg being incubated: what it guarantees decides its look.
-    var eggKind: EggKind { EggKind(tier: eggGuarantee, type: eggTypeGuarantee) }
+    /// The egg being incubated: the Type: Null Egg's, or what it guarantees.
+    var eggKind: EggKind {
+        if state.active == nil, state.eggFromTypeNullEgg { return .typeNull }
+        return EggKind(tier: eggGuarantee, type: eggTypeGuarantee)
+    }
 }

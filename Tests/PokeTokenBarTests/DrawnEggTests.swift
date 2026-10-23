@@ -93,7 +93,7 @@ final class DrawnEggTests: XCTestCase {
         let uncommon = try averageColor(EggRenderer.still(.tier(.uncommon)))
         XCTAssertGreaterThan(uncommon.g, uncommon.r + 0.1, "the uncommon egg's shell is green")
         let fire = try averageColor(EggRenderer.still(.type(.fire)))
-        XCTAssertGreaterThan(fire.r - fire.g, plain.r - plain.g, "the fire egg's spots are red")
+        XCTAssertGreaterThan(fire.r - fire.g, plain.r - plain.g, "the fire egg burns")
     }
 
     /// The idle loop moves: frames differ, the loop repeats every couple of seconds.
@@ -122,6 +122,37 @@ final class DrawnEggTests: XCTestCase {
         let right = try spotsCenterX(frames[EggRenderer.frameCount / 4].image)
         let left = try spotsCenterX(frames[EggRenderer.frameCount * 3 / 4].image)
         XCTAssertGreaterThan(abs(right - left), 2, "the spots turn with the egg")
+    }
+
+    /// The Type: Null Egg hatches in its own egg (`EggDesignsTests`). A plain egg that pre-rolled Type: Null stays a plain
+    /// egg: the roll is not given away. An older save, without the mark, has a plain egg.
+    func testTheTypeNullEggIsItsOwn() throws {
+        func store(_ edit: (inout CompanionState) -> Void) throws -> CompanionStore {
+            let suite = "TypeNullEgg-\(UUID())"
+            let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+            addTeardownBlock { defaults.removePersistentDomain(forName: suite) }
+            let file = FileManager.default.temporaryDirectory.appendingPathComponent("\(suite).json")
+            addTeardownBlock { try? FileManager.default.removeItem(at: file) }
+            var state = CompanionState()
+            state.installBaselineSet = true
+            edit(&state)
+            try JSONEncoder().encode(state).write(to: file)
+            return CompanionStore(provider: PokeAPIClient.shared, fileURL: file, defaults: defaults)
+        }
+        let raising = try store {
+            $0.active = MonState(baseID: 4, pathIDs: [4], plannedPathIDs: [4], stageIndex: 0, usedAtStage: 0,
+                                 rarity: .common, totalForms: 1, nature: .hardy)
+            $0.inventory[ItemKind.typeNullEgg.rawValue] = 1
+        }
+        XCTAssertTrue(raising.useTypeNullEgg())
+        XCTAssertEqual(raising.eggKind, .typeNull)
+        XCTAssertTrue(raising.buyEgg(nil) == false || raising.eggKind != .typeNull, "a new egg is not the Type: Null one")
+
+        let preRolled = try store { $0.pendingHatchID = PokemonForm.typeNullSpeciesID }
+        XCTAssertEqual(preRolled.eggKind, .plain, "a plain egg that pre-rolled Type: Null")
+
+        let older = try JSONDecoder().decode(CompanionState.self, from: JSONEncoder().encode(CompanionState()))
+        XCTAssertFalse(older.eggFromTypeNullEgg)
     }
 
     func testAnotherEggIsAnotherTask() {

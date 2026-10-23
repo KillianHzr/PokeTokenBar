@@ -1022,6 +1022,9 @@ struct CompanionState: Codable, Sendable {
     var eggTier: Rarity?
     // 알에서 특정 타입의 포켓몬이 부화하도록 보증하는 타입(진화의 돌 사용). nil = 타입 보증 없음.
     var eggTypeGuarantee: PokemonType?
+    /// The egg came from the Type: Null Egg: it is drawn as that egg. A plain egg that pre-rolled Type: Null stays a
+    /// plain egg, so the roll is not given away before the hatch. Consumed with the egg's other guarantees.
+    var eggFromTypeNullEgg = false
     // 알 상태에서 미리 롤해둔 부화 종(프리패칭) — 부화 순간 네트워크 딜레이 제거. 재시작에도 유지.
     var pendingHatchID: Int?
     /// The form is chosen with the species so prefetch warms the exact sprite that will hatch.
@@ -1104,6 +1107,7 @@ struct CompanionState: Codable, Sendable {
         candyWindowEpoch   = c.lenient([String: String].self, forKey: .candyWindowEpoch, default: [:])
         candyFeatureSeeded = c.lenient(Bool.self, forKey: .candyFeatureSeeded, default: false)
         additiveGrowthBonuses = c.lenient(Bool.self, forKey: .additiveGrowthBonuses, default: false)
+        eggFromTypeNullEgg = c.lenient(Bool.self, forKey: .eggFromTypeNullEgg, default: false)
     }
 
     /// 졸업 기록 또는 현재 개체가 실제로 도달한 단계에 이 종이 포함되는가.
