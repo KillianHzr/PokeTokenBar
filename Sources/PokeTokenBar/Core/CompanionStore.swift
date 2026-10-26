@@ -401,6 +401,10 @@ final class CompanionStore {
     }
     /// The look the growing Pokémon's sprites show (`MonState.spriteForm`).
     var currentSpriteForm: PokemonForm? { state.active?.spriteForm }
+    /// The form the evolution track draws every stage in: the individual's own, for its whole line, which each stage's
+    /// sprite resolves for its species. Not `currentForm`, resolved for the current species only: once a Galarian
+    /// Meowth is a Perrserker, which has no forms, that is nil and its Meowth stage would show a Kantonian one.
+    var evolutionTrackForm: PokemonForm? { state.active?.form }
     var isFinalStage: Bool {
         guard let a = state.active, let line = currentLine else { return false }
         return line.tree.node(withID: a.currentID).map { Self.openChildren($0, form: a.form).isEmpty } ?? true

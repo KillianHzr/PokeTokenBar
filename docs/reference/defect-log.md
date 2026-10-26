@@ -1341,6 +1341,15 @@ read_when:
   byte-equality became a ±2/255 comparison (a changed color moves 255). When a test fails only locally, compare the
   toolchains (`xcodebuild -version`, `xcrun --show-sdk-version`) before calling it flaky.
 
+- **A form resolved for one species is not the individual's form.** Home's evolution track got `currentForm`, the
+  individual's form already resolved for the current species. Once a regional Pokémon evolved into a species without
+  forms (Galarian Meowth into Perrserker, Galarian Zigzagoon into Obstagoon, Paldean Wooper into Clodsire…), that was
+  nil and every earlier stage fell back to its default form (#69). The track tests built Kantonian lines only, so
+  no stage ever needed a form the current species lacks. A view that draws several species takes the line form
+  (`MonState.form`, `DexEntry.form`) and lets each sprite resolve it: the track now reads
+  `CompanionStore.evolutionTrackForm`, as the catch log (`entry.form`) and the Pokédex family (`family.form`) already
+  did. Guard: `EvolutionTrackTests.testEveryStageKeepsTheIndividualsForm`.
+
 ## 에너지 (상시 표시 애니메이션)
 
 - **절전용 정지 상태는 짝 알림 하나에만 복구를 맡기지 마라.** `screensDidSleep` 이 폴링 타이머를 끄고

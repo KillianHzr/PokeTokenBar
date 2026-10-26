@@ -46,6 +46,14 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-26", entries: [
+            .fixed { $0.t("진화한 리전폼 포켓몬도 홈의 진화 경로에서 이전 단계가 그 폼으로 보여요(나이킹이 된 가라르 나옹).",
+                          "Home's evolution track keeps a regional Pokémon's earlier stages in its form once it evolves (a Galarian Meowth that became Perrserker).",
+                          "リージョンフォームのポケモンが進化しても、ホームの進化ラインで前の段階がそのフォルムのままに（ニャイキングになったガラルのニャース）。",
+                          "La línea evolutiva de Inicio mantiene las fases anteriores de un Pokémon regional en su forma tras evolucionar (un Meowth de Galar convertido en Perrserker).",
+                          "La piste d'évolution de l'accueil garde les stades précédents d'un Pokémon régional dans sa forme après son évolution (un Miaouss de Galar devenu Berserkatt).",
+                          "A linha evolutiva do Início mantém os estágios anteriores de um Pokémon regional na sua forma depois de evoluir (um Meowth de Galar que virou Perrserker).",
+                          "Die Entwicklungsleiste der Startseite zeigt frühere Stufen eines regionalen Pokémon nach der Entwicklung in seiner Form (ein Galar-Mauzi, das zu Mauzinger wurde).",
+                          "Линия эволюции на главной сохраняет форму ранних стадий регионального покемона после эволюции (галарский Мяут, ставший Перрсеркером).") },
             .new { $0.t("변경 내역: 모든 변경을 날짜별로 볼 수 있어요. 새 소식이 있으면 배너가 알려 줘요.",
                         "This changelog: every change, day by day. A banner tells you when there is something new.",
                         "更新履歴：すべての変更を日ごとに見られます。新しいことがあるとバナーでお知らせします。",

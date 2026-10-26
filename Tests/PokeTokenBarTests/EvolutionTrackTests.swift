@@ -20,7 +20,8 @@ private struct TrackLineProvider: PokeProviding {
 /// several ways, every way to its end.
 @MainActor
 final class EvolutionTrackTests: XCTestCase {
-    private func store(_ path: [Int], stage: Int, caught: [[Int]] = []) async throws -> CompanionStore {
+    private func store(_ path: [Int], stage: Int, caught: [[Int]] = [],
+                       form: PokemonForm? = nil) async throws -> CompanionStore {
         let suite = "Track-\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         addTeardownBlock { defaults.removePersistentDomain(forName: suite) }
@@ -31,7 +32,7 @@ final class EvolutionTrackTests: XCTestCase {
         state.installBaselineSet = true
         state.active = MonState(baseID: path[0], pathIDs: Array(path.prefix(stage + 1)), plannedPathIDs: path,
                                 stageIndex: stage, usedAtStage: 0, rarity: .common, totalForms: path.count,
-                                nature: .hardy)
+                                nature: .hardy, form: form)
         state.dex = caught.enumerated().map { index, chain in
             DexEntry(baseID: chain[0], finalID: chain.last!, chainOrder: chain, rarity: .common,
                      caughtAt: Date(timeIntervalSince1970: 1_790_000_000 + Double(index)))
@@ -43,6 +44,28 @@ final class EvolutionTrackTests: XCTestCase {
         for _ in 0..<300 where store.currentLine == nil { try await Task.sleep(for: .milliseconds(10)) }
         XCTAssertNotNil(store.currentLine)
         return store
+    }
+
+    /// Every stage keeps the individual's form, though the species it is now has none (#69): a Galarian Meowth that
+    /// became a Perrserker shows a Galarian Meowth before it, a Galarian Zigzagoon at Obstagoon a Galarian Zigzagoon
+    /// and Linoone.
+    func testEveryStageKeepsTheIndividualsForm() async throws {
+        let galar = PokemonForm("galar")
+        let perrserker = try await store([52, 863], stage: 1, form: galar)
+        XCTAssertEqual(perrserker.currentSpeciesID, 863)
+        XCTAssertNil(perrserker.currentForm, "Perrserker has no forms")
+        XCTAssertEqual(perrserker.evolutionTrackForm, galar)
+        XCTAssertEqual(PokemonForm.resolved(speciesID: 52, form: perrserker.evolutionTrackForm), galar)
+        XCTAssertNil(PokemonForm.resolved(speciesID: 863, form: perrserker.evolutionTrackForm))
+
+        let obstagoon = try await store([263, 264, 862], stage: 2, form: galar)
+        XCTAssertNil(obstagoon.currentForm)
+        for id in [263, 264] {
+            XCTAssertEqual(PokemonForm.resolved(speciesID: id, form: obstagoon.evolutionTrackForm), galar, "\(id)")
+        }
+        // A Kantonian Meowth still shows Kantonian stages.
+        let persian = try await store([52, 53], stage: 1, form: PokemonForm("normal"))
+        XCTAssertEqual(PokemonForm.resolved(speciesID: 52, form: persian.evolutionTrackForm), PokemonForm("normal"))
     }
 
     private func item(_ id: Int, _ caught: Bool) -> BranchEvolutionItem { BranchEvolutionItem(speciesID: id, isCollected: caught) }
