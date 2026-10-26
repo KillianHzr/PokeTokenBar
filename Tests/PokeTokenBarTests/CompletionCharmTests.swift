@@ -10,6 +10,15 @@ private struct CharmProvider: PokeProviding {
     func baseSpecies(id: Int) async throws -> BaseSpecies? { entries.first { $0.id == id } }
 }
 
+/// The base index is down: candidates come from the REST fallback, every id a base of its own.
+private struct RestOnlyCharmProvider: PokeProviding {
+    func line(baseSpeciesID: Int) async throws -> EvoLine {
+        EvoLine(baseID: baseSpeciesID, tree: EvoNode(speciesID: baseSpeciesID, children: []), rarity: .common, names: [:])
+    }
+    func baseSpeciesIndex() async throws -> [BaseSpecies] { throw URLError(.badServerResponse) }
+    func baseSpecies(id: Int) async throws -> BaseSpecies? { BaseSpecies(id: id, captureRate: 255) }
+}
+
 /// Completing the Pokédex earns two charms: every species the Oval Charm (eggs bring the forms still missing),
 /// every form the Glimmering Charm (every hatch is shiny).
 @MainActor
@@ -95,6 +104,33 @@ final class CompletionCharmTests: XCTestCase {
             XCTAssertEqual(s.state.active?.baseID, 58, "seed \(seed)")
             XCTAssertEqual(s.state.active?.form, PokemonForm("hisui"), "seed \(seed)")
         }
+    }
+
+    /// While the base index is down the REST fallback draws ids at random: the charm still brings lines with a form
+    /// missing, about 1 id in 9, as the index path does. Without it the fallback picks a line with forms 1 time in 9.
+    func testTheOvalCharmAlsoGuidesTheRestFallback() async throws {
+        func picks(charm: Bool) async throws -> Int {
+            var withForms = 0
+            for seed: UInt64 in 1...12 {
+                var st = CompanionState()
+                st.installBaselineSet = true
+                st.lastDate = "2026-10-21"
+                st.inventory = charm ? [ItemKind.ovalCharm.rawValue: 1] : [:]
+                let url = FileManager.default.temporaryDirectory.appendingPathComponent("charm-rest-\(UUID().uuidString).json")
+                try JSONEncoder().encode(st).write(to: url)
+                addTeardownBlock { try? FileManager.default.removeItem(at: url) }
+                let s = CompanionStore(provider: RestOnlyCharmProvider(), clock: { self.date }, fileURL: url,
+                                       rng: SeededRNG(seed: seed))
+                s.setEggUsageForTesting(s.eggHatchThreshold)
+                await s.hatchIfNeeded()
+                let id = try XCTUnwrap(s.state.active?.baseID, "seed \(seed)")
+                if !PokemonForm.rollableLineForms(baseID: id).isEmpty { withForms += 1 }
+            }
+            return withForms
+        }
+        let charmed = try await picks(charm: true), plain = try await picks(charm: false)
+        XCTAssertGreaterThanOrEqual(charmed, 10, "the charm's lines, while the 32 tries find one")
+        XCTAssertLessThan(plain, 6, "the control: the fallback alone rarely lands on a line with forms")
     }
 
     /// With nothing left to bring, eggs roll as usual.

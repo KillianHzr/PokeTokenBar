@@ -84,7 +84,7 @@ private struct ShopItemCard: View {
                             .accessibilityValue("\(selectedQuantity)")
                         }
                     }
-                    Text(l.itemDescription(kind))
+                    Text(l.itemDescription(kind, rareCandyXP: store.rareCandyXP))
                         .font(.caption).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
