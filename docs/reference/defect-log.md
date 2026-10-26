@@ -869,6 +869,13 @@ read_when:
   실패하므로, 아키텍처별 빌드 + `lipo -create` 로 합친다. 회귀 가드: `build-app.sh` 의 `lipo -verify_arch`
   와 release.sh 4/8 의 `lipo -verify_arch arm64 x86_64` 하드 게이트(릴리스는 `PTB_NATIVE_ARCH_ONLY` 금지).
 
+- **A sync `setUp`/`tearDown` in a `@MainActor` test class is nonisolated on CI.** `PikachuCostumeTests` reset the
+  main-actor `PikachuCostume.equipped` in a sync `tearDown()`: the local Xcode toolchain compiled it, CI's Swift 6.0
+  (macos-15) refused it ("main actor-isolated static property can not be mutated from a nonisolated context"), so
+  the PR's build failed only remotely. A local `swift test` is no proof for this class. Touch main-actor state from
+  `setUp() async throws`/`tearDown() async throws`, or keep the sync ones to `nonisolated(unsafe)` fixtures as
+  `RareCandyTests` and `WindowCandyTests` do. The sweep found no other sync `tearDown` touching main-actor state.
+
 ## 자격증명·Keychain
 
 - **앱 소유 keychain 항목 금지.** 앱이 만든 keychain 항목은 코드서명(cdhash)이 바뀔 때마다(로컬 재빌드·

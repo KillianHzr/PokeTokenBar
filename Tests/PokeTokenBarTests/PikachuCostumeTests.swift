@@ -10,9 +10,10 @@ final class PikachuCostumeTests: XCTestCase {
         EvoNode(speciesID: 25, children: [EvoNode(speciesID: 26, children: [])]),
     ]), rarity: .common, names: [:])
 
-    override func tearDown() {
+    /// Async, so it runs on the main actor: CI's Swift 6.0 treats a sync `tearDown` as nonisolated.
+    override func tearDown() async throws {
         PikachuCostume.equipped = nil
-        super.tearDown()
+        try await super.tearDown()
     }
 
     private func store(seed: UInt64 = 3, _ edit: (inout CompanionState) -> Void = { _ in }) throws -> CompanionStore {
