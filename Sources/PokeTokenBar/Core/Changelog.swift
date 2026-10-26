@@ -46,6 +46,14 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-26", entries: [
+            .improved { $0.t("돌 알에서 그 타입으로 이미 다 모은 라인은 4분의 1 확률로 나오고, 어떤 알도 방금 태어난 라인을 연달아 주지 않아요.",
+                             "A stone's egg brings a line you already completed for its type a quarter as often, and no egg hatches the line you just hatched again.",
+                             "石のタマゴでは、そのタイプで集め終えた系統は4分の1の確率で出て、どのタマゴも直前に生まれた系統を続けて出しません。",
+                             "El huevo de una piedra da una línea ya completada para su tipo cuatro veces menos, y ningún huevo repite la línea que acaba de nacer.",
+                             "L'œuf d'une pierre donne quatre fois moins une lignée déjà complète pour son type, et aucun œuf ne redonne la lignée qui vient d'éclore.",
+                             "O ovo de uma pedra dá quatro vezes menos uma linha já completa para seu tipo, e nenhum ovo repete a linha que acabou de nascer.",
+                             "Das Ei eines Steins bringt eine für seinen Typ schon vollständige Linie nur noch ein Viertel so oft, und kein Ei wiederholt die gerade geschlüpfte Linie.",
+                             "Яйцо камня в четыре раза реже даёт линию, уже собранную для его типа, и ни одно яйцо не повторяет только что вылупившуюся линию.") },
             .fixed { $0.t("진화한 리전폼 포켓몬도 홈의 진화 경로에서 이전 단계가 그 폼으로 보여요(나이킹이 된 가라르 나옹).",
                           "Home's evolution track keeps a regional Pokémon's earlier stages in its form once it evolves (a Galarian Meowth that became Perrserker).",
                           "リージョンフォームのポケモンが進化しても、ホームの進化ラインで前の段階がそのフォルムのままに（ニャイキングになったガラルのニャース）。",

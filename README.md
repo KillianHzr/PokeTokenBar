@@ -166,7 +166,7 @@ Each collector item stays **locked** until you register the Pokémon it asks for
 
 ### Evolution Stones
 
-Claiming a stone's achievement puts **5** of that stone in the Bag, next to the other consumables. Using one sends off your current companion right away (it stays in the Pokédex as released) for a fresh egg guaranteed to hatch a Pokémon of the stone's type, so a stone waits until there is a companion to send off. Each stone achievement is claimed once, and stones are not sold in the Shop.
+Claiming a stone's achievement puts **5** of that stone in the Bag, next to the other consumables. Using one sends off your current companion right away (it stays in the Pokédex as released) for a fresh egg guaranteed to hatch a Pokémon of the stone's type, so a stone waits until there is a companion to send off. A line you already completed, as far as that type goes, comes a quarter as often from a stone's egg (half as often from a plain egg), and no egg hatches the line you just hatched again. Each stone achievement is claimed once, and stones are not sold in the Shop.
 
 | Stone | Sprite | Egg type | Unlocks with |
 | :--- | :---: | :---: | :--- |

@@ -518,6 +518,15 @@ read_when:
   `testShownTypesFollowTheForm`, `FormDetailsTests`, `testALegendaryFormGivesItsOwnTypes`, and
   `FormDataRenderingTests` (reads the rendered pixels of Home and the Pokédex).
 
+- **A stone's egg judged a line on forms it can never hatch.** The duplicate halving (`isLineComplete`) asked for
+  every form of a line, so a Thunder Stone's egg kept a Stunfisk line at full weight for its Galarian form (Ground
+  and Steel), which no Electric egg brings: the player saw the same Stunfisk twice in a row. The Oval Charm already
+  read the egg's forms only (`lineMissesForms(type:)`); the weight did not, and no test rolled a stone egg over a
+  line with a form of another type. A stone's egg now judges a line by `isLineComplete(baseID:type:)`, the forms
+  that hatch with its type and the finals they reach. With that change, by the player's choice, a completed line
+  weighs a quarter in a stone's egg (half in a plain one), and no egg brings the line hatched last again
+  (`lastHatchedBaseID`). Guards: `StoneEggDuplicateTests`.
+
 ## 외부 로그·사용량 소스
 
 - **토큰 파일 파서는 외부 도구의 실제 직렬화 구조체(중첩 객체)를 반영해야 한다.** `jetski-standalone-oauth-token`

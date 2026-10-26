@@ -2774,6 +2774,7 @@ final class CompanionStore {
                                 isShiny: isShiny, nature: nature, profile: profile, hasGrowthBoost: hasGrowthBoost,
                                 dittoDisguise: dittoDisguise, form: form)
         state.active?.hasNewForm = hasNewForm
+        state.lastHatchedBaseID = line.baseID
         // A disguised Ditto is not the species it shows: nothing unlocks until it is revealed.
         if dittoDisguise == nil { announceFormUnlocks(since: unlockedForms) }
         AppLog.write("hatch: base=\(line.baseID) rarity=\(line.rarity) shiny=\(isShiny) forms=\(evolutionPlan.count) boost=\(hasGrowthBoost) ditto=\(dittoDisguise != nil) form=\(form?.rawValue ?? "none")")
@@ -2880,8 +2881,15 @@ final class CompanionStore {
     /// hatch weight, not the capture rate: Mew, Celebi, Rayquaza and Shaymin have a capture rate of 45 but
     /// roll like Mewtwo. It is the only item that reweights the roll; the Oval Charm only narrows it to lines with
     /// a form missing (`chooseBase`), and the others only add growth bonuses.
-    func hatchWeight(for e: BaseSpecies) -> Int {
-        var w = CollectionWeight.adjusted(e.hatchWeight, isCollected: state.isLineComplete(baseID: e.id))
+    /// A stone's egg (`type`) judges a line by what it can hatch (`isLineComplete(baseID:type:)`) and lowers a
+    /// collected one to a quarter rather than a half: a stone is spent on that egg.
+    func hatchWeight(for e: BaseSpecies, type: PokemonType? = nil) -> Int {
+        var w: Int
+        if let type {
+            w = state.isLineComplete(baseID: e.id, type: type) ? max(1, e.hatchWeight / 4) : max(1, e.hatchWeight)
+        } else {
+            w = CollectionWeight.adjusted(e.hatchWeight, isCollected: state.isLineComplete(baseID: e.id))
+        }
         // The legendary rarity: every legendary and mythical, never Beldum (capture rate 3).
         if ownsLegendCharm && e.rarity == .legendary {
             w *= LegendCharm.weightMultiplier
@@ -2920,7 +2928,8 @@ final class CompanionStore {
                 let missing = index.filter { state.lineMissesForms(baseID: $0.id, type: typeGuarantee) }
                 if !missing.isEmpty { index = missing }
             }
-            let weights = index.map(hatchWeight(for:))
+            index = Self.withoutLastHatched(index, last: state.lastHatchedBaseID)
+            let weights = index.map { hatchWeight(for: $0, type: typeGuarantee) }
             let total = weights.reduce(0, +)
             var r = Int(rng.next() % UInt64(total))
             for (i, w) in weights.enumerated() {
@@ -2938,17 +2947,26 @@ final class CompanionStore {
         return await chooseBaseViaREST().map { ($0, false) }
     }
 
+    /// The candidates without the line hatched last, so no egg brings the same line twice in a row; all of them
+    /// when it is the only one.
+    static func withoutLastHatched(_ index: [BaseSpecies], last: Int?) -> [BaseSpecies] {
+        guard let last else { return index }
+        let others = index.filter { $0.id != last }
+        return others.isEmpty ? index : others
+    }
+
     /// A Birthday Egg's roll: a mythical line not graduated yet, else a legendary one, each as likely; once every one
     /// graduated, any of them by its hatch weight, shiny.
     private func chooseBirthdayBase(_ index: [BaseSpecies]) -> (id: Int, shiny: Bool)? {
-        let (lines, byWeight) = BirthdayGift.pool(index, graduated: graduatedSpeciesIDs)
+        let (pool, byWeight) = BirthdayGift.pool(index, graduated: graduatedSpeciesIDs)
+        let lines = Self.withoutLastHatched(pool, last: state.lastHatchedBaseID)
         guard !lines.isEmpty else {
             AppLog.write("hatch: no legendary or mythical line for the birthday egg, egg kept; retry next tick")
             return nil
         }
         var pick = lines[lines.count - 1]
         if byWeight {
-            let weights = lines.map(hatchWeight(for:))
+            let weights = lines.map { hatchWeight(for: $0) }
             var r = Int(rng.next() % UInt64(max(1, weights.reduce(0, +))))
             for (line, w) in zip(lines, weights) {
                 r -= w
@@ -2980,6 +2998,9 @@ final class CompanionStore {
                     if let tier, !tier.admits(bs) { continue }
                     if state.eggFromLegendaryEgg || state.eggFromBirthdayEgg, !bs.isLegendary { continue }
                     if let typeGuarantee, !PokemonTypeData.canHatch(baseID: bs.id, as: typeGuarantee) { continue }
+                    // Not the line hatched last again; the index path keeps it when it is the only one, this one
+                    // retries.
+                    if bs.id == state.lastHatchedBaseID { continue }
                     if ownsOvalCharm, !state.lineMissesForms(baseID: bs.id, type: typeGuarantee) {
                         withoutTheCharm = withoutTheCharm ?? id
                         continue

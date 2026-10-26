@@ -1107,6 +1107,8 @@ struct CompanionState: Codable, Sendable {
     var eggFromBirthdayEgg = false
     /// The pre-rolled hatch is shiny whatever its roll: a Birthday Egg once every legendary and mythical graduated.
     var pendingShiny = false
+    /// The line of the last Pokémon hatched: the next egg never brings it again while another line is left.
+    var lastHatchedBaseID: Int?
     /// The player's birthday, without the year; nil until they enter it in Settings.
     var birthday: Birthday?
     /// The year of the last birthday whose gift was claimed; nil for a save that never got one.
@@ -1207,6 +1209,7 @@ struct CompanionState: Codable, Sendable {
         eggFromLegendaryEgg = c.lenient(Bool.self, forKey: .eggFromLegendaryEgg, default: false)
         eggFromBirthdayEgg = c.lenient(Bool.self, forKey: .eggFromBirthdayEgg, default: false)
         pendingShiny = c.lenient(Bool.self, forKey: .pendingShiny, default: false)
+        lastHatchedBaseID = c.lenientOptional(Int.self, forKey: .lastHatchedBaseID)
         birthday = c.lenientOptional(Birthday.self, forKey: .birthday)
         lastBirthdayGiftYear = c.lenientOptional(Int.self, forKey: .lastBirthdayGiftYear)
         birthdayNotifiedYear = c.lenientOptional(Int.self, forKey: .birthdayNotifiedYear)
@@ -1345,6 +1348,17 @@ struct CompanionState: Codable, Sendable {
         guard finals.allSatisfy({ collectedFinals.contains("\(baseID):\($0)") }) else { return false }
         let forms = PokemonForm.rollableLineForms(baseID: baseID)
         return forms.isEmpty || Set(forms).isSubset(of: collectedLineForms(baseID: baseID))
+    }
+
+    /// Whether an egg of `type` (a stone's) has nothing new to give from this line: the forms that hatch with its
+    /// type and the finals they reach are all collected. A Galarian Stunfisk, Ground and Steel, never comes from a
+    /// Thunder Stone, so it does not keep a Stunfisk line open for one, as it does for a plain egg.
+    func isLineComplete(baseID: Int, type: PokemonType) -> Bool {
+        let forms = Self.eggForms(baseID: baseID, type: type)
+        let finals = forms.isEmpty ? PokemonEvolutionData.finals(from: baseID)
+            : Array(Set(forms.flatMap { PokemonEvolutionData.finals(from: baseID, form: $0, anyForm: false) }))
+        guard finals.allSatisfy({ collectedFinals.contains("\(baseID):\($0)") }) else { return false }
+        return !lineMissesForms(baseID: baseID, type: type)
     }
 
     /// Hatch roll weights: a form counts as collected once every species of the line that shows it
