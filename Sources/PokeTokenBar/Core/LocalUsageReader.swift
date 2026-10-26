@@ -400,7 +400,7 @@ enum LocalUsageReader {
     /// session. The final record carries authoritative per-model totals — covering models and
     /// context variants (`claude-opus-5[1m]`) that `ModelPricing` holds no rate for — so a
     /// reported amount is preferred over a table estimate wherever the source published one.
-    struct ClaudeCostState: Sendable, Equatable {
+    struct ClaudeCostState: Sendable, Equatable, Codable {
         /// Base model id (context-window suffix stripped) → reported USD for the whole session.
         var costByModel: [String: Double] = [:]
         /// Claude could not price part of the session itself; its totals understate that part.
@@ -416,8 +416,11 @@ enum LocalUsageReader {
     }
 
     static func parseClaudeCostStateLine(_ line: String) -> ClaudeCostState? {
-        guard let data = line.data(using: .utf8),
-              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+        parseClaudeCostStateLine(Data(line.utf8))
+    }
+
+    static func parseClaudeCostStateLine(_ data: Data) -> ClaudeCostState? {
+        guard let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               (obj["type"] as? String) == "cost-state",
               let usage = obj["modelUsage"] as? [String: Any] else { return nil }
         var state = ClaudeCostState()
@@ -461,34 +464,104 @@ enum LocalUsageReader {
         return out
     }
 
-    /// Claude 파일 하나를 파싱(파일 내 dedup). 캐시가 파일 단위로 호출.
+    /// Claude 파일 하나를 파싱(파일 내 dedup).
     static func parseClaudeFile(_ url: URL, fmt: DateFormatter) -> [Entry] {
-        guard let text = try? String(contentsOf: url, encoding: .utf8) else { return [] }
-        let session = claudeSessionID(forTranscript: url)
-        var out: [Entry] = []
+        readClaudeTranscript(url, fmt: fmt)?.entries ?? []
+    }
+
+    /// One Claude transcript, read up to `offset`. Claude Code only appends to a transcript, so a file that grew is
+    /// read from there on: parsed whole at every refresh, a session of several hundred MB kept a core busy for as long
+    /// as it was being written.
+    struct ClaudeTranscript: Sendable {
+        /// Deduplicated within the file, with the newest cost ledger applied.
+        var entries: [Entry]
+        /// Bytes read, always just after a line break: a line still being written is read again next time.
+        var offset: UInt64
+        /// The last bytes before `offset` (up to `tailLength`), to tell a file that grew from one rewritten.
+        var tail: Data
+        /// The newest `cost-state` record. It is cumulative, so it applies to every entry, the later ones too.
         var costState: ClaudeCostState?
-        for line in text.split(separator: "\n", omittingEmptySubsequences: true) {
-            // Cumulative ledger: the last record in the file wins.
-            if line.contains("\"cost-state\"") {
-                autoreleasepool {
-                    if let s = parseClaudeCostStateLine(String(line)) { costState = s }
-                }
-                continue
+    }
+
+    static let claudeTranscriptTailLength = 64
+
+    /// Reads a transcript, from where `previous` stopped when the file grew past it with the same bytes before that
+    /// point, else whole. nil when the file cannot be read. Lines are streamed in chunks and picked by their bytes,
+    /// as `forEachCodexLine` does: the memory stays the chunk and the longest line, not the file.
+    static func readClaudeTranscript(_ url: URL, fmt: DateFormatter,
+                                     after previous: ClaudeTranscript? = nil) -> ClaudeTranscript? {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
+        defer { try? handle.close() }
+        guard let size = try? handle.seekToEnd() else { return nil }
+        // A file that did not grow, or whose bytes before the resume point changed, was rewritten: read it whole.
+        var base = previous
+        if let earlier = base {
+            let length = UInt64(earlier.tail.count)
+            let resumes = earlier.offset < size && length > 0 && length <= earlier.offset
+                && (try? handle.seek(toOffset: earlier.offset - length)) != nil
+                && (try? handle.read(upToCount: Int(length))) == earlier.tail
+            if !resumes { base = nil }
+        }
+        let start = base?.offset ?? 0
+        guard (try? handle.seek(toOffset: start)) != nil else { return nil }
+
+        let session = claudeSessionID(forTranscript: url)
+        var parsed: [Entry] = []
+        var costState = base?.costState
+        func parse(_ line: Data) {
+            // Cumulative ledger: the newest record wins.
+            if line.range(of: claudeCostStateMarker) != nil {
+                autoreleasepool { if let state = parseClaudeCostStateLine(line) { costState = state } }
+                return
             }
-            guard line.contains("\"usage\""), line.contains("\"assistant\"") else { continue }
-            // 라인마다 autoreleasepool — JSONSerialization 이 만드는 autoreleased NSDictionary/NSString 가
-            // 수천 파일·수만 라인에 걸쳐 배출 없이 누적돼 콜드 파싱 피크를 키우던 것을 즉시 배출.
+            guard line.range(of: claudeUsageMarker) != nil, line.range(of: claudeAssistantMarker) != nil else { return }
+            // 라인마다 autoreleasepool: JSONSerialization 이 만드는 autoreleased 객체를 즉시 배출.
             autoreleasepool {
-                if var e = parseClaudeLine(String(line), fmt: fmt) {
+                if var e = parseClaudeLine(line, fmt: fmt) {
                     e.sessionID = session
-                    out.append(e)
+                    parsed.append(e)
                 }
             }
         }
-        let deduped = dedupKeepMax(out)
-        guard let costState else { return deduped }
-        return applyReportedCost(deduped, costState)
+
+        var buffer = Data()
+        var read: UInt64 = 0   // bytes up to the last line break
+        var tail = base?.tail ?? Data()
+        do {
+            while true {
+                let more = try autoreleasepool { () throws -> Bool in
+                    guard let chunk = try handle.read(upToCount: 1024 * 1024), !chunk.isEmpty else { return false }
+                    buffer.append(chunk)
+                    var lineStart = buffer.startIndex
+                    while lineStart < buffer.endIndex, let newline = buffer[lineStart...].firstIndex(of: 0x0A) {
+                        if lineStart < newline { parse(Data(buffer[lineStart..<newline])) }
+                        lineStart = buffer.index(after: newline)
+                    }
+                    if lineStart != buffer.startIndex {
+                        let done = buffer[buffer.startIndex..<lineStart]
+                        read += UInt64(done.count)
+                        tail = Data((tail + done.suffix(claudeTranscriptTailLength)).suffix(claudeTranscriptTailLength))
+                        buffer.removeSubrange(buffer.startIndex..<lineStart)
+                    }
+                    return true
+                }
+                if !more { break }
+            }
+        } catch {
+            return nil
+        }
+        // The last line is parsed even without its line break, as a whole read always did; a line cut while being
+        // written fails to decode, and the next read takes it again with the same id, which the dedup keeps once.
+        if !buffer.isEmpty { parse(buffer) }
+
+        var entries = dedupKeepMax((base?.entries ?? []) + parsed)
+        if let costState { entries = applyReportedCost(entries, costState) }
+        return ClaudeTranscript(entries: entries, offset: start + read, tail: tail, costState: costState)
     }
+
+    private static let claudeCostStateMarker = Data("\"cost-state\"".utf8)
+    private static let claudeUsageMarker = Data("\"usage\"".utf8)
+    private static let claudeAssistantMarker = Data("\"assistant\"".utf8)
 
     /// Session of a Claude transcript: `<project>/<session>.jsonl`, or
     /// `<project>/<session>/subagents/<agent>.jsonl` for a subagent (counted with its parent session).
@@ -518,9 +591,8 @@ enum LocalUsageReader {
         return dedupKeepMax(all)
     }
 
-    private static func parseClaudeLine(_ line: String, fmt: DateFormatter) -> Entry? {
-        guard let data = line.data(using: .utf8),
-              let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+    private static func parseClaudeLine(_ data: Data, fmt: DateFormatter) -> Entry? {
+        guard let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               (obj["type"] as? String) == "assistant",
               let msg = obj["message"] as? [String: Any],
               let usage = msg["usage"] as? [String: Any],

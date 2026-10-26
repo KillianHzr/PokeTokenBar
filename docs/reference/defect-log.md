@@ -826,11 +826,27 @@ read_when:
   peak RSS 416→66 MiB, 파싱 14.25→2.16s, 엔트리 출력은 바이트 동일. **prefilter 는 표현에 달렸다** —
   `String.contains` 는 grapheme 스캔이라 넣으면 느려지고, 같은 판정을 `Data.range` 바이트 탐색으로 하면
   이득이다("파싱 줄 수를 줄이면 빨라진다"가 표현에 따라 참·거짓이 갈리는 자리). 아직 통째로 읽는 곳:
-  `parseClaudeFile`·`parseGrokFile`(`String(contentsOf:)`), `parseGeminiFile`(`Data(contentsOf:)`).
+  `parseGrokFile`(`String(contentsOf:)`), `parseGeminiFile`(`Data(contentsOf:)`). Claude transcripts stream since a
+  real 628 MB session reached this class (next entry).
   **의도적 보류다** — 근거 없는 일괄 전환은 #94 를 반복하므로 프로바이더별 실측 뒤에 바꾼다. 도달 가능한
   부류이긴 하다(실기기 Claude jsonl 863개, 최대 90MB). 회귀 가드: `CodexLargeRolloutPerformanceTests` —
   **opt-in(`POKETOKENBAR_RUN_LARGE_PERF=1` / `scripts/perf-codex-large-rollout.sh`)이라 CI 는 돌리지 않는다.**
   자동으로 막히지 않으므로 이 부류를 건드리면 직접 돌린다. (#184)
+
+- **A file that only grows must be read from where the last read stopped.** `LocalUsageCache.collect` parsed a
+  whole file again whenever its mtime or size changed. Claude Code appends to a session's transcript every few
+  seconds, so with a 60 s refresh and sessions of 628, 286, 204 and 97 MB open, the app parsed about 1.2 GB at each
+  refresh and kept a core at 100% for hours (player report, 2026-10-26: 19 minutes of CPU in Activity Monitor). A
+  `sample` showed half the time in `StringProtocol.contains`, the rest in JSON and date formatting. The tests missed
+  it: the cache tests use one-line fixtures, and `testChangedFileIsReparsed` made the whole read the contract;
+  nothing weighed the cost of a change against the size of the file. Fix: `readClaudeTranscript` keeps the offset
+  after the last line break, the 64 bytes before it and the newest `cost-state`. A file that grew with the same
+  bytes there is read from the offset; a file that did not grow, or changed there, is read whole. The read streams
+  1 MB chunks and picks lines by their bytes (#184), so the one whole read after an update no longer holds the file
+  in memory. Guards: `ClaudeTranscriptResumeTests` (a resumed read equals a whole one, a line cut while being
+  written, a rewrite read whole, the cache handing each file its previous read); breaking the resume or the
+  rewrite check fails them. Same class, not changed: the Codex, Gemini, Grok, Pi, Omp and Kimi caches still read a
+  changed file whole; none of them grew on this machine that day.
 
 - **2단계 갱신에서 파생 상태는 그 값을 *채우는* 단계 뒤에 기록한다.** 사용량 요약의 일별 원장을
   `snapshots = newSnapshots`(phase 1) 직후에 저장했더니, `monthDaily` 는 `fetchEnrichment`(phase 2)

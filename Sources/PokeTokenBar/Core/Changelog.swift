@@ -67,6 +67,14 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-26", entries: [
+            .fixed("2026-10-26-claude-sessions-cpu") { $0.t("긴 Claude Code 세션 동안에도 새로고침마다 세션 전체를 다시 읽지 않고 새로 추가된 부분만 읽어요. CPU를 계속 쓰며 Mac을 뜨겁게 하지 않아요.",
+                          "The app no longer reads your whole Claude Code sessions again at every refresh, only what they added: it stops keeping the CPU busy and heating the Mac during long sessions.",
+                          "長いClaude Codeセッション中も、更新のたびにセッション全体を読み直さず、追加された部分だけを読みます。CPUを使い続けてMacを熱くすることがなくなりました。",
+                          "La app ya no vuelve a leer tus sesiones de Claude Code enteras en cada actualización, solo lo añadido: deja de ocupar la CPU y de calentar el Mac en las sesiones largas.",
+                          "L'app ne relit plus tes sessions Claude Code en entier à chaque actualisation, seulement ce qui s'y est ajouté : elle n'occupe plus le processeur et ne fait plus chauffer le Mac pendant les longues sessions.",
+                          "O app não relê mais suas sessões do Claude Code inteiras a cada atualização, só o que foi adicionado: deixa de ocupar a CPU e de esquentar o Mac nas sessões longas.",
+                          "Die App liest deine Claude-Code-Sitzungen nicht mehr bei jeder Aktualisierung ganz neu, nur das Hinzugekommene: Sie hält die CPU nicht mehr beschäftigt und heizt den Mac bei langen Sitzungen nicht auf.",
+                          "Приложение больше не перечитывает сессии Claude Code целиком при каждом обновлении, только добавленное: оно не загружает процессор и не греет Mac во время долгих сессий.") },
             .new("2026-10-26-legendary-artifacts") { $0.t("아직 어떤 업적에도 없던 전설·환상의 포켓몬을 위한 새 유물 9개.",
                           "Nine new Artifacts for the legendary and mythical Pokémon no achievement counted yet.",
                           "まだどの実績にも入っていなかった伝説・幻のポケモンのための新しいどうぐが9つ。",

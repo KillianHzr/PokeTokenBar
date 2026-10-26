@@ -8,7 +8,16 @@ import Foundation
 actor LocalUsageCache {
     static let shared = LocalUsageCache()
 
-    private struct Blob: Codable { let mtime: Date; let size: Int; let entries: [LocalUsageReader.Entry] }
+    private struct Blob: Codable {
+        let mtime: Date
+        let size: Int
+        let entries: [LocalUsageReader.Entry]
+        /// Claude only: where the transcript was read up to, and its newest cost ledger, so that a transcript that
+        /// grew is read from there (`LocalUsageReader.readClaudeTranscript`). nil in blobs saved before.
+        var claudeOffset: UInt64? = nil
+        var claudeTail: Data? = nil
+        var claudeCost: LocalUsageReader.ClaudeCostState? = nil
+    }
     private struct CodexBlob: Codable {
         let mtime: Date
         let size: Int
@@ -200,8 +209,16 @@ actor LocalUsageCache {
                     if entry.sessionID == nil { entry.sessionID = session }
                     return entry
                 }
-            }) {
-                LocalUsageReader.parseClaudeFile($0, fmt: fmt)
+            }) { url, previous, mtime, size in
+                let resume = previous.flatMap { blob -> LocalUsageReader.ClaudeTranscript? in
+                    guard let offset = blob.claudeOffset, let tail = blob.claudeTail else { return nil }
+                    return LocalUsageReader.ClaudeTranscript(entries: blob.entries, offset: offset, tail: tail,
+                                                             costState: blob.claudeCost)
+                }
+                return LocalUsageReader.readClaudeTranscript(url, fmt: fmt, after: resume).map {
+                    Blob(mtime: mtime, size: size, entries: $0.entries, claudeOffset: $0.offset, claudeTail: $0.tail,
+                         claudeCost: $0.costState)
+                }
             }
         }
         saveIfNeeded()
@@ -324,6 +341,17 @@ actor LocalUsageCache {
                          allowJSON: Bool = false, include: ((URL) -> Bool)? = nil,
                          annotate: ((URL, [LocalUsageReader.Entry]) -> [LocalUsageReader.Entry])? = nil,
                          parse: (URL) -> [LocalUsageReader.Entry]?) -> [LocalUsageReader.Entry] {
+        collect(root: root, since: since, cache: &cache, allowJSON: allowJSON, include: include,
+                annotate: annotate) { url, _, mtime, size in
+            parse(url).map { Blob(mtime: mtime, size: size, entries: $0) }
+        }
+    }
+
+    /// `read` gets the file's previous blob, if any, to resume from it, and returns the new one.
+    private func collect(root: URL, since: Date, cache: inout [String: Blob],
+                         allowJSON: Bool = false, include: ((URL) -> Bool)? = nil,
+                         annotate: ((URL, [LocalUsageReader.Entry]) -> [LocalUsageReader.Entry])? = nil,
+                         read: (URL, Blob?, Date, Int) -> Blob?) -> [LocalUsageReader.Entry] {
         let fm = FileManager.default
         guard let en = fm.enumerator(
             at: root,
@@ -342,10 +370,10 @@ actor LocalUsageCache {
             let fileEntries: [LocalUsageReader.Entry]
             if let blob = cache[key], blob.mtime == mtime, blob.size == size {
                 fileEntries = blob.entries            // 변경 없음 → 재파싱 안 함
-            } else if let entries = parse(url) {
-                cache[key] = Blob(mtime: mtime, size: size, entries: entries)
+            } else if let blob = read(url, cache[key], mtime, size) {
+                cache[key] = blob
                 dirty = true
-                fileEntries = entries
+                fileEntries = blob.entries
             } else if let blob = cache[key] {
                 // 일시적 읽기 실패는 현재 signature에 굳히지 않는다. 이전 blob을 쓰되,
                 // signature는 옛 상태로 남겨 다음 refresh에서 다시 읽게 한다.
