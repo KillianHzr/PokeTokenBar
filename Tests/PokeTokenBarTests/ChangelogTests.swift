@@ -33,28 +33,61 @@ final class ChangelogTests: XCTestCase {
         }
     }
 
-    func testTheDaysAfterTheLastSeenAreNew() {
-        let latest = Changelog.days[0].date
-        XCTAssertEqual(Changelog.days(after: nil).count, Changelog.days.count)
-        XCTAssertTrue(Changelog.days(after: latest).isEmpty)
-        XCTAssertEqual(Changelog.days(after: Changelog.initialSeen).map(\.date), [latest])
+    /// Every entry has its own id, unique, its day first: what a player has seen is kept by it.
+    func testEveryEntryHasItsOwnID() {
+        let ids = Changelog.entries.map(\.id)
+        XCTAssertEqual(Set(ids).count, ids.count, "each id once")
+        for day in Changelog.days {
+            for entry in day.entries {
+                XCTAssertTrue(entry.id.hasPrefix(day.date + "-"), entry.id)
+            }
+        }
+        XCTAssertTrue(Changelog.firstRelease.isSubset(of: Changelog.ids), "the first release's ids still exist")
+    }
+
+    func testTheEntriesNotSeenAreNew() {
+        XCTAssertEqual(Changelog.unseen([]).count, Changelog.entries.count)
+        XCTAssertTrue(Changelog.unseen(Changelog.ids).isEmpty)
+        XCTAssertEqual(Set(Changelog.unseen(Changelog.initialSeen).map(\.id)), Set(Changelog.days[0].entries.map(\.id)),
+                       "a player who never opened it: the latest day")
         XCTAssertEqual(Changelog.title("2026-10-26", language: .fr), "26 octobre 2026")
         XCTAssertEqual(Changelog.title("2026-10-26", language: .en), "October 26, 2026")
     }
 
-    /// A player who never opened it sees the latest day as new; opening it counts every day seen, on this Mac.
+    /// A change added to a day already read is new after the update that brings it: the player who read October 26
+    /// with the first release sees the changes merged since, and only those.
+    func testAChangeAddedToADayAlreadyReadIsNew() throws {
+        let suite = "changelog-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        func store() -> UsageStore { UsageStore(providers: [], autoRefresh: false, defaults: defaults) }
+
+        defaults.set("2026-10-26", forKey: UsageStore.changelogSeenDayKey)   // the first release's key
+        let since = Set(store().unseenChangelogEntries.map(\.id))
+        XCTAssertTrue(since.isSuperset(of: ["2026-10-26-track-line-form", "2026-10-26-stone-egg-duplicates"]))
+        XCTAssertTrue(since.isDisjoint(with: Changelog.firstRelease), "what the first release showed stays read")
+        XCTAssertTrue(since.allSatisfy { $0 >= "2026-10-26" })
+
+        let updated = store()
+        updated.markChangelogSeen()
+        XCTAssertTrue(store().unseenChangelogEntries.isEmpty, "kept across launches")
+        // A later update adds one more change to the same day.
+        var seen = Set(try XCTUnwrap(defaults.stringArray(forKey: UsageStore.changelogSeenKey)))
+        seen.remove("2026-10-26-stone-egg-duplicates")
+        defaults.set(Array(seen), forKey: UsageStore.changelogSeenKey)
+        XCTAssertEqual(store().unseenChangelogEntries.map(\.id), ["2026-10-26-stone-egg-duplicates"])
+    }
+
+    /// A player who never opened it sees the latest day as new; opening it counts every change seen, on this Mac.
     func testOpeningItCountsEverythingSeen() throws {
         let suite = "changelog-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         func store() -> UsageStore { UsageStore(providers: [], autoRefresh: false, defaults: defaults) }
         let first = store()
-        XCTAssertEqual(first.unseenChangelogDays.map(\.date), [Changelog.days[0].date])
+        XCTAssertEqual(first.unseenChangelogEntries.map(\.id), Changelog.days[0].entries.map(\.id))
         first.markChangelogSeen()
-        XCTAssertTrue(first.unseenChangelogDays.isEmpty)
-        XCTAssertTrue(store().unseenChangelogDays.isEmpty, "kept across launches")
-        defaults.set("2026-10-20", forKey: "changelogSeen")
-        XCTAssertEqual(store().unseenChangelogDays.map(\.date), Changelog.days.map(\.date).filter { $0 > "2026-10-20" },
-                       "after an update, every day since the last visit")
+        XCTAssertTrue(first.unseenChangelogEntries.isEmpty)
+        XCTAssertTrue(store().unseenChangelogEntries.isEmpty, "kept across launches")
     }
 }

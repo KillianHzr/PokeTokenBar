@@ -4,12 +4,17 @@ import Foundation
 struct ChangelogEntry: Sendable {
     enum Kind: Sendable, CaseIterable { case new, improved, fixed }
 
+    /// Stable and unique (`yyyy-MM-dd-slug`, its day first): what a player has seen is kept by it, so a change added
+    /// to a day they already read still shows as new.
+    let id: String
     let kind: Kind
     let text: @Sendable (L) -> String
 
-    static func new(_ text: @escaping @Sendable (L) -> String) -> Self { Self(kind: .new, text: text) }
-    static func improved(_ text: @escaping @Sendable (L) -> String) -> Self { Self(kind: .improved, text: text) }
-    static func fixed(_ text: @escaping @Sendable (L) -> String) -> Self { Self(kind: .fixed, text: text) }
+    static func new(_ id: String, _ text: @escaping @Sendable (L) -> String) -> Self { Self(id: id, kind: .new, text: text) }
+    static func improved(_ id: String, _ text: @escaping @Sendable (L) -> String) -> Self {
+        Self(id: id, kind: .improved, text: text)
+    }
+    static func fixed(_ id: String, _ text: @escaping @Sendable (L) -> String) -> Self { Self(id: id, kind: .fixed, text: text) }
 }
 
 /// The changes that shipped one day (`yyyy-MM-dd`, the day their pull requests were merged).
@@ -19,16 +24,32 @@ struct ChangelogDay: Sendable {
 }
 
 /// What changed in the app, day by day, newest first: the What's New page, and its banner after an update. Every pull
-/// request adds what the player can see of it under the day it is merged.
+/// request adds what the player can see of it under the day it is merged, at the top of that day.
 enum Changelog {
-    /// The days after `seen` (a day of `days`, or nil for none seen): what is new to the player.
-    static func days(after seen: String?) -> [ChangelogDay] {
-        guard let seen else { return days }
-        return days.filter { $0.date > seen }
-    }
+    static var entries: [ChangelogEntry] { days.flatMap(\.entries) }
+    static var ids: Set<String> { Set(entries.map(\.id)) }
 
-    /// Where a player who never opened the page starts: the latest day is new to them, the history before is not.
-    static var initialSeen: String { days.dropFirst().first?.date ?? "" }
+    /// The changes a player who has seen `seen` has not: what came with the updates since their last look.
+    static func unseen(_ seen: Set<String>) -> [ChangelogEntry] { entries.filter { !seen.contains($0.id) } }
+
+    /// What a player who never opened the page has seen: everything but the latest day.
+    static var initialSeen: Set<String> { Set(days.dropFirst().flatMap(\.entries).map(\.id)) }
+
+    /// The changes of the page's first release, the only ones on its first day then.
+    static let firstRelease: Set<String> = [
+        "2026-10-26-changelog", "2026-10-26-birthday-gift", "2026-10-26-pikachu-costumes", "2026-10-26-new-forms",
+        "2026-10-26-menu-bar-pokemon", "2026-10-26-new-form-badge", "2026-10-26-candy-window-tokens",
+        "2026-10-26-legendary-egg", "2026-10-26-graduated-seen-counts", "2026-10-26-rarity-weights",
+        "2026-10-26-egg-promises",
+    ]
+
+    /// What a player had seen when the page only kept the last day read (`date`): the days before it, and of that day
+    /// what it held then. Days only had one release so far, the page's first.
+    static func seen(throughDay date: String) -> Set<String> {
+        var seen = Set(days.filter { $0.date < date }.flatMap(\.entries).map(\.id))
+        if date >= "2026-10-26" { seen.formUnion(firstRelease) }
+        return seen
+    }
 
     /// The day's date for the player's language ("26 October 2026").
     static func title(_ date: String, language: AppLanguage) -> String {
@@ -46,7 +67,23 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-26", entries: [
-            .fixed { $0.t("진화한 리전폼 포켓몬도 홈의 진화 경로에서 이전 단계가 그 폼으로 보여요(나이킹이 된 가라르 나옹).",
+            .fixed("2026-10-26-changelog-per-change") { $0.t("새 소식이 이미 읽은 날짜에 추가된 변경도 업데이트 뒤 새로 표시해요.",
+                          "What's New marks every change that came with an update, even on a day you already read.",
+                          "最新情報が、すでに読んだ日に追加された変更も、更新後に新しく表示します。",
+                          "Novedades marca cada cambio que llega con una actualización, aunque sea de un día ya leído.",
+                          "Les Nouveautés signalent chaque changement arrivé avec une mise à jour, même sur un jour déjà lu.",
+                          "Novidades marca cada mudança que chega com uma atualização, mesmo num dia já lido.",
+                          "Neuigkeiten markieren jede Änderung aus einem Update, auch an einem schon gelesenen Tag.",
+                          "«Что нового» отмечает каждое изменение из обновления, даже за уже прочитанный день.") },
+            .improved("2026-10-26-stone-egg-duplicates") { $0.t("돌 알에서 그 타입으로 이미 다 모은 라인은 4분의 1 확률로 나오고, 어떤 알도 방금 태어난 라인을 연달아 주지 않아요.",
+                             "A stone's egg brings a line you already completed for its type a quarter as often, and no egg hatches the line you just hatched again.",
+                             "石のタマゴでは、そのタイプで集め終えた系統は4分の1の確率で出て、どのタマゴも直前に生まれた系統を続けて出しません。",
+                             "El huevo de una piedra da una línea ya completada para su tipo cuatro veces menos, y ningún huevo repite la línea que acaba de nacer.",
+                             "L'œuf d'une pierre donne quatre fois moins une lignée déjà complète pour son type, et aucun œuf ne redonne la lignée qui vient d'éclore.",
+                             "O ovo de uma pedra dá quatro vezes menos uma linha já completa para seu tipo, e nenhum ovo repete a linha que acabou de nascer.",
+                             "Das Ei eines Steins bringt eine für seinen Typ schon vollständige Linie nur noch ein Viertel so oft, und kein Ei wiederholt die gerade geschlüpfte Linie.",
+                             "Яйцо камня в четыре раза реже даёт линию, уже собранную для его типа, и ни одно яйцо не повторяет только что вылупившуюся линию.") },
+            .fixed("2026-10-26-track-line-form") { $0.t("진화한 리전폼 포켓몬도 홈의 진화 경로에서 이전 단계가 그 폼으로 보여요(나이킹이 된 가라르 나옹).",
                           "Home's evolution track keeps a regional Pokémon's earlier stages in its form once it evolves (a Galarian Meowth that became Perrserker).",
                           "リージョンフォームのポケモンが進化しても、ホームの進化ラインで前の段階がそのフォルムのままに（ニャイキングになったガラルのニャース）。",
                           "La línea evolutiva de Inicio mantiene las fases anteriores de un Pokémon regional en su forma tras evolucionar (un Meowth de Galar convertido en Perrserker).",
@@ -54,7 +91,7 @@ enum Changelog {
                           "A linha evolutiva do Início mantém os estágios anteriores de um Pokémon regional na sua forma depois de evoluir (um Meowth de Galar que virou Perrserker).",
                           "Die Entwicklungsleiste der Startseite zeigt frühere Stufen eines regionalen Pokémon nach der Entwicklung in seiner Form (ein Galar-Mauzi, das zu Mauzinger wurde).",
                           "Линия эволюции на главной сохраняет форму ранних стадий регионального покемона после эволюции (галарский Мяут, ставший Перрсеркером).") },
-            .new { $0.t("변경 내역: 모든 변경을 날짜별로 볼 수 있어요. 새 소식이 있으면 배너가 알려 줘요.",
+            .new("2026-10-26-changelog") { $0.t("변경 내역: 모든 변경을 날짜별로 볼 수 있어요. 새 소식이 있으면 배너가 알려 줘요.",
                         "This changelog: every change, day by day. A banner tells you when there is something new.",
                         "更新履歴：すべての変更を日ごとに見られます。新しいことがあるとバナーでお知らせします。",
                         "Este registro de cambios: cada cambio, día a día. Un aviso te dice cuándo hay algo nuevo.",
@@ -62,7 +99,7 @@ enum Changelog {
                         "Este registro de novidades: cada mudança, dia a dia. Um aviso mostra quando há algo novo.",
                         "Dieses Änderungsprotokoll: jede Änderung, Tag für Tag. Ein Banner zeigt, wenn es etwas Neues gibt.",
                         "Этот журнал изменений: все изменения по дням. Баннер сообщит, когда появится что-то новое.") },
-            .new { $0.t("생일 선물: 설정에 생일을 넣으면 그날 선물 알을 받아요. 무엇이 태어날지는 비밀이에요.",
+            .new("2026-10-26-birthday-gift") { $0.t("생일 선물: 설정에 생일을 넣으면 그날 선물 알을 받아요. 무엇이 태어날지는 비밀이에요.",
                         "A birthday gift: enter your birthday in Settings and get a gift egg on the day. What hatches is a surprise.",
                         "誕生日のプレゼント：設定に誕生日を入れると、その日にプレゼントのタマゴが届きます。なにが生まれるかはお楽しみ。",
                         "Un regalo de cumpleaños: indica tu cumpleaños en Ajustes y recibe un huevo de regalo ese día. Lo que nazca es una sorpresa.",
@@ -70,7 +107,7 @@ enum Changelog {
                         "Um presente de aniversário: informe seu aniversário nos Ajustes e receba um ovo de presente no dia. O que nasce é surpresa.",
                         "Ein Geburtstagsgeschenk: Trag deinen Geburtstag in den Einstellungen ein und erhalte am Tag ein Geschenk-Ei. Was schlüpft, ist eine Überraschung.",
                         "Подарок на день рождения: укажите дату в настройках и получите яйцо-подарок в этот день. Кто вылупится, пока секрет.") },
-            .new { $0.t("피카츄의 옷: 피카츄가 올 때마다 아직 없는 옷을 가져와 입어요. 도감에서 다른 피카츄의 옷을 골라요. 15개를 모으면 전기구슬.",
+            .new("2026-10-26-pikachu-costumes") { $0.t("피카츄의 옷: 피카츄가 올 때마다 아직 없는 옷을 가져와 입어요. 도감에서 다른 피카츄의 옷을 골라요. 15개를 모으면 전기구슬.",
                         "Pikachu's costumes: each Pikachu brings one you don't have yet and wears it. Pick the one other Pikachu wear in the Pokédex. All 15 earn the Light Ball.",
                         "ピカチュウのいしょう：ピカチュウが来るたびに、まだない衣装を持ってきて着ます。ほかのピカチュウの衣装は図鑑で選べます。15着ででんきだま。",
                         "Trajes de Pikachu: cada Pikachu trae uno que aún no tienes y lo lleva. Elige en la Pokédex el que llevan los demás. Los 15 dan la Bola Luminosa.",
@@ -78,7 +115,7 @@ enum Changelog {
                         "Fantasias do Pikachu: cada Pikachu traz uma que você ainda não tem e a usa. Escolha na Pokédex a dos outros Pikachu. As 15 dão a Bola de Luz.",
                         "Pikachus Kostüme: Jedes Pikachu bringt eins mit, das dir fehlt, und trägt es. Im Pokédex wählst du das der anderen Pikachu. Alle 15 bringen den Kugelblitz.",
                         "Костюмы Пикачу: каждый Пикачу приносит костюм, которого у вас нет, и носит его. Костюм остальных выбирается в покедексе. Все 15 дают Световой шар.") },
-            .new { $0.t("새 폼: 마휘핑, 디아루가, 펄기아, 후파, 다투곰, 파밀리쥐, 에써르, 퍼퓨돈, 이브이.",
+            .new("2026-10-26-new-forms") { $0.t("새 폼: 마휘핑, 디아루가, 펄기아, 후파, 다투곰, 파밀리쥐, 에써르, 퍼퓨돈, 이브이.",
                         "New forms to collect: Alcremie, Dialga, Palkia, Hoopa, Ursaluna, Maushold, Indeedee, Oinkologne and Eevee.",
                         "新しいフォルム：マホイップ、ディアルガ、パルキア、フーパ、ガチグマ、イッカネズミ、イエッサン、パフュートン、イーブイ。",
                         "Nuevas formas: Alcremie, Dialga, Palkia, Hoopa, Ursaluna, Maushold, Indeedee, Oinkologne y Eevee.",
@@ -86,7 +123,7 @@ enum Changelog {
                         "Novas formas: Alcremie, Dialga, Palkia, Hoopa, Ursaluna, Maushold, Indeedee, Oinkologne e Eevee.",
                         "Neue Formen: Pokusan, Dialga, Palkia, Hoopa, Ursaluna, Zapplarang, Servol, Fragrunz und Evoli.",
                         "Новые формы: Алкреми, Диалга, Палкия, Хупа, Урсалуна, Маусхолд, Индиди, Ойнколонь и Иви.") },
-            .new { $0.t("메뉴바의 포켓몬을 움직이게, 정지, 또는 숨김으로 고를 수 있어요(설정 → 일반).",
+            .new("2026-10-26-menu-bar-pokemon") { $0.t("메뉴바의 포켓몬을 움직이게, 정지, 또는 숨김으로 고를 수 있어요(설정 → 일반).",
                         "The menu bar Pokémon can be animated, still or hidden (Settings → General).",
                         "メニューバーのポケモンを、動く・止まる・非表示から選べます（設定 → 一般）。",
                         "El Pokémon de la barra de menús puede estar animado, fijo u oculto (Ajustes → General).",
@@ -94,7 +131,7 @@ enum Changelog {
                         "O Pokémon da barra de menus pode ficar animado, parado ou oculto (Ajustes → Geral).",
                         "Das Pokémon in der Menüleiste kann animiert, unbewegt oder ausgeblendet sein (Einstellungen → Allgemein).",
                         "Покемон в строке меню может быть анимированным, статичным или скрытым (Настройки → Основные).") },
-            .new { $0.t("그 라인에 없던 폼으로 태어난 포켓몬에 \"새 폼\" 배지가 홈과 포획 기록에 붙어요.",
+            .new("2026-10-26-new-form-badge") { $0.t("그 라인에 없던 폼으로 태어난 포켓몬에 \"새 폼\" 배지가 홈과 포획 기록에 붙어요.",
                         "A \"New form\" badge on Home and in the catch log for a Pokémon that hatched in a form its line never had.",
                         "その系統にないフォルムで生まれたポケモンに、ホームと捕獲記録で「新しいフォルム」バッジ。",
                         "Una insignia \"Nueva forma\" en Inicio y en el registro para un Pokémon nacido en una forma nueva en su línea.",
@@ -102,7 +139,7 @@ enum Changelog {
                         "Um selo \"Nova forma\" no Início e no registro para um Pokémon nascido numa forma inédita na sua linha.",
                         "Ein Abzeichen „Neue Form“ auf der Startseite und im Fangprotokoll für ein Pokémon in einer für seine Linie neuen Form.",
                         "Значок «Новая форма» на главной и в журнале поимок у покемона, вылупившегося в новой для его линии форме.") },
-            .improved { $0.t("한도를 채우면 그 창에 쓴 토큰에 맞춰 이상한 사탕을 받아요: 10분의 1, 최소 1개.",
+            .improved("2026-10-26-candy-window-tokens") { $0.t("한도를 채우면 그 창에 쓴 토큰에 맞춰 이상한 사탕을 받아요: 10분의 1, 최소 1개.",
                              "A full limit pays Rare Candy for the tokens it held: a tenth of them, at least one.",
                              "上限を使い切ると、そのウィンドウで使ったトークンに応じてふしぎなアメ：10分の1、最低1個。",
                              "Un límite lleno da Caramelos Raros según los tokens que contuvo: una décima parte, al menos uno.",
@@ -110,7 +147,7 @@ enum Changelog {
                              "Um limite cheio rende Doces Raros conforme os tokens que conteve: um décimo, pelo menos um.",
                              "Ein volles Limit bringt Sonderbonbons nach seinen Tokens: ein Zehntel, mindestens eins.",
                              "Заполненный лимит приносит Редкие конфеты по его токенам: десятую часть, минимум одну.") },
-            .new { l in l.t("지방의 모든 종을 졸업시킬 때마다 \(l.itemName(.legendaryEgg)): 전설 또는 환상의 포켓몬이 태어나요.",
+            .new("2026-10-26-legendary-egg") { l in l.t("지방의 모든 종을 졸업시킬 때마다 \(l.itemName(.legendaryEgg)): 전설 또는 환상의 포켓몬이 태어나요.",
                             "A \(l.itemName(.legendaryEgg)) for each region whose every species graduated: it hatches a legendary or mythical Pokémon.",
                             "地方のすべての種を卒業させるたびに\(l.itemName(.legendaryEgg))。伝説か幻のポケモンが生まれます。",
                             "Un \(l.itemName(.legendaryEgg)) por cada región con todas sus especies graduadas: de él sale un legendario o singular.",
@@ -118,7 +155,7 @@ enum Changelog {
                             "Um \(l.itemName(.legendaryEgg)) para cada região com todas as espécies formadas: dele sai um lendário ou mítico.",
                             "Ein \(l.itemName(.legendaryEgg)) für jede Region, deren Arten alle ihren Abschied hatten: Daraus schlüpft ein legendäres oder mysteriöses Pokémon.",
                             "\(l.itemName(.legendaryEgg)) за каждый регион, все виды которого выпущены: из него вылупится легендарный или мифический покемон.") },
-            .new { l in l.t("도감이 졸업한 종과 본 종을 나눠 세요. \(l.itemName(.zygardeCube)): 졸업한 종을 세요.",
+            .new("2026-10-26-graduated-seen-counts") { l in l.t("도감이 졸업한 종과 본 종을 나눠 세요. \(l.itemName(.zygardeCube)): 졸업한 종을 세요.",
                             "The Pokédex counts graduated species apart from those only seen, and the \(l.itemName(.zygardeCube)) counts graduated ones.",
                             "図鑑が卒業した種と見ただけの種を分けて数え、\(l.itemName(.zygardeCube))は卒業した種を数えます。",
                             "La Pokédex separa las especies graduadas de las solo vistas, y el \(l.itemName(.zygardeCube)) cuenta las graduadas.",
@@ -126,7 +163,7 @@ enum Changelog {
                             "A Pokédex separa as espécies formadas das apenas vistas, e o \(l.itemName(.zygardeCube)) conta as formadas.",
                             "Der Pokédex zählt Arten mit Abschied getrennt von nur gesehenen, und der \(l.itemName(.zygardeCube)) zählt die mit Abschied.",
                             "Покедекс отделяет выпущенные виды от увиденных, а \(l.itemName(.zygardeCube)) считает выпущенные.") },
-            .improved { $0.t("같은 희귀도의 포켓몬은 이제 모두 같은 확률로 태어나요. 업적은 졸업한 포켓몬만 세요.",
+            .improved("2026-10-26-rarity-weights") { $0.t("같은 희귀도의 포켓몬은 이제 모두 같은 확률로 태어나요. 업적은 졸업한 포켓몬만 세요.",
                              "Every Pokémon of a rarity is now as likely to hatch as the others. Achievements only count graduated Pokémon.",
                              "同じレア度のポケモンは、どれも同じ確率で生まれます。実績は卒業したポケモンだけを数えます。",
                              "Todos los Pokémon de una rareza tienen la misma probabilidad de nacer. Los logros solo cuentan Pokémon graduados.",
@@ -134,7 +171,7 @@ enum Changelog {
                              "Todos os Pokémon de uma raridade têm a mesma chance de nascer. As conquistas só contam Pokémon formados.",
                              "Alle Pokémon einer Seltenheit schlüpfen gleich wahrscheinlich. Erfolge zählen nur Pokémon mit Abschied.",
                              "Все покемоны одной редкости вылупляются с равной вероятностью. Достижения учитывают только выпущенных.") },
-            .fixed { $0.t("변장한 메타몽이 알의 약속을 깨지 않아요. 타우로스 품종, 갈라르 달마모드 등 폼 이름도 고쳤어요.",
+            .fixed("2026-10-26-egg-promises") { $0.t("변장한 메타몽이 알의 약속을 깨지 않아요. 타우로스 품종, 갈라르 달마모드 등 폼 이름도 고쳤어요.",
                           "A disguised Ditto never breaks an egg's promise. Forms such as the Paldean Tauros breeds and Galarian Zen Mode have their own names.",
                           "変身したメタモンがタマゴの約束を破りません。パルデアケンタロスの種類やガラルのダルマモードなどにも名前がつきました。",
                           "Un Ditto disfrazado ya no rompe la promesa de un huevo. Formas como las razas de Tauros de Paldea y el Modo Daruma de Galar tienen su nombre.",
@@ -144,7 +181,7 @@ enum Changelog {
                           "Замаскированный Дитто больше не нарушает обещание яйца. Формы вроде пород Тауроса из Пальдеи и режима Дзен из Галара получили свои имена.") },
         ]),
         ChangelogDay(date: "2026-10-23", entries: [
-            .new { $0.t("보증마다 고유한 알: 고급·희귀 이상은 보석, 타입마다 하나, 타입:널의 알까지.",
+            .new("2026-10-23-own-eggs") { $0.t("보증마다 고유한 알: 고급·희귀 이상은 보석, 타입마다 하나, 타입:널의 알까지.",
                         "Eggs of their own: a gem for the Uncommon and Rare guarantees, one per type, and the Type: Null Egg.",
                         "保証ごとに専用のタマゴ：アンコモン・レア以上は宝石、タイプごとに1つ、タイプ：ヌルのタマゴも。",
                         "Huevos propios: una gema para las garantías Poco común y Raro, uno por tipo y el Huevo de Código Cero.",
@@ -152,7 +189,7 @@ enum Changelog {
                         "Ovos próprios: uma gema para as garantias Incomum e Raro, um por tipo e o Ovo de Type: Null.",
                         "Eigene Eier: ein Edelstein für Ungewöhnlich und Selten, eins pro Typ und das Typ:Null-Ei.",
                         "Свои яйца: самоцвет для гарантий «Необычный» и «Редкий», по одному на тип и яйцо Тип: Ноль.") },
-            .fixed { $0.t("긴 포켓몬 이름이 홈에서 잘리지 않고, 희귀도는 그 위에 표시돼요.",
+            .fixed("2026-10-23-long-names") { $0.t("긴 포켓몬 이름이 홈에서 잘리지 않고, 희귀도는 그 위에 표시돼요.",
                           "A long Pokémon name shows whole on Home, its rarity above it.",
                           "長いポケモンの名前もホームで切れずに表示され、レア度はその上に。",
                           "Un nombre largo de Pokémon se ve completo en Inicio, con la rareza encima.",
@@ -162,7 +199,7 @@ enum Changelog {
                           "Длинное имя покемона видно целиком на главной, редкость над ним.") },
         ]),
         ChangelogDay(date: "2026-10-22", entries: [
-            .new { $0.t("새로운 디자인: 카드, 알약 모양 버튼, 포켓몬 타입 색의 메인 카드.",
+            .new("2026-10-22-new-look") { $0.t("새로운 디자인: 카드, 알약 모양 버튼, 포켓몬 타입 색의 메인 카드.",
                         "A new look: cards, pill controls and a hero card in the Pokémon's type colors.",
                         "新しいデザイン：カード、ピル型の操作、ポケモンのタイプ色のメインカード。",
                         "Un nuevo aspecto: tarjetas, controles en píldora y una tarjeta principal con los colores del tipo.",
@@ -170,7 +207,7 @@ enum Changelog {
                         "Um visual novo: cartões, controles em pílula e um cartão principal nas cores do tipo.",
                         "Ein neuer Look: Karten, Pillen-Bedienelemente und eine Hauptkarte in den Typfarben.",
                         "Новый вид: карточки, кнопки-пилюли и главная карточка в цветах типа покемона.") },
-            .new { $0.t("알이 3D 스프라이트처럼 그려지고 대기 동작을 해요.",
+            .new("2026-10-22-drawn-egg") { $0.t("알이 3D 스프라이트처럼 그려지고 대기 동작을 해요.",
                         "The egg is drawn like the 3D sprites, with an idle animation.",
                         "タマゴが3Dスプライトのように描かれ、待機アニメーションをします。",
                         "El huevo se dibuja como los sprites 3D, con una animación de espera.",
@@ -178,7 +215,7 @@ enum Changelog {
                         "O ovo é desenhado como os sprites 3D, com uma animação de espera.",
                         "Das Ei ist wie die 3D-Sprites gezeichnet und bewegt sich im Leerlauf.",
                         "Яйцо нарисовано как 3D-спрайты и анимировано в ожидании.") },
-            .improved { $0.t("도감의 다른 페이지 이미지를 미리 준비해 바로 보여요.",
+            .improved("2026-10-22-preloaded-pages") { $0.t("도감의 다른 페이지 이미지를 미리 준비해 바로 보여요.",
                              "Pokédex pages show at once: the other pages' images are prepared in the background.",
                              "図鑑のほかのページの画像を前もって用意し、すぐに表示します。",
                              "Las páginas de la Pokédex se ven al instante: las imágenes se preparan en segundo plano.",
@@ -186,7 +223,7 @@ enum Changelog {
                              "As páginas da Pokédex aparecem na hora: as imagens são preparadas em segundo plano.",
                              "Pokédex-Seiten erscheinen sofort: Ihre Bilder werden im Hintergrund vorbereitet.",
                              "Страницы покедекса открываются сразу: изображения готовятся заранее.") },
-            .fixed { $0.t("도감과 진화 라인의 포켓몬 크기가 같아지고, 이로치 종은 이로치로 열려요.",
+            .fixed("2026-10-22-one-scale") { $0.t("도감과 진화 라인의 포켓몬 크기가 같아지고, 이로치 종은 이로치로 열려요.",
                           "Pokémon keep one scale in the Pokédex and the evolution lines, and a shiny species opens shiny.",
                           "図鑑と進化ラインでポケモンの大きさがそろい、色違いの種は色違いで開きます。",
                           "Los Pokémon tienen una sola escala en la Pokédex y las líneas evolutivas, y una especie variocolor se abre variocolor.",
@@ -194,7 +231,7 @@ enum Changelog {
                           "Os Pokémon mantêm uma escala na Pokédex e nas linhas evolutivas, e uma espécie brilhante abre brilhante.",
                           "Pokémon haben im Pokédex und in Entwicklungslinien eine Größe, und eine schillernde Art öffnet schillernd.",
                           "Покемоны одного масштаба в покедексе и линиях эволюции, а сияющий вид открывается сияющим.") },
-            .fixed { $0.t("한도 페이스 표시가 막대에 맞고, 진화 경로가 홈 카드 안에 들어가요.",
+            .fixed("2026-10-22-pace-and-track") { $0.t("한도 페이스 표시가 막대에 맞고, 진화 경로가 홈 카드 안에 들어가요.",
                           "The limits' pace marker fits its bar, and the evolution track's ways stay inside Home's card.",
                           "上限のペース表示がバーに合い、進化の道筋がホームのカードに収まります。",
                           "La marca de ritmo encaja en su barra y las ramas de la evolución quedan dentro de la tarjeta.",
@@ -204,7 +241,7 @@ enum Changelog {
                           "Метка темпа помещается в полосу, а пути эволюции остаются внутри карточки.") },
         ]),
         ChangelogDay(date: "2026-10-21", entries: [
-            .new { $0.t("1~5세대 포켓몬도 6~9세대처럼 Showdown의 3D 이미지로 움직여요.",
+            .new("2026-10-21-3d-sprites") { $0.t("1~5세대 포켓몬도 6~9세대처럼 Showdown의 3D 이미지로 움직여요.",
                         "Gen 1 to 5 Pokémon animate with Showdown's 3D renders, like Gen 6 to 9.",
                         "第1〜5世代のポケモンも、第6〜9世代のようにShowdownの3D画像で動きます。",
                         "Los Pokémon de la 1.ª a la 5.ª generación se animan con los modelos 3D de Showdown, como los de la 6.ª a la 9.ª.",
@@ -212,7 +249,7 @@ enum Changelog {
                         "Os Pokémon da 1ª à 5ª geração se animam com os modelos 3D do Showdown, como os da 6ª à 9ª.",
                         "Pokémon der Generationen 1 bis 5 bewegen sich mit Showdowns 3D-Modellen wie die der Generationen 6 bis 9.",
                         "Покемоны с 1 по 5 поколение анимированы 3D-моделями Showdown, как с 6 по 9.") },
-            .new { $0.t("체육관 배지마다 세대별 지방이 있어 하나씩 받아요.",
+            .new("2026-10-21-regional-badges") { $0.t("체육관 배지마다 세대별 지방이 있어 하나씩 받아요.",
                         "Each gym badge has a region per generation, claimed one at a time.",
                         "ジムバッジに世代ごとの地方があり、ひとつずつ受け取ります。",
                         "Cada medalla de gimnasio tiene una región por generación, que se reclama una a una.",
@@ -220,7 +257,7 @@ enum Changelog {
                         "Cada insígnia de ginásio tem uma região por geração, resgatada uma a uma.",
                         "Jeder Orden hat eine Region pro Generation, die einzeln eingelöst wird.",
                         "У каждого значка зала есть регион на поколение, их получают по одному.") },
-            .new { $0.t("아르세우스의 타입 폼은 체육관 배지로, 실버디의 폼은 전설의 메모리로 열려요.",
+            .new("2026-10-21-plates-memories") { $0.t("아르세우스의 타입 폼은 체육관 배지로, 실버디의 폼은 전설의 메모리로 열려요.",
                         "Arceus's type forms unlock with the gym badges, Silvally's with legendary Memories.",
                         "アルセウスのタイプフォルムはジムバッジで、シルヴァディのフォルムは伝説のメモリで解放されます。",
                         "Las formas de tipo de Arceus se desbloquean con las medallas, las de Silvally con Memorias legendarias.",
@@ -228,7 +265,7 @@ enum Changelog {
                         "As formas de tipo de Arceus abrem com as insígnias, as de Silvally com Memórias lendárias.",
                         "Arceus’ Typformen schalten die Orden frei, Amigentos Formen legendäre Discs.",
                         "Формы типов Арсеуса открываются значками залов, формы Сильвалли легендарными Памятями.") },
-            .new { l in l.t("\(l.itemName(.relicStatue)) 추가, 레지 여섯을 졸업시키면 받아요.",
+            .new("2026-10-21-relic-statue") { l in l.t("\(l.itemName(.relicStatue)) 추가, 레지 여섯을 졸업시키면 받아요.",
                             "The \(l.itemName(.relicStatue)), earned by the six Regis.",
                             "\(l.itemName(.relicStatue))が登場。6体のレジ系で手に入ります。",
                             "La \(l.itemName(.relicStatue)), que se gana con los seis Regi.",
@@ -236,7 +273,7 @@ enum Changelog {
                             "A \(l.itemName(.relicStatue)), ganha com os seis Regi.",
                             "Die \(l.itemName(.relicStatue)), verdient mit den sechs Regis.",
                             "\(l.itemName(.relicStatue)) за шестерых Реги.") },
-            .new { l in l.t("도감 완성 보상: \(l.itemName(.ovalCharm)), \(l.itemName(.glimmeringCharm)).",
+            .new("2026-10-21-charms") { l in l.t("도감 완성 보상: \(l.itemName(.ovalCharm)), \(l.itemName(.glimmeringCharm)).",
                             "A complete Pokédex earns the \(l.itemName(.ovalCharm)) and the \(l.itemName(.glimmeringCharm)).",
                             "図鑑を完成させると\(l.itemName(.ovalCharm))と\(l.itemName(.glimmeringCharm))がもらえます。",
                             "Una Pokédex completa da el \(l.itemName(.ovalCharm)) y el \(l.itemName(.glimmeringCharm)).",
@@ -244,7 +281,7 @@ enum Changelog {
                             "Uma Pokédex completa dá o \(l.itemName(.ovalCharm)) e o \(l.itemName(.glimmeringCharm)).",
                             "Ein vollständiger Pokédex bringt den \(l.itemName(.ovalCharm)) und den \(l.itemName(.glimmeringCharm)).",
                             "Полный покедекс даёт \(l.itemName(.ovalCharm)) и \(l.itemName(.glimmeringCharm)).") },
-            .new { $0.t("도감에 모은 종과 폼이 전체 중 몇인지 보여요.",
+            .new("2026-10-21-progress") { $0.t("도감에 모은 종과 폼이 전체 중 몇인지 보여요.",
                         "The Pokédex shows the species and forms collected out of the total.",
                         "図鑑に、集めた種とフォルムが全体のうちいくつか表示されます。",
                         "La Pokédex muestra las especies y formas reunidas sobre el total.",
@@ -252,7 +289,7 @@ enum Changelog {
                         "A Pokédex mostra as espécies e formas reunidas do total.",
                         "Der Pokédex zeigt gesammelte Arten und Formen von der Gesamtzahl.",
                         "Покедекс показывает собранные виды и формы из общего числа.") },
-            .new { $0.t("가방이 아이템, 배지, 아티팩트로 나뉘고, 보너스 페이지에 모든 성장 보너스가 보여요.",
+            .new("2026-10-21-bag-bonuses") { $0.t("가방이 아이템, 배지, 아티팩트로 나뉘고, 보너스 페이지에 모든 성장 보너스가 보여요.",
                         "The Bag is split into items, badges and artifacts, and a Bonuses page shows every growth bonus.",
                         "バッグが道具・バッジ・アーティファクトに分かれ、ボーナスのページですべての成長ボーナスが見られます。",
                         "La Bolsa se divide en objetos, medallas y artefactos, y una página de Bonificaciones muestra todas.",
@@ -260,7 +297,7 @@ enum Changelog {
                         "A Bolsa se divide em itens, insígnias e artefatos, e uma página de Bônus mostra todos.",
                         "Der Beutel ist in Items, Orden und Artefakte geteilt, und eine Bonusseite zeigt jeden Wachstumsbonus.",
                         "Сумка разделена на предметы, значки и артефакты, а страница бонусов показывает все бонусы роста.") },
-            .new { $0.t("업적 탭이 보상이 기다리는 곳을 보여 줘요.",
+            .new("2026-10-21-achievements-waiting") { $0.t("업적 탭이 보상이 기다리는 곳을 보여 줘요.",
                         "The Achievements tab shows where rewards are waiting.",
                         "実績タブで、ごほうびが待っている場所がわかります。",
                         "La pestaña de logros muestra dónde esperan las recompensas.",
@@ -268,7 +305,7 @@ enum Changelog {
                         "A aba de conquistas mostra onde as recompensas esperam.",
                         "Der Erfolge-Tab zeigt, wo Belohnungen warten.",
                         "Вкладка достижений показывает, где ждут награды.") },
-            .improved { l in l.t("성장 보너스는 더해지고 반복 보너스가 곱해져요. \(l.itemName(.gracidea)): 첫 단계가 빨라져요. \(l.itemName(.legendCharm)): 전설 확률 2배.",
+            .improved("2026-10-21-growth-bonuses") { l in l.t("성장 보너스는 더해지고 반복 보너스가 곱해져요. \(l.itemName(.gracidea)): 첫 단계가 빨라져요. \(l.itemName(.legendCharm)): 전설 확률 2배.",
                                  "Growth bonuses add up and the repeat boost multiplies them. The \(l.itemName(.gracidea)) speeds up first stages, the \(l.itemName(.legendCharm)) doubles legendary odds.",
                                  "成長ボーナスは足し合わされ、くり返しボーナスがそれを掛けます。\(l.itemName(.gracidea))は最初の段階を速め、\(l.itemName(.legendCharm))は伝説の確率を2倍に。",
                                  "Las bonificaciones de crecimiento se suman y la de repetición las multiplica. La \(l.itemName(.gracidea)) acelera las primeras fases, la \(l.itemName(.legendCharm)) duplica los legendarios.",
@@ -276,7 +313,7 @@ enum Changelog {
                                  "Os bônus de crescimento se somam e o de repetição os multiplica. A \(l.itemName(.gracidea)) acelera os primeiros estágios, a \(l.itemName(.legendCharm)) dobra os lendários.",
                                  "Wachstumsboni addieren sich, der Wiederholungsbonus multipliziert sie. Die \(l.itemName(.gracidea)) beschleunigt erste Stufen, die \(l.itemName(.legendCharm)) verdoppelt Legendäre.",
                                  "Бонусы роста складываются, повторный бонус их умножает. \(l.itemName(.gracidea)) ускоряет первые стадии, \(l.itemName(.legendCharm)) удваивает шанс легендарных.") },
-            .fixed { $0.t("폼마다 고유한 타입과 데이터를 갖고, 진화는 개체의 폼을 따라가요.",
+            .fixed("2026-10-21-form-data") { $0.t("폼마다 고유한 타입과 데이터를 갖고, 진화는 개체의 폼을 따라가요.",
                           "Each form has its own types and data, and evolutions follow the individual's form.",
                           "フォルムごとに固有のタイプとデータを持ち、進化は個体のフォルムに従います。",
                           "Cada forma tiene sus propios tipos y datos, y las evoluciones siguen la forma del individuo.",
@@ -284,7 +321,7 @@ enum Changelog {
                           "Cada forma tem seus próprios tipos e dados, e as evoluções seguem a forma do indivíduo.",
                           "Jede Form hat eigene Typen und Daten, und Entwicklungen folgen der Form des Individuums.",
                           "У каждой формы свои типы и данные, а эволюции следуют форме особи.") },
-            .fixed { $0.t("반복 보너스는 이미 졸업한 폼에만 붙고, 아이템은 어떤 포켓몬이 태어날지 바꾸지 않아요.",
+            .fixed("2026-10-21-repeat-boost") { $0.t("반복 보너스는 이미 졸업한 폼에만 붙고, 아이템은 어떤 포켓몬이 태어날지 바꾸지 않아요.",
                           "The repeat boost only applies to a form already graduated, and items no longer change which Pokémon hatch.",
                           "くり返しボーナスは卒業済みのフォルムだけにつき、道具は生まれるポケモンを変えません。",
                           "La bonificación de repetición solo se aplica a una forma ya graduada, y los objetos ya no cambian qué Pokémon nace.",
@@ -292,7 +329,7 @@ enum Changelog {
                           "O bônus de repetição só vale para uma forma já formada, e os itens não mudam mais quais Pokémon nascem.",
                           "Der Wiederholungsbonus gilt nur für eine Form mit Abschied, und Items ändern nicht mehr, was schlüpft.",
                           "Повторный бонус действует только для уже выпущенной формы, а предметы больше не меняют, кто вылупится.") },
-            .fixed { $0.t("칼로스 폼이 자기 이미지를 불러오고, 다가올 단계의 폼이 실루엣으로 보여요.",
+            .fixed("2026-10-21-kalos-sprites") { $0.t("칼로스 폼이 자기 이미지를 불러오고, 다가올 단계의 폼이 실루엣으로 보여요.",
                           "Kalos forms load their own sprites, and a coming stage's forms show as silhouettes.",
                           "カロスのフォルムが専用の画像を読み込み、次の段階のフォルムがシルエットで表示されます。",
                           "Las formas de Kalos cargan sus propios sprites, y las formas de la próxima fase se ven como siluetas.",
@@ -302,7 +339,7 @@ enum Changelog {
                           "Формы Калоса загружают свои спрайты, а формы следующей стадии видны силуэтами.") },
         ]),
         ChangelogDay(date: "2026-10-20", entries: [
-            .new { $0.t("6~9세대: 칼로스, 알로라, 가라르, 히스이, 팔데아의 포켓몬과 리전폼.",
+            .new("2026-10-20-gen-6-9") { $0.t("6~9세대: 칼로스, 알로라, 가라르, 히스이, 팔데아의 포켓몬과 리전폼.",
                         "Generations 6 to 9: Kalos, Alola, Galar, Hisui and Paldea Pokémon with their regional forms.",
                         "第6〜9世代：カロス、アローラ、ガラル、ヒスイ、パルデアのポケモンとリージョンフォーム。",
                         "Generaciones 6 a 9: Pokémon de Kalos, Alola, Galar, Hisui y Paldea con sus formas regionales.",
@@ -310,7 +347,7 @@ enum Changelog {
                         "Gerações 6 a 9: Pokémon de Kalos, Alola, Galar, Hisui e Paldea com suas formas regionais.",
                         "Generationen 6 bis 9: Pokémon aus Kalos, Alola, Galar, Hisui und Paldea mit ihren Regionalformen.",
                         "Поколения с 6 по 9: покемоны Калоса, Алолы, Галара, Хисуи и Пальдеи с региональными формами.") },
-            .new { $0.t("진화의 돌과 도감 업적, 모든 세대 전설을 위한 수집 아이템.",
+            .new("2026-10-20-stones-achievements") { $0.t("진화의 돌과 도감 업적, 모든 세대 전설을 위한 수집 아이템.",
                         "Evolution stones and Pokédex achievements, with collector items for the legendaries of every generation.",
                         "進化の石と図鑑の実績、すべての世代の伝説のためのコレクション道具。",
                         "Piedras evolutivas y logros de la Pokédex, con objetos de colección para los legendarios de cada generación.",
@@ -318,7 +355,7 @@ enum Changelog {
                         "Pedras de evolução e conquistas da Pokédex, com itens de coleção para os lendários de cada geração.",
                         "Entwicklungssteine und Pokédex-Erfolge, mit Sammelitems für die Legendären jeder Generation.",
                         "Камни эволюции и достижения покедекса с коллекционными предметами для легендарных всех поколений.") },
-            .fixed { $0.t("알에서 태어나지 않는 전설은 뮤츠와 같은 확률이 되고, 돌 알은 태어나는 폼의 타입을 지켜요.",
+            .fixed("2026-10-20-legendary-weights") { $0.t("알에서 태어나지 않는 전설은 뮤츠와 같은 확률이 되고, 돌 알은 태어나는 폼의 타입을 지켜요.",
                           "Legendaries that never hatch from eggs weigh like Mewtwo, and a stone's egg keeps its type for the form that hatches.",
                           "タマゴから生まれない伝説はミュウツーと同じ確率になり、石のタマゴは生まれるフォルムのタイプを守ります。",
                           "Los legendarios que no nacen de huevos pesan como Mewtwo, y el huevo de una piedra respeta el tipo de la forma que nace.",
@@ -326,7 +363,7 @@ enum Changelog {
                           "Os lendários que não nascem de ovos pesam como Mewtwo, e o ovo de uma pedra mantém o tipo da forma que nasce.",
                           "Legendäre, die nie aus Eiern schlüpfen, zählen wie Mewtu, und das Ei eines Steins hält seinen Typ für die schlüpfende Form.",
                           "Легендарные, которые не вылупляются из яиц, весят как Мьюту, а яйцо камня сохраняет тип для вылупившейся формы.") },
-            .fixed { $0.t("진화한 종의 폼도 얻을 수 있어요.",
+            .fixed("2026-10-20-evolved-forms") { $0.t("진화한 종의 폼도 얻을 수 있어요.",
                           "The forms of evolved species can be obtained.",
                           "進化した種のフォルムも手に入ります。",
                           "Las formas de las especies evolucionadas se pueden conseguir.",
@@ -336,7 +373,7 @@ enum Changelog {
                           "Формы эволюционировавших видов теперь можно получить.") },
         ]),
         ChangelogDay(date: "2026-10-19", entries: [
-            .new { $0.t("갈래 진화가 실루엣으로 보이고, 중복을 막아 줘요.",
+            .new("2026-10-19-branching") { $0.t("갈래 진화가 실루엣으로 보이고, 중복을 막아 줘요.",
                         "Branching evolutions show as silhouettes, protected against duplicates.",
                         "分岐進化がシルエットで表示され、重複を防ぎます。",
                         "Las evoluciones ramificadas se ven como siluetas, protegidas contra duplicados.",
@@ -344,7 +381,7 @@ enum Changelog {
                         "As evoluções ramificadas aparecem como silhuetas, protegidas contra repetidos.",
                         "Verzweigte Entwicklungen erscheinen als Silhouetten, geschützt vor Duplikaten.",
                         "Ветвящиеся эволюции видны силуэтами и защищены от дубликатов.") },
-            .new { $0.t("도감 검색에 진화 계열 필터가 생겼어요.",
+            .new("2026-10-19-family-filter") { $0.t("도감 검색에 진화 계열 필터가 생겼어요.",
                         "An evolution family filter in the Pokédex search.",
                         "図鑑の検索に進化系統のフィルター。",
                         "Un filtro de familia evolutiva en la búsqueda de la Pokédex.",
@@ -352,7 +389,7 @@ enum Changelog {
                         "Um filtro de família evolutiva na busca da Pokédex.",
                         "Ein Filter nach Entwicklungsfamilie in der Pokédex-Suche.",
                         "Фильтр по эволюционному семейству в поиске покедекса.") },
-            .improved { $0.t("원본 PokeTokenBar 2.5.6과 동기화했어요.",
+            .improved("2026-10-19-sync-2-5-6") { $0.t("원본 PokeTokenBar 2.5.6과 동기화했어요.",
                              "Synced with PokeTokenBar 2.5.6.",
                              "PokeTokenBar 2.5.6と同期しました。",
                              "Sincronizado con PokeTokenBar 2.5.6.",
@@ -362,7 +399,7 @@ enum Changelog {
                              "Синхронизировано с PokeTokenBar 2.5.6.") },
         ]),
         ChangelogDay(date: "2026-10-15", entries: [
-            .new { $0.t("1~5세대 종의 다른 폼을 모을 수 있어요.",
+            .new("2026-10-15-forms") { $0.t("1~5세대 종의 다른 폼을 모을 수 있어요.",
                         "Alternate forms to collect for Gen 1 to 5 species.",
                         "第1〜5世代の種の別フォルムを集められます。",
                         "Formas alternativas para coleccionar en las especies de la 1.ª a la 5.ª generación.",
@@ -370,7 +407,7 @@ enum Changelog {
                         "Formas alternativas para colecionar nas espécies da 1ª à 5ª geração.",
                         "Alternative Formen zum Sammeln für Arten der Generationen 1 bis 5.",
                         "Альтернативные формы для видов с 1 по 5 поколение.") },
-            .new { $0.t("포획 기록에 \"중복\" 배지.",
+            .new("2026-10-15-duplicate-badge") { $0.t("포획 기록에 \"중복\" 배지.",
                         "A \"Duplicate\" badge in the catch log.",
                         "捕獲記録に「重複」バッジ。",
                         "Una insignia \"Repetido\" en el registro de capturas.",
@@ -378,7 +415,7 @@ enum Changelog {
                         "Um selo \"Repetido\" no registro de capturas.",
                         "Ein Abzeichen „Doppelt“ im Fangprotokoll.",
                         "Значок «Дубликат» в журнале поимок.") },
-            .new { $0.t("설정에 설치된 버전이 보이고, 업데이트 중에는 메뉴바에 진행 표시가 돌아요.",
+            .new("2026-10-15-version-spinner") { $0.t("설정에 설치된 버전이 보이고, 업데이트 중에는 메뉴바에 진행 표시가 돌아요.",
                         "Settings show the installed version, and a spinner turns in the menu bar during updates.",
                         "設定にインストール中のバージョンを表示し、更新中はメニューバーに進行表示が回ります。",
                         "Ajustes muestra la versión instalada, y un indicador gira en la barra durante las actualizaciones.",
@@ -386,7 +423,7 @@ enum Changelog {
                         "Os Ajustes mostram a versão instalada, e um indicador gira na barra durante as atualizações.",
                         "Die Einstellungen zeigen die installierte Version, und bei Updates dreht sich ein Symbol in der Menüleiste.",
                         "Настройки показывают установленную версию, а во время обновления в строке меню крутится индикатор.") },
-            .fixed { $0.t("리셋 시각이 바뀌는 한도가 사탕을 계속 주지 않고, 갈래 진화와 놓아준 포켓몬의 중복을 정확히 가려요.",
+            .fixed("2026-10-15-candy-fixes") { $0.t("리셋 시각이 바뀌는 한도가 사탕을 계속 주지 않고, 갈래 진화와 놓아준 포켓몬의 중복을 정확히 가려요.",
                           "A limit whose reset time moves no longer pays Rare Candy again and again, and duplicates are told apart across branches and released Pokémon.",
                           "リセット時刻が動く上限がアメを何度も渡さなくなり、分岐進化や手放したポケモンの重複を正しく見分けます。",
                           "Un límite cuya hora de reinicio cambia ya no da caramelos sin fin, y los repetidos se distinguen entre ramas y Pokémon liberados.",
@@ -394,7 +431,7 @@ enum Changelog {
                           "Um limite cujo horário de reinício muda não dá mais doces sem parar, e os repetidos são reconhecidos entre ramificações e Pokémon soltos.",
                           "Ein Limit mit wanderndem Reset zahlt nicht mehr endlos Bonbons, und Duplikate werden über Zweige und freigelassene Pokémon erkannt.",
                           "Лимит со сдвигающимся сбросом больше не даёт конфеты без конца, а дубликаты различаются между ветвями и отпущенными покемонами.") },
-            .improved { $0.t("원본 PokeTokenBar와 동기화했어요.",
+            .improved("2026-10-15-sync") { $0.t("원본 PokeTokenBar와 동기화했어요.",
                              "Synced with PokeTokenBar.",
                              "PokeTokenBarと同期しました。",
                              "Sincronizado con PokeTokenBar.",
@@ -404,7 +441,7 @@ enum Changelog {
                              "Синхронизировано с PokeTokenBar.") },
         ]),
         ChangelogDay(date: "2026-10-14", entries: [
-            .new { $0.t("PokeTokenLBI: 앱이 포크의 최신 버전으로 스스로 업데이트해요.",
+            .new("2026-10-14-self-update") { $0.t("PokeTokenLBI: 앱이 포크의 최신 버전으로 스스로 업데이트해요.",
                         "PokeTokenLBI: the app updates itself from the fork's latest version.",
                         "PokeTokenLBI：アプリがフォークの最新版に自分で更新します。",
                         "PokeTokenLBI: la app se actualiza sola con la última versión del fork.",
