@@ -107,8 +107,8 @@ final class PopoverNavigation {
     var showingBonuses = false { didSet { if showingBonuses { dexDetailCollectionID = nil } } }
     /// The changelog takes over the popover the same way.
     var showingChangelog = false { didSet { if showingChangelog { dexDetailCollectionID = nil } } }
-    /// The last changelog day seen before it was opened: the days after it are marked new on it.
-    var changelogNewAfter: String?
+    /// The changelog entries seen before it was opened: the others are marked new on it.
+    var changelogSeenBefore: Set<String> = []
     /// The Collection tab's open Pokédex detail page (`DexSpecies.collectionID`); nil = grid or log.
     /// It lives here so Home sprites can open it, but it only lasts while the collection content is
     /// on screen: leaving the tab, switching segment, or covering it with Settings/Recap drops it —
@@ -217,7 +217,7 @@ struct PopoverView: View {
             } else if nav.showingBonuses {
                 BonusScreen(store: companion) { nav.showingBonuses = false }
             } else if nav.showingChangelog {
-                ChangelogScreen(l: l, language: companion.language, newAfter: nav.changelogNewAfter) {
+                ChangelogScreen(l: l, language: companion.language, seenBefore: nav.changelogSeenBefore) {
                     nav.showingChangelog = false
                 }
             } else {
@@ -311,7 +311,7 @@ struct PopoverView: View {
 
     /// Opens the changelog, the days not seen yet marked new on it, and counts them seen.
     private func openChangelog() {
-        nav.changelogNewAfter = store.changelogSeen
+        nav.changelogSeenBefore = store.changelogSeen
         store.markChangelogSeen()
         nav.showingChangelog = true
     }
@@ -319,7 +319,7 @@ struct PopoverView: View {
     /// What changed since the player last looked, above the tabs, until they open it or close the banner.
     @ViewBuilder
     private var changelogBanner: some View {
-        let unseen = store.unseenChangelogDays.flatMap(\.entries)
+        let unseen = store.unseenChangelogEntries
         if !unseen.isEmpty {
             HStack(spacing: 8) {
                 Image(systemName: "sparkles").foregroundStyle(.yellow)
@@ -1245,7 +1245,7 @@ struct PopoverView: View {
             }
             CircleIconButton(systemImage: "sparkles", help: l.changelogTitle) { openChangelog() }
                 .overlay(alignment: .topTrailing) {
-                    if !store.unseenChangelogDays.isEmpty {
+                    if !store.unseenChangelogEntries.isEmpty {
                         Circle().fill(Color.red).frame(width: 7, height: 7).offset(x: 1, y: -1)
                     }
                 }

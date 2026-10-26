@@ -163,13 +163,17 @@ final class UsageStore {
         didSet { defaults.set(menuSpriteMode.rawValue, forKey: "menuSpriteMode") }
     }
 
-    /// The last day of the changelog this Mac's player saw (`Changelog`): the days after it are new to them.
-    private(set) var changelogSeen: String {
-        didSet { defaults.set(changelogSeen, forKey: "changelogSeen") }
+    /// The changelog entries this Mac's player has seen (`ChangelogEntry.id`): the others came with an update since.
+    private(set) var changelogSeen: Set<String> {
+        didSet { defaults.set(changelogSeen.sorted(), forKey: Self.changelogSeenKey) }
     }
-    var unseenChangelogDays: [ChangelogDay] { Changelog.days(after: changelogSeen) }
+    static let changelogSeenKey = "changelogSeenIDs"
+    /// The key of the first release, which kept only the last day read.
+    static let changelogSeenDayKey = "changelogSeen"
+    var unseenChangelogEntries: [ChangelogEntry] { Changelog.unseen(changelogSeen) }
     func markChangelogSeen() {
-        if let latest = Changelog.days.first?.date, latest > changelogSeen { changelogSeen = latest }
+        let all = changelogSeen.union(Changelog.ids)
+        if all != changelogSeen { changelogSeen = all }
     }
     // 알림(독립 토글)
     var limitNotifications: Bool {
@@ -847,8 +851,15 @@ final class UsageStore {
         // 사용자의 배터리 프로파일은 그대로다. 더 부드러운 쪽은 opt-in(실측 idle CPU 1.8%/5.1%).
         animationQuality = AnimationQuality(rawValue: d.string(forKey: "animationQuality") ?? "") ?? .powerSaver
         menuSpriteMode = MenuSpriteMode(rawValue: d.string(forKey: "menuSpriteMode") ?? "") ?? .animated
-        // A player who never opened the changelog sees the latest day as new, not the whole history.
-        changelogSeen = d.string(forKey: "changelogSeen") ?? Changelog.initialSeen
+        // A player who never opened the changelog sees the latest day as new, not the whole history; one who read it
+        // when only the day was kept has seen that day as it was then.
+        if let ids = d.stringArray(forKey: Self.changelogSeenKey) {
+            changelogSeen = Set(ids)
+        } else if let day = d.string(forKey: Self.changelogSeenDayKey) {
+            changelogSeen = Changelog.seen(throughDay: day)
+        } else {
+            changelogSeen = Changelog.initialSeen
+        }
         disableKeychainAccess = d.object(forKey: "disableKeychainAccess") as? Bool ?? false
         additionalClaudeConfigDirs = d.string(forKey: ClaudeAccountRoots.defaultsKey) ?? ""
         claudeTrackedAccountMode = ClaudeTrackedAccountMode(storedValue: d.string(forKey: ClaudeTrackedAccountMode.defaultsKey))

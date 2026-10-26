@@ -32,9 +32,12 @@ Keep the body in a UTF-8 file and pass it with `gh ... --body-file`.
 
 Every PR adds what players can see of it to `Changelog.days`
 (`Sources/PokeTokenBar/Core/Changelog.swift`), under the day it is merged: one
-short entry per change (`.new`, `.improved` or `.fixed`), written for players
+short entry per change (`.new`, `.improved` or `.fixed`), with a unique id
+(`yyyy-MM-dd-slug`, its day first) placed at the top of its day, written for players
 rather than developers, in the eight app languages, without dashes. Add the day
-at the top when it is not there yet. A PR with nothing visible to players adds
+at the top when it is not there yet. The app keeps the ids a player has seen, so
+an entry added to a day they already read still shows as new after their
+update: never change or reuse an id once shipped. A PR with nothing visible to players adds
 nothing. `scripts/check-pr.py` reminds you when `Sources/` changed without it.
 
 ## Mandatory UI images
