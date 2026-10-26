@@ -142,6 +142,35 @@ final class UsageStore {
     var animationQuality: AnimationQuality {
         didSet { defaults.set(animationQuality.rawValue, forKey: "animationQuality") }
     }
+
+    /// How the companion shows in the menu bar. The floating pet keeps its own toggle.
+    enum MenuSpriteMode: String, CaseIterable {
+        /// Its idle loop, at the `animationQuality` frame cap.
+        case animated
+        /// One frame and no frame loop, so the menu bar never redraws for it. Its own mode rather than an
+        /// `AnimationQuality` without a cap: no frames at all, not native ones.
+        case still
+        /// The text lines alone.
+        case hidden
+
+        /// The mode the menu bar uses with these text lines: hidden with none of them on would leave nothing to click,
+        /// so it shows the still frame.
+        func effective(lines: [String]) -> MenuSpriteMode {
+            self == .hidden && lines.isEmpty ? .still : self
+        }
+    }
+    var menuSpriteMode: MenuSpriteMode {
+        didSet { defaults.set(menuSpriteMode.rawValue, forKey: "menuSpriteMode") }
+    }
+
+    /// The last day of the changelog this Mac's player saw (`Changelog`): the days after it are new to them.
+    private(set) var changelogSeen: String {
+        didSet { defaults.set(changelogSeen, forKey: "changelogSeen") }
+    }
+    var unseenChangelogDays: [ChangelogDay] { Changelog.days(after: changelogSeen) }
+    func markChangelogSeen() {
+        if let latest = Changelog.days.first?.date, latest > changelogSeen { changelogSeen = latest }
+    }
     // 알림(독립 토글)
     var limitNotifications: Bool {
         didSet { defaults.set(limitNotifications, forKey: "limitNotifications") }
@@ -625,6 +654,8 @@ final class UsageStore {
             windows += claudeCandyWindows(account, named: accounts.count > 1, l)
                 .filter { account.isDefault || armedCandyWindows.contains($0.key) }
         }
+        // Each provider's windows are summed from its own local usage: the tokens behind them.
+        let codexTokens = recentTokensByProvider["codex"], antigravityTokens = recentTokensByProvider["antigravity"]
         for bucket in codexLimits?.visibleSnapshots ?? [] {
             let bucketKey = bucket.limitId ?? bucket.limitName ?? "codex"
             let bucketName = bucket.bucketDisplayName
@@ -634,7 +665,8 @@ final class UsageStore {
                     name: "\(bucketName) \(l.codexWindow(primary.windowDurationMins))",
                     kind: Self.windowClass(minutes: primary.windowDurationMins),
                     utilization: Double(primary.usedPercent),
-                    epoch: primary.resetsAt.map(String.init)))
+                    epoch: primary.resetsAt.map(String.init),
+                    windowTokens: codexTokens?.windowTokens(reset: primary.resetDate, span: primary.windowSpan)))
             }
             if let secondary = bucket.secondary {
                 windows.append(CandyWindow(
@@ -642,7 +674,8 @@ final class UsageStore {
                     name: "\(bucketName) \(l.codexWindow(secondary.windowDurationMins))",
                     kind: Self.windowClass(minutes: secondary.windowDurationMins),
                     utilization: Double(secondary.usedPercent),
-                    epoch: secondary.resetsAt.map(String.init)))
+                    epoch: secondary.resetsAt.map(String.init),
+                    windowTokens: codexTokens?.windowTokens(reset: secondary.resetDate, span: secondary.windowSpan)))
             }
         }
         for group in antigravityLimits?.groups ?? [] {
@@ -655,7 +688,8 @@ final class UsageStore {
                     name: "\(groupTitle) \(l.fiveHourSession)",
                     kind: .session,
                     utilization: fiveHour.usedPercent,
-                    epoch: epoch))
+                    epoch: epoch,
+                    windowTokens: antigravityTokens?.windowTokens(reset: fiveHour.resetDate, span: fiveHour.windowSpan)))
             }
             if let weekly = group.weeklyBucket {
                 let epoch = weekly.resetDate.map { ISO8601DateFormatter().string(from: $0) } ?? weekly.resetTime
@@ -664,7 +698,8 @@ final class UsageStore {
                     name: "\(groupTitle) \(l.weekly)",
                     kind: .weekly,
                     utilization: weekly.usedPercent,
-                    epoch: epoch))
+                    epoch: epoch,
+                    windowTokens: antigravityTokens?.windowTokens(reset: weekly.resetDate, span: weekly.windowSpan)))
             }
         }
         return windows
@@ -673,18 +708,24 @@ final class UsageStore {
     /// `named`: next to other accounts, the notification says whose limit it is.
     private func claudeCandyWindows(_ account: ClaudeAccountLimits, named: Bool, _ l: L) -> [CandyWindow] {
         let suffix = named ? " (\(account.title))" : ""
+        // With several accounts each one's own turns, like its 5h block (`claudeCurrentBlock`).
+        let tokens = claudeAccounts.count > 1 ? claudeAccountTimelines[account.id] : recentTokensByProvider["claude_code"]
         var windows: [CandyWindow] = []
         if let fiveHour = account.status.fiveHour, let u = fiveHour.utilization {
             let epoch = fiveHour.resetDate.map { ISO8601DateFormatter().string(from: $0) } ?? fiveHour.resetsAt
             windows.append(CandyWindow(key: "\(account.windowKeyPrefix).fiveHour",
                                        name: l.claudeFiveHour + suffix, kind: .session,
-                                       utilization: u, epoch: epoch))
+                                       utilization: u, epoch: epoch,
+                                       windowTokens: tokens?.windowTokens(reset: fiveHour.resetDate,
+                                                                          span: LimitWindowSpan.fiveHour)))
         }
         if let sevenDay = account.status.sevenDay, let u = sevenDay.utilization {
             let epoch = sevenDay.resetDate.map { ISO8601DateFormatter().string(from: $0) } ?? sevenDay.resetsAt
             windows.append(CandyWindow(key: "\(account.windowKeyPrefix).sevenDay",
                                        name: l.claudeWeekly + suffix, kind: .weekly,
-                                       utilization: u, epoch: epoch))
+                                       utilization: u, epoch: epoch,
+                                       windowTokens: tokens?.windowTokens(reset: sevenDay.resetDate,
+                                                                          span: LimitWindowSpan.sevenDay)))
         }
         return windows
     }
@@ -805,6 +846,9 @@ final class UsageStore {
         // 기본 powerSaver — 이 설정이 생기기 전의 고정 캡(0.4s)과 같은 프레임 레이트라, 기존
         // 사용자의 배터리 프로파일은 그대로다. 더 부드러운 쪽은 opt-in(실측 idle CPU 1.8%/5.1%).
         animationQuality = AnimationQuality(rawValue: d.string(forKey: "animationQuality") ?? "") ?? .powerSaver
+        menuSpriteMode = MenuSpriteMode(rawValue: d.string(forKey: "menuSpriteMode") ?? "") ?? .animated
+        // A player who never opened the changelog sees the latest day as new, not the whole history.
+        changelogSeen = d.string(forKey: "changelogSeen") ?? Changelog.initialSeen
         disableKeychainAccess = d.object(forKey: "disableKeychainAccess") as? Bool ?? false
         additionalClaudeConfigDirs = d.string(forKey: ClaudeAccountRoots.defaultsKey) ?? ""
         claudeTrackedAccountMode = ClaudeTrackedAccountMode(storedValue: d.string(forKey: ClaudeTrackedAccountMode.defaultsKey))
@@ -1060,10 +1104,12 @@ final class UsageStore {
                             lastUsage: enrichment.periodsOK ? enrichment.lastUsage : nil)
                         if snapshot.hasDisplayableUsage { snapshots.append(snapshot) }
                     }
+                    if enrichment.periodsOK { recentTokensByProvider[id] = enrichment.recentTokens }
                     continue
                 }
                 if enrichment.blocksOK { snapshots[index].activeBlock = enrichment.activeBlock }
                 if enrichment.periodsOK {
+                    recentTokensByProvider[id] = enrichment.recentTokens
                     snapshots[index].weekTotal = enrichment.weekTotal
                     snapshots[index].monthTotal = enrichment.monthTotal
                     snapshots[index].monthDaily = enrichment.monthDaily
@@ -1204,6 +1250,10 @@ final class UsageStore {
     private(set) var unattributedClaudeUsage = ClaudeAccountUsage()
     /// Each account's own active 5h block, for its tab and forecast.
     private var claudeAccountBlocks: [String: BlockUsage] = [:]
+    /// Each account's last week of tokens, for its limits' candies, while several accounts are shown.
+    private var claudeAccountTimelines: [String: TokenTimeline] = [:]
+    /// Each provider's last week of tokens, for its limits' candies (`CandyWindow.windowTokens`).
+    private var recentTokensByProvider: [String: TokenTimeline] = [:]
 
     /// The account behind the menu bar percentage, warning state, companion mood, floating pet hover
     /// and 5h forecast. With a single account this is that account, whatever the mode.
@@ -1415,6 +1465,7 @@ final class UsageStore {
         claudeAccountActivity = [:]
         claudeAccountUsage = [:]
         claudeAccountBlocks = [:]
+        claudeAccountTimelines = [:]
         unattributedClaudeUsage = ClaudeAccountUsage()
     }
 
@@ -1456,12 +1507,14 @@ final class UsageStore {
         for (id, usage) in result.byAccount where !shown.contains(id) { unattributed.add(usage) }
         claudeAccountUsage = result.byAccount.filter { shown.contains($0.key) }
         claudeAccountBlocks = result.activeBlocks.filter { shown.contains($0.key) }
+        claudeAccountTimelines = result.timelines.filter { shown.contains($0.key) }
         unattributedClaudeUsage = unattributed
     }
 
-    /// The month, and the whole 5h block when it started last month.
+    /// The month, the whole 5h block when it started last month, and the last week for the weekly limit's candies.
     nonisolated static func claudeUsageScanStart(now: Date) -> Date {
-        min(LocalUsageReader.startOfMonth(now), now.addingTimeInterval(-LocalUsageReader.blockWindow))
+        min(LocalUsageReader.startOfMonth(now), now.addingTimeInterval(-LocalUsageReader.blockWindow),
+            now.addingTimeInterval(-TokenTimeline.span))
     }
 
     /// Local usage for the running app only, like `ClaudeAccountRoots.installedDiscovery`.

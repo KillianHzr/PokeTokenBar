@@ -28,6 +28,12 @@ struct UnlockRequirementView: View {
                 if !compact {
                     ProgressView(value: Double(min(count, needed)), total: Double(max(1, needed))).controlSize(.small)
                 }
+            case .allPikachuCostumes:
+                let count = store.state.pikachuCostumes.count, needed = PikachuCostume.allCases.count
+                counterRow(l.allPikachuCostumesGoal, count: count, needed: needed, met: count >= needed)
+                if !compact {
+                    ProgressView(value: Double(min(count, needed)), total: Double(needed)).controlSize(.small)
+                }
             case .silvallyMemories:
                 let won = store.state.graduatedSilvallyMemoryTypes
                 let needed = PokemonForm.memoryTypes.count

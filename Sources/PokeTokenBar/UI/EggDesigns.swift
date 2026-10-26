@@ -67,6 +67,8 @@ struct EggDesign {
     var back: (inout EggCanvas, EggFrame) -> Void = { _, _ in }
     var front: (inout EggCanvas, EggFrame) -> Void = { _, _ in }
     var outline: EggColor
+    /// Light drawn over the outline, so thin sparks keep their color.
+    var glow: (inout EggCanvas, EggFrame) -> Void = { _, _ in }
 }
 
 /// The custom eggs: a gem for each rarer guarantee, one per type and Type: Null's, each its own shape and things around
@@ -86,6 +88,7 @@ enum EggDesigns {
         drawEgg(&canvas, frame, design.surface)
         design.front(&canvas, frame)
         canvas.outline(design.outline)
+        design.glow(&canvas, frame)
         return canvas.image()
     }
 
@@ -222,6 +225,7 @@ enum EggDesigns {
         switch kind {
         case .type(let type): return design(for: type)
         case .typeNull: return typeNull
+        case .birthday: return birthdaySurprise
         case .tier(.uncommon): return emerald
         case .tier(.rare): return sapphire
         case .tier(.legendary): return legendary
@@ -1015,6 +1019,168 @@ enum EggDesigns {
             sparkles(&canvas, f, [(-0.62, 0.5), (0.65, 0.15), (-0.2, -0.6), (0.4, 0.75), (-0.8, -0.2), (0.75, -0.55)],
                      .white)
         }, outline: EggColor(0.3, 0.32, 0.4))
+    }
+
+    // MARK: Birthday egg
+
+    /// Sprinkles: little sticks scattered over the surface's map, each its own color and slant.
+    static func jimmy(_ p: EggSurfacePoint, _ colors: [EggColor], density: Double, seed: Int) -> EggColor? {
+        let cell = 0.15
+        let a: Double = p.angle * EggProfile.radius(p.y) / cell + 50, y: Double = p.y / cell + 50
+        let i0 = Int(a.rounded(.down)), j0 = Int(y.rounded(.down))
+        for i in i0 - 1...i0 + 1 {
+            for j in j0 - 1...j0 + 1 where hash(i, j, 0, seed: seed) < density {
+                let dx: Double = a - Double(i) - 0.2 - 0.6 * hash(i, j, 1, seed: seed)
+                let dy: Double = y - Double(j) - 0.2 - 0.6 * hash(i, j, 2, seed: seed)
+                let slant: Double = hash(i, j, 3, seed: seed) * .pi
+                let along: Double = dx * cos(slant) + dy * sin(slant), across: Double = -dx * sin(slant) + dy * cos(slant)
+                if abs(along) < 0.42, abs(across) < 0.17 {
+                    return colors[Int(hash(i, j, 4, seed: seed) * Double(colors.count)) % colors.count]
+                }
+            }
+        }
+        return nil
+    }
+
+    /// A ring of round puffs around the egg at a height: the point's offset from the nearest one's center, across and
+    /// up, in its radius, when it lies on one.
+    static func puff(_ p: EggSurfacePoint, count: Int, at height: Double, radius: Double,
+                     offset: Double = 0) -> (dx: Double, dy: Double)? {
+        let dy: Double = (p.y - height) / radius
+        guard abs(dy) < 1 else { return nil }
+        let step = 2 * Double.pi / Double(count)
+        let slot: Double = (p.angle / step - offset).rounded() + offset
+        let dx: Double = (p.angle - slot * step) * EggProfile.radius(height) / radius
+        return dx * dx + dy * dy < 1 ? (dx, dy) : nil
+    }
+
+    /// The normal of a puff's dome: tilted away from its center.
+    static func bulge(_ n: EggVector, _ offset: (dx: Double, dy: Double)?) -> EggVector {
+        guard let (dx, dy) = offset else { return n }
+        return EggLight.normalize((n.x + dx, n.y + dy, n.z))
+    }
+
+    /// Where a point of the egg's top (angle around, height) shows in this frame, and whether it faces the viewer.
+    static func onTop(_ f: EggFrame, _ angle: Double, _ height: Double,
+                      rise: Double = 0) -> (x: Double, y: Double, facing: Bool) {
+        let turned = angle - f.yaw
+        let (x, y) = f.pixel(EggProfile.radius(height) * sin(turned), height + rise)
+        return (x, y, cos(turned) >= 0)
+    }
+
+    /// Striped candles standing in the top at angles around it, their flames flickering: those behind the egg in
+    /// `back`, the others in `front`.
+    static func candles(_ canvas: inout EggCanvas, _ f: EggFrame, _ list: [(angle: Double, color: EggColor)],
+                        at height: Double, tall: Double, front: Bool, rise: Double = 0,
+                        fire: [EggColor] = [flame[2], flame[3], flame[4]]) {
+        for (k, candle) in list.enumerated() {
+            let (bx, by, facing) = onTop(f, candle.angle, height, rise: rise)
+            guard facing == front else { continue }
+            let top = by - tall
+            canvas.fill(bx - 2.5, top, bx + 2.5, by) { (x: Double, y: Double) -> EggColor? in
+                guard abs(x - bx) <= 2, y >= top else { return nil }
+                let stripe = (y - x + 60).truncatingRemainder(dividingBy: 4) < 2
+                return (stripe ? EggColor(1, 1, 1) : candle.color).mixed(with: .black, x > bx + 1 ? 0.2 : 0)
+            }
+            let flicker: Double = 0.85 + 0.15 * sin(f.phase * 5 + Double(k) * 1.7)
+            canvas.flame(baseX: bx, baseY: top - 1, height: 7 * flicker, width: 2.6, lean: 0.15 * sin(f.phase * 3 + Double(k)),
+                         outer: fire[0], middle: fire[1], core: fire[2])
+        }
+    }
+
+    /// A cake stand under the egg.
+    static func cakeStand(_ canvas: inout EggCanvas, _ f: EggFrame, _ color: EggColor) {
+        let (cx, by) = f.pixel(0, -0.94)
+        canvas.ellipse(cx, by + 1, 19, 3.4, color, gloss: 0.7)
+    }
+
+    /// Sets a pixel, or only where nothing is drawn yet when `behind`: light shining around the egg, drawn over its
+    /// outline so it keeps its color.
+    static func light(_ canvas: inout EggCanvas, _ x: Double, _ y: Double, _ color: EggColor, behind: Bool) {
+        let px = Int(x.rounded(.down)), py = Int(y.rounded(.down))
+        if !behind || canvas.isEmpty(px, py) { canvas.set(px, py, color) }
+    }
+
+    /// A one-pixel streak of light between two points (`light`).
+    static func streak(_ canvas: inout EggCanvas, from a: (Double, Double), to b: (Double, Double), _ color: EggColor,
+                       behind: Bool) {
+        let steps = max(1, Int((max(abs(b.0 - a.0), abs(b.1 - a.1)) * 2).rounded(.up)))
+        for s in 0...steps {
+            let t = Double(s) / Double(steps)
+            light(&canvas, a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t, color, behind: behind)
+        }
+    }
+
+    /// A small four-point star of light.
+    static func star(_ canvas: inout EggCanvas, _ x: Double, _ y: Double, _ r: Int, _ color: EggColor, behind: Bool) {
+        light(&canvas, x, y, .white, behind: behind)
+        for step in 1...max(1, r) {
+            let c = step == r ? color : color.mixed(with: .white, 0.5), d = Double(step)
+            for (dx, dy) in [(d, 0.0), (-d, 0), (0, d), (0, -d)] { light(&canvas, x + dx, y + dy, c, behind: behind) }
+        }
+    }
+
+    /// The Birthday Egg, a surprise cake: a pink cake whose lid of sprinkled cream, candles and all, rattles, then pops
+    /// open: light pours out of it in rays, stars and confetti burst up, and the lid settles back.
+    static var birthdaySurprise: EggDesign {
+        let pink = EggColor(1, 0.66, 0.8), white = EggColor(1, 0.98, 0.95), gold = EggColor(1, 0.8, 0.3)
+        let sprinkles = [EggColor(0.3, 0.7, 1), EggColor(1, 0.86, 0.2), EggColor(0.45, 0.9, 0.5), EggColor(1, 0.45, 0.6),
+                         EggColor(0.7, 0.45, 1)]
+        let crack: (Double) -> Double = { angle in 0.3 + 0.03 * abs(sin(angle * 8)) }
+        // Open over the first half of the loop, rattling shut over the second.
+        let gap: (Double) -> Double = { phase in
+            sin(phase) > 0 ? 0.02 + 0.28 * pow(sin(phase), 1.5) : 0.02 + 0.025 * abs(sin(phase * 6))
+        }
+        func pearls(_ p: EggSurfacePoint) -> (dx: Double, dy: Double)? {
+            puff(p, count: 22, at: -0.3, radius: 0.05) ?? puff(p, count: 14, at: -0.84, radius: 0.075)
+        }
+        var surface = EggSurface(albedo: { (p: EggSurfacePoint) -> EggColor in
+            if p.y >= crack(p.angle) {
+                if p.y < crack(p.angle) + 0.09 { return gold }
+                return jimmy(p, sprinkles, density: 0.55, seed: 109) ?? white
+            }
+            if pearls(p) != nil { return white }
+            if abs(p.y + 0.3) < 0.07 { return gold.mixed(with: .black, 0.08) }
+            return abs(sin(p.angle * 9)) < 0.16 ? pink.mixed(with: .white, 0.45) : pink
+        }, gloss: 0.6)
+        surface.normal = { (n: EggVector, p: EggSurfacePoint) -> EggVector in bulge(n, pearls(p)) }
+        surface.cap = crack
+        surface.capGap = gap
+        let list: [(angle: Double, color: EggColor)] = [(0, EggColor(0.4, 0.7, 1)), (2.1, EggColor(1, 0.5, 0.65)),
+                                                        (-2.1, EggColor(0.5, 0.85, 0.5))]
+        return EggDesign(surface: surface, back: { canvas, f in
+            cakeStand(&canvas, f, gold)
+            // The light inside, showing through the gap.
+            let (cx, cy) = f.pixel(0, 0.31 + gap(f.phase) / 2)
+            let rx = f.radius(0.31) + 1, ry = gap(f.phase) / f.unitsPerPixel / 2 + 2
+            canvas.ellipse(cx, cy, rx, ry, EggColor(1, 0.95, 0.7), flat: true)
+            canvas.ellipse(cx, cy, rx * 0.6, ry * 0.6, EggColor(1, 1, 0.95), flat: true)
+            candles(&canvas, f, list, at: 0.82, tall: 6, front: false, rise: gap(f.phase))
+        }, front: { canvas, f in
+            candles(&canvas, f, list, at: 0.82, tall: 6, front: true, rise: gap(f.phase))
+        }, outline: EggColor(0.42, 0.2, 0.28), glow: { canvas, f in
+            let open = max(0, sin(f.phase))
+            guard open > 0.05 else { return }
+            let (cx, cy) = f.pixel(0, 0.31 + gap(f.phase) / 2)
+            for k in 0..<13 {
+                let a: Double = .pi + Double(k) / 12 * .pi + 0.08 * sin(f.phase * 3 + Double(k))
+                let length: Double = (8 + 26 * open) * (k.isMultiple(of: 2) ? 1 : 0.6)
+                streak(&canvas, from: (cx, cy), to: (cx + cos(a) * length * 1.2, cy + sin(a) * length),
+                       EggColor(1, 0.95, 0.6).mixed(with: .white, k.isMultiple(of: 2) ? 0.4 : 0), behind: true)
+            }
+            // Stars and confetti shooting up out of the cake while it is open, falling back as it closes.
+            let flight: Double = min(1, f.t / 0.48)
+            for i in 0..<12 {
+                let vx: Double = (hash(i, 0, 0, seed: 110) - 0.5) * 2.4, vy: Double = 0.7 + 0.5 * hash(i, 1, 0, seed: 110)
+                let x = cx + vx * flight * 28, y = cy - vy * flight * 40 + flight * flight * 30
+                if i % 2 == 0 {
+                    star(&canvas, x, y, 2 + i % 4 / 2, EggColor(1, 0.88, 0.35), behind: false)
+                } else {
+                    let color = sprinkles[i % sprinkles.count]
+                    for (dx, dy) in [(0.0, 0.0), (1, 0), (0, 1), (1, 1)] { light(&canvas, x + dx, y + dy, color, behind: false) }
+                }
+            }
+        })
     }
 
     // MARK: Frames

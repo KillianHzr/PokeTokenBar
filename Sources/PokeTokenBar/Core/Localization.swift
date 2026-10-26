@@ -292,6 +292,18 @@ struct L {
             return t("끔", "Off", "オフ", "Desactivado", "Désactivé", "Desligado", "Aus", "Выкл.")
         }
     }
+    var menuSpriteLabel: String {
+        t("메뉴바의 포켓몬", "Pokémon in the menu bar", "メニューバーのポケモン", "Pokémon en la barra de menús",
+          "Pokémon dans la barre des menus", "Pokémon na barra de menus", "Pokémon in der Menüleiste", "Покемон в строке меню")
+    }
+    var menuSpriteHint: String {
+        t("숨기면 사용량 글자만 보여요", "Hidden shows the usage text alone", "非表示にすると使用量の文字だけになります",
+          "Oculto muestra solo el texto de uso", "Masqué n'affiche que le texte de consommation",
+          "Oculto mostra só o texto de uso", "Ausgeblendet zeigt nur den Verbrauchstext", "Если скрыть, останется только текст")
+    }
+    var menuSpriteAnimated: String { t("움직임", "Animated", "アニメ", "Animado", "Animé", "Animado", "Animiert", "Анимация") }
+    var menuSpriteStill: String { t("정지", "Still", "静止", "Fijo", "Fixe", "Parado", "Unbewegt", "Статично") }
+    var menuSpriteHidden: String { t("숨김", "Hidden", "非表示", "Oculto", "Masqué", "Oculto", "Ausgeblendet", "Скрыт") }
     var animationQualityLabel: String { t("애니메이션", "Animation", "アニメーション", "Animación", "Animation", "Animação", "Animation", "Анимация") }
     var animationQualityHint: String {
         t("부드러울수록 배터리를 더 씁니다", "Smoother uses more battery",
@@ -1158,6 +1170,16 @@ struct L {
         t("폼 선택", "Choose form", "フォルムを選択", "Elegir forma", "Choisir une forme", "Escolher forma", "Form auswählen", "Выбрать форму")
     }
     /// Usual look of a species whose official data names no form (Castform, Rotom, Kyurem, Genesect).
+    // Form names PokéAPI lacks or gets wrong (`PokemonForm.appName`).
+    var formHoopaConfined: String { t("굴레에 빠진 모습", "Confined", "いましめられし", "Contenido", "Enchaîné", "Contido", "Gebannt", "Скованный") }
+    var formHoopaUnbound: String { t("굴레를 벗어난 모습", "Unbound", "ときはなたれし", "Desatado", "Déchaîné", "Liberto", "Entfesselt", "Освобождённый") }
+    var formPartner: String { t("파트너", "Partner", "パートナー", "Compañero", "Partenaire", "Parceiro", "Partner", "Партнёр") }
+    var formFamilyOfFour: String { t("네 식구", "Family of Four", "４ひきかぞく", "Familia de cuatro", "Famille de Quatre", "Família de quatro", "Viererfamilie", "Семья из четырёх") }
+    var formFamilyOfThree: String { t("세 식구", "Family of Three", "３びきかぞく", "Familia de tres", "Famille de Trois", "Família de três", "Dreierfamilie", "Семья из трёх") }
+    var formTaurosCombatBreed: String { t("컴뱃종", "Combat Breed", "コンバット種", "Raza Combatiente", "Race Combative", "Raça Combatente", "Gefechtsrasse", "Боевая порода") }
+    var formTaurosBlazeBreed: String { t("블레이즈종", "Blaze Breed", "ブレイズ種", "Raza Ardiente", "Race Flamboyante", "Raça Chamejante", "Flammenrasse", "Огненная порода") }
+    var formTaurosAquaBreed: String { t("워터종", "Aqua Breed", "ウォーター種", "Raza Acuática", "Race Aquatique", "Raça Aquática", "Flutenrasse", "Водная порода") }
+
     var normalForm: String {
         t("노말폼", "Normal Form", "ノーマルフォルム", "Forma Normal", "Forme Normale", "Forma Normal", "Normalform", "Обычная форма")
     }
@@ -1652,7 +1674,9 @@ struct L {
         case .teraOrb: return t("테라스탈오브", "Tera Orb", "テラスタルオーブ", "Orbe Teracristal", "Orbe Téracristal", "Orbe Terastal", "Terakristall-Orb", "Тера-сфера")
         case .relicStatue: return t("고대의석상", "Relic Statue", "こだいのせきぞう", "Efigie Antigua", "Vieux Santon", "Estátua Antiga", "Alte Statue", "Древняя статуя")
         case .typeNullEgg: return t("타입:널의 알", "Type: Null Egg", "タイプ：ヌルのタマゴ", "Huevo de Código Cero", "Œuf de Type:0", "Ovo de Type: Null", "Typ:Null-Ei", "Яйцо Тип: Ноль")
+        case .lightBall: return t("전기구슬", "Light Ball", "でんきだま", "Bola Luminosa", "Balle Lumière", "Bola de Luz", "Kugelblitz", "Световой шар")
         case .legendaryEgg: return t("전설의 알", "Legendary Egg", "伝説のタマゴ", "Huevo Legendario", "Œuf légendaire", "Ovo Lendário", "Legendäres Ei", "Легендарное яйцо")
+        case .birthdayEgg: return t("생일 알", "Birthday Egg", "誕生日のタマゴ", "Huevo de Cumpleaños", "Œuf d'anniversaire", "Ovo de Aniversário", "Geburtstags-Ei", "Праздничное яйцо")
         case .ovalCharm: return t("둥근부적", "Oval Charm", "まるいおまもり", "Amuleto Oval", "Charme Ovale", "Amuleto Oval", "Ovalpin", "Овальный талисман")
         case .glimmeringCharm: return t("반짝이는부적", "Glimmering Charm", "きらめくおまもり", "Amuleto Cristalino", "Charme Éclatant", "Amuleto Cintilante", "Glitzerpin", "Сверкающий талисман")
         case .boulderBadge: return t("회색배지", "Boulder Badge", "グレーバッジ", "Medalla Roca", "Badge Roche", "Insígnia da Rocha", "Felsorden", "Каменный значок")
@@ -1953,6 +1977,24 @@ struct L {
                      "A recompensa pelas 17 Memórias de Silvally. Solte seu Pokémon atual em troca de um ovo que vai chocar um Type: Null.",
                      "Die Belohnung für alle 17 Disks von Amigento. Gib dein aktuelles Pokémon ab für ein Ei, aus dem ein Typ:Null schlüpft.",
                      "Награда за все 17 дисков Сильвалли. Отпустите текущего покемона ради яйца, из которого вылупится Тип: Ноль.")
+        case .lightBall:
+            return t("보유하면 피츄, 피카츄, 라이츄가 50% 더 빨리 성장합니다.",
+                     "While owned, Pichu, Pikachu and Raichu grow 50% faster.",
+                     "持っているとピチュー、ピカチュウ、ライチュウが50%早く育ちます。",
+                     "Mientras la tengas, Pichu, Pikachu y Raichu crecen un 50% más rápido.",
+                     "Tant que tu la possèdes, Pichu, Pikachu et Raichu grandissent 50 % plus vite.",
+                     "Enquanto estiver na bolsa, Pichu, Pikachu e Raichu crescem 50% mais rápido.",
+                     "Lässt im Beutel Pichu, Pikachu und Raichu 50% schneller wachsen.",
+                     "Пока он у вас, Пичу, Пикачу и Райчу растут на 50% быстрее.")
+        case .birthdayEgg:
+            return t("생일 선물. 지금 포켓몬을 놓아주고 이 알을 받아요. 무엇이 태어날지는 비밀이에요.",
+                     "Your birthday gift. Send off your current Pokémon for this egg. What hatches from it is a surprise.",
+                     "誕生日のプレゼント。いまのポケモンを手放して、このタマゴを受け取ります。なにが生まれるかはお楽しみ。",
+                     "Tu regalo de cumpleaños. Suelta a tu Pokémon actual a cambio de este huevo. Lo que saldrá de él es una sorpresa.",
+                     "Ton cadeau d'anniversaire. Laisse partir ton Pokémon actuel contre cet œuf. Ce qui en sortira est une surprise.",
+                     "Seu presente de aniversário. Solte seu Pokémon atual em troca deste ovo. O que vai sair dele é surpresa.",
+                     "Dein Geburtstagsgeschenk. Gib dein aktuelles Pokémon für dieses Ei ab. Was daraus schlüpft, ist eine Überraschung.",
+                     "Ваш подарок на день рождения. Отпустите текущего покемона ради этого яйца. Кто из него вылупится, пока секрет.")
         case .legendaryEgg:
             return t("한 지방의 포켓몬을 모두 졸업시킬 때마다 받는 보상. 지금 포켓몬을 놓아주고 전설 또는 환상의 포켓몬이 태어나는 알을 받아요.",
                      "The reward for each region whose every Pokémon has graduated. Send off your current Pokémon for an egg that hatches a legendary or mythical Pokémon.",
@@ -2164,6 +2206,18 @@ struct L {
     var allFormsGoal: String {
         t("모든 폼", "Every form", "すべてのフォルム", "Todas las formas", "Toutes les formes", "Todas as formas", "Alle Formen", "Все формы")
     }
+    var lightBallEffectHint: String {
+        t("피츄 계열 성장 +50% · 적용 중", "Pikachu's line +50% · active", "ピカチュウ系統 +50% · 適用中", "Línea de Pikachu +50% · activo",
+          "Lignée de Pikachu +50% · actif", "Linha do Pikachu +50% · ativo", "Pikachu-Reihe +50% · aktiv", "Линия Пикачу +50% · активен")
+    }
+    var allPikachuCostumesGoal: String {
+        t("피카츄의 옷 전부", "Every one of Pikachu's costumes", "ピカチュウのいしょう すべて", "Todos los trajes de Pikachu",
+          "Tous les costumes de Pikachu", "Todas as fantasias do Pikachu", "Alle Kostüme von Pikachu", "Все костюмы Пикачу")
+    }
+    var birthdayEggHint: String {
+        t("무엇이 태어날까요?", "What will hatch?", "なにが生まれるかな？", "¿Qué saldrá?", "Qu'est-ce qui va éclore ?",
+          "O que vai chocar?", "Was wohl schlüpft?", "Кто вылупится?")
+    }
     var legendaryEggHint: String {
         t("전설 확정", "Guaranteed legendary", "伝説確定", "Legendario garantizado", "Légendaire garanti",
           "Lendário garantido", "Garantiert legendär", "Гарантированно легендарный")
@@ -2219,6 +2273,9 @@ struct L {
         return t("+\(c)% / \(m)%", "+\(c)% / \(m)%", "+\(c)% / \(m)%", "+\(c)% / \(m)%", "+\(c) % / \(m) %", "+\(c)% / \(m)%", "+\(c)% / \(m)%", "+\(c)% / \(m)%")
     }
     func zygardeCubeEffectHint(_ percent: Int) -> String { t("성장 경험치 +\(percent)% · 적용 중", "Growth EXP +\(percent)% · active", "育成EXP +\(percent)% · 適用中", "EXP crecimiento +\(percent)% · activo", "EXP croissance +\(percent)% · actif", "EXP crescimento +\(percent)% · ativo", "Wachstums-EP +\(percent)% · aktiv", "Опыт роста +\(percent)% · активен") }
+    var newFormBadge: String {
+        t("새 폼", "New form", "新しいフォルム", "Nueva forma", "Nouvelle forme", "Nova forma", "Neue Form", "Новая форма")
+    }
     var prisonBottleEffectHint: String { t("새 모습 성장 +50% · 적용 중", "New form growth +50% · active", "新しい姿 育成 +50% · 適用中", "Crec. forma nueva +50% · activo", "Croissance forme nouvelle +50% · actif", "Cresc. forma nova +50% · ativo", "Neue Form +50% · aktiv", "Рост новой формы +50% · активен") }
     var sparklingStoneEffectHint: String {
         let fairy = typeName(.fairy)

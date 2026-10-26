@@ -114,6 +114,20 @@ def ui_files_changed(base, head):
     return bool(result.stdout.strip())
 
 
+CHANGELOG = "Sources/PokeTokenBar/Core/Changelog.swift"
+
+
+def changelog_note(base, head):
+    """A reminder, never an error: app changes usually have something to tell players in the in-app changelog."""
+    result = subprocess.run(["git", "diff", "--name-only", f"{base}...{head}", "--", "Sources/"],
+                            cwd=ROOT, capture_output=True, text=True)
+    changed = result.stdout.split()
+    if result.returncode or not changed or CHANGELOG in changed:
+        return None
+    return (f"Note: Sources/ changed but {CHANGELOG} did not. Add what players can see of this PR to "
+            "`Changelog.days`, under the day it is merged, unless it has nothing visible.")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--title", required=True)
@@ -141,6 +155,9 @@ def main():
         return 1
     if args.no_ui_changes:
         print(f"Reviewed as no visible UI change: {args.no_ui_changes}")
+    note = changelog_note(args.base, args.head)
+    if note:
+        print(note)
     print("PR structure check passed. Verify English wording, checked claims, and remote image rendering before publishing.")
     return 0
 

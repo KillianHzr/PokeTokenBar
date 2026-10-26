@@ -77,6 +77,9 @@ enum PokemonEvolutionData {
         902: (550, ["white-striped"]),   // Basculegion
         563: (562, ["normal"]),          // Cofagrigus
         867: (562, ["galar"]),           // Runerigus
+        // Partner Eevee stays an Eevee, as in Let's Go.
+        134: (133, ["normal"]), 135: (133, ["normal"]), 136: (133, ["normal"]), 196: (133, ["normal"]),
+        197: (133, ["normal"]), 470: (133, ["normal"]), 471: (133, ["normal"]), 700: (133, ["normal"]),
     ]
 
     /// Whether an individual in this form can evolve from `parent` into `child`.

@@ -205,6 +205,12 @@ private struct ItemCard: View {
                                   confirmText: l.stoneConfirm(store.displayName, l.itemName(kind))) {
                 store.useLegendaryEgg()
             }
+        } else if kind == .birthdayEgg {
+            ReleaseForEggControls(store: store, nav: nav, detail: effectHint(l), actionTitle: l.useItem,
+                                  isAvailable: store.canUseBirthdayEgg(), unavailableText: l.useNeedsPokemon,
+                                  confirmText: l.stoneConfirm(store.displayName, l.itemName(kind))) {
+                store.useBirthdayEgg()
+            }
         } else if kind.isPassive {
             // 보유형(패시브 아이템): 사용 버튼 대신 상시 효과 표시.
             HStack(spacing: 6) {
@@ -309,6 +315,8 @@ extension CompanionStore {
         case .relicStatue: return l.relicStatueEffectHint
         case .typeNullEgg: return l.typeNullEggHint
         case .legendaryEgg: return l.legendaryEggHint
+        case .birthdayEgg: return l.birthdayEggHint
+        case .lightBall: return l.lightBallEffectHint
         case .ovalCharm: return l.ovalCharmEffectHint
         case .glimmeringCharm: return l.glimmeringCharmEffectHint
         case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,

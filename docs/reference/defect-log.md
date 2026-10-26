@@ -54,6 +54,16 @@ read_when:
   보존해 정적 보기로 전환할 때 복원한다. `SpriteAnimationPreviewTests`는 실제 SwiftUI 첫 렌더의
   GIF 픽셀·크기, 캐시 재사용, 프레임 지연, 정적 원본 보존을 검사한다.
 
+- **Showdown and PokéAPI can name a species' look differently.** Maushold's PokéAPI default (`925`) is the
+  Family of Four, but Showdown's `925.gif` is the Family of Three and the Family of Four is `925-four.gif`: the
+  default asked for `925.gif`, showed the wrong family and cached it. Alcremie's PNGs keep PokéAPI's `-sweet`
+  (`869-ruby-cream-strawberry-sweet.png`) while its GIFs drop it. The form tests built URLs and checked them against
+  the same builder; nothing compared a name with the sprite repository until the opt-in check below. Fixes:
+  `SpriteStore.showdownNames`, `PokemonForm.pngName`, and a one-time purge of the cached Maushold files
+  (`purgeRemappedSprites`, marker `.form-sprites-v2`). Guards: `NewFormsTests` (Maushold's and Alcremie's names, the
+  purge running once) and `PTB_PARITY=1` on `PokemonFormTests`, which asks the sprite repository for every catalogued
+  form's GIF and PNG. Run it whenever the catalog grows.
+
 ## 판정·데이터
 
 - **A surprise never breaks what an egg promised (#57).** The Ditto disguise rolled on any common line that
@@ -858,6 +868,15 @@ read_when:
   확인하는 단계가 없었다. `swift build --arch arm64 --arch x86_64` 는 xcbuild(Xcode)가 필요해 CLT 환경에서
   실패하므로, 아키텍처별 빌드 + `lipo -create` 로 합친다. 회귀 가드: `build-app.sh` 의 `lipo -verify_arch`
   와 release.sh 4/8 의 `lipo -verify_arch arm64 x86_64` 하드 게이트(릴리스는 `PTB_NATIVE_ARCH_ONLY` 금지).
+
+- **A sync `setUp`/`tearDown` in a `@MainActor` test class is nonisolated on CI.** `PikachuCostumeTests` reset the
+  main-actor `PikachuCostume.equipped` in a sync `tearDown()`: the local Xcode toolchain compiled it, CI's Swift 6.0
+  (macos-15) refused it ("main actor-isolated static property can not be mutated from a nonisolated context"), so
+  the PR's build failed only remotely. A local `swift test` is no proof for this class. Touch main-actor state from
+  `setUp() async throws`/`tearDown() async throws` without calling `super` (CI refuses `try await super.tearDown()`:
+  "sending value of non-Sendable type 'XCTestCase'"), as `DexBackNavigationTests` does, or keep the sync ones to
+  `nonisolated(unsafe)` fixtures as `RareCandyTests` and `WindowCandyTests` do. The first fix called `super` and
+  failed CI a second time. The sweep found no other sync `tearDown` touching main-actor state.
 
 ## 자격증명·Keychain
 

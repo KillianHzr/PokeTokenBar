@@ -252,6 +252,7 @@ final class CompanionStore {
         add(.rustedSword, CollectorBonus.rustedSwordLegendary, if: mon.rarity == .legendary)
         add(.boosterEnergy, CollectorBonus.boosterEnergyParadox, if: SpeciesGoal.paradoxes.contains(mon.currentID))
         add(.tealMask, CollectorBonus.tealMaskTypes, if: types.contains(where: CollectorBonus.tealMaskTypeList.contains))
+        add(.lightBall, CollectorBonus.lightBallPikachuLine, if: CollectorBonus.pikachuLine.contains(mon.currentID))
         return factors
     }
 
@@ -342,14 +343,18 @@ final class CompanionStore {
     /// 관련 상태가 바뀌어 저장되는 경계에서만 갱신한다. 고정 종 하나의 이로치 여부만 조회하므로
     /// 이름 해석·정렬을 포함한 `dexSpecies` 계산을 메뉴바/플로팅 펫 렌더마다 반복하지 않는다.
     private func refreshRepresentativeSubject() {
+        // Pikachu wears its costume wherever it shows: the menu bar and the pet through this subject, every other
+        // sprite through `PikachuCostume.equipped`.
+        PikachuCostume.equipped = state.equippedPikachuCostume
         let next: RepresentativeSubject
         if let selected = state.representativeSpeciesID {
             next = RepresentativeSubject(speciesID: selected,
                 isShiny: state.ownsShinySpecies(selected, form: state.representativeForm),
-                form: PokemonForm.resolved(speciesID: selected, form: state.representativeForm))
+                form: PikachuCostume.displayForm(speciesID: selected,
+                                                 form: PokemonForm.resolved(speciesID: selected, form: state.representativeForm)))
         } else {
             next = RepresentativeSubject(speciesID: currentSpeciesID, isShiny: currentIsShiny,
-                                         form: currentForm)
+                                         form: PikachuCostume.displayForm(speciesID: currentSpeciesID, form: currentSpriteForm))
         }
         if representativeSubject != next { representativeSubject = next }
     }
@@ -394,6 +399,8 @@ final class CompanionStore {
     var currentForm: PokemonForm? {
         PokemonForm.resolved(speciesID: currentSpeciesID ?? 0, form: state.active?.form)
     }
+    /// The look the growing Pokémon's sprites show (`MonState.spriteForm`).
+    var currentSpriteForm: PokemonForm? { state.active?.spriteForm }
     var isFinalStage: Bool {
         guard let a = state.active, let line = currentLine else { return false }
         return line.tree.node(withID: a.currentID).map { Self.openChildren($0, form: a.form).isEmpty } ?? true
@@ -530,7 +537,8 @@ final class CompanionStore {
                 Dictionary(uniqueKeysWithValues:
                     active.pathIDs.compactMap { id in line.names[id].map { (id, $0) } })
             },
-            form: active.form
+            form: active.form,
+            hasNewForm: active.hasNewForm
         )
     }
 
@@ -561,7 +569,7 @@ final class CompanionStore {
                 Dictionary(uniqueKeysWithValues:
                     chain.compactMap { id in line.names[id].map { (id, $0) } })
             },
-            releasedAt: now, form: a.form)
+            releasedAt: now, form: a.form, hasNewForm: a.hasNewForm)
     }
 
     var dexEntries: [DexEntry] {
@@ -1367,6 +1375,7 @@ final class CompanionStore {
         }
         displayState = computeState(burnTier: burnTier, limitWarning: limitWarning,
                                     hasUsageData: hasUsageData, today: todayTokens)
+        announceBirthdayGiftIfNeeded()
         save()
         autoSnapshotIfNeeded()
     }
@@ -1425,6 +1434,7 @@ final class CompanionStore {
                 state.active!.pathIDs = Array(a.pathIDs.prefix(a.stageIndex + 1)) + [next.speciesID]
                 state.active!.stageIndex += 1
                 announceFormUnlocks(since: unlockedForms)
+                if next.speciesID == PikachuCostume.speciesID { grantPikachuCostume() }
                 state.active!.usedAtStage = a.usedAtStage - thr   // 초과분 이월
                 if let details = pokemonDetails(speciesID: next.speciesID, form: a.form) {
                     state.active!.profile?.enrich(with: details)
@@ -1554,7 +1564,7 @@ final class CompanionStore {
                                   names: currentLine.map { line in   // 체인 각 종의 다국어 이름 저장(표시 즉시)
                                       Dictionary(uniqueKeysWithValues:
                                           a.pathIDs.compactMap { id in line.names[id].map { (id, $0) } })
-                                  }, form: a.form))
+                                  }, form: a.form, hasNewForm: a.hasNewForm))
         if ownsReinsOfUnity {
             let received = addRareCandies(CollectorBonus.reinsOfUnityCandies)
             AppLog.write("graduate: reins of unity +\(received) rare candy")
@@ -1954,6 +1964,7 @@ final class CompanionStore {
         case .allForms:
             let progress = graduatedCollectionProgress
             return progress.forms >= progress.formsTotal
+        case .allPikachuCostumes: return state.pikachuCostumes.count >= PikachuCostume.allCases.count
         case .species: return unlockProgress(of: kind, registered: registered).contains(where: \.isMet)
         }
     }
@@ -2212,6 +2223,28 @@ final class CompanionStore {
         return true
     }
 
+    // MARK: Pikachu's costumes
+
+    /// A Pikachu arrived: it brings a costume the player doesn't have yet, chosen from the individual's own seed so
+    /// the rolls that follow stay the same, and wears it while it grows.
+    private func grantPikachuCostume() {
+        let seed = state.active?.profile?.seed ?? UInt64(clock().timeIntervalSince1970)
+        guard let costume = PikachuCostume.next(owned: state.pikachuCostumes, seed: seed) else { return }
+        state.pikachuCostumes.insert(costume)
+        state.active?.pikachuCostume = costume
+        AppLog.write("pikachu costume won: \(costume.rawValue)")
+        notifyCompanionEvent(l.notifPikachuCostumeTitle, l.notifPikachuCostumeBody(l.pikachuCostumeName(costume)))
+    }
+
+    /// Pikachu wears `costume` (one won), or its own look with nil.
+    @discardableResult
+    func equipPikachuCostume(_ costume: PikachuCostume?) -> Bool {
+        if let costume, !state.pikachuCostumes.contains(costume) { return false }
+        state.equippedPikachuCostume = costume
+        save()
+        return true
+    }
+
     func canUseLegendaryEgg() -> Bool { hasActive && itemCount(.legendaryEgg) > 0 }
 
     /// Uses a Legendary Egg, the reward for a region whose every species is in the Pokédex: like a stone, the
@@ -2225,6 +2258,55 @@ final class CompanionStore {
         save()
         AppLog.write("legendary egg used, discarded active")
         return true
+    }
+
+    func canUseBirthdayEgg() -> Bool { hasActive && itemCount(.birthdayEgg) > 0 }
+
+    /// Uses the Birthday Egg: like a stone, the current Pokémon is sent off for an egg, which hatches a mythical
+    /// Pokémon not graduated yet (`BirthdayGift.pool`).
+    @discardableResult
+    func useBirthdayEgg() -> Bool {
+        guard canUseBirthdayEgg() else { return false }
+        state.inventory[ItemKind.birthdayEgg.rawValue] = itemCount(.birthdayEgg) - 1
+        replaceActiveWithEgg(price: 0, tier: nil, type: nil)
+        state.eggFromBirthdayEgg = true
+        save()
+        AppLog.write("birthday egg used, discarded active")
+        return true
+    }
+
+    // MARK: Birthday gift
+
+    /// The birthday gift claimable now, and whether it is the birthday's week or a catch-up (`BirthdayGift`).
+    var birthdayGift: (year: Int, occasion: BirthdayGift.Occasion)? {
+        BirthdayGift.claimable(birthday: state.birthday, lastGiftYear: state.lastBirthdayGiftYear, now: clock(),
+                               calendar: .current)
+    }
+
+    /// Sets the player's birthday, or clears it with nil. Changing it never brings a second gift the same year.
+    func setBirthday(_ birthday: Birthday?) {
+        guard state.birthday != birthday else { return }
+        state.birthday = birthday
+        announceBirthdayGiftIfNeeded()
+        save()
+    }
+
+    /// Puts the Birthday Egg in the Bag, once for this birthday's year.
+    @discardableResult
+    func claimBirthdayGift() -> Bool {
+        guard let gift = birthdayGift else { return false }
+        state.inventory[ItemKind.birthdayEgg.rawValue] = itemCount(.birthdayEgg) + 1
+        state.lastBirthdayGiftYear = gift.year
+        save()
+        AppLog.write("birthday gift claimed for \(gift.year) (\(gift.occasion))")
+        return true
+    }
+
+    /// The notification, once per birthday whose gift waits.
+    private func announceBirthdayGiftIfNeeded() {
+        guard let gift = birthdayGift, state.birthdayNotifiedYear != gift.year else { return }
+        state.birthdayNotifiedYear = gift.year
+        notifyCompanionEvent(gift.occasion == .birthday ? l.notifBirthdayTitle : l.birthdayBelatedTitle, l.notifBirthdayBody)
     }
 
     /// Shared reset of `buyEgg` and `useStone`: pays (nothing for a stone), sends the current Pokémon off
@@ -2246,8 +2328,10 @@ final class CompanionStore {
         state.eggTypeGuarantee = type // 진화의 돌의 타입 보증(nil = 보증 없음)
         state.eggFromTypeNullEgg = false
         state.eggFromLegendaryEgg = false
+        state.eggFromBirthdayEgg = false
         state.pendingHatchID = nil    // 새 보증으로 처음부터 롤(활성 포켓몬이 있는 동안엔 원래 비어 있다)
         state.pendingForm = nil
+        state.pendingShiny = false
         prefetchedLineID = nil
         justGraduated = nil; justEvolvedTo = nil; eventUntil = nil
         Task { await self.ensureEggPrefetch() }   // 다음 부화 예열
@@ -2323,7 +2407,7 @@ final class CompanionStore {
             if let epoch = w.epoch {
                 windowEpoch[w.key] = epoch
             }
-            let count = w.kind == .weekly ? RareCandy.weeklyGrant : 1
+            let count = RareCandy.grantCount(windowTokens: w.windowTokens, kind: w.kind)
             grants.append(CandyGrant(windowKey: w.key, windowName: w.name, count: count))
         }
         return grants
@@ -2402,10 +2486,13 @@ final class CompanionStore {
         defer { isHatching = false }
         // 프리패칭된 종이 있으면 그대로 사용(라인·스프라이트 예열됨 → 딜레이 ~0), 없으면 지금 롤.
         let base: Int?
+        var forceShiny = state.pendingShiny
         if let pending = state.pendingHatchID {
             base = pending
         } else {
-            base = await chooseBase()
+            let pick = await chooseBase()
+            base = pick?.id
+            forceShiny = pick?.shiny ?? false
         }
         guard isCurrentReadyEgg(generation: generation) else {
             AppLog.write("hatch: discarded before result handling — subject replaced during species roll")
@@ -2417,7 +2504,7 @@ final class CompanionStore {
             return
         }
         let pendingForm = state.pendingHatchID == base ? state.pendingForm : nil
-        await hatchCore(baseID: base, generation: generation, form: pendingForm)
+        await hatchCore(baseID: base, generation: generation, form: pendingForm, forceShiny: forceShiny)
     }
 
     /// 부화가 폐기된 뒤 남은 개체(대개 방금 불러온 개체)의 진화 라인을 다시 로드한다.
@@ -2468,11 +2555,13 @@ final class CompanionStore {
             // await 사이에 부화가 끝났거나(active != nil) 상태가 통째로 교체됐으면(세이브 불러오기)
             // 이 롤을 버린다 — 안 그러면 불러온 알의 pre-roll 을 남의 롤로 덮어쓴다.
             guard isCurrentEgg(generation: generation) else { return }
-            guard let id = selected else {
+            guard let pick = selected else {
                 markHatchRetryDelayedIfReady(generation: generation)
                 return
             }
+            let id = pick.id
             state.pendingHatchID = id
+            state.pendingShiny = pick.shiny
             state.pendingForm = rollLineForm(baseID: id, type: state.eggTypeGuarantee)
             save()
         }
@@ -2578,7 +2667,8 @@ final class CompanionStore {
     }
 
     /// 실제 부화 로직 — isHatching 락은 호출자(hatch / hatchIfNeeded)가 소유·해제한다.
-    private func hatchCore(baseID: Int, generation: Int, form pendingForm: PokemonForm? = nil) async {
+    private func hatchCore(baseID: Int, generation: Int, form pendingForm: PokemonForm? = nil,
+                           forceShiny: Bool = false) async {
         let line: EvoLine
         do {
             line = try await provider.line(baseSpeciesID: baseID)
@@ -2633,13 +2723,16 @@ final class CompanionStore {
         state.eggTypeGuarantee = nil
         state.eggFromTypeNullEgg = false
         state.eggFromLegendaryEgg = false
+        state.eggFromBirthdayEgg = false
+        state.pendingShiny = false
         // 개체 롤: shiny(1/64, 부적 1/48, Reveal Glass halves it)·성격(25종)은 부화 순간 확정, 진화해도 유지.
         // 알림 문구는 이 판정과 같은 분모를 보여준다.
         let shinyOdds = shinyDenominator
         // The Glimmering Charm, reward for every form, makes every hatch shiny; the roll is still drawn so the
         // rolls after it stay the same.
         let rolledShiny = Self.rollsShiny(roll: rng.next(), charmOwned: ownsShinyCharm, revealGlassOwned: ownsRevealGlass)
-        let isShiny = rolledShiny || ownsGlimmeringCharm
+        // A Birthday Egg once every legendary and mythical graduated is shiny too.
+        let isShiny = rolledShiny || ownsGlimmeringCharm || forceShiny
         let nature = PokemonNature.allCases[Int(rng.next() % UInt64(PokemonNature.allCases.count))]
         // 메타몽 위장 롤 — common·≥2형태에 한해 1/128. .app 게이트(&& 단락 → 비앱에선 rng 미소비로
         // 기존 테스트 RNG 시퀀스 무영향). 위장/리빌 로직은 상태 기반으로 별도 테스트한다.
@@ -2799,10 +2892,11 @@ final class CompanionStore {
     ///      단, 이미 수집한 base 는 가중치 ½(미수집 부스트 — 재부화/shiny 사냥은 열어둠)
     ///   ③ 누적 가중치에서 정확히 1롤 — 루프/재롤 없음, 시간 상한 확정적
     /// 인덱스 취득 실패(오프라인 + 캐시 없음) 시 nil → 알 유지, 다음 갱신 틱 재시도.
-    private func chooseBase() async -> Int? {
+    private func chooseBase() async -> (id: Int, shiny: Bool)? {
         let tier = state.eggTier
         let typeGuarantee = state.eggTypeGuarantee
         if let full = try? await provider.baseSpeciesIndex(), !full.isEmpty {
+            if state.eggFromBirthdayEgg { return chooseBirthdayBase(full) }
             // 등급 보증 알은 후보를 먼저 좁힌다 — capture_rate 상한이 곧 등급 하한이고, 전설은 플래그로
             // 늘 들어간다(`Rarity.admits`: capture_rate 255 인 Necrozma·Eternatus·Terapagos 도 "희귀 이상").
             // 좁힌 결과가 비면 보증을 못 지키므로 전체 풀로 폴백하지 말고 알을 유지한다(다음 틱 재시도).
@@ -2830,14 +2924,37 @@ final class CompanionStore {
                 if r < 0 {
                     // Enough to check a streak later: the species' weight against the egg's whole pool.
                     AppLog.write("hatch roll: base=\(index[i].id) weight=\(w) of \(total) candidates=\(index.count) tier=\(tier?.rawValue ?? "none") type=\(typeGuarantee?.rawValue ?? "none") legendaryEgg=\(state.eggFromLegendaryEgg)")
-                    return index[i].id
+                    return (index[i].id, false)
                 }
             }
-            return index.last?.id   // 도달 불가(방어)
+            return index.last.map { ($0.id, false) }   // 도달 불가(방어)
         }
         // GraphQL base 인덱스 엔드포인트 장애 → REST 폴백. 부화가 한 엔드포인트에 묶이지 않게.
         AppLog.write("hatch: base index unavailable — REST fallback")
-        return await chooseBaseViaREST()
+        return await chooseBaseViaREST().map { ($0, false) }
+    }
+
+    /// A Birthday Egg's roll: a mythical line not graduated yet, else a legendary one, each as likely; once every one
+    /// graduated, any of them by its hatch weight, shiny.
+    private func chooseBirthdayBase(_ index: [BaseSpecies]) -> (id: Int, shiny: Bool)? {
+        let (lines, byWeight) = BirthdayGift.pool(index, graduated: graduatedSpeciesIDs)
+        guard !lines.isEmpty else {
+            AppLog.write("hatch: no legendary or mythical line for the birthday egg, egg kept; retry next tick")
+            return nil
+        }
+        var pick = lines[lines.count - 1]
+        if byWeight {
+            let weights = lines.map(hatchWeight(for:))
+            var r = Int(rng.next() % UInt64(max(1, weights.reduce(0, +))))
+            for (line, w) in zip(lines, weights) {
+                r -= w
+                if r < 0 { pick = line; break }
+            }
+        } else {
+            pick = lines[Int(rng.next() % UInt64(lines.count))]
+        }
+        AppLog.write("hatch roll: birthday egg base=\(pick.id) of \(lines.count) candidates shiny=\(byWeight)")
+        return (pick.id, byWeight)
     }
 
     /// REST 폴백 — animated 에셋 지원 범위에서 무작위 id 를 뽑아 base 인지 확인(rejection sampling).
@@ -2857,7 +2974,7 @@ final class CompanionStore {
                     // 등급 보증은 가중 경로와 **같은 기준**으로 여기서도 걸러야 한다 — 이 폴백만 빠지면
                     // GraphQL 인덱스 장애 때 보증이 조용히 깨진다. 못 찾으면 알 유지(구매 소멸 금지).
                     if let tier, !tier.admits(bs) { continue }
-                    if state.eggFromLegendaryEgg, !bs.isLegendary { continue }
+                    if state.eggFromLegendaryEgg || state.eggFromBirthdayEgg, !bs.isLegendary { continue }
                     if let typeGuarantee, !PokemonTypeData.canHatch(baseID: bs.id, as: typeGuarantee) { continue }
                     if ownsOvalCharm, !state.lineMissesForms(baseID: bs.id, type: typeGuarantee) {
                         withoutTheCharm = withoutTheCharm ?? id

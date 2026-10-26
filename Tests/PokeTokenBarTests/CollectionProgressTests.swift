@@ -13,7 +13,9 @@ final class CollectionProgressTests: XCTestCase {
     func testTotalsCoverEverySpeciesAndForm() {
         let extraForms = PokemonAssets.animatedSpeciesIDs.reduce(0) { $0 + max(0, PokemonForm.forms(speciesID: $1).count - 1) }
         XCTAssertEqual(CompanionStore.collectableFormCount, 1025 + extraForms)
-        XCTAssertEqual(CompanionStore.collectableFormCount, 1280)
+        // 1,280, plus Alcremie's 62, Origin Dialga and Palkia, Hoopa Unbound, Bloodmoon Ursaluna, Maushold's
+        // Family of Three, the female Indeedee and Oinkologne, and Partner Eevee.
+        XCTAssertEqual(CompanionStore.collectableFormCount, 1350)
     }
 
     func testProgressCountsSpeciesAndTheirForms() throws {

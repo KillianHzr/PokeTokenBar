@@ -27,7 +27,7 @@ struct RecapContent {
         // usage that just happened, so it shows who lived it.
         companionSpeciesID = companion.currentSpeciesID
         companionShiny = companion.currentIsShiny
-        companionForm = companion.currentForm
+        companionForm = companion.currentSpriteForm
         graduates = recap.graduated.prefix(4).map { entry in
             let name = companion.dexStoredChainNames(entry)?[entry.finalID] ?? "#\(entry.finalID)"
             // Four chips share a row: only Unown's letter fits, the sprite already shows other forms.

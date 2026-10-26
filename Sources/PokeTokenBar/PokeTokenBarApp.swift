@@ -151,6 +151,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             _ = companion.representativeSubject
             _ = companion.eggKind   // a guarantee bought redraws the egg
             _ = store.animationQuality
+            _ = store.menuSpriteMode
         } onChange: { [weak self] in
             Task { @MainActor in
                 guard let self else { return }
@@ -191,6 +192,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private func applyState() {
         guard let button = statusItem.button else { return }
         if updater.isUpdating {
+            button.imagePosition = .imageLeading   // the spinner shows even when the Pokémon is hidden
             button.title = " " + companion.l.updating
             button.toolTip = companion.l.updatingToolTip
             button.appearsDisabled = false
@@ -317,13 +319,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     /// 프레임률만 낮춰, 애니메이션을 유지한 채 절전한다(bob 2회/s ↔ powerSaver ≤2.5회/s 로 근접).
     private func ensureMenuAnimation() {
         guard displayAwake else { return }
+        let mode = store.menuSpriteMode.effective(lines: store.menuLines)
+        guard mode != .hidden else { return hideMenuSprite() }
+        if let button = statusItem.button, button.imagePosition == .noImage {
+            button.imagePosition = .imageLeading
+            needsSpriteLayout = true
+        }
+        let still = mode == .still
         let subject = companion.representativeSubject
         let id = subject.speciesID
         let shiny = subject.isShiny
         let form = subject.form
         let egg = companion.eggKind
-        let key = id.map { Self.menuSpriteKey(id: $0, shiny: shiny, floor: menuFrameFloor, form: form) }
-            ?? "egg-\(egg)-\(menuFrameFloor)"
+        let key = (id.map { Self.menuSpriteKey(id: $0, shiny: shiny, floor: menuFrameFloor, form: form) }
+            ?? "egg-\(egg)-\(menuFrameFloor)") + (still ? "-still" : "")
         if key == menuSpriteKey, !menuFrames.isEmpty { return }   // 이미 이 개체로 애니메이션 중
         menuLoadTask?.cancel()
         menuLoadTask = nil
@@ -332,11 +341,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         let gen = menuLoadGen
 
         guard let id else {                  // The drawn egg's idle loop.
-            setMenuFrames(Self.eggFrames(egg, floor: menuFrameFloor))
+            setMenuFrames(still ? Self.stillFrame(from: EggRenderer.still(egg)) : Self.eggFrames(egg, floor: menuFrameFloor))
             return
         }
         // Seed from the PNG cache immediately; a missing PNG must not delay the first GIF request.
         let cached = SpriteLoader.cachedImage(speciesID: id, shiny: shiny, form: form)
+        if still {
+            // One frame and no loop: the still sprite, once it is there.
+            setMenuFrames(Self.stillFrame(from: cached ?? EggRenderer.still(.plain)))
+            guard cached == nil else { return }
+            menuLoadTask = Task { @MainActor [weak self] in
+                let sprite = await SpriteLoader.image(speciesID: id, shiny: shiny, form: form)
+                guard let self, !Task.isCancelled, gen == self.menuLoadGen, let sprite else { return }
+                self.menuLoadTask = nil
+                self.setMenuFrames(Self.stillFrame(from: sprite))
+            }
+            return
+        }
         setMenuFrames(cached.map { Self.bobFrames(from: $0) } ?? Self.bobFrames(from: EggRenderer.still(.plain)))
 
         // One owned task applies its static fallback before retrying GIFs. A late PNG response
@@ -359,6 +380,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             let capped = GIFDecoder.capFrameRate(raw, floor: self.menuFrameFloor)
             self.setMenuFrames(capped.map { (Self.menuBarImage(from: $0.image, up: false), $0.delay) })
         }
+    }
+
+    /// The menu bar without its Pokémon: no frames, no placeholder, the text laid out alone by AppKit.
+    private func hideMenuSprite() {
+        menuLoadTask?.cancel()
+        menuLoadTask = nil
+        menuLoadGen += 1
+        menuTimer?.invalidate()
+        menuTimer = nil
+        menuSpriteKey = "hidden"
+        menuFrames = []
+        menuLayerFrames = []
+        spriteLayer.isHidden = true
+        spriteLayer.contents = nil
+        placeholderSize = nil
+        lastStatusImage = nil
+        guard let button = statusItem.button else { return }
+        button.image = nil
+        button.imagePosition = .noImage
     }
 
     private func ensureUpdatingAnimation() {
@@ -566,6 +606,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     /// At 36pt, 645 of the 649 species reach the full 20pt height. The rest: Swanna, Linoone and
     /// Gorebyss at ~18pt, Tynamo (57×19) at 12pt, which would need 60pt to fill the height.
     nonisolated static let menuBarSpriteMaxWidth: CGFloat = 36
+
+    /// One frame, for the still menu bar: `advanceMenu` schedules nothing after it.
+    private static func stillFrame(from sprite: NSImage?) -> [(image: NSImage, delay: TimeInterval)] {
+        sprite.map { [(menuBarImage(from: $0, up: false), 0.5)] } ?? []
+    }
 
     /// 스프라이트 정적 + 가벼운 상하 bob 2프레임 (animated 미지원/로딩 폴백).
     private static func bobFrames(from sprite: NSImage) -> [(image: NSImage, delay: TimeInterval)] {
