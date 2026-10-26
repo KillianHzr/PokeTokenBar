@@ -873,8 +873,10 @@ read_when:
   main-actor `PikachuCostume.equipped` in a sync `tearDown()`: the local Xcode toolchain compiled it, CI's Swift 6.0
   (macos-15) refused it ("main actor-isolated static property can not be mutated from a nonisolated context"), so
   the PR's build failed only remotely. A local `swift test` is no proof for this class. Touch main-actor state from
-  `setUp() async throws`/`tearDown() async throws`, or keep the sync ones to `nonisolated(unsafe)` fixtures as
-  `RareCandyTests` and `WindowCandyTests` do. The sweep found no other sync `tearDown` touching main-actor state.
+  `setUp() async throws`/`tearDown() async throws` without calling `super` (CI refuses `try await super.tearDown()`:
+  "sending value of non-Sendable type 'XCTestCase'"), as `DexBackNavigationTests` does, or keep the sync ones to
+  `nonisolated(unsafe)` fixtures as `RareCandyTests` and `WindowCandyTests` do. The first fix called `super` and
+  failed CI a second time. The sweep found no other sync `tearDown` touching main-actor state.
 
 ## 자격증명·Keychain
 
