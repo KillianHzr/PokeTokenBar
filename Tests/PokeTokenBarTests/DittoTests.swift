@@ -66,6 +66,64 @@ private actor DelayedDittoProvider: PokeProviding {
     }
 }
 
+/// Vulpix's line, common with two stages and two forms: what the Oval Charm can promise.
+private struct FormedDittoTestProvider: PokeProviding {
+    func line(baseSpeciesID: Int) async throws -> EvoLine {
+        baseSpeciesID == PokemonOdds.dittoSpeciesID ? dittoLine
+            : dLine(base: 37, tree: dNode(37, [dNode(38)]), rarity: .common)
+    }
+    func baseSpeciesIndex() async throws -> [BaseSpecies] { [BaseSpecies(id: 37, captureRate: 190)] }
+}
+
+/// A Stone egg promises its type and the Oval Charm a form still missing. A Ditto has neither, so those eggs never
+/// hide one; every other egg still can, and the roll is drawn either way.
+@MainActor
+final class DittoPromiseTests: XCTestCase {
+    /// A seed whose third draw (after shiny and nature) hits the disguise.
+    private func disguiseSeed() throws -> UInt64 {
+        for candidate: UInt64 in 0..<100_000 {
+            var rng = SeededRNG(seed: candidate)
+            _ = rng.next(); _ = rng.next()
+            if rng.next() % PokemonOdds.dittoDisguiseDenominator == 0 { return candidate }
+        }
+        throw XCTSkip("no seed")
+    }
+
+    private func store(_ extra: String, provider: any PokeProviding, seed: UInt64) throws -> CompanionStore {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("ditto-promise-\(UUID().uuidString).json")
+        addTeardownBlock { try? FileManager.default.removeItem(at: url) }
+        let json = "{\"installBaselineSet\":true,\"usedSinceInstall\":2000000000,\"lastDate\":\"d1\",\"active\":null,"
+            + "\"collectedFinals\":[]\(extra)}"
+        try Data(json.utf8).write(to: url)
+        return CompanionStore(provider: provider, clock: { dNow }, fileURL: url, rng: SeededRNG(seed: seed),
+                              dittoDisguiseRollingEnabled: true)
+    }
+
+    func testAStoneEggNeverHidesADitto() async throws {
+        let seed = try disguiseSeed()
+        let plain = try store(",\"dex\":[]", provider: DittoTestProvider(), seed: seed)
+        await plain.hatch(baseID: 1)
+        XCTAssertNotNil(plain.state.active?.dittoDisguise, "the control: this roll hides a Ditto")
+        let stone = try store(",\"dex\":[],\"eggTypeGuarantee\":\"grass\"", provider: DittoTestProvider(), seed: seed)
+        await stone.hatch(baseID: 1)
+        XCTAssertNil(stone.state.active?.dittoDisguise, "a Grass Stone egg keeps its Grass Pokémon")
+        XCTAssertEqual(stone.state.active?.nature, plain.state.active?.nature, "the rolls after it stay the same")
+    }
+
+    func testAnOvalCharmEggBringingAMissingFormNeverHidesADitto() async throws {
+        let seed = try disguiseSeed()
+        // A Kanto Vulpix graduated: the Alolan form is still missing.
+        let kanto = #",{"baseID":37,"finalID":38,"chainOrder":[37,38],"rarity":"common","caughtAt":0,"form":"normal"}"#
+        let charm = try store(",\"dex\":[\(kanto.dropFirst())],\"inventory\":{\"ovalCharm\":1}", provider: FormedDittoTestProvider(),
+                              seed: seed)
+        await charm.hatch(baseID: 37)
+        XCTAssertNil(charm.state.active?.dittoDisguise, "the charm's missing form is kept")
+        let plain = try store(",\"dex\":[\(kanto.dropFirst())]", provider: FormedDittoTestProvider(), seed: seed)
+        await plain.hatch(baseID: 37)
+        XCTAssertNotNil(plain.state.active?.dittoDisguise, "without the charm the same roll hides a Ditto")
+    }
+}
+
 // MARK: 위장 롤 판정(순수) — 부화 롤은 .app 게이트라 실앱에서만 발동, 판정 로직은 순수 함수로 검증
 
 final class DittoDisguiseRollTests: XCTestCase {
@@ -100,11 +158,12 @@ final class DittoDisguiseRollTests: XCTestCase {
 final class DittoRevealTests: XCTestCase {
     /// 활성 = 커먼 3형태 위장 메타몽(정체). currentLine 은 nil(재시작류) → update 로 로드해 리빌 트리거.
     private func seedDisguise(usedAtStage: Int = 0, shiny: Bool = false, revealed: Bool = false,
-                              boosted: Bool = false, collectedFinals: [String] = [],
+                              boosted: Bool = false, newForm: Bool = false, collectedFinals: [String] = [],
                               defaults: UserDefaults = .standard) -> CompanionStore {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("ditto-\(UUID().uuidString).json")
         let active = "{\"baseID\":1,\"pathIDs\":[1],\"stageIndex\":0,\"usedAtStage\":\(usedAtStage),"
             + "\"rarity\":\"common\",\"totalForms\":3,\"isShiny\":\(shiny),\"hasGrowthBoost\":\(boosted),"
+            + "\"hasNewForm\":\(newForm),"
             + "\"dittoDisguise\":1,\"dittoRevealed\":\(revealed)}"
         let finals = collectedFinals.map { "\"\($0)\"" }.joined(separator: ",")
         let json = "{\"installBaselineSet\":true,\"usedSinceInstall\":1000000000,\"spentTokens\":0,"
@@ -146,6 +205,16 @@ final class DittoRevealTests: XCTestCase {
         XCTAssertEqual(s.state.active?.usedAtStage, 300_000_000 - 125_000_000, "첫 진화 초과분 이월")
         XCTAssertNotNil(s.state.active?.dittoDisguise, "위장 마커 보존")
         XCTAssertEqual(s.celebration, .dittoReveal(shiny: false), "리빌 연출 발화")
+    }
+
+    /// Ditto has no form: a disguise that hatched in a new form loses it, and the Prison Bottle's +50%, at the reveal.
+    func testTheRevealDropsTheDisguisesNewForm() async {
+        let s = seedDisguise(newForm: true)
+        XCTAssertTrue(s.state.active?.hasNewForm ?? false)
+        s.applyUsage(300_000_000)
+        await drainReveal(s)
+        XCTAssertTrue(s.state.active?.dittoRevealed ?? false)
+        XCTAssertFalse(s.state.active?.hasNewForm ?? true)
     }
 
     func testRevealRebasesDisguiseProfileAndLoadsDittoDetails() async {

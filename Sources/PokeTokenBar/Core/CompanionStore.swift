@@ -1665,6 +1665,9 @@ final class CompanionStore {
     /// EXP one Rare Candy gives now: the Soul Dew adds 50%. Planning and use both read this value.
     var rareCandyXP: Int { ownsSoulDew ? RareCandy.xp * 3 / 2 : RareCandy.xp }
 
+    /// The odds a shiny hatch's notification tells: none with the Glimmering Charm, which makes every hatch shiny.
+    func shinyHatchNotificationOdds(_ denominator: UInt64) -> UInt64? { ownsGlimmeringCharm ? nil : denominator }
+
     var maxRareCandyUseCount: Int {
         let remaining = max(0, rareCandyStageCosts.reduce(0, +) - (state.active?.usedAtStage ?? 0))
         let xp = rareCandyXP
@@ -2640,8 +2643,13 @@ final class CompanionStore {
         // 메타몽 위장 롤 — common·≥2형태에 한해 1/128. .app 게이트(&& 단락 → 비앱에선 rng 미소비로
         // 기존 테스트 RNG 시퀀스 무영향). 위장/리빌 로직은 상태 기반으로 별도 테스트한다.
         var dittoDisguise: Int?
+        // An egg that promises a type (a Stone's) or a form still missing (the Oval Charm) never hides a Ditto, which
+        // has neither. The roll is still drawn, so the rolls after it stay the same.
+        let keepsAPromise = typeGuarantee != nil
+            || (ownsOvalCharm && state.lineMissesForms(baseID: line.baseID, type: typeGuarantee))
         if dittoDisguiseRollingEnabled,
-           Self.dittoDisguiseHit(rarity: line.rarity, totalForms: line.totalForms, roll: rng.next()) {
+           Self.dittoDisguiseHit(rarity: line.rarity, totalForms: line.totalForms, roll: rng.next()),
+           !keepsAPromise {
             dittoDisguise = line.baseID
         }
         var evolutionPlan = makeEvolutionPlan(from: line.tree, baseID: line.baseID, form: pendingForm)
@@ -2674,7 +2682,8 @@ final class CompanionStore {
         let name = formDisplayName(line.localizedName(line.baseID, state.language),
                                    speciesID: line.baseID, form: form)
         notifyCompanionEvent(showShiny ? l.notifShinyHatchTitle : l.notifHatchTitle,
-                             showShiny ? l.notifShinyHatchBody(name, odds: shinyOdds) : l.notifHatchBody(name))
+                             showShiny ? l.notifShinyHatchBody(name, odds: shinyHatchNotificationOdds(shinyOdds))
+                                       : l.notifHatchBody(name))
         justEvolvedTo = nil        // 새 부화는 "성장" 문구(진화 아님) — 직전 진화명이 남아 표시되지 않게
         displayState = .levelUp
         eventUntil = clock().addingTimeInterval(4)
@@ -2716,6 +2725,8 @@ final class CompanionStore {
         m.usedAtStage = carryOver
         m.dittoRevealed = true
         m.form = nil
+        // Ditto has no form: the disguise's new form, and the Prison Bottle's +50% with it, go.
+        m.hasNewForm = false
         // The hatch boost came from the disguise's line; from now on only a repeat Ditto earns it.
         m.hasGrowthBoost = state.hasCollectedFinal(forBaseID: dittoLine.baseID)
         m.profile?.rebaseForSpeciesIdentity(from: previousRarity, to: dittoLine.rarity)
@@ -2834,6 +2845,9 @@ final class CompanionStore {
     private func chooseBaseViaREST() async -> Int? {
         let tier = state.eggTier
         let typeGuarantee = state.eggTypeGuarantee
+        // The Oval Charm, as in `chooseBase`: a line with a form still missing while the tries find one, else the
+        // first candidate that keeps the egg's other guarantees.
+        var withoutTheCharm: Int?
         for attempt in 1...32 {
             let ids = PokemonAssets.animatedSpeciesIDs
             let id = Int(rng.next() % UInt64(ids.count)) + ids.lowerBound
@@ -2844,6 +2858,10 @@ final class CompanionStore {
                     if let tier, !tier.admits(bs) { continue }
                     if state.eggFromLegendaryEgg, !bs.isLegendary { continue }
                     if let typeGuarantee, !PokemonTypeData.canHatch(baseID: bs.id, as: typeGuarantee) { continue }
+                    if ownsOvalCharm, !state.lineMissesForms(baseID: bs.id, type: typeGuarantee) {
+                        withoutTheCharm = withoutTheCharm ?? id
+                        continue
+                    }
                     AppLog.write("hatch: REST fallback picked base \(id) (cap \(bs.captureRate), \(attempt) tries)")
                     return id
                 }
@@ -2852,6 +2870,10 @@ final class CompanionStore {
                 AppLog.write("hatch: REST fallback network error — retry next tick: \(error)")
                 return nil   // REST 도 불가 → 알 유지, 다음 update 틱 재시도
             }
+        }
+        if let withoutTheCharm {
+            AppLog.write("hatch: REST fallback found no line missing a form, picked base \(withoutTheCharm)")
+            return withoutTheCharm
         }
         AppLog.write("hatch: REST fallback exhausted 32 tries")
         return nil
