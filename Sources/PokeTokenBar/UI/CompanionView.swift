@@ -1235,7 +1235,7 @@ struct CompanionHeader: View {
         } ?? [:]
         let percentText = (Double(percent) / 100).formatted(.percent.locale(store.language.displayLocale))
         return EvolutionTrackView(stops: track, progress: store.progress, tint: rarityColor(store.rarity),
-                                  shiny: store.currentIsShiny, form: store.currentForm,
+                                  shiny: store.currentIsShiny, form: store.evolutionTrackForm,
                                   pikachuCostume: store.state.active?.pikachuCostume,
                                   remaining: Self.trackCaption(track, amount: amount, percent: percentText,
                                                                names: names, l: l),
