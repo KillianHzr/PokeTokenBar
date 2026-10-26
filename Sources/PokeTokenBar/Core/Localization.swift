@@ -1207,6 +1207,16 @@ struct L {
     }
     var dexPagePrev: String { t("이전 페이지", "Previous page", "前のページ", "Página anterior", "Page précédente", "Página anterior", "Vorherige Seite", "Предыдущая страница") }
     var dexPageNext: String { t("다음 페이지", "Next page", "次のページ", "Página siguiente", "Page suivante", "Próxima página", "Nächste Seite", "Следующая страница") }
+    /// Pokédex: species seen (raised, or released) but never graduated, beside the graduated count.
+    func dexSeenOnly(_ count: Int) -> String {
+        t("본 종 \(count)", "\(count) seen", "見ただけ \(count)", "\(count) vistas", "\(count) vues", "\(count) vistas",
+          "\(count) gesehen", "увидено: \(count)")
+    }
+    /// A Pokédex cell's tooltip for a species seen but never graduated: it counts for no achievement yet.
+    var dexSeenNotGraduated: String {
+        t("본 적만 있음 · 아직 졸업 전", "Seen, not graduated yet", "見ただけ · まだ卒業していない", "Vista, aún sin graduar",
+          "Vue, pas encore diplômée", "Vista, ainda não formada", "Gesehen, noch nicht verabschiedet", "Встречен, ещё не выпущен")
+    }
     var dexRaising: String { t("키우는 중", "Raising", "育成中", "Criando", "En élevage", "Treinando", "In Aufzucht", "Растёт") }
     /// 포획 로그에서 졸업분과 놓아준 개체를 가르는 표식. 종은 도감에 남고 개체 기록만 이 뱃지를 단다.
     var dexReleased: String { t("놓아줌", "Released", "逃がした", "Liberado", "Relâché", "Solto", "Freigelassen", "Отпущен") }
@@ -1331,7 +1341,15 @@ struct L {
     func notifHatchBody(_ name: String) -> String { t("알에서 \(KoreanParticle.subject.attach(to: name)) 나왔어요!", "\(name) hatched from the egg!", "タマゴから \(name) が生まれました！", "¡\(name) salió del huevo!", "\(name) est sorti de l'œuf !", "\(name) saiu do ovo!", "\(name) ist aus dem Ei geschlüpft!", "Из яйца вылупился \(name)!") }
     var notifShinyHatchTitle: String { t("✨ 이로치 포켓몬!", "✨ Shiny Pokémon!", "✨ 色違いポケモン！", "✨ ¡Pokémon variocolor!", "✨ Pokémon chromatique !", "✨ Pokémon shiny!", "✨ Schillerndes Pokémon!", "✨ Шайни-покемон!") }
     /// 실제 판정에 쓴 분모를 받는다 — 부적이 있으면 64 가 아니다.
-    func notifShinyHatchBody(_ name: String, odds: UInt64) -> String { t("이로치 \(KoreanParticle.subject.attach(to: name)) 태어났어요! (1/\(odds))", "A shiny \(name) hatched! (1 in \(odds))", "色違いの \(name) が生まれました！(1/\(odds))", "¡Nació un \(name) variocolor! (1 entre \(odds))", "Un \(name) chromatique est né ! (1 sur \(odds))", "Nasceu um \(name) shiny! (1 em \(odds))", "Ein schillerndes \(name) ist geschlüpft! (1/\(odds))", "Вылупился шайни \(name)! (шанс 1 к \(odds))") }
+    /// `odds` nil: every hatch is shiny (the Glimmering Charm), so no odds are told.
+    func notifShinyHatchBody(_ name: String, odds: UInt64?) -> String {
+        guard let odds else {
+            return t("이로치 \(KoreanParticle.subject.attach(to: name)) 태어났어요!", "A shiny \(name) hatched!", "色違いの \(name) が生まれました！",
+                     "¡Nació un \(name) variocolor!", "Un \(name) chromatique est né !", "Nasceu um \(name) shiny!",
+                     "Ein schillerndes \(name) ist geschlüpft!", "Вылупился шайни \(name)!")
+        }
+        return t("이로치 \(KoreanParticle.subject.attach(to: name)) 태어났어요! (1/\(odds))", "A shiny \(name) hatched! (1 in \(odds))", "色違いの \(name) が生まれました！(1/\(odds))", "¡Nació un \(name) variocolor! (1 entre \(odds))", "Un \(name) chromatique est né ! (1 sur \(odds))", "Nasceu um \(name) shiny! (1 em \(odds))", "Ein schillerndes \(name) ist geschlüpft! (1/\(odds))", "Вылупился шайни \(name)! (шанс 1 к \(odds))")
+    }
     var eggImminent: String { t("곧 부화해요!", "About to hatch!", "もうすぐ孵化！", "¡Está a punto de eclosionar!", "Sur le point d'éclore !", "Está quase chocando!", "Schlüpft gleich!", "Вот-вот вылупится!") }
     /// 첫 실행(아직 토큰 적립 0) 안내 — "왜 아무 일도 안 일어나지"를 방지.
     /// `amount` 는 성장 난이도가 반영된 부화 임계(포맷된 값) — 고정 5M 이 아니다.
@@ -1691,10 +1709,11 @@ struct L {
         case .shinyStone:   return t("빛의돌", "Shiny Stone", "ひかりのいし", "Piedra Día", "Pierre Éclat", "Pedra do Brilho", "Leuchtstein", "Сияющий камень")
         }
     }
-    func itemDescription(_ kind: ItemKind) -> String {
+    /// `rareCandyXP`: what a candy grants now, with the Soul Dew's +50% when owned (`CompanionStore.rareCandyXP`).
+    func itemDescription(_ kind: ItemKind, rareCandyXP: Int = RareCandy.xp) -> String {
         switch kind {
         case .rareCandy:
-            let xp = TokenFormatter.compact(RareCandy.xp)   // 상수에서 파생(하드코딩 드리프트 방지)
+            let xp = TokenFormatter.compact(rareCandyXP)   // 스토어 값에서 파생(Soul Dew 반영, 하드코딩 드리프트 방지)
             return t("현재 포켓몬의 경험치를 \(xp) 올려줘요.",
                      "Raises your Pokémon's EXP by \(xp).",
                      "ポケモンの経験値を\(xp)上げます。",
@@ -1767,14 +1786,14 @@ struct L {
                      "Gewährt im Beutel einen Rabatt auf alle Einkäufe im Token-Laden.",
                      "Пока оно у вас, даёт скидку на все покупки в магазине.")
         case .magmaStone:
-            return t("보유하면 이미 졸업시킨 적 있는 라인을 육성할 때 토큰 소모가 25% 감소합니다.",
-                     "While owned, reduces token cost by 25% when raising a line you have already graduated.",
-                     "持っていると卒業させたことのある系統の育成トークン消費が25%減少します。",
-                     "Mientras la tengas, reduce un 25% el coste de tokens al criar una línea que ya graduaste.",
-                     "Tant que tu la possèdes, réduit le coût de 25% lors de l'élevage d'une lignée déjà diplômée.",
-                     "Enquanto estiver na bolsa, reduz em 25% o custo de tokens ao criar uma linha que você já formou.",
-                     "Reduziert im Beutel die Token-Kosten um 25%, wenn eine bereits verabschiedete Entwicklungsreihe trainiert wird.",
-                     "Пока он у вас, снижает расход токенов на 25% при выращивании линии, которую вы уже выпускали.")
+            return t("보유하면 이 모습으로 이미 졸업시킨 적 있는 라인을 육성할 때 토큰 소모가 25% 감소합니다.",
+                     "While owned, reduces token cost by 25% when raising a line you have already graduated in this form.",
+                     "持っているとこの姿で卒業させたことのある系統の育成トークン消費が25%減少します。",
+                     "Mientras la tengas, reduce un 25% el coste de tokens al criar una línea que ya graduaste en esta forma.",
+                     "Tant que tu la possèdes, réduit le coût de 25% lors de l'élevage d'une lignée déjà diplômée sous cette forme.",
+                     "Enquanto estiver na bolsa, reduz em 25% o custo de tokens ao criar uma linha que você já formou nesta forma.",
+                     "Reduziert im Beutel die Token-Kosten um 25%, wenn eine in dieser Form bereits verabschiedete Entwicklungsreihe trainiert wird.",
+                     "Пока он у вас, снижает расход токенов на 25% при выращивании линии, которую вы уже выпускали в этой форме.")
         case .soulDew:
             return t("보유하면 사탕 사용 시 얻는 경험치가 50% 증가합니다.",
                      "While owned, boosts EXP gained from using candies by 50%.",
@@ -1812,14 +1831,14 @@ struct L {
                      "Lässt im Beutel Geist- und Drachen-Pokémon 30% schneller wachsen.",
                      "Пока она у вас, покемоны типов Призрак и Дракон растут на 30% быстрее.")
         case .libertyPass:
-            return t("보유하면 한 번도 졸업시킨 적 없는 라인을 육성할 때 토큰 소모가 25% 감소합니다.",
-                     "While owned, reduces token cost by 25% when raising a line you have never graduated.",
-                     "持っていると一度も卒業させていない系統の育成トークン消費が25%減少します。",
-                     "Mientras lo tengas, reduce un 25% el coste de tokens al criar una línea que nunca graduaste.",
-                     "Tant que tu l'as, réduit le coût de 25% lors de l'élevage d'une lignée jamais diplômée.",
-                     "Enquanto estiver na bolsa, reduz em 25% o custo de tokens ao criar uma linha que você nunca formou.",
-                     "Reduziert im Beutel die Token-Kosten um 25%, wenn eine noch nie verabschiedete Entwicklungsreihe trainiert wird.",
-                     "Пока он у вас, снижает расход токенов на 25% при выращивании линии, которую вы ещё не выпускали.")
+            return t("보유하면 이 모습으로 한 번도 졸업시킨 적 없는 라인을 육성할 때 토큰 소모가 25% 감소합니다.",
+                     "While owned, reduces token cost by 25% when raising a line you have never graduated in this form.",
+                     "持っているとこの姿で一度も卒業させていない系統の育成トークン消費が25%減少します。",
+                     "Mientras lo tengas, reduce un 25% el coste de tokens al criar una línea que nunca graduaste en esta forma.",
+                     "Tant que tu l'as, réduit le coût de 25% lors de l'élevage d'une lignée jamais diplômée sous cette forme.",
+                     "Enquanto estiver na bolsa, reduz em 25% o custo de tokens ao criar uma linha que você nunca formou nesta forma.",
+                     "Reduziert im Beutel die Token-Kosten um 25%, wenn eine in dieser Form noch nie verabschiedete Entwicklungsreihe trainiert wird.",
+                     "Пока он у вас, снижает расход токенов на 25% при выращивании линии, которую вы ещё не выпускали в этой форме.")
         case .revealGlass:
             return t("보유하면 이로치 확률 계산 시 분모가 절반으로 줄어듭니다.",
                      "While owned, halves the denominator in shiny rate calculations.",
@@ -1839,23 +1858,23 @@ struct L {
                      "Erhöht im Beutel die Wachstums-EP durch Token-Verbrauch drastisch (+50%).",
                      "Пока они у вас, увеличивают опыт роста покемона на 50%.")
         case .zygardeCube:
-            return t("보유하면 도감에 등록된 25종마다 토큰 성장 경험치가 1% 늘어납니다 (최대 +40%).",
-                     "While owned, grants +1% growth EXP from token usage for every 25 species in your Pokédex (up to +40%).",
-                     "持っていると図鑑に登録した25種ごとにトークンの育成経験値が1%増えます（最大+40%）。",
-                     "Mientras la tengas, otorga +1% de EXP de crecimiento por tokens por cada 25 especies de tu Pokédex (hasta +40%).",
-                     "Tant que tu la possèdes, +1% d'EXP de croissance via tes tokens par tranche de 25 espèces de ton Pokédex (jusqu'à +40%).",
-                     "Enquanto estiver na bolsa, concede +1% de EXP de crescimento por tokens a cada 25 espécies da sua Pokédex (até +40%).",
-                     "Gibt im Beutel +1% Wachstums-EP durch Token-Verbrauch je 25 Arten in deinem Pokédex (bis +40%).",
-                     "Пока он у вас, даёт +1% опыта роста за каждые 25 видов в покедексе (до +40%).")
+            return t("보유하면 졸업시킨 25종마다 토큰 성장 경험치가 1% 늘어납니다 (최대 +40%).",
+                     "While owned, grants +1% growth EXP from token usage for every 25 species you have graduated (up to +40%).",
+                     "持っていると卒業させた25種ごとにトークンの育成経験値が1%増えます（最大+40%）。",
+                     "Mientras la tengas, otorga +1% de EXP de crecimiento por tokens por cada 25 especies graduadas (hasta +40%).",
+                     "Tant que tu la possèdes, +1% d'EXP de croissance via tes tokens par tranche de 25 espèces diplômées (jusqu'à +40%).",
+                     "Enquanto estiver na bolsa, concede +1% de EXP de crescimento por tokens a cada 25 espécies formadas (até +40%).",
+                     "Gibt im Beutel +1% Wachstums-EP durch Token-Verbrauch je 25 verabschiedete Arten (bis +40%).",
+                     "Пока он у вас, даёт +1% опыта роста за каждые 25 выпущенных видов (до +40%).")
         case .prisonBottle:
-            return t("보유하면 도감에 없던 모습으로 태어난 포켓몬이 50% 더 빨리 성장합니다.",
-                     "While owned, a Pokémon that hatched in a form new to your Pokédex grows 50% faster.",
-                     "持っていると図鑑にない姿で生まれたポケモンが50%早く育ちます。",
-                     "Mientras la tengas, un Pokémon que nazca con una forma nueva en tu Pokédex crece un 50% más rápido.",
-                     "Tant que tu le possèdes, un Pokémon éclos sous une forme absente de ton Pokédex grandit 50% plus vite.",
-                     "Enquanto estiver na bolsa, um Pokémon que nascer com uma forma nova na sua Pokédex cresce 50% mais rápido.",
-                     "Lässt im Beutel Pokémon, die in einer für deinen Pokédex neuen Form schlüpfen, 50% schneller wachsen.",
-                     "Пока он у вас, покемон, вылупившийся в новой для покедекса форме, растёт на 50% быстрее.")
+            return t("보유하면 그 라인이 아직 모으지 못한 모습으로 태어난 포켓몬이 50% 더 빨리 성장합니다(여러 모습이 있는 종).",
+                     "While owned, a Pokémon that hatched in a form its line hasn't collected yet grows 50% faster (species with alternate forms).",
+                     "持っているとその系統がまだ集めていない姿で生まれたポケモンが50%早く育ちます（複数の姿がある種）。",
+                     "Mientras la tengas, un Pokémon que nazca en una forma que su línea aún no reunió crece un 50% más rápido (especies con formas alternativas).",
+                     "Tant que tu le possèdes, un Pokémon éclos sous une forme que sa lignée n'a pas encore grandit 50% plus vite (espèces à plusieurs formes).",
+                     "Enquanto estiver na bolsa, um Pokémon que nascer numa forma que sua linha ainda não coletou cresce 50% mais rápido (espécies com formas alternativas).",
+                     "Lässt im Beutel Pokémon, die in einer Form schlüpfen, die ihre Entwicklungsreihe noch nicht hat, 50% schneller wachsen (Arten mit mehreren Formen).",
+                     "Пока он у вас, покемон, вылупившийся в форме, которой ещё нет у его линии, растёт на 50% быстрее (виды с несколькими формами).")
         case .sparklingStone:
             let fairy = typeName(.fairy)
             return t("보유하면 \(fairy)타입 포켓몬이 30% 더 빨리 성장합니다.",
@@ -2003,22 +2022,22 @@ struct L {
             // No type is weak to Normal: the Plain Badge boosts Normal-type Pokémon (`PokemonTypeData.isWeak`).
             if kind == .plainBadge {
                 return t("지방마다 그 타입의 포켓몬을 모두 등록하면, 노말타입 포켓몬이 \(step)% 더 빨리 성장합니다(노말에 약한 타입은 없어요).",
-                         "Each region completed makes Normal-type Pokémon grow \(step)% faster (no type is weak to Normal).",
+                         "Each region claimed makes Normal-type Pokémon grow \(step)% faster (no type is weak to Normal).",
                          "地方ごとにそのタイプのポケモンをすべて登録すると、ノーマルタイプのポケモンが\(step)%早く育ちます(ノーマルに弱いタイプはありません)。",
-                         "Cada región completada hace que los Pokémon de tipo Normal crezcan un \(step)% más rápido (ningún tipo es débil al Normal).",
-                         "Chaque région complétée fait grandir les Pokémon de type Normal \(step) % plus vite (aucun type n'est faible contre le Normal).",
-                         "Cada região completada faz os Pokémon do tipo Normal crescerem \(step)% mais rápido (nenhum tipo é vulnerável a Normal).",
-                         "Jede abgeschlossene Region lässt Pokémon vom Typ Normal \(step)% schneller wachsen (kein Typ ist schwach gegen Normal).",
-                         "Каждый завершённый регион ускоряет рост покемонов обычного типа на \(step)% (ни один тип не уязвим к обычному).")
+                         "Cada región reclamada hace que los Pokémon de tipo Normal crezcan un \(step)% más rápido (ningún tipo es débil al Normal).",
+                         "Chaque région réclamée fait grandir les Pokémon de type Normal \(step) % plus vite (aucun type n'est faible contre le Normal).",
+                         "Cada região resgatada faz os Pokémon do tipo Normal crescerem \(step)% mais rápido (nenhum tipo é vulnerável a Normal).",
+                         "Jede beanspruchte Region lässt Pokémon vom Typ Normal \(step)% schneller wachsen (kein Typ ist schwach gegen Normal).",
+                         "Каждый полученный регион ускоряет рост покемонов обычного типа на \(step)% (ни один тип не уязвим к обычному).")
             }
             return t("지방마다 그 타입의 포켓몬을 모두 등록하면, 그 타입이 약점인 포켓몬이 \(step)% 더 빨리 성장합니다.",
-                     "Each region completed makes Pokémon weak to this type grow \(step)% faster.",
+                     "Each region claimed makes Pokémon weak to this type grow \(step)% faster.",
                      "地方ごとにそのタイプのポケモンをすべて登録すると、そのタイプが弱点のポケモンが\(step)%早く育ちます。",
-                     "Cada región completada hace que los Pokémon débiles a este tipo crezcan un \(step)% más rápido.",
-                     "Chaque région complétée fait grandir les Pokémon faibles contre ce type \(step) % plus vite.",
-                     "Cada região completada faz os Pokémon vulneráveis a este tipo crescerem \(step)% mais rápido.",
-                     "Jede abgeschlossene Region lässt Pokémon mit dieser Schwäche \(step)% schneller wachsen.",
-                     "Каждый завершённый регион ускоряет рост покемонов, уязвимых к этому типу, на \(step)%.")
+                     "Cada región reclamada hace que los Pokémon débiles a este tipo crezcan un \(step)% más rápido.",
+                     "Chaque région réclamée fait grandir les Pokémon faibles contre ce type \(step) % plus vite.",
+                     "Cada região resgatada faz os Pokémon vulneráveis a este tipo crescerem \(step)% mais rápido.",
+                     "Jede beanspruchte Region lässt Pokémon mit dieser Schwäche \(step)% schneller wachsen.",
+                     "Каждый полученный регион ускоряет рост покемонов, уязвимых к этому типу, на \(step)%.")
         case .leafStone, .fireStone, .waterStone, .thunderStone,
              .sunStone, .moonStone, .iceStone, .duskStone,
              .dawnStone, .shinyStone:
@@ -2165,7 +2184,10 @@ struct L {
         return t("\(region)의 모든 \(tn)타입 포켓몬", "Every \(region) \(tn)-type Pokémon", "\(region)のすべての\(tn)タイプのポケモン", "Todos los Pokémon de tipo \(tn) de \(region)", "Tous les Pokémon de type \(tn) de \(region)", "Todos os Pokémon do tipo \(tn) de \(region)", "Alle Pokémon vom Typ \(tn) aus \(region)", "Все покемоны типа \(tn) из региона \(region)")
     }
     func fossilsGoal(_ needed: Int) -> String {
-        t("화석 포켓몬 중 \(needed)마리", "Any \(needed) fossil Pokémon", "化石ポケモンのうち\(needed)匹", "\(needed) Pokémon fósiles cualesquiera", "\(needed) Pokémon fossiles au choix", "\(needed) Pokémon fósseis quaisquer", "\(needed) beliebige Fossil-Pokémon", "Покемоны-окаменелости: любые \(needed)")
+        t("최종 진화한 화석 포켓몬 중 \(needed)마리", "Any \(needed) fully evolved fossil Pokémon", "最終進化の化石ポケモンのうち\(needed)匹",
+          "\(needed) Pokémon fósiles totalmente evolucionados cualesquiera", "\(needed) Pokémon fossiles au stade final au choix",
+          "\(needed) Pokémon fósseis totalmente evoluídos quaisquer", "\(needed) beliebige voll entwickelte Fossil-Pokémon",
+          "Покемоны-окаменелости в последней стадии: любые \(needed)")
     }
     func ultraBeastsGoal(_ needed: Int) -> String {
         t("울트라비스트 중 \(needed)마리", "Any \(needed) Ultra Beasts", "ウルトラビーストのうち\(needed)匹", "\(needed) Ultraentes cualesquiera", "\(needed) Ultra-Chimères au choix", "\(needed) Ultracriaturas quaisquer", "\(needed) beliebige Ultrabestien", "Ультрачудовища: любые \(needed)")
@@ -2231,7 +2253,7 @@ struct L {
     var jadeOrbEffectHint: String { t("알 추가할인 20% · 적용 중", "Egg discount 20% · active", "タマゴ20%引 · 適用中", "Descuento huevos 20% · activo", "Réduction œufs 20% · actif", "Desconto ovos 20% · ativo", "Ei-Rabatt 20% · aktiv", "Скидка на яйца 20% · активна") }
     var gracideaEffectHint: String { t("첫 단계 +25% · 적용 중", "First stage +25% · active", "最初の段階 +25% · 適用中", "Primera etapa +25% · activo", "Premier stade +25% · actif", "Primeiro estágio +25% · ativo", "Erste Stufe +25% · aktiv", "Первая стадия +25% · активна") }
     var griseousOrbEffectHint: String { t("고스트·드래곤 성장 +30% · 적용 중", "Ghost & Dragon growth +30% · active", "ゴースト・ドラゴン育成 +30% · 適用中", "Crec. Fantasma y Dragón +30% · activo", "Croissance Spectre et Dragon +30% · actif", "Cresc. Fantasma e Dragão +30% · ativo", "Geist & Drache +30% · aktiv", "Рост Призраков и Драконов +30% · активен") }
-    var libertyPassEffectHint: String { t("새 종 육성 25% 할인 · 적용 중", "New species raising -25% · active", "新種育成25%減 · 適用中", "Crianza de especie nueva -25% · activo", "Élevage nouvelle espèce -25% · actif", "Criação de espécie nova -25% · ativo", "Neue Art Zucht -25% · aktiv", "Новый вид -25% · активен") }
+    var libertyPassEffectHint: String { t("아직 졸업 전 육성 25% 할인 · 적용 중", "Not graduated yet -25% · active", "未卒業の育成25%減 · 適用中", "Aún sin graduar -25% · activo", "Pas encore diplômée -25% · actif", "Ainda não formada -25% · ativo", "Noch nicht verabschiedet -25% · aktiv", "Ещё не выпущена -25% · активен") }
     var revealGlassEffectHint: String { t("이로치 분모 ½ · 적용 중", "Shiny denom ½ · active", "色違い分母½ · 適用中", "Denominador shiny ½ · activo", "Dénominateur shiny ½ · actif", "Denominador shiny ½ · ativo", "Schiller-Nenner ½ · aktiv", "Знаменатель шайни ½ · активен") }
     var dnaSplicersEffectHint: String { t("성장 경험치 +50% · 적용 중", "Growth EXP +50% · active", "育成EXP +50% · 適用中", "EXP crecimiento +50% · activo", "EXP croissance +50% · actif", "EXP crescimento +50% · ativo", "Wachstums-EP +50% · aktiv", "Опыт роста +50% · активен") }
     func badgeEffectHint(_ percent: Double, type: PokemonType? = nil) -> String {

@@ -202,7 +202,7 @@ private struct AchievementCard: View {
                         statusAction(l)
                     }
 
-                    Text(l.itemDescription(kind))
+                    Text(l.itemDescription(kind, rareCandyXP: store.rareCandyXP))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)

@@ -1924,16 +1924,24 @@ private struct DexGridView: View {
 
     private func header(_ all: [CompanionStore.DexSpecies]) -> some View {
         VStack(alignment: .leading, spacing: 5) {
-            // What is collected and what is left: species, then every form of every species.
-            let progress = store.collectionProgress
+            // What is collected and what is left: species, then every form of every species. Graduated ones, as the
+            // games' Owned, and how many more were only seen (raised, or released), as their Seen.
+            let owned = store.graduatedCollectionProgress
+            let seen = store.collectionProgress.species - owned.species
             HStack(spacing: 6) {
                 Text(store.l.dexTitle).font(.callout.weight(.semibold)).foregroundStyle(.primary)
                 Spacer(minLength: 4)
-                Text(store.l.dexSpeciesProgress(progress.species, of: progress.speciesTotal))
+                Text(store.l.dexSpeciesProgress(owned.species, of: owned.speciesTotal))
+                if seen > 0 {
+                    Text("·").foregroundStyle(.tertiary)
+                    Label(store.l.dexSeenOnly(seen), systemImage: "eye").labelStyle(.titleAndIcon)
+                        .help(store.l.dexSeenNotGraduated)
+                }
                 Text("·").foregroundStyle(.tertiary)
-                Text(store.l.formsCollected(progress.forms, of: progress.formsTotal))
+                Text(store.l.formsCollected(owned.forms, of: owned.formsTotal))
             }
             .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+            .lineLimit(1).minimumScaleFactor(0.8)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 4) {
                     ForEach(rarityDisplayOrder, id: \.self) { r in
@@ -1963,6 +1971,7 @@ private struct DexGridView: View {
         let formCounts = Dictionary(uniqueKeysWithValues: slice.lazy
             .filter { PokemonForm.hasForms(speciesID: $0.id) }
             .map { ($0.id, store.state.collectedForms(speciesID: $0.id).count) })
+        let graduated = store.graduatedSpeciesIDs
         return VStack(spacing: Self.spacing) {
             ForEach(0..<Self.rows, id: \.self) { row in
                 HStack(spacing: Self.spacing) {
@@ -1973,7 +1982,8 @@ private struct DexGridView: View {
                             DexSpeciesCell(store: store, species: sp,
                                            isSelected: selectedID == sp.collectionID,
                                            isRepresentative: store.isRepresentative(sp),
-                                           formCount: formCounts[sp.id]) {
+                                           formCount: formCounts[sp.id],
+                                           isSeenOnly: !graduated.contains(sp.id)) {
                                 selectedID = sp.collectionID
                                 onSelectSpecies(sp)
                             }
@@ -2531,6 +2541,8 @@ private struct DexSpeciesCell: View {
     let isRepresentative: Bool
     /// Collected forms, nil for species with a single appearance.
     let formCount: Int?
+    /// Seen (raised, or released) but never graduated: it counts for no achievement yet.
+    var isSeenOnly = false
     let onTap: () -> Void
     @State private var isHovered = false
 
@@ -2608,6 +2620,14 @@ private struct DexSpeciesCell: View {
         }
     }
 
+    private var seenMark: some View {
+        Group {
+            if isSeenOnly && !species.isRaising {
+                Image(systemName: "eye").font(.system(size: 8, weight: .semibold)).foregroundStyle(.secondary)
+            }
+        }
+    }
+
     private var shinyMark: some View {
         Group { if species.isShiny { Text("✨").font(.system(size: 9)) } }
     }
@@ -2616,8 +2636,10 @@ private struct DexSpeciesCell: View {
     private var cell: some View {
         neutralCard {
             VStack(spacing: 2) {
-                HStack { plainNumber; Spacer(minLength: 0); shinyMark; typeDots }
-                sprite(50).overlay(alignment: .bottom) { if species.isRaising { raisingBadge.fixedSize() } }
+                HStack { plainNumber; Spacer(minLength: 0); seenMark; shinyMark; typeDots }
+                // Seen only: faded, but the one being raised keeps its badge instead.
+                sprite(50).opacity(isSeenOnly && !species.isRaising ? 0.45 : 1)
+                    .overlay(alignment: .bottom) { if species.isRaising { raisingBadge.fixedSize() } }
                 Text(displayName).font(.system(size: 11, weight: .semibold, design: .rounded))
                     .lineLimit(1).minimumScaleFactor(0.8)
             }
@@ -2639,6 +2661,7 @@ private struct DexSpeciesCell: View {
         if let formCount { parts.append(store.l.formsCollected(formCount, of: formTotal)) }
         if species.isShiny { parts.append(store.l.dexShinyLabel) }
         if species.isRaising { parts.append(store.l.dexRaising) }
+        if isSeenOnly { parts.append(store.l.dexSeenNotGraduated) }
         if isRepresentative { parts.append(store.l.representativeBadge) }
         return parts.joined(separator: " · ")
     }

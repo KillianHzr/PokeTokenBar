@@ -130,7 +130,7 @@ private struct ItemCard: View {
                             .accessibilityValue("\(selectedCandyCount)")
                         }
                     }
-                    Text(l.itemDescription(kind))
+                    Text(l.itemDescription(kind, rareCandyXP: store.rareCandyXP))
                         .font(.caption).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                     // A stone sends the companion off like a Shop egg: say what stays, as the egg card does.

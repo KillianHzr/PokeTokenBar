@@ -66,6 +66,20 @@ read_when:
 
 ## 판정·데이터
 
+- **A surprise never breaks what an egg promised (#57).** The Ditto disguise rolled on any common line that
+  evolves, so 1 Stone egg in 128 turned into a Normal-type Ditto and 1 Oval Charm egg in 128 lost the missing form it
+  had brought. The REST fallback also skipped the Oval Charm the index path applies, and the reveal kept the
+  disguise's `hasNewForm` (the Prison Bottle's +50% on a Ditto). **Why it was missed:** the disguise roll is gated to
+  the bundled app, so tests checked it as a pure function and never with an egg's guarantees. An egg with a promise
+  now draws the roll but never disguises; `DittoPromiseTests` enables the roll on a hitting seed, with the control
+  egg disguising. Every roll path applies the same filters: add a filter to `chooseBase` and to `chooseBaseViaREST`
+  together (`testTheOvalCharmAlsoGuidesTheRestFallback`).
+
+- **A text states what the code does, from the value it uses (#58).** The Rare Candy's description read the
+  constant (100M) under the Bag's "+150M XP" with the Soul Dew; the Magma Stone and Liberty Pass decide by form, the
+  Prison Bottle by the line's forms, badges by claimed regions, and a charmed shiny is certain. Texts now say so, the
+  candy's from `rareCandyXP`; `PromiseTextTests` pins them.
+
 - **Achievements count graduated Pokémon only.** Every achievement goal (species goals, badge and Legendary Egg
   regions, every species and every form, Silvally's Memories) read `registeredSpeciesIDs`, the Pokédex's set: the
   Pokémon being raised for the stages it reached, and released entries, which the Pokédex keeps. A Pokémon could be

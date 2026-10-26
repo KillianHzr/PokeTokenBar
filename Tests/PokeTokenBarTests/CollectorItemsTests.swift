@@ -440,6 +440,10 @@ final class CollectorItemsTests: XCTestCase {
         XCTAssertEqual(store(dex: entries(Array(1...50)), inventory: cube).zygardeCubeMultiplier, 1.02, accuracy: 0.0001)
         XCTAssertEqual(store(dex: entries(Array(1...1025)), inventory: cube).zygardeCubeMultiplier, 1.40, accuracy: 0.0001,
                        "capped at +40%")
+        // Graduated species only: fifty released ones stay in the Pokédex but add nothing.
+        let released = Array(1...50).map { entry([$0], released: true) }
+        XCTAssertEqual(store(dex: entries(Array(51...100)) + released, inventory: cube).zygardeCubeMultiplier, 1.02,
+                       accuracy: 0.0001)
     }
 
     func testTeraOrbHalvesOnlyAStoneEggsThreshold() {
