@@ -1609,10 +1609,11 @@ final class CompanionStore {
     var ownsOvalCharm: Bool { itemCount(.ovalCharm) > 0 }
     var ownsGlimmeringCharm: Bool { itemCount(.glimmeringCharm) > 0 }
 
-    /// Zygarde Cube: +1% token growth EXP per 25 registered species, up to +40%.
+    /// Zygarde Cube: +1% token growth EXP per 25 graduated species, up to +40%. Graduated, as achievements count:
+    /// a Pokémon raised then sent off stays in the Pokédex but never graduated.
     var zygardeCubeMultiplier: Double {
         let percent = min(CollectorBonus.zygardeMaxPercent,
-                          registeredSpeciesIDs.count / CollectorBonus.zygardeSpeciesPerPercent)
+                          graduatedSpeciesIDs.count / CollectorBonus.zygardeSpeciesPerPercent)
         return 1 + Double(percent) / 100
     }
 

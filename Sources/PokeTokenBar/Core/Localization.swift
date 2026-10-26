@@ -1185,6 +1185,16 @@ struct L {
     }
     var dexPagePrev: String { t("이전 페이지", "Previous page", "前のページ", "Página anterior", "Page précédente", "Página anterior", "Vorherige Seite", "Предыдущая страница") }
     var dexPageNext: String { t("다음 페이지", "Next page", "次のページ", "Página siguiente", "Page suivante", "Próxima página", "Nächste Seite", "Следующая страница") }
+    /// Pokédex: species seen (raised, or released) but never graduated, beside the graduated count.
+    func dexSeenOnly(_ count: Int) -> String {
+        t("본 종 \(count)", "\(count) seen", "見ただけ \(count)", "\(count) vistas", "\(count) vues", "\(count) vistas",
+          "\(count) gesehen", "увидено: \(count)")
+    }
+    /// A Pokédex cell's tooltip for a species seen but never graduated: it counts for no achievement yet.
+    var dexSeenNotGraduated: String {
+        t("본 적만 있음 · 아직 졸업 전", "Seen, not graduated yet", "見ただけ · まだ卒業していない", "Vista, aún sin graduar",
+          "Vue, pas encore diplômée", "Vista, ainda não formada", "Gesehen, noch nicht verabschiedet", "Встречен, ещё не выпущен")
+    }
     var dexRaising: String { t("키우는 중", "Raising", "育成中", "Criando", "En élevage", "Treinando", "In Aufzucht", "Растёт") }
     /// 포획 로그에서 졸업분과 놓아준 개체를 가르는 표식. 종은 도감에 남고 개체 기록만 이 뱃지를 단다.
     var dexReleased: String { t("놓아줌", "Released", "逃がした", "Liberado", "Relâché", "Solto", "Freigelassen", "Отпущен") }
@@ -1824,14 +1834,14 @@ struct L {
                      "Erhöht im Beutel die Wachstums-EP durch Token-Verbrauch drastisch (+50%).",
                      "Пока они у вас, увеличивают опыт роста покемона на 50%.")
         case .zygardeCube:
-            return t("보유하면 도감에 등록된 25종마다 토큰 성장 경험치가 1% 늘어납니다 (최대 +40%).",
-                     "While owned, grants +1% growth EXP from token usage for every 25 species in your Pokédex (up to +40%).",
-                     "持っていると図鑑に登録した25種ごとにトークンの育成経験値が1%増えます（最大+40%）。",
-                     "Mientras la tengas, otorga +1% de EXP de crecimiento por tokens por cada 25 especies de tu Pokédex (hasta +40%).",
-                     "Tant que tu la possèdes, +1% d'EXP de croissance via tes tokens par tranche de 25 espèces de ton Pokédex (jusqu'à +40%).",
-                     "Enquanto estiver na bolsa, concede +1% de EXP de crescimento por tokens a cada 25 espécies da sua Pokédex (até +40%).",
-                     "Gibt im Beutel +1% Wachstums-EP durch Token-Verbrauch je 25 Arten in deinem Pokédex (bis +40%).",
-                     "Пока он у вас, даёт +1% опыта роста за каждые 25 видов в покедексе (до +40%).")
+            return t("보유하면 졸업시킨 25종마다 토큰 성장 경험치가 1% 늘어납니다 (최대 +40%).",
+                     "While owned, grants +1% growth EXP from token usage for every 25 species you have graduated (up to +40%).",
+                     "持っていると卒業させた25種ごとにトークンの育成経験値が1%増えます（最大+40%）。",
+                     "Mientras la tengas, otorga +1% de EXP de crecimiento por tokens por cada 25 especies graduadas (hasta +40%).",
+                     "Tant que tu la possèdes, +1% d'EXP de croissance via tes tokens par tranche de 25 espèces diplômées (jusqu'à +40%).",
+                     "Enquanto estiver na bolsa, concede +1% de EXP de crescimento por tokens a cada 25 espécies formadas (até +40%).",
+                     "Gibt im Beutel +1% Wachstums-EP durch Token-Verbrauch je 25 verabschiedete Arten (bis +40%).",
+                     "Пока он у вас, даёт +1% опыта роста за каждые 25 выпущенных видов (до +40%).")
         case .prisonBottle:
             return t("보유하면 그 라인이 아직 모으지 못한 모습으로 태어난 포켓몬이 50% 더 빨리 성장합니다(여러 모습이 있는 종).",
                      "While owned, a Pokémon that hatched in a form its line hasn't collected yet grows 50% faster (species with alternate forms).",
