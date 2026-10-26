@@ -162,6 +162,15 @@ final class UsageStore {
     var menuSpriteMode: MenuSpriteMode {
         didSet { defaults.set(menuSpriteMode.rawValue, forKey: "menuSpriteMode") }
     }
+
+    /// The last day of the changelog this Mac's player saw (`Changelog`): the days after it are new to them.
+    private(set) var changelogSeen: String {
+        didSet { defaults.set(changelogSeen, forKey: "changelogSeen") }
+    }
+    var unseenChangelogDays: [ChangelogDay] { Changelog.days(after: changelogSeen) }
+    func markChangelogSeen() {
+        if let latest = Changelog.days.first?.date, latest > changelogSeen { changelogSeen = latest }
+    }
     // 알림(독립 토글)
     var limitNotifications: Bool {
         didSet { defaults.set(limitNotifications, forKey: "limitNotifications") }
@@ -838,6 +847,8 @@ final class UsageStore {
         // 사용자의 배터리 프로파일은 그대로다. 더 부드러운 쪽은 opt-in(실측 idle CPU 1.8%/5.1%).
         animationQuality = AnimationQuality(rawValue: d.string(forKey: "animationQuality") ?? "") ?? .powerSaver
         menuSpriteMode = MenuSpriteMode(rawValue: d.string(forKey: "menuSpriteMode") ?? "") ?? .animated
+        // A player who never opened the changelog sees the latest day as new, not the whole history.
+        changelogSeen = d.string(forKey: "changelogSeen") ?? Changelog.initialSeen
         disableKeychainAccess = d.object(forKey: "disableKeychainAccess") as? Bool ?? false
         additionalClaudeConfigDirs = d.string(forKey: ClaudeAccountRoots.defaultsKey) ?? ""
         claudeTrackedAccountMode = ClaudeTrackedAccountMode(storedValue: d.string(forKey: ClaudeTrackedAccountMode.defaultsKey))

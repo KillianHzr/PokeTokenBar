@@ -27,7 +27,8 @@
 
 ## PR 작성
 
-PR 생성·준비·갱신 시 `.agents/skills/prepare-pr/SKILL.md`를 사용한다. 개인 PR skill의
+PR 생성·준비·갱신 시 `.agents/skills/prepare-pr/SKILL.md`를 사용한다. 플레이어가 볼 수 있는 변경은
+`Changelog.days`(앱 내 변경 내역)에 머지되는 날짜로 8개 언어 항목을 함께 추가한다. 개인 PR skill의
 기본 양식보다 이 저장소 규칙이 우선이다. 제목은 영어 Conventional Commits 형식으로,
 본문은 `.github/PULL_REQUEST_TEMPLATE.md`의 섹션·체크리스트에 맞춰 작성한다.
 

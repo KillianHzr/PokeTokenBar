@@ -105,6 +105,10 @@ final class PopoverNavigation {
     var showingRecap = false { didSet { if showingRecap { dexDetailCollectionID = nil } } }
     /// The Bonuses page takes over the popover the same way.
     var showingBonuses = false { didSet { if showingBonuses { dexDetailCollectionID = nil } } }
+    /// The changelog takes over the popover the same way.
+    var showingChangelog = false { didSet { if showingChangelog { dexDetailCollectionID = nil } } }
+    /// The last changelog day seen before it was opened: the days after it are marked new on it.
+    var changelogNewAfter: String?
     /// The Collection tab's open Pokédex detail page (`DexSpecies.collectionID`); nil = grid or log.
     /// It lives here so Home sprites can open it, but it only lasts while the collection content is
     /// on screen: leaving the tab, switching segment, or covering it with Settings/Recap drops it —
@@ -152,6 +156,7 @@ final class PopoverNavigation {
         expandAdvancedOnOpen = false
         showingRecap = false
         showingBonuses = false
+        showingChangelog = false
         tab = .home
     }
 
@@ -211,6 +216,10 @@ struct PopoverView: View {
                 RecapScreen(store: store, companion: companion) { nav.showingRecap = false }
             } else if nav.showingBonuses {
                 BonusScreen(store: companion) { nav.showingBonuses = false }
+            } else if nav.showingChangelog {
+                ChangelogScreen(l: l, language: companion.language, newAfter: nav.changelogNewAfter) {
+                    nav.showingChangelog = false
+                }
             } else {
                 mainContent
             }
@@ -300,11 +309,43 @@ struct PopoverView: View {
         }
     }
 
+    /// Opens the changelog, the days not seen yet marked new on it, and counts them seen.
+    private func openChangelog() {
+        nav.changelogNewAfter = store.changelogSeen
+        store.markChangelogSeen()
+        nav.showingChangelog = true
+    }
+
+    /// What changed since the player last looked, above the tabs, until they open it or close the banner.
+    @ViewBuilder
+    private var changelogBanner: some View {
+        let unseen = store.unseenChangelogDays.flatMap(\.entries)
+        if !unseen.isEmpty {
+            HStack(spacing: 8) {
+                Image(systemName: "sparkles").foregroundStyle(.yellow)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(l.changelogTitle).font(.callout.weight(.semibold))
+                    Text(l.changelogBannerBody(unseen.count)).font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 4)
+                Button(l.changelogOpen) { openChangelog() }
+                    .buttonStyle(.borderedProminent).controlSize(.small)
+                Button { store.markChangelogSeen() } label: { Image(systemName: "xmark") }
+                    .buttonStyle(.borderless).controlSize(.small).foregroundStyle(.secondary)
+                    .accessibilityLabel(l.close)
+            }
+            .padding(8)
+            .background(Color.accentColor.opacity(0.12))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+    }
+
     private var mainContent: some View {
         @Bindable var nav = nav
         return VStack(alignment: .leading, spacing: 12) {
             updateBanner
             birthdayBanner
+            changelogBanner
             PopoverTabPicker(tab: $nav.tab, l: l, unclaimedAchievements: companion.unclaimedAchievementsCount)
 
             if nav.tab == .collection {
@@ -1202,6 +1243,12 @@ struct PopoverView: View {
                              help: store.floatingPetEnabled ? l.floatingPetHideLabel : l.floatingPetEnableLabel) {
                 store.floatingPetEnabled.toggle()
             }
+            CircleIconButton(systemImage: "sparkles", help: l.changelogTitle) { openChangelog() }
+                .overlay(alignment: .topTrailing) {
+                    if !store.unseenChangelogDays.isEmpty {
+                        Circle().fill(Color.red).frame(width: 7, height: 7).offset(x: 1, y: -1)
+                    }
+                }
             CircleIconButton(systemImage: "gearshape", help: l.settings) { nav.showSettings = true }
             CircleIconButton(systemImage: "power", help: l.quit) { NSApplication.shared.terminate(nil) }
         }
