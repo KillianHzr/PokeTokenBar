@@ -27,8 +27,7 @@
 
 ## PR 작성
 
-PR 생성·준비·갱신 시 `.agents/skills/prepare-pr/SKILL.md`를 사용한다. 플레이어가 볼 수 있는 변경은
-`Changelog.days`(앱 내 변경 내역)에 머지되는 날짜로 8개 언어 항목을 함께 추가한다. 개인 PR skill의
+PR 생성·준비·갱신 시 `.agents/skills/prepare-pr/SKILL.md`를 사용한다. 개인 PR skill의
 기본 양식보다 이 저장소 규칙이 우선이다. 제목은 영어 Conventional Commits 형식으로,
 본문은 `.github/PULL_REQUEST_TEMPLATE.md`의 섹션·체크리스트에 맞춰 작성한다.
 
@@ -41,6 +40,20 @@ PR을 보류하지 않는다. 적절한 생성·첨부 대안을 시도한 뒤�
 완료할 수 없을 때만 시도 결과와 필요한 사용자 조치를 알리고 게시를 보류한다.
 Claude Code는 `.claude/skills/prepare-pr`의 symlink를 통해
 동일한 skill을 인식하고, Codex는 `.agents/skills/prepare-pr`를 사용한다.
+
+## What's New (앱 내 변경 내역): 매번 갱신
+
+플레이어가 볼 수 있는 변경을 만들 때마다(기능·수정·밸런스·문구, PR이든 직접 커밋이든) 같은 작업 안에서
+`Sources/PokeTokenBar/Core/Changelog.swift`의 `Changelog.days`를 **묻지 않고 항상** 갱신한다.
+앱의 ✨ 버튼과 업데이트 뒤 배너가 이 목록을 보여 준다.
+
+- 반영(머지)되는 날짜의 항목에 넣고, 그 날짜가 없으면 맨 위에 새로 만든다(최신순, 날짜는 `yyyy-MM-dd`).
+- 변경 하나당 짧은 항목 하나(`.new`·`.improved`·`.fixed`). 개발자가 아니라 플레이어에게 쓰는 문장으로,
+  8개 언어 모두 쓰고 대시 문자(U+2014, U+2013)는 쓰지 않는다.
+- 아이템 이름은 `l.itemName(...)` 보간을 쓰고, 그 이름에 붙는 조사·관사가 맞는지 확인한다.
+- 플레이어에게 보이는 것이 없는 변경(테스트·문서·CI·리팩터)만 예외다.
+- `ChangelogTests`가 날짜 순서·8개 언어·대시를 검사하고, `scripts/check-pr.py`는 `Sources/`가 바뀌었는데
+  이 파일이 그대로면 알려 준다.
 
 ## 릴리스 (자연어 트리거)
 
