@@ -195,14 +195,14 @@ Pi는 모델 여러 개를 세션 로그 하나로 흘려보낼 수 있습니다
 | **오래된해도** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/old-sea-map.png" width="28" height="28" alt="오래된해도"> | 뮤츠, 뮤 | 토큰 사용으로 얻는 성장 +20% |
 | **투명한방울** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/clear-bell.png" width="28" height="28" alt="투명한방울"> | 라이코, 앤테이, 스이쿤 | 희귀 등급 포켓몬이 25% 더 빨리 성장해요 |
 | **무지갯빛날개** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rainbow-wing.png" width="28" height="28" alt="무지갯빛날개"> | 루기아, 칠색조 | 상점의 모든 구매 25% 할인 |
-| **화산의돌** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/magma-stone.png" width="28" height="28" alt="화산의돌"> | 레지락, 레지아이스, 레지스틸 **또는** 레지에레키, 레지드래고 **또는** 화석 포켓몬 아무거나 4마리¹ | 이미 졸업시킨 라인의 성장 요구량 25% 감소 |
+| **화산의돌** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/magma-stone.png" width="28" height="28" alt="화산의돌"> | 레지락, 레지아이스, 레지스틸 **또는** 레지에레키, 레지드래고 **또는** 화석 포켓몬 아무거나 4마리¹ **또는** 히드런 | 이미 졸업시킨 라인의 성장 요구량 25% 감소 |
 | **마음의물방울** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/soul-dew.png" width="28" height="28" alt="마음의물방울"> | 라티아스, 라티오스 | 이상한 사탕 경험치 +50% |
 | **초록구슬** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/jade-orb.png" width="28" height="28" alt="초록구슬"> | 가이오가, 그란돈, 레쿠쟈 | 알 추가 20% 할인 |
 | **그라시데아꽃** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/gracidea.png" width="28" height="28" alt="그라시데아꽃"> | 유크시, 엠라이트, 아그놈 | 진화할 포켓몬이 첫 단계에서 25% 빨리 자라요 |
 | **백금옥** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/griseous-orb.png" width="28" height="28" alt="백금옥"> | 디아루가, 펄기아, 기라티나 | 고스트·드래곤타입 포켓몬이 30% 더 빨리 성장해요 |
-| **리버티티켓** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/liberty-pass.png" width="28" height="28" alt="리버티티켓"> | 코바르온, 테라키온, 비리디온 | 아직 졸업시킨 적 없는 라인의 성장 요구량 25% 감소 |
+| **리버티티켓** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/liberty-pass.png" width="28" height="28" alt="리버티티켓"> | 코바르온, 테라키온, 비리디온, 케르디오 중 3마리 | 아직 졸업시킨 적 없는 라인의 성장 요구량 25% 감소 |
 | **비추는거울** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/reveal-glass.png" width="28" height="28" alt="비추는거울"> | 토네로스, 볼트로스, 랜드로스, 러브로스 중 3마리 | 이로치 확률 2배 (이로치 부적과 중첩) |
-| **유전자쐐기** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dna-splicers.png" width="28" height="28" alt="유전자쐐기"> | 레시라무, 제크로무 | 토큰 사용으로 얻는 성장 +50% |
+| **유전자쐐기** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dna-splicers.png" width="28" height="28" alt="유전자쐐기"> | 레시라무, 제크로무, 큐레무 | 토큰 사용으로 얻는 성장 +50% |
 | **지가르데큐브** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/zygarde-cube.png" width="28" height="28" alt="지가르데큐브"> | 제르네아스, 이벨타르, 지가르데 | 도감 25종마다 토큰 사용으로 얻는 성장 +1% (최대 +40%) |
 | **굴레의항아리** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/prison-bottle.png" width="28" height="28" alt="굴레의항아리"> | 디안시, 후파, 볼케니온 | 도감에 없던 모습으로 태어난 포켓몬이 50% 더 빨리 성장해요 |
 | **빛나는돌** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sparkling-stone.png" width="28" height="28" alt="빛나는돌"> | 카푸꼬꼬꼭, 카푸나비나, 카푸브루루, 카푸느지느 | 페어리타입 포켓몬이 30% 더 빨리 성장해요 |
@@ -211,9 +211,18 @@ Pi는 모델 여러 개를 세션 로그 하나로 흘려보낼 수 있습니다
 | **녹슨검** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rusted-sword.png" width="28" height="28" alt="녹슨검"> | 자시안, 자마젠타, 무한다이노 | 전설의 포켓몬이 25% 더 빨리 성장해요 |
 | **유대의고삐** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/reins-of-unity.png" width="28" height="28" alt="유대의고삐"> | 블리자포스, 레이스포스, 버드렉스 | 포켓몬이 졸업할 때마다 이상한 사탕 +1 |
 | **부스트에너지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/booster-energy.png" width="28" height="28" alt="부스트에너지"> | 패러독스 포켓몬 아무거나 4마리³ | 패러독스 포켓몬이 50% 더 빨리 성장해요 |
-| **벽록의가면** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/teal-mask.png" width="28" height="28" alt="벽록의가면"> | 오거폰, 조타구, 이야후, 기로치 | 풀·물·불꽃·바위타입 포켓몬이 20% 더 빨리 성장해요 |
+| **벽록의가면** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/teal-mask.png" width="28" height="28" alt="벽록의가면"> | 오거폰, 조타구, 이야후, 기로치, 복숭악동 중 4마리 | 풀·물·불꽃·바위타입 포켓몬이 20% 더 빨리 성장해요 |
 | **테라스탈오브** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/tera-orb.png" width="28" height="28" alt="테라스탈오브"> | 코라이돈, 미라이돈, 테라파고스 | 진화의 돌로 받은 알이 2배 빨리 부화해요 |
 | **고대의석상** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-statue.png" width="28" height="28" alt="고대의석상"> | 레지락, 레지아이스, 레지스틸, 레지기가스, 레지에레키, 레지드래고 | 진화하지 않는 포켓몬이 25% 빨리 자라요 |
+| **초승달깃털** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/lunar-wing.png" width="28" height="28" alt="초승달깃털"> | 크레세리아, 다크라이 | 에스퍼·악타입 포켓몬이 30% 더 빨리 성장해요 |
+| **운석** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/meteorite.png" width="28" height="28" alt="운석"> | 지라치, 테오키스 | 토큰 한도를 다 채울 때마다 이상한 사탕 1개 더 |
+| **오박사의편지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/oaks-letter.png" width="28" height="28" alt="오박사의편지"> | 세레비, 쉐이미 | 모든 지방의 스타팅 포켓몬이 어느 단계든 25% 빨리 자라요 |
+| **바닷물향로** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sea-incense.png" width="28" height="28" alt="바닷물향로"> | 마나피 (피오네가 진화해요) | 등급이 확정된 알(상점, 레전드플레이트)이 2배 빨리 부화해요 |
+| **번개카세트** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/shock-drive.png" width="28" height="28" alt="번개카세트"> | 비크티니, 메로엣타, 게노세크트 | 화석 포켓몬¹이 어느 단계든 50% 빨리 자라요 |
+| **Z링** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/z-ring.png" width="28" height="28" alt="Z링"> | 실버디, 마기아나, 마샤도, 제라오라, 멜메탈 중 4마리 | 강철·전기타입 포켓몬이 30% 더 빨리 성장해요 |
+| **악의 족자** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/scroll-of-darkness.png" width="28" height="28" alt="악의 족자"> | 우라오스, 자루도 | 격투타입 포켓몬이 30% 더 빨리 성장해요 |
+| **고대의항아리** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-vase.png" width="28" height="28" alt="고대의항아리"> | 총지엔, 파오젠, 딩루, 위유이 | 중간 진화 단계의 포켓몬이 25% 빨리 자라요 |
+| **레전드플레이트** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/legend-plate.png" width="28" height="28" alt="레전드플레이트"> | 아르세우스 | 가방에 희귀 알과 고급 알 하나씩: 상점처럼 포켓몬을 놓아주고 그 등급 이상의 알을 받아요 |
 | **전기구슬** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/light-ball.png" width="28" height="28" alt="전기구슬"> | 피카츄의 옷 15개 모두 | 피츄, 피카츄, 라이츄가 50% 빨리 자라요 |
 | **타입:널의 알** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/mystery-egg.png" width="28" height="28" alt="타입:널의 알"> | 실버디의 메모리 17개 모두⁴ | 지금 포켓몬을 놓아주고 타입:널이 태어나는 알을 받아요 |
 | **둥근부적** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/oval-charm.png" width="28" height="28" alt="둥근부적"> | 모든 종 (1,025) | 남은 폼이 있는 동안, 아직 모으지 못한 폼이 있는 포켓몬만 그 폼으로 태어나요 |

@@ -23,12 +23,14 @@ struct ItemIconView: View {
     init(kind: ItemKind, size: CGFloat = 30) {
         self.kind = kind
         self.size = size
-        // 캐시에 있으면 즉시(동기) 표시 — 재렌더 플래시 방지. The Type: Null and Legendary Eggs are the eggs the app draws
-        // for them.
+        // 캐시에 있으면 즉시(동기) 표시: 재렌더 플래시 방지. The egg items are the eggs the app draws for them: the
+        // Legend Plate's eggs look like the Shop's eggs of their rarity.
         let drawnEgg: EggKind? = switch kind {
         case .typeNullEgg: .typeNull
         case .legendaryEgg: .tier(.legendary)
         case .birthdayEgg: .birthday
+        case .uncommonEgg: .tier(.uncommon)
+        case .rareEgg: .tier(.rare)
         default: nil
         }
         _img = State(initialValue: drawnEgg.map(EggRenderer.still)

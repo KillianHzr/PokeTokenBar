@@ -163,6 +163,10 @@ final class CompanionStore {
         if ownsTeraOrb, state.eggTypeGuarantee != nil {
             threshold /= 2
         }
+        // Sea Incense: so does an egg of a guaranteed rarity, bought in the Shop or from the Legend Plate.
+        if itemCount(.seaIncense) > 0, state.eggTier != nil {
+            threshold /= 2
+        }
         return threshold
     }
 
@@ -253,6 +257,13 @@ final class CompanionStore {
         add(.boosterEnergy, CollectorBonus.boosterEnergyParadox, if: SpeciesGoal.paradoxes.contains(mon.currentID))
         add(.tealMask, CollectorBonus.tealMaskTypes, if: types.contains(where: CollectorBonus.tealMaskTypeList.contains))
         add(.lightBall, CollectorBonus.lightBallPikachuLine, if: CollectorBonus.pikachuLine.contains(mon.currentID))
+        add(.lunarWing, CollectorBonus.lunarWingPsychicDark, if: types.contains { $0 == .psychic || $0 == .dark })
+        add(.oaksLetter, CollectorBonus.oaksLetterStarter, if: CollectorBonus.starterLines.contains(mon.currentID))
+        add(.shockDrive, CollectorBonus.shockDriveFossil, if: CollectorBonus.fossilLines.contains(mon.currentID))
+        add(.zRing, CollectorBonus.zRingSteelElectric, if: types.contains { $0 == .steel || $0 == .electric })
+        add(.scrollOfDarkness, CollectorBonus.scrollOfDarknessFighting, if: types.contains(.fighting))
+        // Neither the first nor the last stage: only a line of three stages or more has one.
+        add(.relicVase, CollectorBonus.relicVaseMiddleStage, if: mon.stageIndex > 0 && mon.stageIndex < mon.totalForms - 1)
         return factors
     }
 
@@ -2029,7 +2040,8 @@ final class CompanionStore {
         guard kind.isAchievement, isUnlocked(kind), !isClaimed(kind) else { return false }
         let count = grantAchievement(kind)
         save()
-        notifyCompanionEvent(l.notifAchievementClaimedTitle, l.notifAchievementClaimedBody(l.itemName(kind), count: count))
+        let body = kind == .legendPlate ? l.notifLegendPlateBody : l.notifAchievementClaimedBody(l.itemName(kind), count: count)
+        notifyCompanionEvent(l.notifAchievementClaimedTitle, body)
         return true
     }
 
@@ -2119,9 +2131,11 @@ final class CompanionStore {
 
     /// Records the claim and puts the reward in the Bag. Returns how many items it added.
     private func grantAchievement(_ kind: ItemKind) -> Int {
-        let count = kind.achievementRewardCount
         state.claimedAchievements.insert(kind.rawValue)
-        state.inventory[kind.rawValue, default: 0] += count
+        for reward in kind.achievementRewards {
+            state.inventory[reward.kind.rawValue, default: 0] += reward.count
+        }
+        let count = kind.achievementRewards.reduce(0) { $0 + $1.count }
         AppLog.write("achievement claimed: \(kind.rawValue) count=\(count)")
         return count
     }
@@ -2246,6 +2260,19 @@ final class CompanionStore {
         if let costume, !state.pikachuCostumes.contains(costume) { return false }
         state.equippedPikachuCostume = costume
         save()
+        return true
+    }
+
+    func canUseBagEgg(_ kind: ItemKind) -> Bool { kind.bagEggTier != nil && hasActive && itemCount(kind) > 0 }
+
+    /// Uses one of the Legend Plate's eggs: like the Shop's egg of its rarity, for free. The current Pokémon is sent
+    /// off for an egg that hatches a Pokémon of that rarity or better.
+    @discardableResult
+    func useBagEgg(_ kind: ItemKind) -> Bool {
+        guard canUseBagEgg(kind), let tier = kind.bagEggTier else { return false }
+        state.inventory[kind.rawValue] = itemCount(kind) - 1   // saved with the new egg
+        replaceActiveWithEgg(price: 0, tier: tier, type: nil)
+        AppLog.write("bag egg used: \(kind.rawValue), discarded active, tier=\(tier.rawValue)")
         return true
     }
 
@@ -2445,8 +2472,9 @@ final class CompanionStore {
             windowEpoch: &windowEpoch)
         state.candyGrantTier = grantTier
         state.candyWindowEpoch = windowEpoch
+        let meteorite = itemCount(.meteorite) > 0 ? CollectorBonus.meteoriteWindowCandies : 0
         for g in grants {
-            let received = addRareCandies(g.count)
+            let received = addRareCandies(g.count + meteorite)
             // 지급 자체는 알림 여부와 무관(상태 변경). 알림은 "왜 받는지"(그 창 한도를 다 채운 수고) 명시.
             notifyCompanionEvent(l.notifCandyTitle(item: l.itemName(.rareCandy), count: received),
                                  l.notifCandyBody(window: g.windowName))

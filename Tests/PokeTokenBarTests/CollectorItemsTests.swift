@@ -70,11 +70,11 @@ final class CollectorItemsTests: XCTestCase {
     func testCollectorItemsAndAchievements() {
         let s = store()
         XCTAssertEqual(s.collectorItems(in: .evolutionStones).count, 10)
-        XCTAssertEqual(s.collectorItems(in: .legendaryArtifacts).count, 29)
+        XCTAssertEqual(s.collectorItems(in: .legendaryArtifacts).count, 38)
         XCTAssertEqual(s.collectorItems(in: .gymBadges).count, 18)
         XCTAssertEqual(Set(CompanionStore.achievementItems), Set(ItemKind.allCases.filter { $0.collectorGroup != nil }))
-        XCTAssertEqual(s.totalAchievementsCount, 208,
-                       "10 stones, 28 artifacts and the Legendary Egg's 9 regions, 161 badge regions")
+        XCTAssertEqual(s.totalAchievementsCount, 217,
+                       "10 stones, 37 artifacts and the Legendary Egg's 9 regions, 161 badge regions")
         XCTAssertEqual(s.purchasableItems, [.mint, .rareCandy, .shinyCharm], "the Shop sells what main sells")
 
         // An unlocked stone is an achievement to claim, never a Shop item.
@@ -87,8 +87,8 @@ final class CollectorItemsTests: XCTestCase {
 
     func testItemsHaveAppropriatePricesAndUnlockConditions() {
         for kind in ItemKind.allCases {
-            if kind == .birthdayEgg {
-                // The birthday gift: neither sold nor earned through the Pokédex (`BirthdayGift`).
+            if kind == .birthdayEgg || kind.bagEggTier != nil {
+                // The birthday gift and the Legend Plate's eggs: neither sold nor an achievement of their own.
                 XCTAssertNil(kind.unlock)
                 XCTAssertNil(kind.shopPrice)
                 XCTAssertFalse(kind.isAchievement)
@@ -100,8 +100,9 @@ final class CollectorItemsTests: XCTestCase {
                 XCTAssertNil(kind.shopPrice, "\(kind) achievement is free to claim, not bought")
                 XCTAssertTrue(kind.isAchievement)
                 XCTAssertEqual(kind.achievementRewardCount, kind.stoneType != nil ? 5 : 1)
-                XCTAssertEqual(kind.isPassive, kind.stoneType == nil && kind != .typeNullEgg && kind != .legendaryEgg,
-                               "stones and the Type: Null and Legendary Eggs are the only consumable rewards")
+                XCTAssertEqual(kind.isPassive,
+                               kind.stoneType == nil && ![.typeNullEgg, .legendaryEgg, .legendPlate].contains(kind),
+                               "stones and eggs are the only consumable rewards")
             }
         }
     }
@@ -335,7 +336,7 @@ final class CollectorItemsTests: XCTestCase {
         let artifacts = s.collectorItems(in: .legendaryArtifacts)
         XCTAssertEqual(artifacts.first, .clearBell, "unlocked and not owned comes first")
         XCTAssertEqual(artifacts.last, .soulDew, "owned passives sink to the bottom")
-        XCTAssertEqual(artifacts.count, 29)
+        XCTAssertEqual(artifacts.count, 38)
     }
 
     // MARK: Effects
@@ -413,6 +414,15 @@ final class CollectorItemsTests: XCTestCase {
             (.tealMask, mon(74), mon(19), CollectorBonus.tealMaskTypes),                      // Geodude (Rock)
             (.relicStatue, mon(128, forms: 1), mon(19), CollectorBonus.relicStatueNoEvolution), // Tauros vs Rattata
             (.lightBall, mon(25), mon(19), CollectorBonus.lightBallPikachuLine),
+            (.lunarWing, mon(63), mon(19), CollectorBonus.lunarWingPsychicDark),             // Abra
+            (.lunarWing, mon(261), mon(19), CollectorBonus.lunarWingPsychicDark),            // Poochyena
+            (.oaksLetter, mon(5, stage: 1), mon(19), CollectorBonus.oaksLetterStarter),       // Charmeleon
+            (.shockDrive, mon(138), mon(19), CollectorBonus.shockDriveFossil),                // Omanyte
+            (.zRing, mon(81), mon(19), CollectorBonus.zRingSteelElectric),                    // Magnemite
+            (.zRing, mon(25), mon(19), CollectorBonus.zRingSteelElectric),                    // Pikachu
+            (.scrollOfDarkness, mon(66), mon(19), CollectorBonus.scrollOfDarknessFighting),   // Machop
+            // Pidgeotto, between Pidgey and Pidgeot, against Pidgeot.
+            (.relicVase, mon(17, stage: 1, forms: 3), mon(18, stage: 2, forms: 3), CollectorBonus.relicVaseMiddleStage),
         ]
         let plain = store()
         for (item, boosted, other, bonus) in cases {
@@ -475,6 +485,12 @@ final class CollectorItemsTests: XCTestCase {
             (.tealMask, [1014, 1015, 1016, 1017]), (.teraOrb, [1007, 1008, 1024]),
             (.beastBall, [793, 798, 803, 806]), (.boosterEnergy, [984, 990, 1009, 1023]),
             (.revealGlass, [641, 642, 905]), (.relicStatue, [377, 378, 379, 486, 894, 895]),
+            (.lunarWing, [488, 491]), (.meteorite, [385, 386]), (.oaksLetter, [251, 492]), (.seaIncense, [490]),
+            (.shockDrive, [494, 648, 649]), (.zRing, [773, 801, 802, 807]), (.scrollOfDarkness, [892, 893]),
+            (.relicVase, [1001, 1002, 1003, 1004]), (.legendPlate, [493]),
+            // Kyurem is needed with Reshiram and Zekrom; Keldeo and Pecharunt can stand in for one of the others.
+            (.dnaSplicers, [643, 644, 646]), (.libertyPass, [638, 639, 647]), (.tealMask, [1014, 1015, 1016, 1025]),
+            (.magmaStone, [485]),
         ]
         for (item, ids) in goals {
             XCTAssertTrue(store(dex: entries(ids, rarity: .legendary)).isUnlocked(item), "\(item)")

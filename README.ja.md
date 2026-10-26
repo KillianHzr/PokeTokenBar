@@ -195,14 +195,14 @@ Pi は複数のモデルを一つのセッションログに流すことがあ�
 | **ふるびたかいず** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/old-sea-map.png" width="28" height="28" alt="ふるびたかいず"> | ミュウツー、ミュウ | トークン消費による成長 +20% |
 | **とうめいなスズ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/clear-bell.png" width="28" height="28" alt="とうめいなスズ"> | ライコウ、エンテイ、スイクン | レアのポケモンが25%早く育つ |
 | **にじいろのはね** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rainbow-wing.png" width="28" height="28" alt="にじいろのはね"> | ルギア、ホウオウ | ショップの全商品が25%引き |
-| **かざんのおきいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/magma-stone.png" width="28" height="28" alt="かざんのおきいし"> | レジロック、レジアイス、レジスチル **または** レジエレキ、レジドラゴ **または** 化石ポケモンのうち4匹¹ | 卒業済みのラインの成長必要量が25%減 |
+| **かざんのおきいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/magma-stone.png" width="28" height="28" alt="かざんのおきいし"> | レジロック、レジアイス、レジスチル **または** レジエレキ、レジドラゴ **または** 化石ポケモンのうち4匹¹ **または** ヒードラン | 卒業済みのラインの成長必要量が25%減 |
 | **こころのしずく** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/soul-dew.png" width="28" height="28" alt="こころのしずく"> | ラティアス、ラティオス | ふしぎなアメの経験値 +50% |
 | **もえぎいろのたま** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/jade-orb.png" width="28" height="28" alt="もえぎいろのたま"> | カイオーガ、グラードン、レックウザ | タマゴがさらに20%引き |
 | **グラシデアのはな** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/gracidea.png" width="28" height="28" alt="グラシデアのはな"> | ユクシー、エムリット、アグノム | 進化するポケモンが最初の段階で25%早く育つ |
 | **はっきんだま** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/griseous-orb.png" width="28" height="28" alt="はっきんだま"> | ディアルガ、パルキア、ギラティナ | ゴースト・ドラゴンタイプのポケモンが30%早く育つ |
-| **リバティチケット** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/liberty-pass.png" width="28" height="28" alt="リバティチケット"> | コバルオン、テラキオン、ビリジオン | まだ卒業させていないラインの成長必要量が25%減 |
+| **リバティチケット** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/liberty-pass.png" width="28" height="28" alt="リバティチケット"> | コバルオン、テラキオン、ビリジオン、ケルディオのうち3匹 | まだ卒業させていないラインの成長必要量が25%減 |
 | **うつしかがみ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/reveal-glass.png" width="28" height="28" alt="うつしかがみ"> | トルネロス、ボルトロス、ランドロス、ラブトロスのうち3匹 | 色違い確率2倍(光るお守りと重複) |
-| **いでんしのくさび** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dna-splicers.png" width="28" height="28" alt="いでんしのくさび"> | レシラム、ゼクロム | トークン消費による成長 +50% |
+| **いでんしのくさび** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dna-splicers.png" width="28" height="28" alt="いでんしのくさび"> | レシラム、ゼクロム、キュレム | トークン消費による成長 +50% |
 | **ジガルデキューブ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/zygarde-cube.png" width="28" height="28" alt="ジガルデキューブ"> | ゼルネアス、イベルタル、ジガルデ | 図鑑25種ごとにトークン消費による成長 +1%（最大+40%） |
 | **いましめのツボ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/prison-bottle.png" width="28" height="28" alt="いましめのツボ"> | ディアンシー、フーパ、ボルケニオン | 図鑑にない姿で生まれたポケモンが50%早く育つ |
 | **かがやくいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sparkling-stone.png" width="28" height="28" alt="かがやくいし"> | カプ・コケコ、カプ・テテフ、カプ・ブルル、カプ・レヒレ | フェアリータイプのポケモンが30%早く育つ |
@@ -211,9 +211,18 @@ Pi は複数のモデルを一つのセッションログに流すことがあ�
 | **くちたけん** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rusted-sword.png" width="28" height="28" alt="くちたけん"> | ザシアン、ザマゼンタ、ムゲンダイナ | 伝説のポケモンが25%早く育つ |
 | **キズナのタヅナ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/reins-of-unity.png" width="28" height="28" alt="キズナのタヅナ"> | ブリザポス、レイスポス、バドレックス | ポケモンが卒業するたびにふしぎなアメ+1 |
 | **ブーストエナジー** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/booster-energy.png" width="28" height="28" alt="ブーストエナジー"> | パラドックスポケモンのうち4匹³ | パラドックスポケモンが50%早く育つ |
-| **みどりのめん** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/teal-mask.png" width="28" height="28" alt="みどりのめん"> | オーガポン、イイネイヌ、マシマシラ、キチキギス | くさ・みず・ほのお・いわタイプのポケモンが20%早く育つ |
+| **みどりのめん** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/teal-mask.png" width="28" height="28" alt="みどりのめん"> | オーガポン、イイネイヌ、マシマシラ、キチキギス、モモワロウのうち4匹 | くさ・みず・ほのお・いわタイプのポケモンが20%早く育つ |
 | **テラスタルオーブ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/tera-orb.png" width="28" height="28" alt="テラスタルオーブ"> | コライドン、ミライドン、テラパゴス | 進化の石のタマゴが2倍早くかえる |
 | **こだいのせきぞう** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-statue.png" width="28" height="28" alt="こだいのせきぞう"> | レジロック、レジアイス、レジスチル、レジギガス、レジエレキ、レジドラゴ | 進化しないポケモンが25%早く育つ |
+| **みかづきのはね** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/lunar-wing.png" width="28" height="28" alt="みかづきのはね"> | クレセリア、ダークライ | エスパー・あくタイプのポケモンが30%早く育つ |
+| **いんせき** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/meteorite.png" width="28" height="28" alt="いんせき"> | ジラーチ、デオキシス | トークン上限を使い切るたびにふしぎなアメが1個多くもらえる |
+| **オーキドのてがみ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/oaks-letter.png" width="28" height="28" alt="オーキドのてがみ"> | セレビィ、シェイミ | すべての地方の御三家がどの段階でも25%早く育つ |
+| **うしおのおこう** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sea-incense.png" width="28" height="28" alt="うしおのおこう"> | マナフィ(フィオネが進化する) | レア度確定のタマゴ(ショップ、レジェンドプレート)が2倍早くかえる |
+| **イナズマカセット** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/shock-drive.png" width="28" height="28" alt="イナズマカセット"> | ビクティニ、メロエッタ、ゲノセクト | 化石ポケモン¹がどの段階でも50%早く育つ |
+| **Ｚリング** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/z-ring.png" width="28" height="28" alt="Ｚリング"> | シルヴァディ、マギアナ、マーシャドー、ゼラオラ、メルメタルのうち4匹 | はがね・でんきタイプのポケモンが30%早く育つ |
+| **あくのかけじく** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/scroll-of-darkness.png" width="28" height="28" alt="あくのかけじく"> | ウーラオス、ザルード | かくとうタイプのポケモンが30%早く育つ |
+| **こだいのツボ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-vase.png" width="28" height="28" alt="こだいのツボ"> | チオンジェン、パオジアン、ディンルー、イーユイ | 中間の進化段階のポケモンが25%早く育つ |
+| **レジェンドプレート** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/legend-plate.png" width="28" height="28" alt="レジェンドプレート"> | アルセウス | レアのタマゴとアンコモンのタマゴが1個ずつバッグに:ショップと同じく、ポケモンを手放してそのレア度以上のタマゴをもらう |
 | **でんきだま** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/light-ball.png" width="28" height="28" alt="でんきだま"> | ピカチュウのいしょう15着すべて | ピチュー、ピカチュウ、ライチュウが50%早く育つ |
 | **タイプ：ヌルのタマゴ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/mystery-egg.png" width="28" height="28" alt="タイプ：ヌルのタマゴ"> | シルヴァディのメモリ17個すべて⁴ | いまのポケモンを手放して、タイプ：ヌルが生まれるタマゴを受け取る |
 | **まるいおまもり** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/oval-charm.png" width="28" height="28" alt="まるいおまもり"> | すべての種 (1,025) | 残っているあいだ、まだ集めていないフォルムがあるポケモンだけがそのフォルムで生まれる |

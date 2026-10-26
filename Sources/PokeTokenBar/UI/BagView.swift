@@ -211,6 +211,12 @@ private struct ItemCard: View {
                                   confirmText: l.stoneConfirm(store.displayName, l.itemName(kind))) {
                 store.useBirthdayEgg()
             }
+        } else if kind.bagEggTier != nil {
+            ReleaseForEggControls(store: store, nav: nav, detail: effectHint(l), actionTitle: l.useItem,
+                                  isAvailable: store.canUseBagEgg(kind), unavailableText: l.useNeedsPokemon,
+                                  confirmText: l.stoneConfirm(store.displayName, l.itemName(kind))) {
+                store.useBagEgg(kind)
+            }
         } else if kind.isPassive {
             // 보유형(패시브 아이템): 사용 버튼 대신 상시 효과 표시.
             HStack(spacing: 6) {
@@ -313,6 +319,17 @@ extension CompanionStore {
         case .tealMask: return l.tealMaskEffectHint
         case .teraOrb: return l.teraOrbEffectHint
         case .relicStatue: return l.relicStatueEffectHint
+        case .lunarWing: return l.lunarWingEffectHint
+        case .meteorite: return l.meteoriteEffectHint
+        case .oaksLetter: return l.oaksLetterEffectHint
+        case .seaIncense: return l.seaIncenseEffectHint
+        case .shockDrive: return l.shockDriveEffectHint
+        case .zRing: return l.zRingEffectHint
+        case .scrollOfDarkness: return l.scrollOfDarknessEffectHint
+        case .relicVase: return l.relicVaseEffectHint
+        case .legendPlate: return l.legendPlateHint
+        case .uncommonEgg: return l.eggGuaranteeHint(.uncommon)
+        case .rareEgg: return l.eggGuaranteeHint(.rare)
         case .typeNullEgg: return l.typeNullEggHint
         case .legendaryEgg: return l.legendaryEggHint
         case .birthdayEgg: return l.birthdayEggHint

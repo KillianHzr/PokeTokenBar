@@ -218,6 +218,16 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     case tealMask
     case teraOrb
     case relicStatue
+    case lunarWing
+    case meteorite
+    case oaksLetter
+    case seaIncense
+    case shockDrive
+    case zRing
+    case scrollOfDarkness
+    case relicVase
+    /// Arceus's achievement: claiming it puts a Rare Egg and an Uncommon Egg in the Bag, not the Plate itself.
+    case legendPlate
     case typeNullEgg
     /// The reward for each region whose every species is in the Pokédex: an egg that hatches a legendary or mythical
     /// Pokémon.
@@ -226,6 +236,9 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     case lightBall
     /// The birthday gift (`BirthdayGift`): an egg whose hatch is a surprise, a mythical Pokémon not graduated yet.
     case birthdayEgg
+    /// The Legend Plate's eggs: like the Shop's eggs of these rarities, free.
+    case uncommonEgg
+    case rareEgg
     case ovalCharm
     case glimmeringCharm
     case boulderBadge
@@ -319,6 +332,15 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .tealMask: return "teal-mask"
         case .teraOrb: return "tera-orb"
         case .relicStatue: return "relic-statue"
+        case .lunarWing: return "lunar-wing"
+        case .meteorite: return "meteorite"
+        case .oaksLetter: return "oaks-letter"
+        case .seaIncense: return "sea-incense"
+        case .shockDrive: return "shock-drive"
+        case .zRing: return "z-ring"
+        case .scrollOfDarkness: return "scroll-of-darkness"
+        case .relicVase: return "relic-vase"
+        case .legendPlate: return "legend-plate"
         case .lightBall: return "light-ball"
         case .typeNullEgg: return "mystery-egg"
         case .ovalCharm: return "oval-charm"
@@ -366,7 +388,16 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .tealMask: return "🎭"
         case .teraOrb: return "💠"
         case .relicStatue: return "🗿"
-        case .typeNullEgg, .legendaryEgg, .birthdayEgg: return "🥚"
+        case .lunarWing: return "🌙"
+        case .meteorite: return "☄️"
+        case .oaksLetter: return "✉️"
+        case .seaIncense: return "🌊"
+        case .shockDrive: return "💿"
+        case .zRing: return "💍"
+        case .scrollOfDarkness: return "📜"
+        case .relicVase: return "⚱️"
+        case .legendPlate: return "🌌"
+        case .typeNullEgg, .legendaryEgg, .birthdayEgg, .uncommonEgg, .rareEgg: return "🥚"
         case .lightBall: return "⚡"
         case .ovalCharm: return "🔶"
         case .glimmeringCharm: return "✨"
@@ -393,7 +424,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     var isPassive: Bool {
         switch self {
         case .rareCandy, .mint,
-             .typeNullEgg, .legendaryEgg, .birthdayEgg,
+             .typeNullEgg, .legendaryEgg, .birthdayEgg, .uncommonEgg, .rareEgg, .legendPlate,
              .leafStone, .fireStone, .waterStone, .thunderStone, .sunStone,
              .moonStone, .duskStone, .iceStone, .dawnStone, .shinyStone:
             return false
@@ -408,12 +439,28 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     /// How many of this item one claim of its achievement adds to the Bag.
     var achievementRewardCount: Int { stoneType != nil ? EvolutionStone.achievementReward : 1 }
 
+    /// What one claim of this achievement puts in the Bag: the item itself, or for Arceus's Legend Plate, one egg
+    /// of each of its rarities.
+    var achievementRewards: [(kind: ItemKind, count: Int)] {
+        guard self == .legendPlate else { return [(self, achievementRewardCount)] }
+        return [(.rareEgg, 1), (.uncommonEgg, 1)]
+    }
+
+    /// The rarity a free egg of the Bag guarantees, like the Shop's egg of that rarity. nil for any other item.
+    var bagEggTier: Rarity? {
+        switch self {
+        case .uncommonEgg: return .uncommon
+        case .rareEgg: return .rare
+        default: return nil
+        }
+    }
+
     /// Achievement group of an item that unlocks through the Pokédex. nil = sold in the shop.
     var collectorGroup: CollectorGroup? {
         if badgeType != nil { return .gymBadges }
         if stoneType != nil { return .evolutionStones }
         switch self {
-        case .rareCandy, .mint, .shinyCharm, .birthdayEgg: return nil
+        case .rareCandy, .mint, .shinyCharm, .birthdayEgg, .uncommonEgg, .rareEgg: return nil
         default: return .legendaryArtifacts
         }
     }
@@ -422,7 +469,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     /// Each item keeps the Pokémon of the achievement that used to award it.
     var unlock: ItemUnlock? {
         switch self {
-        case .rareCandy, .mint, .shinyCharm, .birthdayEgg: return nil
+        case .rareCandy, .mint, .shinyCharm, .birthdayEgg, .uncommonEgg, .rareEgg: return nil
         // The first nine stones follow the generations: each asks for one region's final starters.
         case .leafStone:   return .species([SpeciesGoal([3, 6, 9])])            // Kanto starters
         case .fireStone:   return .species([SpeciesGoal([154, 157, 160])])      // Johto starters
@@ -443,14 +490,15 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .rainbowWing: return .species([SpeciesGoal([249, 250])])           // Lugia, Ho-Oh
         case .magmaStone:  return .species([SpeciesGoal([377, 378, 379]),       // Legendary titans
                                             SpeciesGoal([894, 895]),            // Regieleki, Regidrago
-                                            SpeciesGoal(SpeciesGoal.fossils, needed: 4)])
+                                            SpeciesGoal(SpeciesGoal.fossils, needed: 4),
+                                            SpeciesGoal([485])])                // Heatran, whose item it is
         case .soulDew:     return .species([SpeciesGoal([380, 381])])           // Latias, Latios
         case .jadeOrb:     return .species([SpeciesGoal([382, 383, 384])])      // Weather trio
         case .gracidea:    return .species([SpeciesGoal([480, 481, 482])])      // Lake guardians
         case .griseousOrb: return .species([SpeciesGoal([483, 484, 487])])      // Creation trio
-        case .libertyPass: return .species([SpeciesGoal([638, 639, 640])])      // Swords of Justice
+        case .libertyPass: return .species([SpeciesGoal([638, 639, 640, 647], needed: 3)]) // Swords of Justice, Keldeo
         case .revealGlass: return .species([SpeciesGoal([641, 642, 645, 905], needed: 3)]) // Forces of Nature
-        case .dnaSplicers: return .species([SpeciesGoal([643, 644])])           // Reshiram, Zekrom
+        case .dnaSplicers: return .species([SpeciesGoal([643, 644, 646])])      // Reshiram, Zekrom, Kyurem
         case .zygardeCube: return .species([SpeciesGoal([716, 717, 718])])      // Kalos legends
         case .prisonBottle: return .species([SpeciesGoal([719, 720, 721])])     // Diancie, Hoopa, Volcanion
         case .sparklingStone: return .species([SpeciesGoal([785, 786, 787, 788])]) // Island guardians
@@ -459,9 +507,19 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .rustedSword: return .species([SpeciesGoal([888, 889, 890])])      // Zacian, Zamazenta, Eternatus
         case .reinsOfUnity: return .species([SpeciesGoal([896, 897, 898])])     // Glastrier, Spectrier, Calyrex
         case .boosterEnergy: return .species([SpeciesGoal(SpeciesGoal.paradoxes, needed: 4)])
-        case .tealMask:    return .species([SpeciesGoal([1017, 1014, 1015, 1016])]) // Ogerpon, Loyal Three
+        case .tealMask:    return .species([SpeciesGoal([1017, 1014, 1015, 1016, 1025], needed: 4)]) // Ogerpon, Loyal Three, Pecharunt
         case .teraOrb:     return .species([SpeciesGoal([1007, 1008, 1024])])   // Koraidon, Miraidon, Terapagos
         case .relicStatue: return .species([SpeciesGoal([377, 378, 379, 486, 894, 895])]) // All six Regis
+        case .lunarWing:   return .species([SpeciesGoal([488, 491])])           // Cresselia, Darkrai
+        case .meteorite:   return .species([SpeciesGoal([385, 386])])           // Jirachi, Deoxys
+        case .oaksLetter:  return .species([SpeciesGoal([251, 492])])           // Celebi, Shaymin
+        case .seaIncense:  return .species([SpeciesGoal([490])])                // Manaphy (Phione's line too)
+        case .shockDrive:  return .species([SpeciesGoal([494, 648, 649])])      // Victini, Meloetta, Genesect
+        // Silvally, Magearna, Marshadow, Zeraora, Melmetal: the legends of Alola left.
+        case .zRing:       return .species([SpeciesGoal([773, 801, 802, 807, 809], needed: 4)])
+        case .scrollOfDarkness: return .species([SpeciesGoal([892, 893])])      // Urshifu, Zarude
+        case .relicVase:   return .species([SpeciesGoal([1001, 1002, 1003, 1004])]) // Treasures of Ruin
+        case .legendPlate: return .species([SpeciesGoal([493])])                // Arceus
         case .typeNullEgg: return .silvallyMemories
         case .legendaryEgg: return regionGoals.map { .species($0.map(\.goal)) }
         case .lightBall: return .allPikachuCostumes
@@ -530,12 +588,12 @@ enum BonusTheme: CaseIterable, Sendable {
         switch kind {
         case .oldSeaMap, .dnaSplicers, .zygardeCube, .clearBell, .griseousOrb, .prisonBottle, .sparklingStone, .lightBall,
              .sunFlute, .gracidea, .relicStatue, .beastBall, .rustedSword, .boosterEnergy, .tealMask,
-             .magmaStone, .libertyPass:
+             .magmaStone, .libertyPass, .lunarWing, .oaksLetter, .shockDrive, .zRing, .scrollOfDarkness, .relicVase:
             return .growth
-        case .silverWing, .teraOrb, .legendCharm, .ovalCharm: return .eggs
+        case .silverWing, .teraOrb, .seaIncense, .legendCharm, .ovalCharm: return .eggs
         case .shinyCharm, .revealGlass, .glimmeringCharm: return .shiny
         case .rainbowWing, .jadeOrb: return .shop
-        case .soulDew, .reinsOfUnity: return .candies
+        case .soulDew, .reinsOfUnity, .meteorite: return .candies
         default: return nil
         }
     }
@@ -591,6 +649,22 @@ enum CollectorBonus {
     static let griseousOrbGhostDragon = 1.3
     /// Rare Candies the Reins of Unity add to each graduation.
     static let reinsOfUnityCandies = 1
+    /// Lunar Wing: Cresselia's Psychic and Darkrai's Dark.
+    static let lunarWingPsychicDark = 1.3
+    /// Rare Candies the Meteorite adds to each usage window filled: Jirachi's wish.
+    static let meteoriteWindowCandies = 1
+    /// Oak's Letter: the starters of every region, at every stage.
+    static let oaksLetterStarter = 1.25
+    static let starterLines: Set<Int> = Set([1, 152, 252, 387, 495, 650, 722, 810, 906].flatMap { $0...($0 + 8) })
+    /// Shock Drive: the fossil Pokémon, as Genesect was revived from one.
+    static let shockDriveFossil = 1.5
+    /// Every species of the fossil lines whose finals are `SpeciesGoal.fossils`.
+    static let fossilLines: Set<Int> = [138, 139, 140, 141, 142, 345, 346, 347, 348, 408, 409, 410, 411, 564, 565, 566,
+                                        567, 696, 697, 698, 699, 880, 881, 882, 883]
+    static let zRingSteelElectric = 1.3
+    static let scrollOfDarknessFighting = 1.3
+    /// Relic Vase: the stage between the Gracidea's first and the Sun Flute's last.
+    static let relicVaseMiddleStage = 1.25
     /// Growth bonus of one regional tier of a gym badge, for Pokémon weak to its type: 2.5% per region, so
     /// 22.5% with the nine regions (20% for Dark, which has no Kanto tier).
     static let badgeRegionBonus = 0.025

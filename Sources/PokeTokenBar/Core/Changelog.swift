@@ -67,6 +67,37 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-26", entries: [
+            .new("2026-10-26-legendary-artifacts") { $0.t("아직 어떤 업적에도 없던 전설·환상의 포켓몬을 위한 새 유물 9개.",
+                          "Nine new Artifacts for the legendary and mythical Pokémon no achievement counted yet.",
+                          "まだどの実績にも入っていなかった伝説・幻のポケモンのための新しいどうぐが9つ。",
+                          "Nueve Objetos nuevos para los Pokémon legendarios y singulares que ningún logro contaba aún.",
+                          "Neuf nouveaux Artefacts pour les Pokémon légendaires et fabuleux qu'aucun succès ne comptait encore.",
+                          "Nove Objetos novos para os Pokémon lendários e míticos que nenhuma conquista contava ainda.",
+                          "Neun neue Artefakte für die legendären und mysteriösen Pokémon, die noch kein Erfolg zählte.",
+                          "Девять новых реликвий для легендарных и мифических покемонов, которых ещё не было ни в одном достижении.") },
+            .new("2026-10-26-legend-plate-eggs") { l in
+                let plate = l.itemName(.legendPlate), rare = l.eggName(.rare), uncommon = l.eggName(.uncommon)
+                return l.t("아르세우스를 졸업시키면 \(plate): 가방에 \(rare)과 \(uncommon)이 하나씩 들어와요.",
+                           "Graduating Arceus earns the \(plate): a \(rare) and an \(uncommon) in your Bag.",
+                           "アルセウスを卒業させると\(plate)。\(rare)と\(uncommon)が1個ずつバッグに入ります。",
+                           "Graduar a Arceus da la \(plate): un \(rare) y un \(uncommon) en tu bolsa.",
+                           "Diplômer Arceus rapporte la \(plate) : un \(rare) et un \(uncommon) dans ton sac.",
+                           "Formar Arceus rende a \(plate): um \(rare) e um \(uncommon) na sua bolsa.",
+                           "Arceus' Abschied bringt die \(plate): ein \(rare) und ein \(uncommon) in deinen Beutel.",
+                           "Выпуск Арсеуса приносит «\(plate)»: «\(rare)» и «\(uncommon)» в сумку.")
+            },
+            .improved("2026-10-26-artifact-goals") { l in
+                let dna = l.itemName(.dnaSplicers), liberty = l.itemName(.libertyPass)
+                let magma = l.itemName(.magmaStone), teal = l.itemName(.tealMask)
+                return l.t("큐레무가 \(dna)에 필요해졌고, 케르디오·히드런·복숭악동도 \(liberty)·\(magma)·\(teal)에 들어가요.",
+                           "Kyurem now joins Reshiram and Zekrom for the \(dna), and Keldeo, Heatran and Pecharunt count for the \(liberty), the \(magma) and the \(teal).",
+                           "\(dna)にキュレムが必要になり、ケルディオ・ヒードラン・モモワロウも\(liberty)・\(magma)・\(teal)に数えられます。",
+                           "Kyurem se une a Reshiram y Zekrom para la \(dna), y Keldeo, Heatran y Pecharunt cuentan para el \(liberty), la \(magma) y la \(teal).",
+                           "Kyurem rejoint Reshiram et Zekrom pour le \(dna), et Keldeo, Heatran et Pêchaminus comptent pour le \(liberty), la \(magma) et le \(teal).",
+                           "Kyurem se junta a Reshiram e Zekrom para o \(dna), e Keldeo, Heatran e Pecharunt contam para o \(liberty), a \(magma) e a \(teal).",
+                           "Kyurem kommt für den \(dna) zu Reshiram und Zekrom, und Keldeo, Heatran und Infamomo zählen für den \(liberty), den \(magma) und die \(teal).",
+                           "Кюрем теперь нужен для «\(dna)» вместе с Реширамом и Зекромом, а Келдео, Хитран и Пичарант засчитываются для «\(liberty)», «\(magma)» и «\(teal)».")
+            },
             .fixed("2026-10-26-changelog-per-change") { $0.t("새 소식이 이미 읽은 날짜에 추가된 변경도 업데이트 뒤 새로 표시해요.",
                           "What's New marks every change that came with an update, even on a day you already read.",
                           "最新情報が、すでに読んだ日に追加された変更も、更新後に新しく表示します。",
