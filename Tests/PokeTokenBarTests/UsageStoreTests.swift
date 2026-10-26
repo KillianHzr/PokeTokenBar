@@ -706,6 +706,23 @@ final class UsageStoreTests: XCTestCase {
         XCTAssertEqual(s2.animationQuality, .smooth, "같은 defaults 재로드 → 유지")
     }
 
+    /// The menu bar's Pokémon is animated by default, and the choice survives a restart.
+    func testMenuSpriteModePersistsAcrossRestart() {
+        let s1 = makeStore(providers: [])
+        XCTAssertEqual(s1.menuSpriteMode, .animated, "today's behaviour by default")
+        s1.menuSpriteMode = .hidden
+        XCTAssertEqual(makeStore(providers: []).menuSpriteMode, .hidden)
+    }
+
+    /// Hidden with no text line on would leave the menu bar empty: it shows the still frame then.
+    func testAHiddenPokemonComesBackStillWhenNoTextIsOn() {
+        XCTAssertEqual(UsageStore.MenuSpriteMode.hidden.effective(lines: []), .still)
+        XCTAssertEqual(UsageStore.MenuSpriteMode.hidden.effective(lines: ["1.2M"]), .hidden)
+        XCTAssertEqual(UsageStore.MenuSpriteMode.still.effective(lines: []), .still)
+        XCTAssertEqual(UsageStore.MenuSpriteMode.animated.effective(lines: []), .animated)
+        XCTAssertEqual(UsageStore.MenuSpriteMode.animated.effective(lines: ["1.2M"]), .animated)
+    }
+
     // MARK: 집계
 
     func testAggregatesTodayTokensAcrossProviders() async {

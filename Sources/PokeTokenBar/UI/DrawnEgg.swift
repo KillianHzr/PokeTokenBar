@@ -51,6 +51,8 @@ enum EggKind: Hashable, Sendable {
     case type(PokemonType)
     /// The Type: Null Egg, reward for all of Silvally's Memories.
     case typeNull
+    /// The Birthday Egg (`BirthdayGift`).
+    case birthday
 
     /// The egg a guarantee hatches from: the type when there is one, else the rarity.
     init(tier: Rarity?, type: PokemonType? = nil) {
@@ -66,6 +68,7 @@ enum EggKind: Hashable, Sendable {
         case .tier(let rarity): return EggColor(rarityColor(rarity)).mixed(with: .white, 0.12)
         case .type(let type): return EggColor.cream.mixed(with: EggColor(type.color), 0.1)
         case .typeNull: return EggColor(0.84, 0.84, 0.86)
+        case .birthday: return EggColor(1, 0.66, 0.8)
         }
     }
 
@@ -75,6 +78,7 @@ enum EggKind: Hashable, Sendable {
         case .tier: return .cream
         case .type(let type): return EggColor(type.color)
         case .typeNull: return EggColor(0.33, 0.35, 0.40)
+        case .birthday: return EggColor(1, 0.98, 0.95)
         }
     }
 
@@ -259,6 +263,7 @@ extension CompanionStore {
     /// The egg being incubated: the Type: Null Egg's, or what it guarantees.
     var eggKind: EggKind {
         if state.active == nil, state.eggFromTypeNullEgg { return .typeNull }
+        if state.active == nil, state.eggFromBirthdayEgg { return .birthday }
         return EggKind(tier: eggGuarantee, type: eggTypeGuarantee)
     }
 }

@@ -226,6 +226,15 @@ struct SettingsView: View {
             }
             Divider()
             groupRow {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(l.birthdayLabel)
+                    Text(l.birthdayHint).font(.caption2).foregroundStyle(.tertiary)
+                }
+                Spacer()
+                birthdayPickers
+            }
+            Divider()
+            groupRow {
                 Text(l.refreshInterval)
                 Spacer()
                 Picker(l.refreshInterval, selection: $store.refreshInterval) {
@@ -245,6 +254,20 @@ struct SettingsView: View {
                     Text(l.animationPowerSaver).tag(UsageStore.AnimationQuality.powerSaver)
                     Text(l.animationBalanced).tag(UsageStore.AnimationQuality.balanced)
                     Text(l.animationSmooth).tag(UsageStore.AnimationQuality.smooth)
+                }
+                .labelsHidden().pickerStyle(.menu).fixedSize()
+            }
+            Divider()
+            groupRow {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(l.menuSpriteLabel)
+                    Text(l.menuSpriteHint).font(.caption2).foregroundStyle(.tertiary)
+                }
+                Spacer()
+                Picker(l.menuSpriteLabel, selection: $store.menuSpriteMode) {
+                    Text(l.menuSpriteAnimated).tag(UsageStore.MenuSpriteMode.animated)
+                    Text(l.menuSpriteStill).tag(UsageStore.MenuSpriteMode.still)
+                    Text(l.menuSpriteHidden).tag(UsageStore.MenuSpriteMode.hidden)
                 }
                 .labelsHidden().pickerStyle(.menu).fixedSize()
             }
@@ -523,6 +546,30 @@ struct SettingsView: View {
                     }
                 }
             }
+        }
+    }
+
+    /// The month, then the day once a month is chosen; "Not set" clears the birthday.
+    @ViewBuilder
+    private var birthdayPickers: some View {
+        let birthday = companion.state.birthday
+        let month = Binding<Int>(get: { birthday?.month ?? 0 }, set: { month in
+            companion.setBirthday(Birthday(month: month, day: min(birthday?.day ?? 1, Birthday.days(inMonth: month))))
+        })
+        var calendar = Calendar(identifier: .gregorian)
+        let _ = calendar.locale = companion.language.displayLocale
+        Picker(l.birthdayLabel, selection: month) {
+            Text(l.birthdayNotSet).tag(0)
+            ForEach(1...12, id: \.self) { Text(calendar.standaloneMonthSymbols[$0 - 1].capitalized).tag($0) }
+        }
+        .labelsHidden().pickerStyle(.menu).fixedSize()
+        if let birthday {
+            Picker(l.birthdayLabel, selection: Binding<Int>(get: { birthday.day }, set: { day in
+                companion.setBirthday(Birthday(month: birthday.month, day: day))
+            })) {
+                ForEach(1...Birthday.days(inMonth: birthday.month), id: \.self) { Text("\($0)").tag($0) }
+            }
+            .labelsHidden().pickerStyle(.menu).fixedSize()
         }
     }
 

@@ -187,6 +187,8 @@ struct PopoverView: View {
 
     private var l: L { companion.l }
     @State private var showingClaudeKeychainHelp = false
+    /// The birthday gift was just opened: the banner says where the egg went until it is dismissed.
+    @State private var birthdayGiftOpened = false
 
     var body: some View {
         // NOTE: 설정을 .sheet 로 띄우면 transient 팝오버가 닫힐 때 시트가 고아로 남아
@@ -257,10 +259,52 @@ struct PopoverView: View {
         }
     }
 
+    /// The birthday gift waiting, above the tabs whatever the tab, until it is opened; then where it went. It never
+    /// tells what hatches.
+    @ViewBuilder
+    private var birthdayBanner: some View {
+        if let gift = companion.birthdayGift {
+            HStack(spacing: 10) {
+                SpriteView(speciesID: nil, size: 40, animated: true, egg: .birthday)
+                    .frame(width: 40, height: 40)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(gift.occasion == .birthday ? l.birthdayBannerTitle : l.birthdayBelatedTitle)
+                        .font(.callout.weight(.bold))
+                    Text(l.birthdayBannerBody).font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 4)
+                Button(l.birthdayClaim) {
+                    guard companion.claimBirthdayGift() else { return }
+                    birthdayGiftOpened = true
+                    nav.tab = .bag
+                }
+                .buttonStyle(.borderedProminent).controlSize(.small).tint(.pink)
+            }
+            .padding(8)
+            .background(LinearGradient(colors: [Color.pink.opacity(0.22), Color.purple.opacity(0.14)],
+                                       startPoint: .leading, endPoint: .trailing))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        } else if birthdayGiftOpened {
+            HStack(spacing: 8) {
+                Text("🎁").font(.callout)
+                Text(l.birthdayClaimed).font(.caption).fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 4)
+                Button { birthdayGiftOpened = false } label: { Image(systemName: "xmark") }
+                    .buttonStyle(.borderless).controlSize(.small).foregroundStyle(.secondary)
+                    .accessibilityLabel(l.close)
+            }
+            .padding(8)
+            .background(Color.pink.opacity(0.14))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+    }
+
     private var mainContent: some View {
         @Bindable var nav = nav
         return VStack(alignment: .leading, spacing: 12) {
             updateBanner
+            birthdayBanner
             PopoverTabPicker(tab: $nav.tab, l: l, unclaimedAchievements: companion.unclaimedAchievementsCount)
 
             if nav.tab == .collection {

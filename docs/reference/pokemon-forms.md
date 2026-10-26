@@ -35,6 +35,7 @@ rolled when `lineBaseIDs` maps that species to the base of its line
 | Weezing #110 | normal, galar |
 | Mr. Mime #122 | normal, galar |
 | Tauros #128 | normal, paldea-combat, paldea-blaze, paldea-aqua |
+| Eevee #133 | normal, starter (Partner Eevee, which does not evolve) |
 | Articuno #144 | normal, galar |
 | Zapdos #145 | normal, galar |
 | Moltres #146 | normal, galar |
@@ -51,6 +52,7 @@ rolled when `lineBaseIDs` maps that species to the base of its line
 | Cherrim #421 | overcast, sunshine |
 | Shellos #422, Gastrodon #423 | west, east |
 | Rotom #479 | normal, heat, wash, frost, fan, mow |
+| Dialga #483, Palkia #484 | normal, origin |
 | Giratina #487 | altered, origin |
 | Shaymin #492 | land, sky |
 | Arceus #493 | the 18 types |
@@ -80,6 +82,7 @@ rolled when `lineBaseIDs` maps that species to the base of its line
 | Pumpkaboo #710, Gourgeist #711 | average, small, large, super |
 | Avalugg #713 | normal, hisui |
 | Zygarde #718 | 50, 10, complete |
+| Hoopa #720 | confined, unbound |
 | Decidueye #724 | normal, hisui |
 | Oricorio #741 | baile, pom-pom, pau, sensu |
 | Lycanroc #745 | midday, midnight, dusk |
@@ -91,15 +94,20 @@ rolled when `lineBaseIDs` maps that species to the base of its line
 | Magearna #801 | normal, original |
 | Cramorant #845 | normal, gulping, gorging |
 | Toxtricity #849 | amped, low-key |
+| Alcremie #869 | 63 looks, `<cream>-<sweet>`: 9 creams × 7 sweets, `vanilla-cream-strawberry` first |
 | Eiscue #875 | ice, noice |
+| Indeedee #876 | male, female |
 | Morpeko #877 | full-belly, hangry |
 | Zacian #888 | hero, crowned |
 | Zamazenta #889 | hero, crowned |
 | Urshifu #892 | single-strike, rapid-strike |
 | Zarude #893 | normal, dada |
 | Calyrex #898 | normal, ice, shadow |
+| Ursaluna #901 | normal, bloodmoon |
 | Basculegion #902 | male, female |
 | Enamorus #905 | incarnate, therian |
+| Oinkologne #916 | male, female |
+| Maushold #925 | family-of-four, family-of-three |
 | Squawkabilly #931 | green, blue, yellow, white |
 | Palafin #964 | zero, hero |
 | Tatsugiri #978 | curly, droopy, stretchy |
@@ -113,6 +121,19 @@ rolled when `lineBaseIDs` maps that species to the base of its line
 Left out on purpose: spiky-eared Pichu and Arceus `unknown`, gender differences
 that are not catalogued forms (such as female Frillish), Mothim's cloaks (same
 sprite), and battle-only transformations such as Mega Evolution and Gigantamax.
+Pikachu's costumes and caps are not forms either: see below.
+
+## Pikachu's costumes
+
+Pikachu's 15 costumes and caps (`PikachuCostume`: Rock Star, Belle, Pop Star,
+Ph.D., Libre, Cosplay, the eight caps and Partner Pikachu) are worn over its
+look. An egg never rolls them and the Pokédex's form count leaves them out.
+Each Pikachu that arrives brings one the save doesn't have yet
+(`CompanionState.pikachuCostumes`) and wears it while it grows
+(`MonState.pikachuCostume`). Every other Pikachu wears the one equipped on its
+Pokédex page (`equippedPikachuCostume`), or its own look with None. All fifteen
+unlock the Light Ball. Their sprites are PokéAPI's costume varieties
+(`10080` for the Rock Star).
 
 ## Drawing a form
 
@@ -176,4 +197,7 @@ Animated GIFs and cache keys use `<id>-<form>` (`492-sky.gif`,
 `201-question.gif`), and the default form keeps the plain `<id>` names. Static
 PNGs use the PokeAPI Pokémon ID for forms that are separate Pokémon
 (`10006.png` for Sky Shaymin) and `<id>-<form>` for cosmetic forms
-(`412-sandy.png`).
+(`412-sandy.png`). Alcremie's PNGs keep PokéAPI's `-sweet` (`869-ruby-cream-strawberry-sweet.png`)
+while its GIFs drop it (`PokemonForm.pngName`). Showdown names Maushold's
+Family of Three `925` and its Family of Four, PokéAPI's default, `925-four`
+(`SpriteStore.showdownNames`).

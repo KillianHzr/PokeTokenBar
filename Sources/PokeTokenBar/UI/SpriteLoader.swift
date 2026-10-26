@@ -23,6 +23,7 @@ actor SpriteStore {
         self.directory = d
         try? FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
         Self.purgeMisattributedFormSprites(in: d)
+        Self.purgeRemappedSprites(in: d)
         // Only the app's own cache holds sprites downloaded by earlier versions.
         if directory == nil {
             Self.purgePixelAnimations(in: d)
@@ -60,6 +61,27 @@ actor SpriteStore {
         let prefixes = misattributedFormSpecies.flatMap { id in
             PokemonForm.forms(speciesID: id).dropFirst().map { "\(PokemonForm.assetName(speciesID: id, form: $0))-" }
         }
+        for name in (try? fm.contentsOfDirectory(atPath: directory.path)) ?? []
+        where prefixes.contains(where: name.hasPrefix) {
+            try? fm.removeItem(at: directory.appendingPathComponent(name))
+        }
+        fm.createFile(atPath: marker.path, contents: nil)
+    }
+
+    /// Showdown's file for an asset, where its name differs: Maushold's are the other way round from PokéAPI's,
+    /// whose default is the Family of Four (Showdown's `925-four`) while Showdown's plain `925` is the Family of Three.
+    nonisolated static let showdownNames: [String: String] = ["925": "925-four", "10257": "925"]
+
+    /// Species whose cached sprites came from the other Showdown file: Maushold's default cached the Family of Three.
+    nonisolated static let remappedSpriteSpecies = [925]
+
+    /// Deletes those species' cached files once, so they download again from the right file. A marker file records
+    /// that the purge ran.
+    nonisolated static func purgeRemappedSprites(in directory: URL) {
+        let fm = FileManager.default
+        let marker = directory.appendingPathComponent(".form-sprites-v2")
+        guard !fm.fileExists(atPath: marker.path) else { return }
+        let prefixes = remappedSpriteSpecies.map { "\($0)-" }
         for name in (try? fm.contentsOfDirectory(atPath: directory.path)) ?? []
         where prefixes.contains(where: name.hasPrefix) {
             try? fm.removeItem(at: directory.appendingPathComponent(name))
@@ -114,8 +136,10 @@ actor SpriteStore {
                       || form?.rawValue.contains("hisui") == true
                       || form?.rawValue.contains("paldea") == true
         let name = PokemonForm.staticAssetName(speciesID: speciesID, form: form)
-        guard animated else { return [URL(string: "\(base)/\(color)\(name).png")!] }
-        var names = ["other/showdown/\(color)\(name)"]
+        guard animated else {
+            return [URL(string: "\(base)/\(color)\(PokemonForm.pngName(speciesID: speciesID, form: form)).png")!]
+        }
+        var names = ["other/showdown/\(color)\(showdownNames[name] ?? name)"]
         let asset = PokemonForm.assetName(speciesID: speciesID, form: form)
         if asset == name, let form, asset != String(speciesID) {
             names.append("other/showdown/\(color)\(speciesID)-\(form.rawValue.replacingOccurrences(of: "-", with: ""))")

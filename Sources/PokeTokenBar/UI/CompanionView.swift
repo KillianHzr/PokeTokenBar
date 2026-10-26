@@ -25,7 +25,12 @@ struct ItemIconView: View {
         self.size = size
         // 캐시에 있으면 즉시(동기) 표시 — 재렌더 플래시 방지. The Type: Null and Legendary Eggs are the eggs the app draws
         // for them.
-        let drawnEgg: EggKind? = kind == .typeNullEgg ? .typeNull : kind == .legendaryEgg ? .tier(.legendary) : nil
+        let drawnEgg: EggKind? = switch kind {
+        case .typeNullEgg: .typeNull
+        case .legendaryEgg: .tier(.legendary)
+        case .birthdayEgg: .birthday
+        default: nil
+        }
         _img = State(initialValue: drawnEgg.map(EggRenderer.still)
                      ?? kind.spriteName.flatMap { SpriteLoader.cachedItemImage(name: $0) })
     }
@@ -130,6 +135,8 @@ struct SpriteView: View {
         self.animated = animated
         self.shiny = shiny
         self.minFrameDelay = minFrameDelay
+        // Pikachu in its costume, unless a look was asked for.
+        let form = PikachuCostume.displayForm(speciesID: speciesID, form: form)
         self.form = form
         self.egg = egg
         self.isSilhouette = isSilhouette
@@ -631,6 +638,8 @@ struct EvolutionTrackView: View {
     let tint: Color
     var shiny = false
     var form: PokemonForm? = nil
+    /// The costume the individual wears once it is a Pikachu.
+    var pikachuCostume: PikachuCostume? = nil
     /// What is left, under the track ("95M to Charmeleon · 24%"); `amount` is drawn bold inside it.
     let remaining: String
     let amount: String
@@ -720,7 +729,8 @@ struct EvolutionTrackView: View {
         switch stop {
         case .reached(let id, let isCurrent):
             ring(dashed: false, highlight: isCurrent ? tint : nil) {
-                SpriteView(speciesID: id, size: Self.spriteSize, shiny: shiny, form: form, sameScale: true)
+                SpriteView(speciesID: id, size: Self.spriteSize, shiny: shiny,
+                           form: id == PikachuCostume.speciesID ? pikachuCostume?.form ?? form : form, sameScale: true)
             }
             .modifier(link(id, caught: true))
         case .coming(let id, let isCaught):
@@ -970,7 +980,7 @@ struct CompanionHeader: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .center, spacing: 12) {
                 SpriteView(speciesID: store.currentSpeciesID, size: 80, bob: true, animated: true,
-                           shiny: store.currentIsShiny, form: store.currentForm, egg: store.eggKind)
+                           shiny: store.currentIsShiny, form: store.currentSpriteForm, egg: store.eggKind)
                     .frame(width: 84, height: 84)
                     // A soft ground shadow under the Pokémon, on the hero card's glow.
                     .background(alignment: .bottom) {
@@ -1024,10 +1034,17 @@ struct CompanionHeader: View {
                     // The rarity above the name, so a long name ("Alolan Ninetales") wraps whole instead of being cut
                     // short beside the badge.
                     if let r = store.rarity {
-                        if r == .legendary {
-                            LegendaryBadge(text: store.l.rarityLabel(r).uppercased()).lineLimit(1).fixedSize()
-                        } else {
-                            Badge(store.l.rarityLabel(r).uppercased(), tint: .rarity(r)).lineLimit(1).fixedSize()
+                        HStack(spacing: 4) {
+                            if r == .legendary {
+                                LegendaryBadge(text: store.l.rarityLabel(r).uppercased()).lineLimit(1).fixedSize()
+                            } else {
+                                Badge(store.l.rarityLabel(r).uppercased(), tint: .rarity(r)).lineLimit(1).fixedSize()
+                            }
+                            // A form its line had never registered, fixed at hatch and kept through evolution.
+                            if store.state.active?.hasNewForm == true {
+                                Badge(store.l.newFormBadge.uppercased(), tint: .blue, style: .tinted)
+                                    .lineLimit(1).fixedSize()
+                            }
                         }
                     }
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -1219,6 +1236,7 @@ struct CompanionHeader: View {
         let percentText = (Double(percent) / 100).formatted(.percent.locale(store.language.displayLocale))
         return EvolutionTrackView(stops: track, progress: store.progress, tint: rarityColor(store.rarity),
                                   shiny: store.currentIsShiny, form: store.currentForm,
+                                  pikachuCostume: store.state.active?.pikachuCostume,
                                   remaining: Self.trackCaption(track, amount: amount, percent: percentText,
                                                                names: names, l: l),
                                   amount: amount,
@@ -2078,6 +2096,7 @@ struct PokemonDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     if PokemonForm.hasForms(speciesID: species.id) { formPicker }
+                    if species.id == PikachuCostume.speciesID { costumePicker }
                     if displayedSpecies.hasNormal && displayedSpecies.isShiny { appearancePicker }
                     identityHeader
                     if individuals.count > 1 { individualPicker }
@@ -2202,6 +2221,55 @@ struct PokemonDetailView: View {
             }
         }
         .task(id: species.id) { await store.loadFormNames(PokemonForm.nameResources(speciesID: species.id)) }
+    }
+
+    /// Pikachu's costumes: the ones won in color, the others faded; tapping one makes Pikachu wear it everywhere.
+    private var costumePicker: some View {
+        let l = store.l
+        let owned = store.state.pikachuCostumes
+        let equipped = store.state.equippedPikachuCostume
+        let choices: [PikachuCostume?] = [nil] + PikachuCostume.allCases.map { $0 }
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(l.pikachuCostumesTitle).font(.callout.weight(.semibold))
+                Spacer()
+                Text(l.pikachuCostumesProgress(owned.count, of: PikachuCostume.allCases.count))
+                    .font(.caption).foregroundStyle(.secondary).monospacedDigit()
+            }
+            Text(l.pikachuCostumesHint).font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 3), count: 6), spacing: 4) {
+                ForEach(choices, id: \.self) { costume in
+                    let isOwned = costume.map(owned.contains) ?? true
+                    let name = costume.map(l.pikachuCostumeName) ?? l.pikachuNoCostume
+                    Button {
+                        store.equipPikachuCostume(costume)
+                    } label: {
+                        VStack(spacing: 0) {
+                            SpriteView(speciesID: PikachuCostume.speciesID, size: 36,
+                                       form: costume?.form ?? PikachuCostume.plain)
+                                .frame(width: 36, height: 36)
+                            Text(name).font(.system(size: 10, weight: .semibold))
+                                .lineLimit(1).minimumScaleFactor(0.6).padding(.horizontal, 2)
+                        }
+                        .opacity(isOwned ? 1 : 0.25)
+                        .padding(.vertical, 3)
+                        .frame(maxWidth: .infinity)
+                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.05)))
+                        .overlay {
+                            if costume == equipped {
+                                RoundedRectangle(cornerRadius: 8).strokeBorder(Color.accentColor, lineWidth: 1.5)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!isOwned)
+                    .help(name)
+                    .accessibilityLabel(name)
+                    .accessibilityAddTraits(costume == equipped ? .isSelected : [])
+                }
+            }
+        }
     }
 
     /// The species in its type color, as Home's hero card (a legendary gets the whole event).
@@ -2601,6 +2669,9 @@ private struct DexEntryRow: View {
                     // 놓아준 개체 — 종은 도감에 남지만 이 개체는 끝까지 키우지 않았다.
                     // 중립색(secondary)으로 둔다: 실패가 아니라 다른 종류의 기록이라 경고색은 과하다.
                     Badge(store.l.dexReleased.uppercased(), tint: .secondary, style: .tinted, size: 10)
+                }
+                if entry.hasNewForm {
+                    Badge(store.l.newFormBadge.uppercased(), tint: .blue, style: .tinted, size: 10)
                 }
                 if store.isDuplicateCatch(entry) {
                     Text(store.l.dexDuplicate.uppercased())

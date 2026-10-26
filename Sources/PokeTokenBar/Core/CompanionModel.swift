@@ -222,6 +222,10 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     /// The reward for each region whose every species is in the Pokédex: an egg that hatches a legendary or mythical
     /// Pokémon.
     case legendaryEgg
+    /// The reward for every one of Pikachu's costumes: Pichu, Pikachu and Raichu grow faster.
+    case lightBall
+    /// The birthday gift (`BirthdayGift`): an egg whose hatch is a surprise, a mythical Pokémon not graduated yet.
+    case birthdayEgg
     case ovalCharm
     case glimmeringCharm
     case boulderBadge
@@ -315,6 +319,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .tealMask: return "teal-mask"
         case .teraOrb: return "tera-orb"
         case .relicStatue: return "relic-statue"
+        case .lightBall: return "light-ball"
         case .typeNullEgg: return "mystery-egg"
         case .ovalCharm: return "oval-charm"
         case .glimmeringCharm: return "glimmering-charm"
@@ -361,7 +366,8 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .tealMask: return "🎭"
         case .teraOrb: return "💠"
         case .relicStatue: return "🗿"
-        case .typeNullEgg, .legendaryEgg: return "🥚"
+        case .typeNullEgg, .legendaryEgg, .birthdayEgg: return "🥚"
+        case .lightBall: return "⚡"
         case .ovalCharm: return "🔶"
         case .glimmeringCharm: return "✨"
         case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,
@@ -387,7 +393,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     var isPassive: Bool {
         switch self {
         case .rareCandy, .mint,
-             .typeNullEgg, .legendaryEgg,
+             .typeNullEgg, .legendaryEgg, .birthdayEgg,
              .leafStone, .fireStone, .waterStone, .thunderStone, .sunStone,
              .moonStone, .duskStone, .iceStone, .dawnStone, .shinyStone:
             return false
@@ -407,7 +413,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         if badgeType != nil { return .gymBadges }
         if stoneType != nil { return .evolutionStones }
         switch self {
-        case .rareCandy, .mint, .shinyCharm: return nil
+        case .rareCandy, .mint, .shinyCharm, .birthdayEgg: return nil
         default: return .legendaryArtifacts
         }
     }
@@ -416,7 +422,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     /// Each item keeps the Pokémon of the achievement that used to award it.
     var unlock: ItemUnlock? {
         switch self {
-        case .rareCandy, .mint, .shinyCharm: return nil
+        case .rareCandy, .mint, .shinyCharm, .birthdayEgg: return nil
         // The first nine stones follow the generations: each asks for one region's final starters.
         case .leafStone:   return .species([SpeciesGoal([3, 6, 9])])            // Kanto starters
         case .fireStone:   return .species([SpeciesGoal([154, 157, 160])])      // Johto starters
@@ -458,6 +464,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .relicStatue: return .species([SpeciesGoal([377, 378, 379, 486, 894, 895])]) // All six Regis
         case .typeNullEgg: return .silvallyMemories
         case .legendaryEgg: return regionGoals.map { .species($0.map(\.goal)) }
+        case .lightBall: return .allPikachuCostumes
         case .ovalCharm: return .allSpecies
         case .glimmeringCharm: return .allForms
         case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,
@@ -498,6 +505,9 @@ struct SpeciesGoal: Equatable, Sendable {
     static let fossils = [139, 141, 142, 346, 348, 409, 411, 565, 567, 697, 699, 880, 881, 882, 883]
     /// Ultra Beasts, Naganadel included (it evolves from Poipole).
     static let ultraBeasts = [793, 794, 795, 796, 797, 798, 799, 803, 804, 805, 806]
+    /// The mythical Pokémon, one per line (Meltan for Melmetal): what the Birthday Egg hatches first.
+    static let mythicals = [151, 251, 385, 386, 489, 490, 491, 492, 493, 494, 647, 648, 649, 719, 720, 721, 801, 802, 807,
+                            808, 893, 1025]
     /// Paradox Pokémon of Scarlet and Violet and their DLC, ancient then future.
     static let paradoxes = Array(984...995) + [1005, 1006, 1009, 1010] + Array(1020...1023)
 
@@ -518,7 +528,7 @@ enum BonusTheme: CaseIterable, Sendable {
     static func of(_ kind: ItemKind) -> BonusTheme? {
         if kind.badgeType != nil { return .growth }
         switch kind {
-        case .oldSeaMap, .dnaSplicers, .zygardeCube, .clearBell, .griseousOrb, .prisonBottle, .sparklingStone,
+        case .oldSeaMap, .dnaSplicers, .zygardeCube, .clearBell, .griseousOrb, .prisonBottle, .sparklingStone, .lightBall,
              .sunFlute, .gracidea, .relicStatue, .beastBall, .rustedSword, .boosterEnergy, .tealMask,
              .magmaStone, .libertyPass:
             return .growth
@@ -542,6 +552,8 @@ enum ItemUnlock: Equatable, Sendable {
     case allSpecies
     /// Every form of every species in the Pokédex.
     case allForms
+    /// Every one of Pikachu's costumes (`PikachuCostume`).
+    case allPikachuCostumes
 }
 
 /// Evolution stones are consumables: each one sends the current Pokémon off for an egg of the stone's type.
@@ -573,6 +585,9 @@ enum CollectorBonus {
     /// Ogerpon's four masks.
     static let tealMaskTypeList: [PokemonType] = [.grass, .water, .fire, .rock]
     static let clearBellRare = 1.25
+    /// The Light Ball: Pichu, Pikachu and Raichu grow 50% faster.
+    static let lightBallPikachuLine = 1.5
+    static let pikachuLine: Set<Int> = [172, 25, 26]
     static let griseousOrbGhostDragon = 1.3
     /// Rare Candies the Reins of Unity add to each graduation.
     static let reinsOfUnityCandies = 1
@@ -601,6 +616,16 @@ enum RareCandy {
     /// 공짜 추가성장(150M 써서 250M 성장)이 된다. 500M 로 두면 그 값 모으는 500M 패시브 성장 + 사탕
     /// 100M = 실질 보너스 +20% 로 억제된다. 무료 획득(한도 100% 보상)이 항상 이득이도록 값어치보다 비싸게.
     static let price = 500_000_000
+    /// The share of a window's tokens a full window pays back in candies.
+    static let windowShare = 0.10
+
+    /// Candies for a window at 100% (#59): a tenth of the tokens it held, at least one, the same per token for every
+    /// plan and provider; a window that held 5B tokens pays 5, the old weekly grant. Divided by `xp`, not the Soul
+    /// Dew's candy value, so the Soul Dew keeps its +50% per candy. Without the window's tokens, the old fixed grant.
+    static func grantCount(windowTokens: Int?, kind: WindowClass) -> Int {
+        guard let windowTokens else { return kind == .weekly ? weeklyGrant : 1 }
+        return max(1, Int((windowShare * Double(windowTokens) / Double(xp)).rounded()))
+    }
 }
 
 /// 민트 밸런스 상수.
@@ -672,13 +697,18 @@ struct CandyWindow: Sendable {
     let utilization: Double  // 0~100+
     /// 창 epoch (`resets_at` / reset unix). key 는 안정, epoch 가 바뀌면 새 창 → 재무장(#326).
     let epoch: String?
+    /// The tokens this account burned in the window, from its start (reset minus length) to now; nil when the reset,
+    /// the length or the local usage is unknown (`RareCandy.grantCount`).
+    let windowTokens: Int?
 
-    init(key: String, name: String, kind: WindowClass, utilization: Double, epoch: String? = nil) {
+    init(key: String, name: String, kind: WindowClass, utilization: Double, epoch: String? = nil,
+         windowTokens: Int? = nil) {
         self.key = key
         self.name = name
         self.kind = kind
         self.utilization = utilization
         self.epoch = epoch
+        self.windowTokens = windowTokens
     }
 }
 
@@ -870,6 +900,8 @@ struct MonState: Codable, Sendable {
     var hasGrowthBoost = false
     /// Hatched in a form its line had never registered (Prison Bottle). Fixed at hatch, kept through evolution.
     var hasNewForm = false
+    /// The costume this individual brought when it became a Pikachu: it wears that one rather than the equipped one.
+    var pikachuCostume: PikachuCostume?
     // 메타몽 위장 — nil=일반. 값=정체 메타몽, 이 종으로 위장 중(위장 구간엔 baseID 와 동일, 리빌 후에도 원 위장체 보존).
     var dittoDisguise: Int?
     var dittoRevealed = false       // 위장 → 리빌(정체 공개) 전환 여부
@@ -877,6 +909,11 @@ struct MonState: Codable, Sendable {
     var displaysShiny: Bool { isShiny && (dittoDisguise == nil || dittoRevealed) }
     // pathIDs 가 비면(손상된 상태 파일) baseID 로 폴백 — 렌더마다 읽히므로 out-of-bounds 크래시 방지.
     var currentID: Int { pathIDs.isEmpty ? baseID : pathIDs[min(stageIndex, pathIDs.count - 1)] }
+    /// The look its sprites show: a Pikachu in the costume it brought, otherwise its form at this species.
+    var spriteForm: PokemonForm? {
+        if currentID == PikachuCostume.speciesID, let pikachuCostume { return pikachuCostume.form }
+        return PokemonForm.resolved(speciesID: currentID, form: form)
+    }
     var phaseThreshold: Int {
         PokemonBalance.phaseThreshold(
             rarity: rarity,
@@ -934,6 +971,9 @@ struct MonState: Codable, Sendable {
         profile = (try? c.decodeIfPresent(PokemonProfile.self, forKey: .profile)) ?? nil
         hasGrowthBoost = try c.decodeIfPresent(Bool.self, forKey: .hasGrowthBoost) ?? false
         hasNewForm = try c.decodeIfPresent(Bool.self, forKey: .hasNewForm) ?? false
+        // A costume this version doesn't know is dropped, not the whole individual.
+        pikachuCostume = ((try? c.decodeIfPresent(String.self, forKey: .pikachuCostume)) ?? nil)
+            .flatMap(PikachuCostume.init(rawValue:))
         dittoDisguise = try c.decodeIfPresent(Int.self, forKey: .dittoDisguise)
         dittoRevealed = try c.decodeIfPresent(Bool.self, forKey: .dittoRevealed) ?? false
         form = PokemonForm.resolved(baseID: baseID, form: PokemonForm.decoded(from: decoder, keys: "form", "unownForm"))
@@ -970,6 +1010,9 @@ struct DexEntry: Codable, Sendable, Identifiable {
     /// **보유 종**을 접는다. 놓아준 개체를 여기 넣지 않으면 그 종이 도감에서 사라진다 —
     /// 수집 화면이 "쌓이기만 한다"는 약속을 깨는 유일한 경로였다.
     var releasedAt: Date?
+    /// The individual brought a form its line had never registered (`MonState.hasNewForm`). False for entries saved
+    /// before it was kept.
+    var hasNewForm = false
     /// 졸업이 아니라 놓아준 기록인가 — 포획 로그가 뱃지를 가르는 판정.
     var isReleased: Bool { releasedAt != nil }
 
@@ -977,8 +1020,9 @@ struct DexEntry: Codable, Sendable, Identifiable {
          baseID: Int, finalID: Int, chainOrder: [Int], rarity: Rarity,
          caughtAt: Date?, isShiny: Bool = false, nature: PokemonNature? = nil,
          profile: PokemonProfile? = nil, names: [Int: [String: String]]? = nil, releasedAt: Date? = nil,
-         form: PokemonForm? = nil) {
+         form: PokemonForm? = nil, hasNewForm: Bool = false) {
         self.id = id
+        self.hasNewForm = hasNewForm
         self.baseID = baseID
         self.finalID = finalID
         self.chainOrder = chainOrder
@@ -1013,6 +1057,7 @@ struct DexEntry: Codable, Sendable, Identifiable {
         namesVersion = try? c.decodeIfPresent(Int.self, forKey: .namesVersion)
         // 이 필드 이전에 저장된 항목은 전부 졸업분이다 — nil 이 곧 "졸업"이라 마이그레이션이 필요 없다.
         releasedAt = try c.decodeIfPresent(Date.self, forKey: .releasedAt)
+        hasNewForm = (try? c.decodeIfPresent(Bool.self, forKey: .hasNewForm)) ?? false
         form = PokemonForm.resolved(baseID: baseID, form: PokemonForm.decoded(from: decoder, keys: "form", "unownForm"))
     }
 }
@@ -1057,6 +1102,17 @@ struct CompanionState: Codable, Sendable {
     /// The egg came from a Legendary Egg: it hatches a legendary or mythical Pokémon, and is drawn as that egg.
     /// Consumed with the egg's other guarantees.
     var eggFromLegendaryEgg = false
+    /// The egg came from the Birthday Egg: it hatches a mythical Pokémon not graduated yet (`BirthdayGift`), and is
+    /// drawn as that egg. Consumed with the egg's other guarantees.
+    var eggFromBirthdayEgg = false
+    /// The pre-rolled hatch is shiny whatever its roll: a Birthday Egg once every legendary and mythical graduated.
+    var pendingShiny = false
+    /// The player's birthday, without the year; nil until they enter it in Settings.
+    var birthday: Birthday?
+    /// The year of the last birthday whose gift was claimed; nil for a save that never got one.
+    var lastBirthdayGiftYear: Int?
+    /// The year of the last birthday the gift was announced for, so the notification comes once.
+    var birthdayNotifiedYear: Int?
     // 알 상태에서 미리 롤해둔 부화 종(프리패칭) — 부화 순간 네트워크 딜레이 제거. 재시작에도 유지.
     var pendingHatchID: Int?
     /// The form is chosen with the species so prefetch warms the exact sprite that will hatch.
@@ -1087,6 +1143,10 @@ struct CompanionState: Codable, Sendable {
     // Achievements already claimed (ItemKind.rawValue). The Bag cannot tell: stones are used up, and an
     // empty slot must not make their achievement claimable again.
     var claimedAchievements: Set<String> = []
+    /// Pikachu's costumes won so far, one per Pikachu that arrived (`PikachuCostume`).
+    var pikachuCostumes: Set<PikachuCostume> = []
+    /// The costume Pikachu wears, chosen on its Pokédex page; nil, its own look.
+    var equippedPikachuCostume: PikachuCostume?
     // 사탕 지급 엣지 상태(창 key → 지급한 tier). ★영속 — notifiedTier(인메모리)와 달리 재시작 무한지급 방지.
     var candyGrantTier: [String: Int] = [:]
     // 창 key → 마지막으로 본 epoch(`resets_at`). util 이 계속 100%여도 epoch 교체로 재무장(#326).
@@ -1135,12 +1195,21 @@ struct CompanionState: Codable, Sendable {
         language           = c.lenient(AppLanguage.self, forKey: .language, default: .systemDefault)
         inventory          = c.lenient([String: Int].self, forKey: .inventory, default: [:])
         claimedAchievements = c.lenient(Set<String>.self, forKey: .claimedAchievements, default: [])
+        // Unknown costumes (a later version's) are dropped one by one, never the whole set.
+        pikachuCostumes = Set(c.lenient([String].self, forKey: .pikachuCostumes, default: []).compactMap(PikachuCostume.init(rawValue:)))
+        equippedPikachuCostume = c.lenientOptional(String.self, forKey: .equippedPikachuCostume)
+            .flatMap(PikachuCostume.init(rawValue:)).flatMap { pikachuCostumes.contains($0) ? $0 : nil }
         candyGrantTier     = c.lenient([String: Int].self, forKey: .candyGrantTier, default: [:])
         candyWindowEpoch   = c.lenient([String: String].self, forKey: .candyWindowEpoch, default: [:])
         candyFeatureSeeded = c.lenient(Bool.self, forKey: .candyFeatureSeeded, default: false)
         additiveGrowthBonuses = c.lenient(Bool.self, forKey: .additiveGrowthBonuses, default: false)
         eggFromTypeNullEgg = c.lenient(Bool.self, forKey: .eggFromTypeNullEgg, default: false)
         eggFromLegendaryEgg = c.lenient(Bool.self, forKey: .eggFromLegendaryEgg, default: false)
+        eggFromBirthdayEgg = c.lenient(Bool.self, forKey: .eggFromBirthdayEgg, default: false)
+        pendingShiny = c.lenient(Bool.self, forKey: .pendingShiny, default: false)
+        birthday = c.lenientOptional(Birthday.self, forKey: .birthday)
+        lastBirthdayGiftYear = c.lenientOptional(Int.self, forKey: .lastBirthdayGiftYear)
+        birthdayNotifiedYear = c.lenientOptional(Int.self, forKey: .birthdayNotifiedYear)
     }
 
     /// 졸업 기록 또는 현재 개체가 실제로 도달한 단계에 이 종이 포함되는가.

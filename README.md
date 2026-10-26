@@ -91,7 +91,7 @@ Menu-bar items, refresh interval (1–15 min or manual), launch at login, a Keyc
 <tr>
 <td width="55%" valign="middle">
 <h3>🍬 Fill a limit, earn a Rare Candy</h3>
-Max out a 5-hour or weekly usage limit and you're handed a <b>Rare Candy</b> — one per 5-hour cap, five per weekly. Spend it from the new <b>Bag</b> tab to grow your current Pokémon: the moment you're rate-limited becomes the moment you level up.
+Max out a 5-hour or weekly usage limit and you're handed a <b>Rare Candy</b> — a tenth of the tokens that window held, at least one: a weekly limit that held 5B tokens pays 5. Spend it from the new <b>Bag</b> tab to grow your current Pokémon: the moment you're rate-limited becomes the moment you level up.
 </td>
 <td width="45%" align="center"><img src="assets/screenshot-bag.png" width="300" alt="Rare Candy and Mint in the Bag"></td>
 </tr>
@@ -214,8 +214,9 @@ Claimed once from the **Achievements** tab, active for as long as they sit in th
 | **Tera Orb** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/tera-orb.png" width="28" height="28" alt="Tera Orb"> | Koraidon, Miraidon, Terapagos | Eggs from an evolution stone hatch twice as fast |
 | **Relic Statue** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-statue.png" width="28" height="28" alt="Relic Statue"> | Regirock, Regice, Registeel, Regigigas, Regieleki, Regidrago | A Pokémon that does not evolve grows 25% faster |
 | **Type: Null Egg** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/mystery-egg.png" width="28" height="28" alt="Type: Null Egg"> | All 17 of Silvally's Memories⁴ | Send off your Pokémon for an egg that hatches a Type: Null |
+| **Light Ball** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/light-ball.png" width="28" height="28" alt="Light Ball"> | All 15 of Pikachu's costumes | Pichu, Pikachu and Raichu grow 50% faster |
 | **Oval Charm** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/oval-charm.png" width="28" height="28" alt="Oval Charm"> | Every species (1,025) | Eggs only hatch Pokémon with a form you are missing, in a form you don't have, while some are left |
-| **Glimmering Charm** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/glimmering-charm.png" width="28" height="28" alt="Glimmering Charm"> | Every form (1,280) | Every Pokémon that hatches is shiny |
+| **Glimmering Charm** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/glimmering-charm.png" width="28" height="28" alt="Glimmering Charm"> | Every form (1,350) | Every Pokémon that hatches is shiny |
 
 Only the Azure Flute and the Oval Charm change which Pokémon hatch, and the Oval Charm only once every species is in your Pokédex; every other artifact is a pure bonus that never lowers another Pokémon's chances.
 
@@ -268,6 +269,10 @@ Every badge has a **region per generation**: register every Pokémon of its type
 - **Local save backups** — automatic snapshots and corruption recovery, with a restore screen in Settings. Backup history starts collapsed; expand it to browse snapshots. **Create snapshot** stays available outside the list.
 - **Pokémon forms** — collect alternate forms from every generation, regional forms included, inspect form-specific individuals, and pin an owned form to the menu bar and floating pet. An individual's form follows evolution and stays in saves and exports; existing Unown letter saves remain readable. See the [form catalog](docs/reference/pokemon-forms.md).
 - **Bulk Rare Candy** — use several candies at once and preview the growth before spending.
+- **Menu bar Pokémon** — keep the menu bar Pokémon animated, still (one frame, no redraws), or hidden to show the usage text alone (Settings → General). With every text line off, a hidden Pokémon comes back still so there is always something to click.
+- **New form badge** — a Pokémon that hatched in a form its line never had says so on Home while it grows, and in the catch log once it graduates.
+- **Pikachu's costumes** — each Pikachu that arrives brings a costume or cap you don't have yet and wears it while it grows; pick the one every other Pikachu wears on its Pokédex page. All fifteen earn the Light Ball.
+- **Birthday gift** — enter your birthday in Settings and a banner offers you a gift egg on the day (and for the week after), once a year. What hatches from it is a surprise.
 - **Quota pace** — gauge markers show the elapsed share of a limit window; six color tiers indicate usage pace, and menu-bar limit percentages use the same colors.
 
 <img src="assets/screenshot-usage-recap.png" width="360" alt="Usage recap for a selected period">

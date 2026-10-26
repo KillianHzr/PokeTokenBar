@@ -92,7 +92,7 @@ PokeTokenBar는 당신이 이미 태우고 있는 AI 코딩 토큰(Claude Code �
 <tr>
 <td width="55%" valign="middle">
 <h3>🍬 한도를 채우면 이상한 사탕</h3>
-5시간 또는 주간 사용량 한도를 다 채우면 <b>이상한 사탕</b>을 받습니다 — 5시간 한도당 1개, 주간 한도당 5개. 새 <b>가방</b> 탭에서 현재 포켓몬에게 써서 키우세요: 막히는 순간이 곧 성장하는 순간이 됩니다.
+5시간 또는 주간 사용량 한도를 다 채우면 <b>이상한 사탕</b>을 받습니다 — 그 창에 쓴 토큰의 10분의 1만큼, 최소 1개: 50억 토큰을 쓴 주간 한도는 5개. 새 <b>가방</b> 탭에서 현재 포켓몬에게 써서 키우세요: 막히는 순간이 곧 성장하는 순간이 됩니다.
 </td>
 <td width="45%" align="center"><img src="assets/screenshot-bag-ko.png" width="300" alt="가방 속 이상한 사탕과 민트"></td>
 </tr>
@@ -214,9 +214,10 @@ Pi는 모델 여러 개를 세션 로그 하나로 흘려보낼 수 있습니다
 | **벽록의가면** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/teal-mask.png" width="28" height="28" alt="벽록의가면"> | 오거폰, 조타구, 이야후, 기로치 | 풀·물·불꽃·바위타입 포켓몬이 20% 더 빨리 성장해요 |
 | **테라스탈오브** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/tera-orb.png" width="28" height="28" alt="테라스탈오브"> | 코라이돈, 미라이돈, 테라파고스 | 진화의 돌로 받은 알이 2배 빨리 부화해요 |
 | **고대의석상** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-statue.png" width="28" height="28" alt="고대의석상"> | 레지락, 레지아이스, 레지스틸, 레지기가스, 레지에레키, 레지드래고 | 진화하지 않는 포켓몬이 25% 빨리 자라요 |
+| **전기구슬** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/light-ball.png" width="28" height="28" alt="전기구슬"> | 피카츄의 옷 15개 모두 | 피츄, 피카츄, 라이츄가 50% 빨리 자라요 |
 | **타입:널의 알** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/mystery-egg.png" width="28" height="28" alt="타입:널의 알"> | 실버디의 메모리 17개 모두⁴ | 지금 포켓몬을 놓아주고 타입:널이 태어나는 알을 받아요 |
 | **둥근부적** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/oval-charm.png" width="28" height="28" alt="둥근부적"> | 모든 종 (1,025) | 남은 폼이 있는 동안, 아직 모으지 못한 폼이 있는 포켓몬만 그 폼으로 태어나요 |
-| **반짝이는부적** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/glimmering-charm.png" width="28" height="28" alt="반짝이는부적"> | 모든 폼 (1,280) | 태어나는 포켓몬이 모두 이로치예요 |
+| **반짝이는부적** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/glimmering-charm.png" width="28" height="28" alt="반짝이는부적"> | 모든 폼 (1,350) | 태어나는 포켓몬이 모두 이로치예요 |
 
 포켓몬이 태어날 확률을 바꾸는 건 천공의피리와 둥근부적뿐이고, 둥근부적은 모든 종을 모은 뒤에만 받을 수 있어요. 다른 유물은 모두 순수한 보너스라 다른 포켓몬의 확률을 낮추지 않아요.
 
@@ -269,6 +270,10 @@ Pi는 모델 여러 개를 세션 로그 하나로 흘려보낼 수 있습니다
 - **로컬 저장 백업** — 자동 스냅샷과 손상 복구를 지원하며 설정에서 이전 저장 상태를 복원할 수 있습니다. 백업 기록은 접힌 상태로 시작하며 펼쳐서 확인합니다. **스냅샷 만들기**는 목록 밖에서 바로 사용할 수 있습니다.
 - **포켓몬 폼 수집** — 리전폼을 포함해 모든 세대의 다른 폼을 수집하고 폼별 개체를 확인하며, 보유한 폼을 메뉴바·플로팅 펫의 대표로 고릅니다. 모습은 진화와 저장·내보내기에도 이어지고 기존 안농 문자 저장도 읽습니다. [폼 목록](docs/reference/pokemon-forms.md)을 참고하세요.
 - **이상한 사탕 일괄 사용** — 여러 사탕을 한 번에 사용하고, 사용 전 성장 결과를 미리 볼 수 있습니다.
+- **메뉴바 포켓몬** — 메뉴바 포켓몬을 움직이게, 정지(한 프레임, 다시 그리지 않음), 또는 숨겨서 사용량 글자만 보이게 고릅니다(설정 → 일반). 글자 줄을 모두 끄면 숨긴 포켓몬이 정지 상태로 돌아와 늘 누를 곳이 남습니다.
+- **새 폼 배지** — 그 라인에 없던 폼으로 태어난 포켓몬은 자라는 동안 홈에, 졸업 뒤에는 포획 기록에 표시됩니다.
+- **피카츄의 옷** — 피카츄가 올 때마다 아직 없는 옷이나 모자를 하나 가져와 자라는 동안 입어요. 도감의 피카츄 페이지에서 다른 피카츄가 입을 옷을 고릅니다. 15개를 모두 모으면 전기구슬을 받아요.
+- **생일 선물** — 설정에 생일을 넣으면 그날(그리고 그 뒤 일주일) 배너가 선물 알을 건네요. 1년에 한 번. 무엇이 태어날지는 비밀이에요.
 - **한도 사용 페이스** — 게이지의 경과 시간 표식과 6단계 색상으로 사용 속도를 확인합니다. 메뉴바 한도 비율도 같은 색상을 사용합니다.
 
 <img src="assets/screenshot-usage-recap-ko.png" width="360" alt="선택한 기간의 사용량 돌아보기">

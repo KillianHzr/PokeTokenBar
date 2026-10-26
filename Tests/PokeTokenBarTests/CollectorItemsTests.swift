@@ -70,11 +70,11 @@ final class CollectorItemsTests: XCTestCase {
     func testCollectorItemsAndAchievements() {
         let s = store()
         XCTAssertEqual(s.collectorItems(in: .evolutionStones).count, 10)
-        XCTAssertEqual(s.collectorItems(in: .legendaryArtifacts).count, 28)
+        XCTAssertEqual(s.collectorItems(in: .legendaryArtifacts).count, 29)
         XCTAssertEqual(s.collectorItems(in: .gymBadges).count, 18)
         XCTAssertEqual(Set(CompanionStore.achievementItems), Set(ItemKind.allCases.filter { $0.collectorGroup != nil }))
-        XCTAssertEqual(s.totalAchievementsCount, 207,
-                       "10 stones, 27 artifacts and the Legendary Egg's 9 regions, 161 badge regions")
+        XCTAssertEqual(s.totalAchievementsCount, 208,
+                       "10 stones, 28 artifacts and the Legendary Egg's 9 regions, 161 badge regions")
         XCTAssertEqual(s.purchasableItems, [.mint, .rareCandy, .shinyCharm], "the Shop sells what main sells")
 
         // An unlocked stone is an achievement to claim, never a Shop item.
@@ -87,7 +87,12 @@ final class CollectorItemsTests: XCTestCase {
 
     func testItemsHaveAppropriatePricesAndUnlockConditions() {
         for kind in ItemKind.allCases {
-            if kind.collectorGroup == nil {
+            if kind == .birthdayEgg {
+                // The birthday gift: neither sold nor earned through the Pokédex (`BirthdayGift`).
+                XCTAssertNil(kind.unlock)
+                XCTAssertNil(kind.shopPrice)
+                XCTAssertFalse(kind.isAchievement)
+            } else if kind.collectorGroup == nil {
                 XCTAssertNil(kind.unlock, "\(kind) is always on sale")
                 XCTAssertNotNil(kind.shopPrice, "\(kind) must have a price")
             } else {
@@ -330,7 +335,7 @@ final class CollectorItemsTests: XCTestCase {
         let artifacts = s.collectorItems(in: .legendaryArtifacts)
         XCTAssertEqual(artifacts.first, .clearBell, "unlocked and not owned comes first")
         XCTAssertEqual(artifacts.last, .soulDew, "owned passives sink to the bottom")
-        XCTAssertEqual(artifacts.count, 28)
+        XCTAssertEqual(artifacts.count, 29)
     }
 
     // MARK: Effects
@@ -407,6 +412,7 @@ final class CollectorItemsTests: XCTestCase {
             (.boosterEnergy, mon(984, rarity: .rare), mon(147, rarity: .rare), CollectorBonus.boosterEnergyParadox),
             (.tealMask, mon(74), mon(19), CollectorBonus.tealMaskTypes),                      // Geodude (Rock)
             (.relicStatue, mon(128, forms: 1), mon(19), CollectorBonus.relicStatueNoEvolution), // Tauros vs Rattata
+            (.lightBall, mon(25), mon(19), CollectorBonus.lightBallPikachuLine),
         ]
         let plain = store()
         for (item, boosted, other, bonus) in cases {

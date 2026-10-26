@@ -555,7 +555,13 @@ final class SaveTransferTests: XCTestCase {
                                      "representativeSpeciesID", "representativeForm", "dex",
                                      "collectedFinals", "inventory", "claimedAchievements",
                                      // The rule `active.usedAtStage` was earned under: it travels with that value.
-                                     "additiveGrowthBonuses"]
+                                     "additiveGrowthBonuses",
+                                     // Won with the Pikachu that brought them.
+                                     "pikachuCostumes", "equippedPikachuCostume",
+                                     // The Birthday Egg in incubation, and the gift's yearly record: moving the save
+                                     // to another Mac never brings a second gift the same year.
+                                     "eggFromBirthdayEgg", "pendingShiny", "birthday", "lastBirthdayGiftYear",
+                                     "birthdayNotifiedYear"]
         let deviceLedger: Set<String> = ["installBaselineSet", "claimedTodayTokensByProvider", "lastDate"]
         let accountLedger: Set<String> = ["candyGrantTier", "candyWindowEpoch", "candyFeatureSeeded"]
         let devicePreference: Set<String> = ["language"]

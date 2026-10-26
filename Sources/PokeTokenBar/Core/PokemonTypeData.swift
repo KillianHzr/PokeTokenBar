@@ -1095,6 +1095,7 @@ enum PokemonTypeData {
     /// (`PokemonForm.formID`): regional forms, Rotom, Arceus, Castform... Every other form shares its
     /// species' types. Generated from PokéAPI form types, falling back to the variety's types.
     static let formTypes: [Int: [PokemonType]] = [
+        10188: [.psychic, .dark],   // #720 unbound
         10028: [.fire],   // #351 sunny
         10029: [.water],   // #351 rainy
         10030: [.ice],   // #351 snowy

@@ -54,6 +54,16 @@ read_when:
   보존해 정적 보기로 전환할 때 복원한다. `SpriteAnimationPreviewTests`는 실제 SwiftUI 첫 렌더의
   GIF 픽셀·크기, 캐시 재사용, 프레임 지연, 정적 원본 보존을 검사한다.
 
+- **Showdown and PokéAPI can name a species' look differently.** Maushold's PokéAPI default (`925`) is the
+  Family of Four, but Showdown's `925.gif` is the Family of Three and the Family of Four is `925-four.gif`: the
+  default asked for `925.gif`, showed the wrong family and cached it. Alcremie's PNGs keep PokéAPI's `-sweet`
+  (`869-ruby-cream-strawberry-sweet.png`) while its GIFs drop it. The form tests built URLs and checked them against
+  the same builder; nothing compared a name with the sprite repository until the opt-in check below. Fixes:
+  `SpriteStore.showdownNames`, `PokemonForm.pngName`, and a one-time purge of the cached Maushold files
+  (`purgeRemappedSprites`, marker `.form-sprites-v2`). Guards: `NewFormsTests` (Maushold's and Alcremie's names, the
+  purge running once) and `PTB_PARITY=1` on `PokemonFormTests`, which asks the sprite repository for every catalogued
+  form's GIF and PNG. Run it whenever the catalog grows.
+
 ## 판정·데이터
 
 - **Achievements count graduated Pokémon only.** Every achievement goal (species goals, badge and Legendary Egg

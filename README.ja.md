@@ -92,7 +92,7 @@ PokeTokenBar は、あなたがすでに使っている AI コーディングト
 <tr>
 <td width="55%" valign="middle">
 <h3>🍬 上限を使い切ると、ふしぎなアメ</h3>
-5時間または週間の使用量上限を使い切ると <b>ふしぎなアメ</b> がもらえます — 5時間上限で1個、週間上限で5個。新しい <b>バッグ</b> タブから使っていまのポケモンを育てましょう。レート制限にかかった瞬間が、レベルアップの瞬間になります。
+5時間または週間の使用量上限を使い切ると <b>ふしぎなアメ</b> がもらえます — そのウィンドウで使ったトークンの10分の1、最低1個。50億トークンを使った週間上限なら5個。新しい <b>バッグ</b> タブから使っていまのポケモンを育てましょう。レート制限にかかった瞬間が、レベルアップの瞬間になります。
 </td>
 <td width="45%" align="center"><img src="assets/screenshot-bag-ja.png" width="300" alt="バッグの中のふしぎなアメとミント"></td>
 </tr>
@@ -214,9 +214,10 @@ Pi は複数のモデルを一つのセッションログに流すことがあ�
 | **みどりのめん** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/teal-mask.png" width="28" height="28" alt="みどりのめん"> | オーガポン、イイネイヌ、マシマシラ、キチキギス | くさ・みず・ほのお・いわタイプのポケモンが20%早く育つ |
 | **テラスタルオーブ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/tera-orb.png" width="28" height="28" alt="テラスタルオーブ"> | コライドン、ミライドン、テラパゴス | 進化の石のタマゴが2倍早くかえる |
 | **こだいのせきぞう** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-statue.png" width="28" height="28" alt="こだいのせきぞう"> | レジロック、レジアイス、レジスチル、レジギガス、レジエレキ、レジドラゴ | 進化しないポケモンが25%早く育つ |
+| **でんきだま** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/light-ball.png" width="28" height="28" alt="でんきだま"> | ピカチュウのいしょう15着すべて | ピチュー、ピカチュウ、ライチュウが50%早く育つ |
 | **タイプ：ヌルのタマゴ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/mystery-egg.png" width="28" height="28" alt="タイプ：ヌルのタマゴ"> | シルヴァディのメモリ17個すべて⁴ | いまのポケモンを手放して、タイプ：ヌルが生まれるタマゴを受け取る |
 | **まるいおまもり** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/oval-charm.png" width="28" height="28" alt="まるいおまもり"> | すべての種 (1,025) | 残っているあいだ、まだ集めていないフォルムがあるポケモンだけがそのフォルムで生まれる |
-| **きらめくおまもり** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/glimmering-charm.png" width="28" height="28" alt="きらめくおまもり"> | すべてのフォルム (1,280) | 生まれるポケモンがすべて色違いになる |
+| **きらめくおまもり** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/glimmering-charm.png" width="28" height="28" alt="きらめくおまもり"> | すべてのフォルム (1,350) | 生まれるポケモンがすべて色違いになる |
 
 生まれるポケモンの確率を変えるのはてんかいのふえとまるいおまもりだけで、まるいおまもりはすべての種を集めてから手に入ります。ほかのどうぐはすべて純粋なボーナスで、ほかのポケモンの確率を下げません。
 
@@ -269,6 +270,10 @@ Pi は複数のモデルを一つのセッションログに流すことがあ�
 - **ローカルセーブのバックアップ** — 自動スナップショットと破損時の復旧に対応し、設定から以前の保存状態を復元できます。バックアップ履歴は折りたたんだ状態で開き、展開して確認できます。**スナップショットを作成**は一覧の外からすぐに使えます。
 - **ポケモンのフォルム** — リージョンフォームを含む全世代の別フォルムを集め、フォルムごとの個体を確認し、所持フォルムをメニューバーとフローティングペットの代表に選べます。姿は進化・保存・エクスポートでも維持され、以前のアンノーンの文字データも読み込めます。[フォルム一覧](docs/reference/pokemon-forms.md)をご覧ください。
 - **ふしぎなアメの一括使用** — 複数のアメをまとめて使い、使用前に成長結果を確認できます。
+- **メニューバーのポケモン** — メニューバーのポケモンを、動かす・止める（1フレームで再描画なし）・隠して使用量の文字だけにする、から選べます（設定 → 一般）。文字の行をすべてオフにすると、隠したポケモンは止まった姿で戻り、いつでもクリックできます。
+- **新しいフォルムのバッジ** — その系統にないフォルムで生まれたポケモンは、育っているあいだホームに、卒業後は捕獲記録に表示されます。
+- **ピカチュウのいしょう** — ピカチュウが来るたびに、まだない衣装か帽子をひとつ持ってきて、育つあいだ着ています。図鑑のピカチュウのページで、ほかのピカチュウが着る衣装を選べます。15着そろうとでんきだまがもらえます。
+- **誕生日のプレゼント** — 設定に誕生日を入れると、その日（とその後1週間）バナーがプレゼントのタマゴを渡します。年に1回。なにが生まれるかはお楽しみ。
 - **上限の使用ペース** — ゲージの経過時間マーカーと6段階の色で使用ペースを確認できます。メニューバーの上限割合にも同じ色を使用します。
 
 <img src="assets/screenshot-usage-recap-ja.png" width="360" alt="選択した期間の使用量の振り返り">

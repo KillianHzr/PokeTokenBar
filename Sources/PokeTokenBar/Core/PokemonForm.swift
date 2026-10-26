@@ -31,11 +31,14 @@ struct PokemonForm: RawRepresentable, Codable, Hashable, Sendable {
         let form: PokemonForm
         let formID: Int
         let pokemonID: Int?
+        /// The static PNG's name where it differs from the GIF's: Alcremie's keep PokéAPI's "-sweet".
+        let pngName: String?
 
-        init(_ rawValue: String, formID: Int, pokemonID: Int? = nil) {
+        init(_ rawValue: String, formID: Int, pokemonID: Int? = nil, pngName: String? = nil) {
             form = PokemonForm(rawValue)
             self.formID = formID
             self.pokemonID = pokemonID
+            self.pngName = pngName
         }
     }
 
@@ -316,6 +319,85 @@ struct PokemonForm: RawRepresentable, Codable, Hashable, Sendable {
                 .init("incarnate", formID: 905),
                 .init("therian", formID: 10418, pokemonID: 10249),
             ],
+            // Origin Dialga and Palkia, Hoopa Unbound, Bloodmoon Ursaluna, and the female Indeedee and Oinkologne,
+            // separate PokéAPI varieties like Giratina's Origin and Meowstic's female.
+            483: [.init("normal", formID: 483), .init("origin", formID: 10414, pokemonID: 10245)],
+            484: [.init("normal", formID: 484), .init("origin", formID: 10415, pokemonID: 10246)],
+            720: [.init("confined", formID: 720), .init("unbound", formID: 10188, pokemonID: 10086)],
+            876: [.init("male", formID: 876), .init("female", formID: 10355, pokemonID: 10186)],
+            901: [.init("normal", formID: 901), .init("bloodmoon", formID: 10441, pokemonID: 10272)],
+            916: [.init("male", formID: 916), .init("female", formID: 10423, pokemonID: 10254)],
+            // Maushold's default is the Family of Four; Showdown's files are the other way round (`showdownNames`).
+            925: [.init("family-of-four", formID: 925), .init("family-of-three", formID: 10426, pokemonID: 10257)],
+            // Partner Eevee, from Let's Go; it does not evolve (`PokemonEvolutionData.formGates`).
+            133: [.init("normal", formID: 133), .init("starter", formID: 10318, pokemonID: 10159)],
+            // Alcremie's 63 creams and sweets: one look each, no variety of their own. Showdown names them
+            // `869-<cream>-<sweet>`, without PokéAPI's "-sweet".
+            869: [
+                .init("vanilla-cream-strawberry", formID: 869),
+                .init("ruby-cream-strawberry", formID: 10346, pngName: "869-ruby-cream-strawberry-sweet"),
+                .init("matcha-cream-strawberry", formID: 10347, pngName: "869-matcha-cream-strawberry-sweet"),
+                .init("mint-cream-strawberry", formID: 10348, pngName: "869-mint-cream-strawberry-sweet"),
+                .init("lemon-cream-strawberry", formID: 10349, pngName: "869-lemon-cream-strawberry-sweet"),
+                .init("salted-cream-strawberry", formID: 10350, pngName: "869-salted-cream-strawberry-sweet"),
+                .init("ruby-swirl-strawberry", formID: 10351, pngName: "869-ruby-swirl-strawberry-sweet"),
+                .init("caramel-swirl-strawberry", formID: 10352, pngName: "869-caramel-swirl-strawberry-sweet"),
+                .init("rainbow-swirl-strawberry", formID: 10353, pngName: "869-rainbow-swirl-strawberry-sweet"),
+                .init("vanilla-cream-berry", formID: 10449, pngName: "869-vanilla-cream-berry-sweet"),
+                .init("ruby-cream-berry", formID: 10450, pngName: "869-ruby-cream-berry-sweet"),
+                .init("matcha-cream-berry", formID: 10451, pngName: "869-matcha-cream-berry-sweet"),
+                .init("mint-cream-berry", formID: 10452, pngName: "869-mint-cream-berry-sweet"),
+                .init("lemon-cream-berry", formID: 10453, pngName: "869-lemon-cream-berry-sweet"),
+                .init("salted-cream-berry", formID: 10454, pngName: "869-salted-cream-berry-sweet"),
+                .init("ruby-swirl-berry", formID: 10455, pngName: "869-ruby-swirl-berry-sweet"),
+                .init("caramel-swirl-berry", formID: 10456, pngName: "869-caramel-swirl-berry-sweet"),
+                .init("rainbow-swirl-berry", formID: 10457, pngName: "869-rainbow-swirl-berry-sweet"),
+                .init("vanilla-cream-love", formID: 10458, pngName: "869-vanilla-cream-love-sweet"),
+                .init("ruby-cream-love", formID: 10459, pngName: "869-ruby-cream-love-sweet"),
+                .init("matcha-cream-love", formID: 10460, pngName: "869-matcha-cream-love-sweet"),
+                .init("mint-cream-love", formID: 10461, pngName: "869-mint-cream-love-sweet"),
+                .init("lemon-cream-love", formID: 10462, pngName: "869-lemon-cream-love-sweet"),
+                .init("salted-cream-love", formID: 10463, pngName: "869-salted-cream-love-sweet"),
+                .init("ruby-swirl-love", formID: 10464, pngName: "869-ruby-swirl-love-sweet"),
+                .init("caramel-swirl-love", formID: 10465, pngName: "869-caramel-swirl-love-sweet"),
+                .init("rainbow-swirl-love", formID: 10466, pngName: "869-rainbow-swirl-love-sweet"),
+                .init("vanilla-cream-star", formID: 10467, pngName: "869-vanilla-cream-star-sweet"),
+                .init("ruby-cream-star", formID: 10468, pngName: "869-ruby-cream-star-sweet"),
+                .init("matcha-cream-star", formID: 10469, pngName: "869-matcha-cream-star-sweet"),
+                .init("mint-cream-star", formID: 10470, pngName: "869-mint-cream-star-sweet"),
+                .init("lemon-cream-star", formID: 10471, pngName: "869-lemon-cream-star-sweet"),
+                .init("salted-cream-star", formID: 10472, pngName: "869-salted-cream-star-sweet"),
+                .init("ruby-swirl-star", formID: 10473, pngName: "869-ruby-swirl-star-sweet"),
+                .init("caramel-swirl-star", formID: 10474, pngName: "869-caramel-swirl-star-sweet"),
+                .init("rainbow-swirl-star", formID: 10475, pngName: "869-rainbow-swirl-star-sweet"),
+                .init("vanilla-cream-clover", formID: 10476, pngName: "869-vanilla-cream-clover-sweet"),
+                .init("ruby-cream-clover", formID: 10477, pngName: "869-ruby-cream-clover-sweet"),
+                .init("matcha-cream-clover", formID: 10478, pngName: "869-matcha-cream-clover-sweet"),
+                .init("mint-cream-clover", formID: 10479, pngName: "869-mint-cream-clover-sweet"),
+                .init("lemon-cream-clover", formID: 10480, pngName: "869-lemon-cream-clover-sweet"),
+                .init("salted-cream-clover", formID: 10481, pngName: "869-salted-cream-clover-sweet"),
+                .init("ruby-swirl-clover", formID: 10482, pngName: "869-ruby-swirl-clover-sweet"),
+                .init("caramel-swirl-clover", formID: 10483, pngName: "869-caramel-swirl-clover-sweet"),
+                .init("rainbow-swirl-clover", formID: 10484, pngName: "869-rainbow-swirl-clover-sweet"),
+                .init("vanilla-cream-flower", formID: 10485, pngName: "869-vanilla-cream-flower-sweet"),
+                .init("ruby-cream-flower", formID: 10486, pngName: "869-ruby-cream-flower-sweet"),
+                .init("matcha-cream-flower", formID: 10487, pngName: "869-matcha-cream-flower-sweet"),
+                .init("mint-cream-flower", formID: 10488, pngName: "869-mint-cream-flower-sweet"),
+                .init("lemon-cream-flower", formID: 10489, pngName: "869-lemon-cream-flower-sweet"),
+                .init("salted-cream-flower", formID: 10490, pngName: "869-salted-cream-flower-sweet"),
+                .init("ruby-swirl-flower", formID: 10491, pngName: "869-ruby-swirl-flower-sweet"),
+                .init("caramel-swirl-flower", formID: 10492, pngName: "869-caramel-swirl-flower-sweet"),
+                .init("rainbow-swirl-flower", formID: 10493, pngName: "869-rainbow-swirl-flower-sweet"),
+                .init("vanilla-cream-ribbon", formID: 10494, pngName: "869-vanilla-cream-ribbon-sweet"),
+                .init("ruby-cream-ribbon", formID: 10495, pngName: "869-ruby-cream-ribbon-sweet"),
+                .init("matcha-cream-ribbon", formID: 10496, pngName: "869-matcha-cream-ribbon-sweet"),
+                .init("mint-cream-ribbon", formID: 10497, pngName: "869-mint-cream-ribbon-sweet"),
+                .init("lemon-cream-ribbon", formID: 10498, pngName: "869-lemon-cream-ribbon-sweet"),
+                .init("salted-cream-ribbon", formID: 10499, pngName: "869-salted-cream-ribbon-sweet"),
+                .init("ruby-swirl-ribbon", formID: 10500, pngName: "869-ruby-swirl-ribbon-sweet"),
+                .init("caramel-swirl-ribbon", formID: 10501, pngName: "869-caramel-swirl-ribbon-sweet"),
+                .init("rainbow-swirl-ribbon", formID: 10502, pngName: "869-rainbow-swirl-ribbon-sweet"),
+            ],
             // MARK: Gen 9 (Paldea & DLC) & Paldean Regional Forms
             128: [
                 .init("normal", formID: 128),
@@ -383,6 +465,7 @@ struct PokemonForm: RawRepresentable, Codable, Hashable, Sendable {
         26: 172, 103: 102, 105: 104, 110: 109, 122: 439, 157: 155, 503: 501, 549: 548, 628: 627,
         666: 664, 678: 677, 681: 679, 705: 704, 706: 704, 713: 712, 724: 722, 745: 744, 773: 772,
         849: 848, 892: 891, 902: 550, 964: 963, 982: 206, 1013: 1012,
+        869: 868, 901: 216, 916: 915, 925: 924,
     ]
 
     static func entries(speciesID: Int) -> [Entry] { catalog[speciesID] ?? [] }
@@ -464,6 +547,8 @@ struct PokemonForm: RawRepresentable, Codable, Hashable, Sendable {
     /// The appearance of an individual at one species: its own form when that species has it,
     /// otherwise the species default. Nil for species without forms.
     static func resolved(speciesID: Int, form: PokemonForm?) -> PokemonForm? {
+        // A costume only changes Pikachu's sprites (`PikachuCostume`).
+        if PikachuCostume(speciesID: speciesID, form: form) != nil { return form }
         let forms = forms(speciesID: speciesID)
         guard let first = forms.first else { return nil }
         return form.flatMap { ownForm(speciesID: speciesID, lineForm: $0) } ?? first
@@ -508,6 +593,7 @@ struct PokemonForm: RawRepresentable, Codable, Hashable, Sendable {
     /// Animated GIFs and cache files use `<id>-<form>`; the default keeps the plain `<id>` names
     /// (and so the cache keys of saves written before forms existed).
     static func assetName(speciesID: Int, form: PokemonForm?) -> String {
+        if let costume = PikachuCostume(speciesID: speciesID, form: form) { return "\(speciesID)-\(costume.rawValue)" }
         guard let form = resolved(speciesID: speciesID, form: form), !isDefault(form, speciesID: speciesID) else {
             return String(speciesID)
         }
@@ -516,11 +602,19 @@ struct PokemonForm: RawRepresentable, Codable, Hashable, Sendable {
 
     /// Static PNGs of forms that are separate PokéAPI varieties live under the variety id.
     static func staticAssetName(speciesID: Int, form: PokemonForm?) -> String {
+        if let costume = PikachuCostume(speciesID: speciesID, form: form) { return String(costume.pokemonID) }
         let resolved = resolved(speciesID: speciesID, form: form)
         if let pokemonID = entries(speciesID: speciesID).first(where: { $0.form == resolved })?.pokemonID {
             return String(pokemonID)
         }
         return assetName(speciesID: speciesID, form: form)
+    }
+
+    /// The static PNG: the entry's own name where it has one, else the static asset's.
+    static func pngName(speciesID: Int, form: PokemonForm?) -> String {
+        let resolved = resolved(speciesID: speciesID, form: form)
+        return entries(speciesID: speciesID).first { $0.form == resolved }?.pngName
+            ?? staticAssetName(speciesID: speciesID, form: form)
     }
 
     /// PokéAPI `pokemon` resource holding an individual's stats, abilities, size and moves: its form's own variety
@@ -568,9 +662,9 @@ extension PokemonForm {
 }
 
 extension PokemonForm {
-    /// Castform, Rotom, Kyurem and Genesect have no official name for their usual look:
+    /// Castform, Rotom, Kyurem, Genesect, Eevee, Dialga, Palkia and Ursaluna have no official name for their usual look:
     /// PokéAPI only says "Forme de Motisma" or nothing at all.
-    private static let unnamedDefaultSpecies: Set<Int> = [351, 479, 646, 649]
+    private static let unnamedDefaultSpecies: Set<Int> = [351, 479, 646, 649, 133, 483, 484, 901]
 
     private static func hasUnnamedDefault(speciesID: Int, form: PokemonForm?) -> Bool {
         unnamedDefaultSpecies.contains(speciesID) && isDefault(form, speciesID: speciesID)
@@ -597,8 +691,35 @@ extension PokemonForm {
         guard let form = resolved(speciesID: speciesID, form: form) else { return nil }
         if speciesID == unownSpeciesID { return form.symbol }
         if hasUnnamedDefault(speciesID: speciesID, form: form) { return L(language).normalForm }
+        if let name = appName(speciesID: speciesID, form: form, language: language, names: names) { return name }
         let translations = nameResource(speciesID: speciesID, form: form).flatMap { names.names[$0] }
         return translations.flatMap(language.resolveName) ?? PokemonNameLocalization.identifier(form.rawValue)
+    }
+
+    /// Names PokéAPI gives wrong or not at all: Hoopa's forms carry the species' name ("Hoopa Unbound"), Partner Eevee
+    /// and Maushold's families have few languages, the three Paldean Tauros all read "Paldean Form" outside English,
+    /// and both Darmanitan Zen Modes read "Zen Mode" (#55).
+    @MainActor
+    private static func appName(speciesID: Int, form: PokemonForm, language: AppLanguage,
+                                names: PokemonNameDisplayStore) -> String? {
+        let l = L(language)
+        switch (speciesID, form.rawValue) {
+        case (720, "confined"): return l.formHoopaConfined
+        case (720, "unbound"): return l.formHoopaUnbound
+        case (133, "starter"): return l.formPartner
+        case (925, "family-of-four"): return l.formFamilyOfFour
+        case (925, "family-of-three"): return l.formFamilyOfThree
+        case (128, "paldea-combat"): return l.formTaurosCombatBreed
+        case (128, "paldea-blaze"): return l.formTaurosBlazeBreed
+        case (128, "paldea-aqua"): return l.formTaurosAquaBreed
+        case (555, "galar-zen"):
+            // Galarian Darmanitan's own name, then the Zen Mode's ("Forme de Galar, Mode Transe").
+            guard let galar = label(speciesID: 555, form: PokemonForm("galar-standard"), language: language, names: names),
+                  let zen = label(speciesID: 555, form: PokemonForm("zen"), language: language, names: names)
+            else { return nil }
+            return "\(galar), \(zen)"
+        default: return nil
+        }
     }
 
     @MainActor

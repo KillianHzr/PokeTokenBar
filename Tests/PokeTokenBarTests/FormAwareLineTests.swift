@@ -167,7 +167,8 @@ final class FormAwareLineTests: XCTestCase {
         // The former hand-written list (Gen 1 to 4 and Sylveon) is unchanged.
         let former: [Int: [Int]] = [
             43: [45, 182], 44: [45, 182], 60: [62, 186], 61: [62, 186], 79: [80, 199],
-            133: [134, 135, 136, 196, 197, 470, 471, 700], 236: [106, 107, 237], 265: [267, 269],
+            // Partner Eevee does not evolve: Eevee itself ends that way.
+            133: [133, 134, 135, 136, 196, 197, 470, 471, 700], 236: [106, 107, 237], 265: [267, 269],
             266: [267], 268: [269], 280: [282, 475], 281: [282, 475], 290: [291, 292], 361: [362, 478],
             366: [367, 368], 412: [413, 414],
         ]
@@ -282,6 +283,10 @@ final class FormAwareLineTests: XCTestCase {
         st.collectedFinals = ["133:134"]
         XCTAssertFalse(st.isLineComplete(baseID: 133), "Eevee after Vaporeon still has seven evolutions to find")
         st.collectedFinals = Set([134, 135, 136, 196, 197, 470, 471, 700].map { "133:\($0)" })
+        st.dex = [entry(133, [133, 134], "normal")]
+        XCTAssertFalse(st.isLineComplete(baseID: 133), "Partner Eevee is still missing")
+        st.collectedFinals.insert("133:133")
+        st.dex.append(entry(133, [133], "starter"))
         XCTAssertTrue(st.isLineComplete(baseID: 133))
 
         st.collectedFinals = ["123:212"]
@@ -305,7 +310,8 @@ final class FormAwareLineTests: XCTestCase {
         oneFinal.collectedFinals = ["133:134"]
         XCTAssertEqual(try store(oneFinal).hatchWeight(for: eevee), PokemonOdds.hatchWeight(.rare))
         var allFinals = readyState()
-        allFinals.collectedFinals = Set([134, 135, 136, 196, 197, 470, 471, 700].map { "133:\($0)" })
+        allFinals.collectedFinals = Set([133, 134, 135, 136, 196, 197, 470, 471, 700].map { "133:\($0)" })
+        allFinals.dex = [entry(133, [133, 134], "normal"), entry(133, [133], "starter")]
         XCTAssertEqual(try store(allFinals).hatchWeight(for: eevee), PokemonOdds.hatchWeight(.rare) / 2)
     }
 }

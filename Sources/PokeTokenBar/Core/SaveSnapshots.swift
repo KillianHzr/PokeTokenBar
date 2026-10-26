@@ -79,7 +79,7 @@ enum SaveSnapshotManager {
                     lifetimeTokens: st.usedSinceInstall,
                     currentSpeciesID: st.active?.currentID,
                     currentIsShiny: st.active?.displaysShiny ?? false,
-                    currentForm: st.active.flatMap { PokemonForm.resolved(speciesID: $0.currentID, form: $0.form) }
+                    currentForm: st.active?.spriteForm
                 ))
             } else if let st = try? JSONDecoder().decode(CompanionState.self, from: data) {
                 let date = parseStamp(file) ?? (try? url.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? Date()
@@ -91,7 +91,7 @@ enum SaveSnapshotManager {
                     lifetimeTokens: st.usedSinceInstall,
                     currentSpeciesID: st.active?.currentID,
                     currentIsShiny: st.active?.displaysShiny ?? false,
-                    currentForm: st.active.flatMap { PokemonForm.resolved(speciesID: $0.currentID, form: $0.form) }
+                    currentForm: st.active?.spriteForm
                 ))
             }
         }
@@ -160,7 +160,7 @@ enum SaveSnapshotManager {
             lifetimeTokens: state.usedSinceInstall,
             currentSpeciesID: state.active?.currentID,
             currentIsShiny: state.active?.displaysShiny ?? false,
-            currentForm: state.active.flatMap { PokemonForm.resolved(speciesID: $0.currentID, form: $0.form) }
+            currentForm: state.active?.spriteForm
         )
     }
 
