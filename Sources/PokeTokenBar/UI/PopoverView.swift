@@ -368,7 +368,7 @@ struct PopoverView: View {
         let unseen = store.unseenChangelogEntries
         if !unseen.isEmpty {
             HStack(spacing: 8) {
-                Image(systemName: "sparkles").foregroundStyle(.yellow)
+                Image(systemName: "newspaper.fill").foregroundStyle(Color.accentColor)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(l.changelogTitle).font(.callout.weight(.semibold))
                     Text(l.changelogBannerBody(unseen.count)).font(.caption).foregroundStyle(.secondary)
@@ -1290,7 +1290,7 @@ struct PopoverView: View {
                              help: store.floatingPetEnabled ? l.floatingPetHideLabel : l.floatingPetEnableLabel) {
                 store.floatingPetEnabled.toggle()
             }
-            CircleIconButton(systemImage: "sparkles", help: l.changelogTitle) { openChangelog() }
+            CircleIconButton(systemImage: "newspaper", help: l.changelogTitle) { openChangelog() }
                 .overlay(alignment: .topTrailing) {
                     if !store.unseenChangelogEntries.isEmpty {
                         Circle().fill(Color.red).frame(width: 7, height: 7).offset(x: 1, y: -1)

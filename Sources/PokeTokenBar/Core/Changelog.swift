@@ -67,6 +67,14 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-27", entries: [
+            .improved("2026-10-27-whats-new-updates") { $0.t("새 소식이 업데이트별로 새 기능, 개선, 수정으로 나뉘어 보이고, 신문 아이콘으로 바뀌었어요.",
+                                                             "What's New now shows each update with its changes grouped as new, improved and fixed, behind a newspaper icon.",
+                                                             "最新情報がアップデートごとに新機能・改善・修正に分かれて表示され、新聞のアイコンになりました。",
+                                                             "Novedades muestra cada actualización con sus cambios agrupados en nuevos, mejoras y correcciones, tras un icono de periódico.",
+                                                             "Les Nouveautés montrent chaque mise à jour, ses changements regroupés en nouveautés, améliorations et corrections, derrière une icône de journal.",
+                                                             "Novidades mostra cada atualização com as mudanças agrupadas em novas, melhorias e correções, atrás de um ícone de jornal.",
+                                                             "Neuigkeiten zeigen jedes Update mit seinen Änderungen nach neu, verbessert und behoben, hinter einem Zeitungssymbol.",
+                                                             "«Что нового» показывает каждое обновление, разбив изменения на новое, улучшения и исправления, за значком газеты.") },
             .improved("2026-10-27-light-ball-rewards") { l in
                 let ball = l.itemName(.lightBall), list = l.rewardsList(ItemKind.lightBall.achievementRewards)
                 return l.t("\(KoreanParticle.subject.attach(to: ball)) 이제 피츄 계열을 빨리 키우는 대신 가방에 넣어 줘요: \(list). 이미 가진 플레이어도 한 번 받아요.",
@@ -175,9 +183,7 @@ enum Changelog {
                           "Os ajustes de dificuldade de crescimento e da loja somem: todos jogam a 10%, o valor que todos tinham escolhido. Seu ovo ou estágio atual mantém o progresso.",
                           "Die Schwierigkeitseinstellungen für Wachstum und Shop entfallen: Alle spielen mit 10 %, dem Wert, den alle gewählt hatten. Dein aktuelles Ei oder deine Stufe behält den Fortschritt.",
                           "Настройки сложности роста и магазина убраны: все играют на 10%, которые и так выбрали все. Текущее яйцо или стадия сохраняют прогресс.") },
-        ]),
-        ChangelogDay(date: "2026-10-26", entries: [
-            .fixed("2026-10-26-claude-sessions-cpu") { $0.t("긴 Claude Code 세션 동안에도 새로고침마다 세션 전체를 다시 읽지 않고 새로 추가된 부분만 읽어요. CPU를 계속 쓰며 Mac을 뜨겁게 하지 않아요.",
+            .fixed("2026-10-27-claude-sessions-cpu") { $0.t("긴 Claude Code 세션 동안에도 새로고침마다 세션 전체를 다시 읽지 않고 새로 추가된 부분만 읽어요. CPU를 계속 쓰며 Mac을 뜨겁게 하지 않아요.",
                           "The app no longer reads your whole Claude Code sessions again at every refresh, only what they added: it stops keeping the CPU busy and heating the Mac during long sessions.",
                           "長いClaude Codeセッション中も、更新のたびにセッション全体を読み直さず、追加された部分だけを読みます。CPUを使い続けてMacを熱くすることがなくなりました。",
                           "La app ya no vuelve a leer tus sesiones de Claude Code enteras en cada actualización, solo lo añadido: deja de ocupar la CPU y de calentar el Mac en las sesiones largas.",
@@ -185,7 +191,7 @@ enum Changelog {
                           "O app não relê mais suas sessões do Claude Code inteiras a cada atualização, só o que foi adicionado: deixa de ocupar a CPU e de esquentar o Mac nas sessões longas.",
                           "Die App liest deine Claude-Code-Sitzungen nicht mehr bei jeder Aktualisierung ganz neu, nur das Hinzugekommene: Sie hält die CPU nicht mehr beschäftigt und heizt den Mac bei langen Sitzungen nicht auf.",
                           "Приложение больше не перечитывает сессии Claude Code целиком при каждом обновлении, только добавленное: оно не загружает процессор и не греет Mac во время долгих сессий.") },
-            .new("2026-10-26-legendary-artifacts") { $0.t("아직 어떤 업적에도 없던 전설·환상의 포켓몬을 위한 새 유물 9개.",
+            .new("2026-10-27-legendary-artifacts") { $0.t("아직 어떤 업적에도 없던 전설·환상의 포켓몬을 위한 새 유물 9개.",
                           "Nine new Artifacts for the legendary and mythical Pokémon no achievement counted yet.",
                           "まだどの実績にも入っていなかった伝説・幻のポケモンのための新しいどうぐが9つ。",
                           "Nueve Objetos nuevos para los Pokémon legendarios y singulares que ningún logro contaba aún.",
@@ -193,7 +199,7 @@ enum Changelog {
                           "Nove Objetos novos para os Pokémon lendários e míticos que nenhuma conquista contava ainda.",
                           "Neun neue Artefakte für die legendären und mysteriösen Pokémon, die noch kein Erfolg zählte.",
                           "Девять новых реликвий для легендарных и мифических покемонов, которых ещё не было ни в одном достижении.") },
-            .new("2026-10-26-legend-plate-eggs") { l in
+            .new("2026-10-27-legend-plate-eggs") { l in
                 let plate = l.itemName(.legendPlate), rare = l.eggName(.rare), uncommon = l.eggName(.uncommon)
                 return l.t("아르세우스를 졸업시키면 \(plate): 가방에 \(rare)과 \(uncommon)이 하나씩 들어와요.",
                            "Graduating Arceus earns the \(plate): a \(rare) and an \(uncommon) in your Bag.",
@@ -204,7 +210,7 @@ enum Changelog {
                            "Arceus' Abschied bringt die \(plate): ein \(rare) und ein \(uncommon) in deinen Beutel.",
                            "Выпуск Арсеуса приносит «\(plate)»: «\(rare)» и «\(uncommon)» в сумку.")
             },
-            .improved("2026-10-26-artifact-goals") { l in
+            .improved("2026-10-27-artifact-goals") { l in
                 let dna = l.itemName(.dnaSplicers), liberty = l.itemName(.libertyPass)
                 let magma = l.itemName(.magmaStone), teal = l.itemName(.tealMask)
                 return l.t("큐레무가 \(dna)에 필요해졌고, 케르디오·히드런·복숭악동도 \(liberty)·\(magma)·\(teal)에 들어가요.",
@@ -216,6 +222,8 @@ enum Changelog {
                            "Kyurem kommt für den \(dna) zu Reshiram und Zekrom, und Keldeo, Heatran und Infamomo zählen für den \(liberty), den \(magma) und die \(teal).",
                            "Кюрем теперь нужен для «\(dna)» вместе с Реширамом и Зекромом, а Келдео, Хитран и Пичарант засчитываются для «\(liberty)», «\(magma)» и «\(teal)».")
             },
+        ]),
+        ChangelogDay(date: "2026-10-26", entries: [
             .fixed("2026-10-26-changelog-per-change") { $0.t("새 소식이 이미 읽은 날짜에 추가된 변경도 업데이트 뒤 새로 표시해요.",
                           "What's New marks every change that came with an update, even on a day you already read.",
                           "最新情報が、すでに読んだ日に追加された変更も、更新後に新しく表示します。",
@@ -606,13 +614,6 @@ extension L {
     var changelogTitle: String {
         t("새 소식", "What's new", "最新情報", "Novedades", "Nouveautés", "Novidades", "Neuigkeiten", "Что нового")
     }
-    func changelogKind(_ kind: ChangelogEntry.Kind) -> String {
-        switch kind {
-        case .new: return t("새 기능", "New", "新機能", "Nuevo", "Nouveau", "Novo", "Neu", "Новое")
-        case .improved: return t("개선", "Improved", "改善", "Mejorado", "Amélioré", "Melhorado", "Verbessert", "Улучшено")
-        case .fixed: return t("수정", "Fixed", "修正", "Corregido", "Corrigé", "Corrigido", "Behoben", "Исправлено")
-        }
-    }
     var changelogUnseen: String {
         t("새 소식", "New", "NEW", "Nuevo", "Nouveau", "Novo", "Neu", "Новое")
     }
@@ -623,4 +624,24 @@ extension L {
           "Изменений с прошлого раза: \(count)")
     }
     var changelogOpen: String { t("보기", "See", "見る", "Ver", "Voir", "Ver", "Ansehen", "Смотреть") }
+    /// The heading of an update's changes of one kind.
+    func changelogSection(_ kind: ChangelogEntry.Kind) -> String {
+        switch kind {
+        case .new: return t("새 기능", "New features", "新機能", "Funciones nuevas", "Nouvelles fonctions", "Recursos novos",
+                            "Neue Funktionen", "Новые функции")
+        case .improved: return t("개선", "Improvements", "改善", "Mejoras", "Améliorations", "Melhorias", "Verbesserungen", "Улучшения")
+        case .fixed: return t("수정", "Fixes", "修正", "Correcciones", "Corrections", "Correções", "Fehlerbehebungen", "Исправления")
+        }
+    }
+    /// An update's title, from its date ("26 October 2026").
+    func changelogUpdateTitle(_ date: String) -> String {
+        t("\(date) 업데이트", "Update of \(date)", "\(date)のアップデート", "Actualización del \(date)", "Mise à jour du \(date)",
+          "Atualização de \(date)", "Update vom \(date)", "Обновление от \(date)")
+    }
+    func changelogChangeCount(_ count: Int) -> String {
+        let one = count == 1
+        return t("변경 \(count)개", one ? "1 change" : "\(count) changes", "\(count)件の変更", one ? "1 cambio" : "\(count) cambios",
+                 one ? "1 changement" : "\(count) changements", one ? "1 mudança" : "\(count) mudanças",
+                 one ? "1 Änderung" : "\(count) Änderungen", "Изменений: \(count)")
+    }
 }

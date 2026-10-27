@@ -45,7 +45,7 @@ Claude Code는 `.claude/skills/prepare-pr`의 symlink를 통해
 
 플레이어가 볼 수 있는 변경을 만들 때마다(기능·수정·밸런스·문구, PR이든 직접 커밋이든) 같은 작업 안에서
 `Sources/PokeTokenBar/Core/Changelog.swift`의 `Changelog.days`를 **묻지 않고 항상** 갱신한다.
-앱의 ✨ 버튼과 업데이트 뒤 배너가 이 목록을 보여 준다.
+앱의 신문(📰) 버튼과 업데이트 뒤 배너가 이 목록을 업데이트별로 보여 준다.
 
 - 반영(머지)되는 날짜의 항목에 넣고, 그 날짜가 없으면 맨 위에 새로 만든다(최신순, 날짜는 `yyyy-MM-dd`).
 - 각 항목에는 고유 id(`yyyy-MM-dd-slug`, 그 날짜로 시작)를 붙이고 그 날짜의 맨 위에 넣는다. 앱은 플레이어가 본

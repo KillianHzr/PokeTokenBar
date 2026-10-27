@@ -298,7 +298,7 @@ Every badge has a **region per generation**: register every Pokémon of its type
 - **Pikachu's costumes**: each Pikachu that arrives brings a costume or cap you don't have yet and wears it while it grows; pick the one every other Pikachu wears on its Pokédex page. All fifteen earn the Light Ball.
 - **Birthday gift**: enter your birthday in Settings and a banner offers you a gift egg from the day on, the first time you open the app within three months, once a year. What hatches from it is a surprise.
 - **Event eggs**: Christmas, New Year, Valentine's Day, Pokémon Day, Easter, Halloween, the start of each season and the anniversary of your first catch each bring an egg drawn for the occasion. A banner offers it during the event and for two weeks after, once a year. What hatches belongs to the event, most often shiny.
-- **What's new**: the sparkles button lists every change day by day; after an update, a banner says what changed since your last visit.
+- **What's new**: the newspaper button lists every change update by update, grouped as new, improved and fixed; after an update, a banner says what changed since your last visit.
 - **Quota pace** — gauge markers show the elapsed share of a limit window; six color tiers indicate usage pace, and menu-bar limit percentages use the same colors.
 
 <img src="assets/screenshot-usage-recap.png" width="360" alt="Usage recap for a selected period">
