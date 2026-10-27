@@ -10,7 +10,7 @@ private final class SessionKeyTestWindow: NSWindow {
 
 @MainActor
 final class SessionKeySettingsRenderingTests: XCTestCase {
-    func testSessionKeyEntryOpensInsideViewportAndPreservesDifficultyControls() async throws {
+    func testSessionKeyEntryOpensInsideViewport() async throws {
         let suite = "SessionKeySettingsRendering-\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
@@ -46,9 +46,8 @@ final class SessionKeySettingsRenderingTests: XCTestCase {
             XCTAssertNotNil(secure.currentEditor(), "session key entry must receive keyboard focus")
             XCTAssertTrue(secure.currentEditor() === window.firstResponder)
         }
-        // Two difficulty sliders plus the existing size/opacity sliders.
-        XCTAssertEqual(views.compactMap { $0 as? NSSlider }.count, 4,
-                                    "growth and shop difficulty controls must survive the Settings merge")
+        // The floating pet's size and opacity; the difficulty sliders are gone (`PokemonBalance.difficulty`).
+        XCTAssertEqual(views.compactMap { $0 as? NSSlider }.count, 2)
         XCTAssertTrue(navigation.showSettings)
         navigation.reset()
         XCTAssertFalse(navigation.expandAdvancedOnOpen)

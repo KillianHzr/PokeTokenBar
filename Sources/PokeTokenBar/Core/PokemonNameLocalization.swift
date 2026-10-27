@@ -37,7 +37,8 @@ enum PokemonNameLocalization {
 }
 
 struct PokemonNameResource: Hashable, Sendable {
-    enum Kind: String, Sendable { case type, ability, move, pokemonForm = "pokemon-form" }
+    /// `pokemonSpecies` names a species by its number ("25"): what an achievement's Pokémon show on hover.
+    enum Kind: String, Sendable { case type, ability, move, pokemonForm = "pokemon-form", pokemonSpecies = "pokemon-species" }
     let kind: Kind
     let name: String
 

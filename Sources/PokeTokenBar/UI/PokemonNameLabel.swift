@@ -45,6 +45,34 @@ final class PokemonNameDisplayStore {
     }
 }
 
+/// A Pokémon's name in the player's language as its tooltip (PokéAPI's species names, fetched once and cached), in
+/// its form; "#25" until it is known.
+@MainActor
+struct SpeciesNameTooltip: ViewModifier {
+    let speciesID: Int
+    var form: PokemonForm?
+    let language: AppLanguage
+    var displayStore = PokemonNameDisplayStore.shared
+
+    private var resource: PokemonNameResource { .init(kind: .pokemonSpecies, name: String(speciesID)) }
+
+    func body(content: Content) -> some View {
+        let base = displayStore.names[resource].flatMap(language.resolveName) ?? "#\(speciesID)"
+        content
+            .help(PokemonForm.displayName(base, speciesID: speciesID, form: form, language: language))
+            .task(id: speciesID) {
+                guard displayStore.names[resource] == nil else { return }
+                _ = await displayStore.load(resource, provider: PokemonNameClient.shared)
+            }
+    }
+}
+
+extension View {
+    func speciesNameTooltip(_ speciesID: Int, form: PokemonForm? = nil, language: AppLanguage) -> some View {
+        modifier(SpeciesNameTooltip(speciesID: speciesID, form: form, language: language))
+    }
+}
+
 /// Only mounted rows fetch names, following the LazyVStack's lazy row creation.
 /// Language changes resolve the already-loaded multilingual response without restarting I/O.
 @MainActor

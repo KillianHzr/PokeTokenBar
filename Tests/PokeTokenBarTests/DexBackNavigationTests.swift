@@ -22,7 +22,7 @@ final class DexBackNavigationTests: XCTestCase {
         window = nil
     }
 
-    /// 20 species = 2 grid pages: Mon1…Mon16, then Mon17…Mon20.
+    /// 20 species = 2 grid pages: species 1…16, then 17…20.
     private func makeStore() throws -> CompanionStore {
         let file = FileManager.default.temporaryDirectory.appendingPathComponent("dex-back-\(UUID()).json")
         addTeardownBlock { try? FileManager.default.removeItem(at: file) }
@@ -31,7 +31,8 @@ final class DexBackNavigationTests: XCTestCase {
         state.dex = (1...20).map { id in
             DexEntry(id: "entry-\(id)", baseID: id, finalID: id, chainOrder: [id], rarity: .common,
                      caughtAt: Date(timeIntervalSince1970: 1_700_000_000 + Double(id)),
-                     names: [id: ["en": "Mon\(id)"]])
+                     // A word avoids the ambiguous digit in Mon1, which Vision reads as Mont/Monl.
+                     names: [id: ["en": id == 1 ? "Oldest" : "Mon\(id)"]])
         }
         try JSONEncoder().encode(state).write(to: file)
         return CompanionStore(provider: OfflineProvider(), fileURL: file)
@@ -178,6 +179,7 @@ final class DexBackNavigationTests: XCTestCase {
     func testBackFromDetailReturnsToThePageOfThatSpecies() async throws {
         let store = try makeStore()
         let navigation = PopoverNavigation()
+        navigation.dexScope = .caught   // the caught species page by page
         navigation.tab = .collection
         let root = host(store, navigation)
         try await waitForText("Mon5", in: root)
@@ -193,6 +195,7 @@ final class DexBackNavigationTests: XCTestCase {
     func testReturnPageIsUsedOnlyOnce() async throws {
         let store = try makeStore()
         let navigation = PopoverNavigation()
+        navigation.dexScope = .caught   // the caught species page by page
         navigation.tab = .collection
         let root = host(store, navigation)
         try await openPageTwoSpeciesAndGoBack(store, navigation, root)
@@ -209,6 +212,7 @@ final class DexBackNavigationTests: XCTestCase {
     func testBackToTheLogLeavesTheGridOnItsFirstPage() async throws {
         let store = try makeStore()
         let navigation = PopoverNavigation()
+        navigation.dexScope = .caught   // the caught species page by page
         navigation.tab = .collection
         navigation.showingCollectionLog = true
         let root = host(store, navigation)
@@ -223,10 +227,11 @@ final class DexBackNavigationTests: XCTestCase {
     // MARK: Evolution family
 
     /// A page's evolution family opens the other caught pages of the line, and Back walks back through them before
-    /// the grid. Mon1, Mon2 and Mon3 are the Bulbasaur line.
+    /// the grid. Oldest (#1), Mon2 and Mon3 are the Bulbasaur line.
     func testFamilyLineOpensItsPagesAndBackWalksBackThroughThem() async throws {
         let store = try makeStore()
         let navigation = PopoverNavigation()
+        navigation.dexScope = .caught   // the caught species page by page
         navigation.tab = .collection
         let root = host(store, navigation)
         navigation.dexDetailCollectionID = "2"
@@ -247,12 +252,12 @@ final class DexBackNavigationTests: XCTestCase {
             }
             try await waitForPage(id)
         }
-        // Mon1 from Mon2's family; Mon2's page is where Back returns.
-        let mon1 = try await waitForText("Mon1", exactly: true, in: root)
+        // Oldest (#1) from Mon2's family; Mon2's page is where Back returns.
+        let mon1 = try await waitForText("Oldest", exactly: true, in: root)
         try await click(XCTUnwrap(mon1), in: root)
         try await waitForPage("1")
         XCTAssertEqual(navigation.dexDetailHistory, [PopoverNavigation.DexPage(collectionID: "2", form: nil)])
-        // Mon3 from Mon1's family: two pages to come back through.
+        // Mon3 from Oldest's family: two pages to come back through.
         try await waitForText("Mon2", exactly: true, in: root)
         let mon3 = try await waitForText("Mon3", exactly: true, in: root)
         try await click(XCTUnwrap(mon3), in: root)
@@ -266,10 +271,11 @@ final class DexBackNavigationTests: XCTestCase {
 
     // MARK: Catch log
 
-    /// Mon1 is the oldest catch, so it is the log's last row — off screen until scrolled to.
+    /// Oldest is the first catch, so it is the log's last row — off screen until scrolled to.
     func testBackFromDetailReturnsTheLogToWhereItWas() async throws {
         let store = try makeStore()
         let navigation = PopoverNavigation()
+        navigation.dexScope = .caught   // the caught species page by page
         navigation.tab = .collection
         navigation.showingCollectionLog = true
         let root = host(store, navigation)
@@ -285,13 +291,13 @@ final class DexBackNavigationTests: XCTestCase {
             clip.scroll(to: NSPoint(x: 0, y: clip.isFlipped ? bottom : 0))
             log.reflectScrolledClipView(clip)
             try await Task.sleep(for: .milliseconds(100))
-            row = try words(in: root).first { $0.reads("Mon1", exactly: true) }
+            row = try words(in: root).first { $0.reads("Oldest", exactly: true) }
         }
-        XCTAssertNotNil(row, "scrolling never reached Mon1")
-        try await press("Mon1", exactly: true, opens: store.l.back, in: root)
+        XCTAssertNotNil(row, "scrolling never reached Oldest")
+        try await press("Oldest", exactly: true, opens: store.l.back, in: root)
         try await press(store.l.back, in: root)
 
-        try await waitForText("Mon1", exactly: true, in: root)
+        try await waitForText("Oldest", exactly: true, in: root)
 
         // Like the grid's page, the position does not survive a segment switch.
         navigation.showingCollectionLog = false

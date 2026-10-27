@@ -17,20 +17,20 @@ private struct WCAntigravity: AntigravityLimitsProviding {
 private final class WCStatus: ProviderStatusProviding, @unchecked Sendable {
     func fetch() async -> [String: ProviderStatus] { [:] }
 }
-/// A local provider whose entries are the given turns, through the shared enrichment.
+/// A local provider used today, so that its limits show.
 private struct WCProvider: UsageProvider {
     let id: String
     let displayName: String
-    let entries: [LocalUsageReader.Entry]
     func fetchDaily() async throws -> DailyUsage? {
         DailyUsage(date: LocalUsageReader.todayKey(), inputTokens: 0, outputTokens: 0, cacheCreationTokens: 0,
                    cacheReadTokens: 0, totalTokens: 1_000, totalCost: 0)
     }
-    func fetchEnrichment() async -> ProviderEnrichment { ProviderEnrichment.local(entries: entries, now: Date()) }
+    func fetchEnrichment() async -> ProviderEnrichment { ProviderEnrichment.local(entries: [], now: Date()) }
 }
 
-/// A full limit window pays a tenth of the tokens it held in candies, at least one (#59): the same per token for every
-/// plan, each window summed from its account's or provider's own turns since its start.
+/// The limit windows pay their candies as they fill (`RareCandy.candiesDue`): a whole Pro session is one candy, a whole
+/// Pro week five, and a bigger plan pays as many Pro plans as it holds, so every plan earns them at the same pace
+/// whether or not it reaches its limit.
 @MainActor
 final class WindowCandyTests: XCTestCase {
     nonisolated(unsafe) private var defaults: UserDefaults!
@@ -45,92 +45,140 @@ final class WindowCandyTests: XCTestCase {
         super.tearDown()
     }
 
-    private func turn(_ tokens: Int, hoursAgo: Double, now: Date = Date(), session: String? = nil) -> LocalUsageReader.Entry {
-        let date = now.addingTimeInterval(-hoursAgo * 3600)
-        var entry = LocalUsageReader.Entry(id: UUID().uuidString, date: date,
-                                           localDay: LocalUsageReader.localDayFormatter().string(from: date),
-                                           model: "claude-sonnet-4-5", input: 0, output: tokens, cacheWrite: 0, cacheRead: 0)
-        entry.sessionID = session
-        return entry
+    private func companion(_ edit: (inout CompanionState) -> Void = { _ in }) throws -> CompanionStore {
+        var state = CompanionState()
+        state.installBaselineSet = true
+        edit(&state)
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("wc-\(UUID().uuidString).json")
+        try JSONEncoder().encode(state).write(to: url)
+        addTeardownBlock { try? FileManager.default.removeItem(at: url) }
+        let line = EvoLine(baseID: 1, tree: EvoNode(speciesID: 1, children: []), rarity: .common, names: [:])
+        return CompanionStore(provider: StubProvider(value: line), clock: { Date() }, fileURL: url, rng: SeededRNG(seed: 7))
     }
 
-    func testTheGrantIsATenthOfTheWindowsTokens() {
-        XCTAssertEqual(RareCandy.grantCount(windowTokens: 5_000_000_000, kind: .weekly), 5, "5B pays the old weekly 5")
-        XCTAssertEqual(RareCandy.grantCount(windowTokens: 23_000_000_000, kind: .weekly), 23)
-        XCTAssertEqual(RareCandy.grantCount(windowTokens: 1_500_000_000, kind: .session), 2)
-        XCTAssertEqual(RareCandy.grantCount(windowTokens: 300_000_000, kind: .weekly), 1, "never less than one")
-        XCTAssertEqual(RareCandy.grantCount(windowTokens: 0, kind: .weekly), 1, "usage outside the local logs")
-        XCTAssertEqual(RareCandy.grantCount(windowTokens: nil, kind: .weekly), RareCandy.weeklyGrant, "unknown: as before")
-        XCTAssertEqual(RareCandy.grantCount(windowTokens: nil, kind: .session), 1)
+    func testWhatAWindowOwesFollowsItsPlan() {
+        func due(_ utilization: Double, _ kind: WindowClass, _ plan: Int) -> Int {
+            RareCandy.candiesDue(utilization: utilization, kind: kind, planMultiplier: plan)
+        }
+        // Pro: one candy for the whole session, five for the whole week, one every fifth of it.
+        XCTAssertEqual(due(99, .session, 1), 0)
+        XCTAssertEqual(due(100, .session, 1), 1)
+        XCTAssertEqual(due(19, .weekly, 1), 0)
+        XCTAssertEqual(due(20, .weekly, 1), 1)
+        XCTAssertEqual(due(100, .weekly, 1), 5)
+        // Max 5x: a fifth of its session is a whole Pro session.
+        XCTAssertEqual(due(20, .session, 5), 1)
+        XCTAssertEqual(due(59, .session, 5), 2)
+        XCTAssertEqual(due(100, .session, 5), 5)
+        XCTAssertEqual(due(4, .weekly, 5), 1)
+        // Max 20x: every 5% of its session, every 1% of its week.
+        XCTAssertEqual(due(5, .session, 20), 1)
+        XCTAssertEqual(due(1, .weekly, 20), 1)
+        XCTAssertEqual(due(100, .weekly, 20), 100)
+        // Past the limit pays no more; nothing used pays nothing.
+        XCTAssertEqual(due(130, .session, 5), 5)
+        XCTAssertEqual(due(0, .weekly, 20), 0)
+        XCTAssertEqual(due(.nan, .weekly, 20), 0)
+        XCTAssertEqual(due(50, .session, 0), 0, "an unknown plan pays as a Pro plan")
     }
 
-    /// The last week, minute by minute: a window sums what came from its start on.
-    func testTheTimelineSumsFromAWindowsStart() {
-        let now = Date()
-        let timeline = TokenTimeline(entries: [turn(100, hoursAgo: 1, now: now), turn(20, hoursAgo: 1, now: now),
-                                               turn(7, hoursAgo: 30, now: now), turn(9_999, hoursAgo: 24 * 8, now: now),
-                                               turn(0, hoursAgo: 2, now: now)], now: now)
-        XCTAssertEqual(timeline.tokens(since: now.addingTimeInterval(-5 * 3600)), 120)
-        XCTAssertEqual(timeline.tokens(since: now.addingTimeInterval(-7 * 24 * 3600)), 127, "older than a week is gone")
-        XCTAssertEqual(timeline.minuteStarts.count, 2, "one minute holds both turns")
-        XCTAssertEqual(timeline.windowTokens(reset: now.addingTimeInterval(3600), span: LimitWindowSpan.fiveHour), 120)
-        XCTAssertNil(timeline.windowTokens(reset: nil, span: LimitWindowSpan.fiveHour))
-        XCTAssertNil(timeline.windowTokens(reset: now, span: nil))
+    /// The ledger pays only what is new; a new epoch starts it again, and a dip pays nothing twice.
+    func testTheLedgerPaysWhatIsNewAndStartsAgainWithEachWindow() {
+        var ledger: [String: Int] = [:], epochs: [String: String] = [:]
+        func pay(_ utilization: Double, epoch: String? = "e1", plan: Int = 5) -> [CandyGrant] {
+            CompanionStore.evaluateCandyGrants(
+                windows: [CandyWindow(key: "w", name: "W", kind: .session, utilization: utilization, epoch: epoch,
+                                      planMultiplier: plan)],
+                grantTier: &ledger, windowEpoch: &epochs)
+        }
+        XCTAssertEqual(pay(10), [])
+        XCTAssertEqual(pay(25).map(\.count), [1])
+        XCTAssertEqual(pay(39), [])
+        XCTAssertEqual(pay(41).map(\.count), [1])
+        XCTAssertEqual(pay(38), [], "a dip pays nothing")
+        XCTAssertEqual(pay(41), [], "and its return pays nothing twice")
+        let full = pay(100)
+        XCTAssertEqual(full.map(\.count), [3])
+        XCTAssertEqual(full.first?.completesWindow, true)
+        XCTAssertEqual(pay(30, epoch: "e2").map(\.count), [1], "a new window owes from its start")
+        // Without an epoch, a window back to nothing owed is a new one.
+        ledger = [:]; epochs = [:]
+        XCTAssertEqual(pay(100, epoch: nil, plan: 1).map(\.count), [1])
+        XCTAssertEqual(pay(100, epoch: nil, plan: 1), [])
+        XCTAssertEqual(pay(3, epoch: nil, plan: 1), [])
+        XCTAssertEqual(pay(100, epoch: nil, plan: 1).map(\.count), [1])
     }
 
-    /// Claude's 5h window counts its last turns, its weekly window the week's; Codex its own.
-    func testEachFullWindowPaysItsOwnTokens() async throws {
+    /// Each Claude account pays at its own plan; Codex, whose plans publish no ratio, as a Pro plan.
+    func testEachAccountPaysAtItsPlan() async throws {
         let now = Date()
         let iso = ISO8601DateFormatter()
-        let fiveHourReset = iso.string(from: now.addingTimeInterval(3600))
-        let weeklyReset = iso.string(from: now.addingTimeInterval(2 * 24 * 3600))
-        let claude = try JSONDecoder().decode(LimitStatus.self, from: Data("""
-        {"five_hour":{"utilization":100,"resets_at":"\(fiveHourReset)"},
-         "seven_day":{"utilization":100,"resets_at":"\(weeklyReset)"}}
+        var claude = try JSONDecoder().decode(LimitStatus.self, from: Data("""
+        {"five_hour":{"utilization":25,"resets_at":"\(iso.string(from: now.addingTimeInterval(3600)))"},
+         "seven_day":{"utilization":10,"resets_at":"\(iso.string(from: now.addingTimeInterval(2 * 86_400)))"}}
         """.utf8))
+        claude.subscriptionType = "max"
+        claude.rateLimitTier = "default_claude_max_20x"
         let codexReset = Int(now.addingTimeInterval(3600).timeIntervalSince1970)
         let codex = try JSONDecoder().decode(CodexRateLimitStatus.self, from: Data("""
         {"rateLimits":{"primary":{"usedPercent":100,"windowDurationMins":300,"resetsAt":\(codexReset)}}}
         """.utf8))
         let store = UsageStore(
-            providers: [
-                WCProvider(id: "claude_code", displayName: "Claude Code",
-                           entries: [turn(3_000_000_000, hoursAgo: 2), turn(20_000_000_000, hoursAgo: 72),
-                                     turn(50_000_000_000, hoursAgo: 24 * 9)]),
-                WCProvider(id: "codex", displayName: "Codex", entries: [turn(1_400_000_000, hoursAgo: 1)]),
-            ],
+            providers: [WCProvider(id: "claude_code", displayName: "Claude Code"), WCProvider(id: "codex", displayName: "Codex")],
             claudeLimitsProvider: WCClaude(status: claude), codexLimitsProvider: WCCodex(status: codex),
             antigravityLimitsProvider: WCAntigravity(), statusProvider: WCStatus(), autoRefresh: false, defaults: defaults)
         await store.refresh(scheduleEmptyRetry: false)
         let windows = Dictionary(uniqueKeysWithValues: store.candyEligibleWindows.map { ($0.key, $0) })
-        XCTAssertEqual(windows["claude.fiveHour"]?.windowTokens, 3_000_000_000)
-        XCTAssertEqual(windows["claude.sevenDay"]?.windowTokens, 23_000_000_000)
-        XCTAssertEqual(windows["codex.codex.primary"]?.windowTokens, 1_400_000_000)
+        XCTAssertEqual(windows["claude.fiveHour"]?.planMultiplier, 20)
+        XCTAssertEqual(windows["claude.sevenDay"]?.planMultiplier, 20)
+        XCTAssertEqual(windows["codex.codex.primary"]?.planMultiplier, 1)
 
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("wc-\(UUID().uuidString).json")
-        addTeardownBlock { try? FileManager.default.removeItem(at: url) }
-        let line = EvoLine(baseID: 1, tree: EvoNode(speciesID: 1, children: []), rarity: .common, names: [:])
-        let companion = CompanionStore(provider: StubProvider(value: line), clock: { now }, fileURL: url, rng: SeededRNG(seed: 7))
-        companion.grantCandies(from: [], limitsReady: true)
-        companion.grantCandies(from: store.candyEligibleWindows, limitsReady: store.limitsReady)
-        XCTAssertEqual(companion.rareCandyCount, 3 + 23 + 1, "3B, 23B and 1.4B")
+        let s = try companion()
+        s.grantCandies(from: [], limitsReady: true)
+        s.grantCandies(from: store.candyEligibleWindows, limitsReady: store.limitsReady)
+        XCTAssertEqual(s.rareCandyCount, 5 + 10 + 1, "a quarter of a Max 20x session, a tenth of its week, a full Codex session")
     }
 
-    /// With several Claude accounts, each one's week holds its own turns.
-    func testEachClaudeAccountHasItsOwnWeek() {
-        let now = Date()
-        let promptTime = now.addingTimeInterval(-80 * 3600)
-        let accounts = [ClaudeAccountUsageAttribution.Account(id: "work", prompts: ["w": [promptTime]]),
-                        ClaudeAccountUsageAttribution.Account(id: "personal", prompts: ["p": [promptTime]])]
-        let fmt = LocalUsageReader.localDayFormatter()
-        let result = ClaudeAccountUsageAttribution.usage(
-            entries: [turn(500, hoursAgo: 70, now: now, session: "w"), turn(40, hoursAgo: 1, now: now, session: "p"),
-                      turn(3, hoursAgo: 60, now: now, session: "nobody")],
-            accounts: accounts, now: now, todayKey: fmt.string(from: now),
-            monthStartKey: fmt.string(from: LocalUsageReader.startOfMonth(now)))
-        XCTAssertEqual(result.timelines["work"]?.tokens(since: now.addingTimeInterval(-TokenTimeline.span)), 500)
-        XCTAssertEqual(result.timelines["personal"]?.tokens(since: now.addingTimeInterval(-TokenTimeline.span)), 40)
-        XCTAssertEqual(Set(result.timelines.keys), ["work", "personal"], "unattributed turns count for no account")
-        XCTAssertLessThanOrEqual(UsageStore.claudeUsageScanStart(now: now), now.addingTimeInterval(-TokenTimeline.span))
+    func testThePlanOfALimitStatus() {
+        var status = LimitStatus()
+        XCTAssertEqual(status.planMultiplier, 1, "unknown")
+        status.subscriptionType = "pro"
+        status.rateLimitTier = "default_claude_pro"
+        XCTAssertEqual(status.planMultiplier, 1)
+        status.subscriptionType = "max"
+        status.rateLimitTier = "default_claude_max_5x"
+        XCTAssertEqual(status.planMultiplier, 5)
+        status.rateLimitTier = "default_claude_max_20x"
+        XCTAssertEqual(status.planMultiplier, 20)
+        status.rateLimitTier = nil
+        XCTAssertEqual(status.planMultiplier, 5, "a Max plan without its tier: the smallest Max")
+    }
+
+    /// A save from the rule that paid at 100% only: a window it already paid owes nothing more in its epoch, any
+    /// other pays its usage so far, once.
+    func testASaveFromTheRulePaidAtTheLimitOnlyPaysWhatItDidNot() throws {
+        let s = try companion {
+            $0.candyFeatureSeeded = true
+            $0.candyGrantTier = ["paid": 1]
+        }
+        let windows = [
+            CandyWindow(key: "paid", name: "P", kind: .weekly, utilization: 100, epoch: "e", planMultiplier: 1),
+            CandyWindow(key: "open", name: "O", kind: .session, utilization: 60, epoch: "e", planMultiplier: 5),
+        ]
+        s.grantCandies(from: windows, limitsReady: true)
+        XCTAssertEqual(s.rareCandyCount, 3, "three fifths of a Max 5x session; the week was paid at its limit")
+        XCTAssertTrue(s.state.candyGrantsAsYouGo)
+        s.grantCandies(from: windows, limitsReady: true)
+        XCTAssertEqual(s.rareCandyCount, 3)
+    }
+
+    /// The first run pays nothing back: the windows pay from then on.
+    func testTheFirstRunPaysNothingBack() throws {
+        let s = try companion()
+        let window = { (u: Double) in CandyWindow(key: "w", name: "W", kind: .weekly, utilization: u, epoch: "e", planMultiplier: 20) }
+        s.grantCandies(from: [window(40)], limitsReady: true)
+        XCTAssertEqual(s.rareCandyCount, 0)
+        s.grantCandies(from: [window(43)], limitsReady: true)
+        XCTAssertEqual(s.rareCandyCount, 3)
     }
 }

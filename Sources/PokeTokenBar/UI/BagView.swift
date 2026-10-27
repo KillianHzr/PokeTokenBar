@@ -15,7 +15,7 @@ struct BagView: View {
         static func of(_ kind: ItemKind) -> Section {
             switch kind.collectorGroup {
             case .gymBadges?: return .badges
-            case .legendaryArtifacts?: return .artifacts
+            case .legendaryArtifacts?, .forms?: return .artifacts
             case .evolutionStones?, nil: return .items
             }
         }
@@ -147,7 +147,7 @@ private struct ItemCard: View {
                 }
                 if preview.discardedXP > 0 {
                     Text(l.candyDiscardedXP(TokenFormatter.compact(preview.discardedXP)))
-                        .font(.caption2).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
+                        .font(.caption2).foregroundStyle(Color.readableOrange).fixedSize(horizontal: false, vertical: true)
                 } else if preview.evolves && !preview.graduates {
                     Text(l.candyCarryoverXP(TokenFormatter.compact(preview.carryoverXP)))
                         .font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
@@ -211,11 +211,29 @@ private struct ItemCard: View {
                                   confirmText: l.stoneConfirm(store.displayName, l.itemName(kind))) {
                 store.useBirthdayEgg()
             }
+        } else if kind == .fossilEgg {
+            ReleaseForEggControls(store: store, nav: nav, detail: effectHint(l), actionTitle: l.useItem,
+                                  isAvailable: store.canUseFossilEgg(), unavailableText: l.useNeedsPokemon,
+                                  confirmText: l.stoneConfirm(store.displayName, l.itemName(kind))) {
+                store.useFossilEgg()
+            }
+        } else if let event = EventEgg(item: kind) {
+            ReleaseForEggControls(store: store, nav: nav, detail: effectHint(l), actionTitle: l.useItem,
+                                  isAvailable: store.canUseEventEgg(event), unavailableText: l.useNeedsPokemon,
+                                  confirmText: l.stoneConfirm(store.displayName, l.itemName(kind))) {
+                store.useEventEgg(event)
+            }
+        } else if kind.bagEggTier != nil {
+            ReleaseForEggControls(store: store, nav: nav, detail: effectHint(l), actionTitle: l.useItem,
+                                  isAvailable: store.canUseBagEgg(kind), unavailableText: l.useNeedsPokemon,
+                                  confirmText: l.stoneConfirm(store.displayName, l.itemName(kind))) {
+                store.useBagEgg(kind)
+            }
         } else if kind.isPassive {
             // 보유형(패시브 아이템): 사용 버튼 대신 상시 효과 표시.
             HStack(spacing: 6) {
-                Image(systemName: "checkmark.seal.fill").font(.caption2).foregroundStyle(.green)
-                Text(effectHint(l)).font(.caption2.weight(.semibold)).foregroundStyle(.green)
+                Image(systemName: "checkmark.seal.fill").font(.caption2).foregroundStyle(Color.readableGreen)
+                Text(effectHint(l)).font(.caption2.weight(.semibold)).foregroundStyle(Color.readableGreen)
                 Spacer()
             }
         } else if canUse {
@@ -313,10 +331,27 @@ extension CompanionStore {
         case .tealMask: return l.tealMaskEffectHint
         case .teraOrb: return l.teraOrbEffectHint
         case .relicStatue: return l.relicStatueEffectHint
+        case .lunarWing: return l.lunarWingEffectHint
+        case .meteorite: return l.meteoriteEffectHint
+        case .oaksLetter: return l.oaksLetterEffectHint
+        case .seaIncense: return l.seaIncenseEffectHint
+        case .shockDrive: return l.shockDriveEffectHint
+        case .zRing: return l.zRingEffectHint
+        case .scrollOfDarkness: return l.scrollOfDarknessEffectHint
+        case .relicVase: return l.relicVaseEffectHint
+        case .legendPlate: return l.legendPlateHint
+        case .rotomCatalog: return l.rotomCatalogEffectHint
+        case .cometShard, .redNectar, .smoothRock, .sawsbuckSeasons, .fairyFeather, .furfrouTrims, .vivillonPatterns,
+             .whippedDream, .unownLetters, .lightBall:
+            return l.rewardsList(kind.achievementRewards)
+        case .uncommonEgg: return l.eggGuaranteeHint(.uncommon)
+        case .rareEgg: return l.eggGuaranteeHint(.rare)
+        case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return l.birthdayEggHint
         case .typeNullEgg: return l.typeNullEggHint
         case .legendaryEgg: return l.legendaryEggHint
         case .birthdayEgg: return l.birthdayEggHint
-        case .lightBall: return l.lightBallEffectHint
+        case .fossilEgg: return l.fossilEggHint
+        case .excavation: return l.rewardsList(kind.achievementRewards)
         case .ovalCharm: return l.ovalCharmEffectHint
         case .glimmeringCharm: return l.glimmeringCharmEffectHint
         case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,

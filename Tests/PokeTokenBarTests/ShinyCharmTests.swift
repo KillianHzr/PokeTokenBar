@@ -24,7 +24,7 @@ final class ShinyCharmTests: XCTestCase {
         let json = "{\"installBaselineSet\":true,\"usedSinceInstall\":\(used),\"spentTokens\":\(spent),"
             + "\"lastDate\":\"d\",\"active\":null,\"dex\":[],\"collectedFinals\":[]\(inv)}"
         try? json.data(using: .utf8)!.write(to: url)
-        return CompanionStore(provider: CharmStubProvider(), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: seed))
+        return CompanionStore(provider: CharmStubProvider(), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: seed), difficulty: 1)
     }
 
     // MARK: 순수 판정 — 부적 유무로 분모가 48/64 로 바뀌며 판정이 뒤집힌다

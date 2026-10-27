@@ -137,7 +137,8 @@ final class PikachuCostumeTests: XCTestCase {
         XCTAssertEqual(Set(PikachuCostume.allCases.map(\.pokemonID)).count, PikachuCostume.allCases.count)
     }
 
-    /// All fifteen unlock the Light Ball, which speeds up the Pikachu line only.
+    /// All fifteen unlock the Light Ball, which puts 2 Rare Eggs and 5 Rare Candies in the Bag: speeding up Pikachu's
+    /// line, as it used to, helped nobody who already held every costume.
     func testEveryCostumeUnlocksTheLightBall() throws {
         let fourteen = try store { $0.pikachuCostumes = Set(PikachuCostume.allCases.dropLast()) }
         XCTAssertFalse(fourteen.isUnlocked(.lightBall))
@@ -145,10 +146,32 @@ final class PikachuCostumeTests: XCTestCase {
         let all = try store { $0.pikachuCostumes = Set(PikachuCostume.allCases) }
         XCTAssertTrue(all.isUnlocked(.lightBall))
         XCTAssertTrue(all.claimAchievement(.lightBall))
-        XCTAssertEqual(all.itemCount(.lightBall), 1)
-        for id in [172, 25, 26] {
-            let mon = MonState(baseID: 172, pathIDs: [id], stageIndex: 0, usedAtStage: 0, rarity: .common, totalForms: 3)
-            XCTAssertEqual(all.growthSpeedMultiplier(for: mon), CollectorBonus.lightBallPikachuLine, accuracy: 0.0001)
-        }
+        XCTAssertEqual(all.itemCount(.lightBall), 0, "not kept in the Bag")
+        XCTAssertEqual(all.itemCount(.rareEgg), 2)
+        XCTAssertEqual(all.itemCount(.rareCandy), 5)
+        XCTAssertTrue(all.isClaimed(.lightBall))
+        let pichu = MonState(baseID: 172, pathIDs: [172], stageIndex: 0, usedAtStage: 0, rarity: .common, totalForms: 3)
+        XCTAssertEqual(all.growthSpeedMultiplier(for: pichu), 1, accuracy: 0.0001, "no growth bonus any more")
+    }
+
+    /// A save holding the old Light Ball trades it once for the same rewards; the achievement stays claimed.
+    func testAnOwnedLightBallIsTradedOnceForItsRewards() throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("lightball-\(UUID().uuidString).json")
+        addTeardownBlock { try? FileManager.default.removeItem(at: url) }
+        var st = CompanionState()
+        st.installBaselineSet = true
+        st.lastDate = "2026-10-26"
+        st.pikachuCostumes = Set(PikachuCostume.allCases)
+        st.inventory = [ItemKind.lightBall.rawValue: 1, ItemKind.rareCandy.rawValue: 1]
+        try JSONEncoder().encode(st).write(to: url)
+        let first = CompanionStore(provider: StubProvider(value: line), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: 3))
+        XCTAssertEqual(first.itemCount(.lightBall), 0)
+        XCTAssertEqual(first.itemCount(.rareEgg), 2)
+        XCTAssertEqual(first.itemCount(.rareCandy), 6)
+        XCTAssertTrue(first.isClaimed(.lightBall))
+        XCTAssertFalse(first.claimAchievement(.lightBall), "nothing more to claim")
+        let again = CompanionStore(provider: StubProvider(value: line), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: 3))
+        XCTAssertEqual(again.itemCount(.rareEgg), 2, "once")
+        XCTAssertEqual(again.itemCount(.rareCandy), 6)
     }
 }

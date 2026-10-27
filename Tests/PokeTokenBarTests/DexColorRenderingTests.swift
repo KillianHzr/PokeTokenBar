@@ -279,6 +279,7 @@ final class DexColorRenderingTests: XCTestCase {
                 let (store, file) = try fixture(onlyShiny: shiny)
                 defer { try? FileManager.default.removeItem(at: file) }
                 let navigation = PopoverNavigation()
+                navigation.dexScope = .caught   // the caught species page by page
                 navigation.showingCollectionLog = false
                 let view = CollectionView(store: store, navigation: navigation)
                     .frame(width: PopoverMetrics.contentWidth, height: 520)
@@ -329,7 +330,9 @@ final class DexColorRenderingTests: XCTestCase {
             }
             try JSONEncoder().encode(state).write(to: file)
             let store = CompanionStore(provider: ColorRenderingProvider(), fileURL: file)
-            let view = CollectionView(store: store, navigation: PopoverNavigation())
+            let caught = PopoverNavigation()
+            caught.dexScope = .caught   // the caught species page by page
+            let view = CollectionView(store: store, navigation: caught)
                 .frame(width: PopoverMetrics.contentWidth, height: 520)
                 .background(Color.white)
                 .environment(\.colorScheme, .light)

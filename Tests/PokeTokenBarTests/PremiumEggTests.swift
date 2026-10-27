@@ -99,7 +99,7 @@ final class PremiumEggTests: XCTestCase {
         let json = "{\"installBaselineSet\":true,\"usedSinceInstall\":\(used),\"spentTokens\":0,"
             + "\"lastDate\":\"d\",\"active\":\(mon),\"dex\":[],\"collectedFinals\":[]}"
         try? json.data(using: .utf8)!.write(to: f)
-        return CompanionStore(provider: provider, clock: { self.now }, fileURL: f, rng: SeededRNG(seed: 7))
+        return CompanionStore(provider: provider, clock: { self.now }, fileURL: f, rng: SeededRNG(seed: 7), difficulty: 1)
     }
 
     /// 부화 직전 알(임계 충족) + 보증 등급. seed 로 롤을 바꾼다.
@@ -110,7 +110,7 @@ final class PremiumEggTests: XCTestCase {
             + "\"lastDate\":\"d\",\"active\":null,\"dex\":[],\"collectedFinals\":[],"
             + "\"eggUsage\":\(PokemonBalance.eggHatchThreshold),\"eggTier\":\(tierJSON)}"
         try? json.data(using: .utf8)!.write(to: f)
-        return CompanionStore(provider: provider, clock: { self.now }, fileURL: f, rng: SeededRNG(seed: seed))
+        return CompanionStore(provider: provider, clock: { self.now }, fileURL: f, rng: SeededRNG(seed: seed), difficulty: 1)
     }
 
     // MARK: ① 임계 단일 소스 — 필터와 분류가 갈리면 보증이 조용히 깨진다
@@ -272,7 +272,7 @@ final class PremiumEggTests: XCTestCase {
         let f = url()
         let s1 = activeStore(at: f)
         XCTAssertTrue(s1.buyEgg(.uncommon))
-        let s2 = CompanionStore(provider: TieredProvider(), clock: { self.now }, fileURL: f, rng: SeededRNG(seed: 7))
+        let s2 = CompanionStore(provider: TieredProvider(), clock: { self.now }, fileURL: f, rng: SeededRNG(seed: 7), difficulty: 1)
         XCTAssertEqual(s2.state.eggTier, .uncommon, "재시작 후에도 산 보증 유지")
         XCTAssertEqual(s2.eggGuarantee, .uncommon)
     }

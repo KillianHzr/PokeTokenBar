@@ -100,13 +100,24 @@ struct RecapContent {
     }
 
     func accessibilityLabel(_ bucket: UsageRecap.Bucket) -> String {
-        let name: String
+        "\(bucketName(bucket)), \(bucket.hasData ? TokenFormatter.grouped(bucket.tokens) : l.recapNoData)"
+    }
+
+    /// A meter's day ("Monday 26 Oct"), or its month in the year view.
+    func bucketName(_ bucket: UsageRecap.Bucket) -> String {
         if scope == .year, let date = dayKeyFormatter.date(from: bucket.key) {
-            name = monthNameFormatter.string(from: date)
-        } else {
-            name = dayLabel(bucket.key)
+            return monthNameFormatter.string(from: date)
         }
-        return "\(name), \(bucket.hasData ? TokenFormatter.grouped(bucket.tokens) : l.recapNoData)"
+        return dayLabel(bucket.key)
+    }
+
+    /// Pokémon graduated on a meter's day, or in its month in the year view.
+    func graduatedCount(in bucket: UsageRecap.Bucket) -> Int {
+        recap.graduated.filter { entry in
+            guard let caughtAt = entry.caughtAt else { return false }
+            let key = dayKeyFormatter.string(from: caughtAt)
+            return scope == .year ? key.prefix(7) == bucket.key.prefix(7) : key == bucket.key
+        }.count
     }
 
 }
@@ -346,8 +357,10 @@ struct RecapCard: View {
     }
 }
 
+/// Every number in one place: this month day by day (the chart Home used to show), the recap of a week, a month
+/// or a year with its days, and the collection.
 @MainActor
-struct RecapScreen: View {
+struct StatsScreen: View {
     let store: UsageStore
     let companion: CompanionStore
     let onBack: () -> Void
@@ -367,15 +380,49 @@ struct RecapScreen: View {
                 .buttonStyle(.borderless)
                 .keyboardShortcut(.cancelAction)   // Esc, like Settings: both take over the popover
                 Spacer(minLength: 4)
-                Picker(l.recapOpen, selection: $scope) {
-                    ForEach(RecapScope.allCases, id: \.self) { Text(l.recapScopeName($0)).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .fixedSize()
-                .controlSize(.small)
-                .onChange(of: scope) { offset = 0 }
+                Text(l.statsTitle).font(.headline)
             }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    trend(l)
+                    recap(content, l)
+                    days(content, l)
+                    collection(l)
+                }
+                .reservesScrollerLane()
+            }
+            .frame(height: 540)
+        }
+        .padding(PopoverMetrics.padding)
+        .task { await companion.backfillMissingDexNames() }
+    }
+
+    /// This month, day by day, each tool in its color.
+    private func trend(_ l: L) -> some View {
+        MonthDailyTrend(series: store.monthDailyTotals,
+                        providers: store.snapshots.compactMap { snap in
+                            snap.monthDaily.map {
+                                DailyTrendStack.ProviderSeries(id: snap.providerID, name: snap.displayName,
+                                                               days: $0, reportsCost: snap.reportsCost)
+                            }
+                        },
+                        providerOrder: store.registeredProviderIDs,
+                        showsCost: store.showsCost,
+                        today: LocalUsageReader.todayKey(),
+                        l: l)
+            .designCard()
+    }
+
+    /// A week, a month or a year, and the way through time.
+    private func recap(_ content: RecapContent, _ l: L) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Picker(l.recapOpen, selection: $scope) {
+                ForEach(RecapScope.allCases, id: \.self) { Text(l.recapScopeName($0)).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .controlSize(.small)
+            .onChange(of: scope) { offset = 0 }
             // The period itself is printed on the card, so this row only moves through time.
             HStack {
                 Button { offset -= 1 } label: {
@@ -398,18 +445,77 @@ struct RecapScreen: View {
             .buttonStyle(.borderless)
             .font(.caption)
             RecapCard(content: content)
-            VStack(alignment: .leading, spacing: 2) {
-                if let best = content.recap.bestDay {
-                    Text(l.recapBestDayLine(content.dayLabel(best.key), TokenFormatter.grouped(best.tokens)))
+            if let best = content.recap.bestDay {
+                Text(l.recapBestDayLine(content.dayLabel(best.key), TokenFormatter.grouped(best.tokens)))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            if content.recap.isInProgress, content.recap.delta != nil {
+                Text(l.recapCompareSoFar(scope)).font(.caption).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// The period's days (its months in the year view), latest first: tokens and Pokémon graduated.
+    private func days(_ content: RecapContent, _ l: L) -> some View {
+        let rows = content.recap.buckets.filter(\.hasData).reversed()
+        return VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(scope == .year ? l.statsMonthByMonth : l.statsDayByDay).font(.callout.weight(.semibold))
+                Spacer(minLength: 4)
+                Text(l.statsTokens).frame(width: 64, alignment: .trailing)
+                Text(l.statsGraduated).frame(width: 64, alignment: .trailing)
+            }
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(.secondary)
+            ForEach(Array(rows), id: \.key) { bucket in
+                let graduated = content.graduatedCount(in: bucket)
+                HStack {
+                    Text(content.bucketName(bucket))
+                        .fontWeight(bucket.isCurrent ? .semibold : .regular)
+                        .lineLimit(1).minimumScaleFactor(0.8)
+                    Spacer(minLength: 4)
+                    Text(bucket.tokens > 0 ? TokenFormatter.compact(bucket.tokens) : "0")
+                        .monospacedDigit()
+                        .foregroundStyle(bucket.tokens > 0 ? .primary : .tertiary)
+                        .frame(width: 64, alignment: .trailing)
+                    Text(graduated > 0 ? "\(graduated)" : "·")
+                        .monospacedDigit()
+                        .foregroundStyle(graduated > 0 ? .primary : .tertiary)
+                        .frame(width: 64, alignment: .trailing)
                 }
-                if content.recap.isInProgress, content.recap.delta != nil {
-                    Text(l.recapCompareSoFar(scope))
+                .font(.caption)
+                .help(content.accessibilityLabel(bucket))
+            }
+        }
+        .designCard()
+    }
+
+    /// The collection in numbers: the Pokédex, the graduations and the achievements.
+    private func collection(_ l: L) -> some View {
+        let progress = companion.collectionProgress
+        let graduated = companion.state.dex.filter { !$0.isReleased }
+        let tiles: [(String, String)] = [
+            (l.statsSpecies, "\(progress.species)/\(progress.speciesTotal)"),
+            (l.statsForms, "\(progress.forms)/\(progress.formsTotal)"),
+            (l.statsGraduated, "\(graduated.count)"),
+            (l.statsShinies, "\(graduated.filter(\.isShiny).count)"),
+            (l.statsLegendaries, "\(graduated.filter { $0.rarity == .legendary }.count)"),
+            (l.achievementsTitle, "\(companion.claimedAchievementsCount)/\(companion.totalAchievementsCount)"),
+        ]
+        return VStack(alignment: .leading, spacing: 8) {
+            Text(l.statsCollection).font(.callout.weight(.semibold))
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 3), spacing: 6) {
+                ForEach(tiles, id: \.0) { label, value in
+                    VStack(spacing: 2) {
+                        Text(value).font(.system(.callout, design: .rounded).weight(.bold)).monospacedDigit()
+                            .lineLimit(1).minimumScaleFactor(0.7)
+                        Text(label).font(.caption2).foregroundStyle(.secondary).lineLimit(1).minimumScaleFactor(0.8)
+                    }
+                    .frame(maxWidth: .infinity).padding(.vertical, 6)
+                    .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
                 }
             }
-            .font(.caption).foregroundStyle(.secondary)
-            Spacer(minLength: 0)
         }
-        .padding(PopoverMetrics.padding)
-        .task { await companion.backfillMissingDexNames() }
+        .designCard()
     }
 }

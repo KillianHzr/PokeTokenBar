@@ -1,0 +1,257 @@
+import XCTest
+@testable import PokeTokenBar
+
+private struct EventProvider: PokeProviding {
+    var entries: [BaseSpecies]
+    /// The base index is down: the hatch takes the REST fallback, which knows every species.
+    var indexDown = false
+    struct Down: Error {}
+    func line(baseSpeciesID: Int) async throws -> EvoLine {
+        EvoLine(baseID: baseSpeciesID, tree: EvoNode(speciesID: baseSpeciesID, children: []),
+                rarity: entries.first { $0.id == baseSpeciesID }?.rarity ?? .common, names: [:])
+    }
+    func baseSpeciesIndex() async throws -> [BaseSpecies] {
+        if indexDown { throw Down() }
+        return entries
+    }
+    func baseSpecies(id: Int) async throws -> BaseSpecies? {
+        indexDown ? BaseSpecies(id: id, captureRate: 45) : entries.first { $0.id == id }
+    }
+}
+
+/// The year's event eggs (`EventEgg`): each waits during its event and two weeks after, once a year, and hatches the
+/// event's Pokémon, shiny when the event promises it.
+@MainActor
+final class EventEggTests: XCTestCase {
+    private let utc: Calendar = {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = TimeZone(identifier: "UTC")!
+        return c
+    }()
+
+    private func at(_ year: Int, _ month: Int, _ day: Int, hour: Int = 12, calendar: Calendar? = nil) -> Date {
+        (calendar ?? utc).date(from: DateComponents(year: year, month: month, day: day, hour: hour))!
+    }
+
+    private func waiting(_ now: Date, claimed: Set<String> = [], firstCatch: Date? = nil) -> [String] {
+        EventEgg.claimable(now: now, claimed: claimed, firstCatch: firstCatch, calendar: utc).map { $0.egg.key(year: $0.year) }
+    }
+
+    // MARK: When
+
+    /// During the event and the two weeks after it, then gone; once claimed, gone for the year.
+    func testAnEggWaitsTwoWeeksAfterItsEvent() {
+        XCTAssertEqual(waiting(at(2026, 12, 19)), [])
+        XCTAssertEqual(waiting(at(2026, 12, 20, hour: 0)), ["christmas@2026"])
+        XCTAssertEqual(waiting(at(2026, 12, 22)), ["christmas@2026", "winter@2026"], "the earliest event first")
+        XCTAssertTrue(EventEgg.christmas.isOn(year: 2026, now: at(2026, 12, 26, hour: 23), firstCatch: nil, calendar: utc))
+        XCTAssertFalse(EventEgg.christmas.isOn(year: 2026, now: at(2026, 12, 27, hour: 0), firstCatch: nil, calendar: utc))
+        XCTAssertTrue(waiting(at(2027, 1, 9, hour: 23)).contains("christmas@2026"), "December 27 plus two weeks")
+        XCTAssertFalse(waiting(at(2027, 1, 10, hour: 0)).contains("christmas@2026"))
+        XCTAssertFalse(waiting(at(2026, 12, 22), claimed: ["christmas@2026"]).contains("christmas@2026"))
+        XCTAssertTrue(waiting(at(2027, 12, 22), claimed: ["christmas@2026"]).contains("christmas@2027"), "every year")
+    }
+
+    /// The New Year's egg starts on December 31 and counts for the year beginning.
+    func testTheNewYearCrossesTheYear() {
+        XCTAssertEqual(waiting(at(2026, 12, 31)).first { $0.hasPrefix("newYear") }, "newYear@2027")
+        XCTAssertTrue(EventEgg.newYear.isOn(year: 2027, now: at(2027, 1, 3, hour: 23), firstCatch: nil, calendar: utc))
+        XCTAssertFalse(EventEgg.newYear.isOn(year: 2027, now: at(2027, 1, 4, hour: 0), firstCatch: nil, calendar: utc))
+        XCTAssertTrue(waiting(at(2027, 1, 17, hour: 23)).contains("newYear@2027"))
+        XCTAssertFalse(waiting(at(2027, 1, 18, hour: 0)).contains("newYear@2027"))
+        XCTAssertFalse(waiting(at(2027, 1, 2), claimed: ["newYear@2027"]).contains { $0.hasPrefix("newYear") })
+    }
+
+    /// Easter moves: from Good Friday to Easter Monday.
+    func testEasterFollowsTheComputus() {
+        XCTAssertEqual(EventEgg.easterSunday(2024).month, 3)
+        XCTAssertEqual(EventEgg.easterSunday(2024).day, 31)
+        XCTAssertEqual(EventEgg.easterSunday(2025).month, 4)
+        XCTAssertEqual(EventEgg.easterSunday(2025).day, 20)
+        XCTAssertEqual(EventEgg.easterSunday(2026).day, 5)
+        XCTAssertEqual(EventEgg.easterSunday(2027).month, 3)
+        XCTAssertEqual(EventEgg.easterSunday(2027).day, 28)
+        XCTAssertEqual(EventEgg.easterSunday(2028).day, 16)
+        let days = EventEgg.easter.days(in: 2027, firstCatch: nil, calendar: utc)
+        XCTAssertEqual(days?.start, at(2027, 3, 26, hour: 0), "Good Friday")
+        XCTAssertEqual(days?.end, at(2027, 3, 30, hour: 0), "after Easter Monday")
+    }
+
+    /// The friendship anniversary follows the first catch, from the year after it; February 29 on February 28.
+    func testTheFriendshipDayFollowsTheFirstCatch() {
+        let first = at(2025, 3, 10)
+        XCTAssertNil(EventEgg.companion.days(in: 2025, firstCatch: first, calendar: utc), "not in its own year")
+        XCTAssertNil(EventEgg.companion.days(in: 2026, firstCatch: nil, calendar: utc))
+        XCTAssertEqual(EventEgg.companion.days(in: 2026, firstCatch: first, calendar: utc)?.start, at(2026, 3, 10, hour: 0))
+        XCTAssertEqual(EventEgg.companion.days(in: 2027, firstCatch: at(2024, 2, 29), calendar: utc)?.start,
+                       at(2027, 2, 28, hour: 0))
+        XCTAssertEqual(EventEgg.companion.days(in: 2028, firstCatch: at(2024, 2, 29), calendar: utc)?.start,
+                       at(2028, 2, 29, hour: 0))
+        XCTAssertTrue(waiting(at(2026, 3, 20), firstCatch: first).contains("companion@2026"))
+    }
+
+    /// Every egg is an item of the Bag, its own, never sold.
+    func testEveryEventHasItsItem() {
+        XCTAssertEqual(Set(EventEgg.allCases.map(\.item)).count, EventEgg.allCases.count)
+        for egg in EventEgg.allCases {
+            XCTAssertEqual(EventEgg(item: egg.item), egg)
+            XCTAssertNil(egg.item.shopPrice, "\(egg) is never sold")
+            XCTAssertFalse(egg.item.isAchievement)
+            XCTAssertEqual(BagView.Section.of(egg.item), .items)
+        }
+        XCTAssertNil(EventEgg(item: .birthdayEgg))
+    }
+
+    // MARK: The store
+
+    /// Ice lines (Lapras rare, Swinub common, Articuno legendary), Ghost, Kanto and Johto, love, Easter and seasons.
+    private let bases = [BaseSpecies(id: 131, captureRate: 45), BaseSpecies(id: 220, captureRate: 225),
+                         BaseSpecies(id: 144, captureRate: 3, isUnbreedableLegendary: true),
+                         BaseSpecies(id: 92, captureRate: 190), BaseSpecies(id: 1, captureRate: 45),
+                         BaseSpecies(id: 4, captureRate: 45), BaseSpecies(id: 252, captureRate: 45),
+                         BaseSpecies(id: 370, captureRate: 225), BaseSpecies(id: 175, captureRate: 190),
+                         BaseSpecies(id: 585, captureRate: 190), BaseSpecies(id: 37, captureRate: 190),
+                         BaseSpecies(id: 361, captureRate: 190)]
+
+    private let christmas21 = Calendar.current.date(from: DateComponents(year: 2026, month: 12, day: 21, hour: 12))!
+
+    private func store(seed: UInt64 = 1, now: Date? = nil, indexDown: Bool = false,
+                       _ edit: (inout CompanionState) -> Void = { _ in }) throws -> CompanionStore {
+        var st = CompanionState()
+        st.installBaselineSet = true
+        st.lastDate = "2026-12-21"
+        edit(&st)
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("event-egg-\(UUID().uuidString).json")
+        try JSONEncoder().encode(st).write(to: url)
+        addTeardownBlock { try? FileManager.default.removeItem(at: url) }
+        let clock = now ?? christmas21
+        return CompanionStore(provider: EventProvider(entries: bases, indexDown: indexDown), clock: { clock },
+                              fileURL: url, rng: SeededRNG(seed: seed))
+    }
+
+    /// Taken once for its year, kept by the save, announced once.
+    func testAnEggIsTakenOncePerYear() throws {
+        let s = try store()
+        XCTAssertEqual(s.eventEggs.map(\.egg), [.christmas, .winter])
+        XCTAssertTrue(s.isEventOn(.christmas, year: 2026))
+        XCTAssertTrue(s.claimEventEgg(.christmas))
+        XCTAssertEqual(s.itemCount(.christmasEgg), 1)
+        XCTAssertEqual(s.eventEggs.map(\.egg), [.winter])
+        XCTAssertFalse(s.claimEventEgg(.christmas), "once a year")
+        XCTAssertEqual(s.itemCount(.christmasEgg), 1)
+        let kept = try JSONDecoder().decode(CompanionState.self, from: JSONEncoder().encode(s.state))
+        XCTAssertEqual(kept.claimedEventEggs, ["christmas@2026"])
+
+        s.update(todayTokensByProvider: [:], todayDate: "2026-12-21", monthTotal: 0, burnTier: .idle,
+                 limitWarning: false, hasUsageData: false)
+        XCTAssertEqual(s.state.eventEggsNotified, ["winter@2026"], "the egg taken needs no notification")
+    }
+
+    /// Used, the egg sends the Pokémon off for an egg drawn as the event's, then hatches.
+    private func hatch(_ egg: EventEgg, seed: UInt64, _ edit: (inout CompanionState) -> Void = { _ in }) async throws -> MonState {
+        let mon = try await tryHatch(egg, seed: seed, edit)
+        return try XCTUnwrap(mon, "\(egg) seed \(seed) kept its egg")
+    }
+
+    private func tryHatch(_ egg: EventEgg, seed: UInt64, indexDown: Bool = false,
+                          _ edit: (inout CompanionState) -> Void = { _ in }) async throws -> MonState? {
+        let s = try store(seed: seed, indexDown: indexDown) {
+            edit(&$0)
+            $0.active = MonState(baseID: 252, pathIDs: [252], stageIndex: 0, usedAtStage: 0, rarity: .common, totalForms: 1)
+            $0.inventory = [egg.item.rawValue: 1]
+        }
+        XCTAssertTrue(s.useEventEgg(egg))
+        XCTAssertEqual(s.itemCount(egg.item), 0)
+        XCTAssertEqual(s.eggKind, .event(egg))
+        s.setEggUsageForTesting(s.eggHatchThreshold)
+        await s.hatchIfNeeded()
+        // nil when no candidate came (the REST fallback's tries), the egg kept for the next tick.
+        guard let mon = s.state.active else { return nil }
+        XCTAssertNil(s.state.eggEvent, "consumed by the hatch")
+        return mon
+    }
+
+    func testEachEggHatchesItsEventsPokemon() async throws {
+        for seed: UInt64 in 1...8 {
+            let ice = try await hatch(.christmas, seed: seed)
+            XCTAssertTrue([131, 144].contains(ice.baseID), "Ice, rare or better: \(ice.baseID)")
+            XCTAssertTrue(ice.isShiny)
+
+            let ghost = try await hatch(.halloween, seed: seed)
+            XCTAssertEqual(ghost.baseID, 92)
+            XCTAssertTrue(ghost.isShiny)
+
+            let legend = try await hatch(.newYear, seed: seed)
+            XCTAssertEqual(legend.baseID, 144)
+
+            let kanto = try await hatch(.pokemonDay, seed: seed)
+            XCTAssertLessThanOrEqual(kanto.baseID, 151)
+            XCTAssertTrue(kanto.isShiny)
+
+            let love = try await hatch(.valentine, seed: seed)
+            XCTAssertEqual(love.baseID, 370)
+            XCTAssertTrue(love.isShiny)
+
+            let easter = try await hatch(.easter, seed: seed)
+            XCTAssertEqual(easter.baseID, 175)
+            XCTAssertTrue(easter.isShiny)
+        }
+    }
+
+    /// The friendship egg hatches the first catch's line again, shiny.
+    func testTheFriendshipEggBringsTheFirstCatchBack() async throws {
+        let long = Date(timeIntervalSince1970: 1_700_000_000)
+        for seed: UInt64 in 1...4 {
+            let mon = try await hatch(.companion, seed: seed) {
+                $0.dex = [DexEntry(baseID: 4, finalID: 4, chainOrder: [4], rarity: .common, caughtAt: long),
+                          DexEntry(baseID: 1, finalID: 1, chainOrder: [1], rarity: .common,
+                                   caughtAt: long.addingTimeInterval(86_400))]
+            }
+            XCTAssertEqual(mon.baseID, 4)
+            XCTAssertTrue(mon.isShiny)
+        }
+    }
+
+    /// A season's egg: Deerling in the season's form one time in three, else a Pokémon of the season's types, in a
+    /// form that has one (an Alolan Vulpix in winter, never a Fire one).
+    func testASeasonEggHatchesDeerlingOrTheSeasonsTypes() async throws {
+        var seen = Set<Int>()
+        for seed: UInt64 in 1...24 {
+            let mon = try await hatch(.winter, seed: seed)
+            seen.insert(mon.baseID)
+            if mon.baseID == EventEgg.deerlingID {
+                XCTAssertEqual(mon.form, PokemonForm("winter"), "seed \(seed)")
+            } else {
+                let types = PokemonTypeData.types(forSpeciesID: mon.baseID, form: mon.form)
+                XCTAssertTrue(types.contains { [.ice, .steel, .dragon].contains($0) },
+                              "\(mon.baseID) \(String(describing: mon.form)) is \(types), seed \(seed)")
+            }
+        }
+        XCTAssertTrue(seen.contains(EventEgg.deerlingID))
+        XCTAssertTrue(seen.contains(37), "Vulpix comes in its Alolan form")
+        XCTAssertFalse(seen.contains(1))
+    }
+
+    /// The base index down, the REST fallback keeps the event's pool and its shiny promise.
+    func testTheRestFallbackKeepsTheShinyPromise() async throws {
+        var hatched = 0
+        for seed: UInt64 in 1...6 {
+            guard let mon = try await tryHatch(.pokemonDay, seed: seed, indexDown: true) else { continue }
+            hatched += 1
+            XCTAssertLessThanOrEqual(mon.baseID, 151)
+            XCTAssertTrue(mon.isShiny, "seed \(seed)")
+        }
+        XCTAssertGreaterThan(hatched, 0)
+    }
+
+    /// An imported save with a Pokémon being raised drops an event guarantee left beside it.
+    func testAnImportedSaveDropsAStrayEventGuarantee() {
+        var st = CompanionState()
+        st.active = MonState(baseID: 1, pathIDs: [1], stageIndex: 0, usedAtStage: 0, rarity: .common, totalForms: 1)
+        st.eggEvent = .christmas
+        st.claimedEventEggs = ["christmas@2026"]
+        let clean = SaveTransfer.sanitized(st)
+        XCTAssertNil(clean.eggEvent)
+        XCTAssertEqual(clean.claimedEventEggs, ["christmas@2026"], "the record of eggs taken travels")
+    }
+}

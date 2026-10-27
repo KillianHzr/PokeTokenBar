@@ -107,6 +107,12 @@ final class PopoverNavigation {
     var showingBonuses = false { didSet { if showingBonuses { dexDetailCollectionID = nil } } }
     /// The changelog takes over the popover the same way.
     var showingChangelog = false { didSet { if showingChangelog { dexDetailCollectionID = nil } } }
+    /// The Pokédex's view: every species region by region (TokenDex's), the caught ones page by page, or the
+    /// missing ones. Kept across openings, like the segment.
+    enum DexScope: Hashable, CaseIterable { case all, caught, missing }
+    var dexScope: DexScope = .all
+    /// The ideas page (`IdeasScreen`) too.
+    var showingIdeas = false { didSet { if showingIdeas { dexDetailCollectionID = nil } } }
     /// The changelog entries seen before it was opened: the others are marked new on it.
     var changelogSeenBefore: Set<String> = []
     /// The Collection tab's open Pokédex detail page (`DexSpecies.collectionID`); nil = grid or log.
@@ -157,6 +163,7 @@ final class PopoverNavigation {
         showingRecap = false
         showingBonuses = false
         showingChangelog = false
+        showingIdeas = false
         tab = .home
     }
 
@@ -194,6 +201,8 @@ struct PopoverView: View {
     @State private var showingClaudeKeychainHelp = false
     /// The birthday gift was just opened: the banner says where the egg went until it is dismissed.
     @State private var birthdayGiftOpened = false
+    /// The event egg just taken: the banner says where it went until it is dismissed.
+    @State private var eventEggTaken: EventEgg?
 
     var body: some View {
         // NOTE: 설정을 .sheet 로 띄우면 transient 팝오버가 닫힐 때 시트가 고아로 남아
@@ -213,13 +222,15 @@ struct PopoverView: View {
                     .environment(companion)
                     .environment(updater)
             } else if nav.showingRecap {
-                RecapScreen(store: store, companion: companion) { nav.showingRecap = false }
+                StatsScreen(store: store, companion: companion) { nav.showingRecap = false }
             } else if nav.showingBonuses {
                 BonusScreen(store: companion) { nav.showingBonuses = false }
             } else if nav.showingChangelog {
                 ChangelogScreen(l: l, language: companion.language, seenBefore: nav.changelogSeenBefore) {
                     nav.showingChangelog = false
                 }
+            } else if nav.showingIdeas {
+                IdeasScreen(l: l) { nav.showingIdeas = false }
             } else {
                 mainContent
             }
@@ -309,6 +320,50 @@ struct PopoverView: View {
         }
     }
 
+    /// The event egg waiting, the earliest event's first, above the tabs whatever the tab: the event's wish while it
+    /// is on, then that it still waits, two weeks more. Then where it went. It never tells what hatches.
+    @ViewBuilder
+    private var eventEggBanner: some View {
+        if let pending = companion.eventEggs.first {
+            let egg = pending.egg
+            let colors = egg.bannerColors
+            HStack(spacing: 10) {
+                SpriteView(speciesID: nil, size: 40, animated: true, egg: .event(egg))
+                    .frame(width: 40, height: 40)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(companion.isEventOn(egg, year: pending.year) ? l.eventEggWish(egg) : l.eventEggStillWaiting(egg))
+                        .font(.callout.weight(.bold))
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(l.eventEggBody(egg)).font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 4)
+                Button(l.eventEggClaim) {
+                    guard companion.claimEventEgg(egg) else { return }
+                    eventEggTaken = egg
+                    nav.tab = .bag
+                }
+                .buttonStyle(.borderedProminent).controlSize(.small).tint(colors.0)
+            }
+            .padding(8)
+            .background(LinearGradient(colors: [colors.0.opacity(0.22), colors.1.opacity(0.14)],
+                                       startPoint: .leading, endPoint: .trailing))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        } else if let egg = eventEggTaken {
+            HStack(spacing: 8) {
+                Text("🥚").font(.callout)
+                Text(l.eventEggClaimed(egg)).font(.caption).fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 4)
+                Button { eventEggTaken = nil } label: { Image(systemName: "xmark") }
+                    .buttonStyle(.borderless).controlSize(.small).foregroundStyle(.secondary)
+                    .accessibilityLabel(l.close)
+            }
+            .padding(8)
+            .background(egg.bannerColors.0.opacity(0.14))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+    }
+
     /// Opens the changelog, the days not seen yet marked new on it, and counts them seen.
     private func openChangelog() {
         nav.changelogSeenBefore = store.changelogSeen
@@ -322,7 +377,7 @@ struct PopoverView: View {
         let unseen = store.unseenChangelogEntries
         if !unseen.isEmpty {
             HStack(spacing: 8) {
-                Image(systemName: "sparkles").foregroundStyle(.yellow)
+                Image(systemName: "newspaper.fill").foregroundStyle(Color.accentColor)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(l.changelogTitle).font(.callout.weight(.semibold))
                     Text(l.changelogBannerBody(unseen.count)).font(.caption).foregroundStyle(.secondary)
@@ -345,6 +400,7 @@ struct PopoverView: View {
         return VStack(alignment: .leading, spacing: 12) {
             updateBanner
             birthdayBanner
+            eventEggBanner
             changelogBanner
             PopoverTabPicker(tab: $nav.tab, l: l, unclaimedAchievements: companion.unclaimedAchievementsCount)
 
@@ -379,11 +435,11 @@ struct PopoverView: View {
 
     // MARK: 헤더 — 오늘 합계 + provider/토큰타입 분해
 
-    /// Today's usage, then the month's daily chart, then the selected tool's detail: one card each.
+    /// Today's usage, then the selected tool's detail: one card each. The month's daily chart is on the Stats page,
+    /// with every other number.
     private var header: some View {
         VStack(alignment: .leading, spacing: Design.sectionSpacing) {
             todayCard
-            trendCard
             providerCard
         }
     }
@@ -394,7 +450,7 @@ struct PopoverView: View {
                 SectionTitle(text: l.todayTokens, systemImage: "bolt.fill")
                 Spacer()
                 CircleIconButton(systemImage: "wand.and.stars", help: l.bonusOpen) { nav.showingBonuses = true }
-                CircleIconButton(systemImage: "chart.bar.xaxis", help: l.recapOpen) { nav.showingRecap = true }
+                CircleIconButton(systemImage: "chart.bar.xaxis", help: l.statsTitle) { nav.showingRecap = true }
             }
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(TokenFormatter.compact(store.todayTotalTokens))
@@ -410,7 +466,7 @@ struct PopoverView: View {
                 if store.showsCost {
                     UsageCostText(cost: store.todayUsageCost, l: l)
                         .font(.system(.callout, design: .rounded).weight(.semibold))
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Color.readableGreen)
                         .padding(.horizontal, 8).padding(.vertical, 3)
                         .background(Capsule().fill(Color.green.opacity(0.14)))
                 }
@@ -422,22 +478,6 @@ struct PopoverView: View {
             }
         }
         .designCard()
-    }
-
-    private var trendCard: some View {
-        MonthDailyTrend(series: store.monthDailyTotals,
-                        providers: store.snapshots.compactMap { snap in
-                            snap.monthDaily.map {
-                                DailyTrendStack.ProviderSeries(
-                                    id: snap.providerID, name: snap.displayName,
-                                    days: $0, reportsCost: snap.reportsCost)
-                            }
-                        },
-                        providerOrder: store.registeredProviderIDs,
-                        showsCost: store.showsCost,
-                        today: LocalUsageReader.todayKey(),
-                        l: l)
-            .designCard()
     }
 
     @ViewBuilder
@@ -712,7 +752,7 @@ struct PopoverView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Color.readableOrange)
                 Text(l.cursorAuthExpiredTitle)
                     .font(.caption).fontWeight(.medium)
             }
@@ -764,7 +804,7 @@ struct PopoverView: View {
                     .font(.caption).foregroundStyle(.secondary)
             } else {
                 (Text(l.staleLimits) + Text(" · ") + Text(store.antigravityLimitsUpdatedAt ?? Date(), style: .relative))
-                    .font(.caption).foregroundStyle(.orange)
+                    .font(.caption).foregroundStyle(Color.readableOrange)
             }
             Spacer()
             Button {
@@ -786,7 +826,7 @@ struct PopoverView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Color.readableOrange)
                 Text(l.antigravityAuthExpiredTitle)
                     .font(.caption).fontWeight(.medium)
             }
@@ -941,7 +981,7 @@ struct PopoverView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Image(systemName: "key.slash.fill")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Color.readableOrange)
                 Text(l.sessionKeyExpiredTitle)
                     .font(.caption).fontWeight(.semibold)
                 Spacer()
@@ -966,7 +1006,7 @@ struct PopoverView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Color.readableOrange)
                 Text(l.claudeAuthExpiredTitle)
                     .font(.caption).fontWeight(.semibold)
                 Spacer()
@@ -1134,7 +1174,7 @@ struct PopoverView: View {
                 // stale when the default account's own values are.
                 if store.limits != nil, store.claudeLimitsStale {
                     (Text(l.staleLimits) + Text(" · ") + Text(store.limitsUpdatedAt ?? Date(), style: .relative))
-                        .font(.caption).foregroundStyle(.orange)
+                        .font(.caption).foregroundStyle(Color.readableOrange)
                 } else {
                     Text(l.limitsTapToLoad)
                         .font(.caption).foregroundStyle(.secondary)
@@ -1156,7 +1196,7 @@ struct PopoverView: View {
             // the reason was only shown in Settings.
             if let error = store.limitTokenRefreshMessage, !store.isRefreshingLimitToken {
                 Text(error)
-                    .font(.caption2).foregroundStyle(.orange)
+                    .font(.caption2).foregroundStyle(Color.readableOrange)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -1168,7 +1208,7 @@ struct PopoverView: View {
         if let updatedAt {
             (Text(l.staleLimits) + Text(" · ") + Text(updatedAt, style: .relative))
                 .font(.caption)
-                .foregroundStyle(.orange)
+                .foregroundStyle(Color.readableOrange)
         }
     }
 
@@ -1232,7 +1272,7 @@ struct PopoverView: View {
                 }
                 if store.lastErrorDescription != nil {
                     Image(systemName: "exclamationmark.triangle")
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Color.readableOrange)
                         .help(store.lastErrorMessage(l) ?? "")
                 }
             }
@@ -1243,7 +1283,8 @@ struct PopoverView: View {
                              help: store.floatingPetEnabled ? l.floatingPetHideLabel : l.floatingPetEnableLabel) {
                 store.floatingPetEnabled.toggle()
             }
-            CircleIconButton(systemImage: "sparkles", help: l.changelogTitle) { openChangelog() }
+            CircleIconButton(systemImage: "lightbulb", help: l.ideasTitle) { nav.showingIdeas = true }
+            CircleIconButton(systemImage: "newspaper", help: l.changelogTitle) { openChangelog() }
                 .overlay(alignment: .topTrailing) {
                     if !store.unseenChangelogEntries.isEmpty {
                         Circle().fill(Color.red).frame(width: 7, height: 7).offset(x: 1, y: -1)
@@ -1999,6 +2040,25 @@ struct Line: Shape {
         Path { path in
             path.move(to: CGPoint(x: rect.minX, y: rect.midY))
             path.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
+        }
+    }
+}
+
+private extension EventEgg {
+    /// The banner's two colors: the button's, then the gradient's end.
+    var bannerColors: (Color, Color) {
+        switch self {
+        case .newYear: return (.indigo, .yellow)
+        case .valentine: return (.pink, .red)
+        case .pokemonDay: return (.red, .blue)
+        case .easter: return (.green, .yellow)
+        case .halloween: return (.orange, .purple)
+        case .christmas: return (.red, .green)
+        case .companion: return (.teal, .pink)
+        case .spring: return (.pink, .green)
+        case .summer: return (.orange, .yellow)
+        case .autumn: return (.brown, .orange)
+        case .winter: return (.blue, .cyan)
         }
     }
 }

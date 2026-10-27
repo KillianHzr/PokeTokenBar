@@ -64,7 +64,7 @@ final class PokemonFormTests: XCTestCase {
         addTeardownBlock { UserDefaults.standard.removePersistentDomain(forName: suite) }
         let date = now
         return CompanionStore(provider: FormTestProvider(), clock: { date }, fileURL: url,
-                              rng: SeededRNG(seed: seed), dittoDisguiseRollingEnabled: false, defaults: defaults)
+                              rng: SeededRNG(seed: seed), dittoDisguiseRollingEnabled: false, defaults: defaults, difficulty: 1)
     }
 
     private func burmy(_ path: [Int], form: PokemonForm?, shiny: Bool = false) -> DexEntry {
@@ -391,7 +391,7 @@ final class PokemonFormTests: XCTestCase {
         addTeardownBlock { UserDefaults.standard.removePersistentDomain(forName: suite) }
         let date = now
         let s = CompanionStore(provider: FormTestProvider(), clock: { date }, fileURL: url, rng: SeededRNG(seed: 7),
-                               defaults: defaults)
+                               defaults: defaults, difficulty: 1)
         XCTAssertEqual(s.currentForm, sandy)
         s.update(todayTokensByProvider: ["test": 0], todayDate: "d1", monthTotal: 0, burnTier: .idle,
                  limitWarning: false, hasUsageData: true)
@@ -454,10 +454,13 @@ final class PokemonFormTests: XCTestCase {
         XCTAssertEqual(PokemonForm.displayName("Pikachu", speciesID: 25, form: sky, label: "Sky"), "Pikachu")
     }
 
+    /// Long names take four columns and two lines: "Motif Continental" was cut in six (Vivillon's 20 patterns).
     func testFormPickerKeepsSevenColumnsForUnownAndWidensNamedForms() {
-        XCTAssertEqual(PokemonDetailView.formPickerColumns(formCount: 28), 7)
-        XCTAssertEqual(PokemonDetailView.formPickerColumns(formCount: 18), 6)
-        XCTAssertEqual(PokemonDetailView.formPickerColumns(formCount: 6), 4)
-        XCTAssertEqual(PokemonDetailView.formPickerColumns(formCount: 2), 2)
+        XCTAssertEqual(PokemonDetailView.formPickerColumns(formCount: 28, longestLabel: 1), 7)
+        XCTAssertEqual(PokemonDetailView.formPickerColumns(formCount: 18, longestLabel: 8), 6)
+        XCTAssertEqual(PokemonDetailView.formPickerColumns(formCount: 20, longestLabel: 17), 4)
+        XCTAssertEqual(PokemonDetailView.formPickerColumns(formCount: 63, longestLabel: 24), 4)
+        XCTAssertEqual(PokemonDetailView.formPickerColumns(formCount: 6, longestLabel: 6), 4)
+        XCTAssertEqual(PokemonDetailView.formPickerColumns(formCount: 2, longestLabel: 20), 2)
     }
 }

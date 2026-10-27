@@ -23,7 +23,7 @@ final class CompanionDisplayStateTests: XCTestCase {
         let clock = ClockBox(dNow)
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("poke-disp-\(UUID().uuidString).json")
         let s = CompanionStore(provider: StubProvider(value: dline(base: 1, rarity: rarity)),
-                               clock: { clock.now }, fileURL: url, rng: SeededRNG(seed: 5))
+                               clock: { clock.now }, fileURL: url, rng: SeededRNG(seed: 5), difficulty: 1)
         await s.hatch(baseID: 1)
         return (s, clock)
     }
@@ -31,7 +31,7 @@ final class CompanionDisplayStateTests: XCTestCase {
     func testEggWhenNoUsageData() {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("poke-disp-\(UUID().uuidString).json")
         let s = CompanionStore(provider: StubProvider(value: dline(base: 1)),
-                               clock: { dNow }, fileURL: url, rng: SeededRNG(seed: 1))
+                               clock: { dNow }, fileURL: url, rng: SeededRNG(seed: 1), difficulty: 1)
         s.update(todayTokensByProvider: ["test": 0], todayDate: "d", monthTotal: 0, burnTier: .idle, limitWarning: false, hasUsageData: false)
         XCTAssertEqual(s.displayState, .egg)
     }
@@ -100,7 +100,7 @@ final class CompanionDisplayStateTests: XCTestCase {
     func testEggProgressAndTokensToHatch() {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("poke-disp-\(UUID().uuidString).json")
         let s = CompanionStore(provider: StubProvider(value: dline(base: 1)),
-                               clock: { dNow }, fileURL: url, rng: SeededRNG(seed: 1))
+                               clock: { dNow }, fileURL: url, rng: SeededRNG(seed: 1), difficulty: 1)
         XCTAssertTrue(s.isEgg)
         XCTAssertEqual(s.eggProgress, 0)
         XCTAssertEqual(s.eggTokensToHatch, PokemonBalance.eggHatchThreshold)

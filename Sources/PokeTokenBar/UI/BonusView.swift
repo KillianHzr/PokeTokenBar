@@ -117,7 +117,7 @@ struct BonusScreen: View {
     @ViewBuilder
     private func icon(_ source: CompanionStore.GrowthFactor.Source) -> some View {
         switch source {
-        case .repeatBoost: Image(systemName: "arrow.triangle.2.circlepath").foregroundStyle(.orange)
+        case .repeatBoost: Image(systemName: "arrow.triangle.2.circlepath").foregroundStyle(Color.readableOrange)
         case .badges: Image(systemName: "rosette").foregroundStyle(.blue)
         case .item(let kind): ItemIconView(kind: kind, size: 22)
         }
@@ -132,7 +132,7 @@ struct BonusScreen: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(l.bonusThemeTitle(theme)).font(.callout.weight(.semibold))
                 if let summary = summary(theme, l) {
-                    Text(summary).font(.caption.weight(.semibold)).foregroundStyle(.green).monospacedDigit()
+                    Text(summary).font(.caption.weight(.semibold)).foregroundStyle(Color.readableGreen).monospacedDigit()
                 }
                 if !badges.isEmpty {
                     row(icon: AnyView(ItemIconView(kind: badges[0], size: 22)),

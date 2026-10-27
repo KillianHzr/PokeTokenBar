@@ -267,7 +267,7 @@ private let fixedNow = Date(timeIntervalSince1970: 1_700_000_000)
 final class CompanionStoreTests: XCTestCase {
     private func store(_ line: EvoLine, seed: UInt64 = 7) -> CompanionStore {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("poke-\(UUID().uuidString).json")
-        return CompanionStore(provider: StubProvider(value: line), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: seed))
+        return CompanionStore(provider: StubProvider(value: line), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: seed), difficulty: 1)
     }
 
     // MARK: 상태 파일 decode 복원력 (회귀)
@@ -283,7 +283,7 @@ final class CompanionStoreTests: XCTestCase {
         try Data(json.utf8).write(to: url)
 
         let s = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                               fileURL: url, rng: SeededRNG(seed: 7))
+                               fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
 
         XCTAssertEqual(s.state.dex.count, 2, "손상 항목만 드롭, 유효 2개 유지")
         XCTAssertEqual(Set(s.state.dex.map(\.baseID)), [1, 7])
@@ -298,7 +298,7 @@ final class CompanionStoreTests: XCTestCase {
         try Data(garbage.utf8).write(to: url)
 
         let s = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                               fileURL: url, rng: SeededRNG(seed: 7))
+                               fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
 
         XCTAssertTrue(s.state.dex.isEmpty)
         XCTAssertNil(s.state.active)
@@ -322,7 +322,7 @@ final class CompanionStoreTests: XCTestCase {
         try Data(json.utf8).write(to: url)
 
         let s = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                               fileURL: url, rng: SeededRNG(seed: 7))
+                               fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
 
         XCTAssertNil(s.state.active, "손상 active 는 nil(알)로 폴백")
         XCTAssertEqual(s.state.dex.count, 1, "도감 보존")
@@ -377,7 +377,7 @@ final class CompanionStoreTests: XCTestCase {
         let json = #"{"dex":[{"id":"e1","baseID":1,"finalID":3,"chainOrder":[1,2,3],"rarity":"common"}]}"#
         try? json.data(using: .utf8)!.write(to: url)
         let s = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                               fileURL: url, rng: SeededRNG(seed: 7))
+                               fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
         s.setLanguage(.ko)
         XCTAssertEqual(s.state.dex.count, 1)                        // 구버전 JSON 로드 성공
         XCTAssertNil(s.state.dex.first?.names)                      // 이름 없음(구버전)
@@ -403,7 +403,7 @@ final class CompanionStoreTests: XCTestCase {
         try Data(#"{"dex":\#(dexJSON),"language":"ko"}"#.utf8).write(to: url)
 
         let s = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                               fileURL: url, rng: SeededRNG(seed: 7))
+                               fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
         XCTAssertEqual(s.state.dex.count, 2, "로그(개체 단위)는 2건")
 
         let folded = s.dexSpecies
@@ -423,7 +423,7 @@ final class CompanionStoreTests: XCTestCase {
         try Data(#"{"active":\#(json),"language":"ko"}"#.utf8).write(to: url)
 
         let s = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                               fileURL: url, rng: SeededRNG(seed: 7))
+                               fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
         XCTAssertTrue(s.state.dex.isEmpty)
         XCTAssertEqual(s.state.active?.stageIndex, 0)
         XCTAssertEqual(s.dexSpecies.map(\.id), [1], "미도달 단계가 보유로 새지 않는다")
@@ -443,7 +443,7 @@ final class CompanionStoreTests: XCTestCase {
         let dexJSON = String(decoding: try JSONEncoder().encode(entries), as: UTF8.self)
         try Data(#"{"dex":\#(dexJSON),"language":"ko"}"#.utf8).write(to: url)
         let s = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                              fileURL: url, rng: SeededRNG(seed: 7))
+                              fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
 
         let folded = s.dexSpecies
         XCTAssertEqual(folded.map(\.id), [1, 2], "이로치 개체가 지나온 체인 전 종")
@@ -463,7 +463,7 @@ final class CompanionStoreTests: XCTestCase {
             state.dex = entries
             try JSONEncoder().encode(state).write(to: url)
             let s = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                                   fileURL: url, rng: SeededRNG(seed: 7))
+                                   fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
             XCTAssertEqual(s.dexSpecies.map(\.id), [605, 606])
             XCTAssertTrue(s.dexSpecies.allSatisfy { $0.hasNormal == entries.contains { !$0.isShiny } })
             XCTAssertTrue(s.dexSpecies.allSatisfy { $0.isShiny == entries.contains { $0.isShiny } })
@@ -485,7 +485,7 @@ final class CompanionStoreTests: XCTestCase {
             defer { try? FileManager.default.removeItem(at: url) }
             try JSONEncoder().encode(state).write(to: url)
             let s = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                                   fileURL: url, rng: SeededRNG(seed: 7))
+                                   fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
             XCTAssertEqual(s.dexSpecies.map(\.id), [1, 2])
             XCTAssertTrue(try XCTUnwrap(s.dexSpecies.first).hasNormal)
             XCTAssertTrue(try XCTUnwrap(s.dexSpecies.first).isShiny)
@@ -505,7 +505,7 @@ final class CompanionStoreTests: XCTestCase {
         try Data(#"{"active":\#(activeJSON)}"#.utf8).write(to: url)
 
         let s = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                               fileURL: url, rng: SeededRNG(seed: 7))
+                               fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
         XCTAssertNil(s.representativeSpeciesID)
         XCTAssertEqual(s.representativeSubject,
                        CompanionStore.RepresentativeSubject(speciesID: 1, isShiny: true))
@@ -525,14 +525,14 @@ final class CompanionStoreTests: XCTestCase {
         try Data(#"{"dex":\#(dexJSON),"active":\#(activeJSON),"language":"en"}"#.utf8).write(to: url)
 
         let s = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                               fileURL: url, rng: SeededRNG(seed: 7))
+                               fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
         XCTAssertTrue(s.setRepresentativeSpeciesID(2))
         XCTAssertEqual(s.currentSpeciesID, 20, "육성 대상은 그대로")
         XCTAssertEqual(s.representativeSubject,
                        CompanionStore.RepresentativeSubject(speciesID: 2, isShiny: true))
 
         let reloaded = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                                      fileURL: url, rng: SeededRNG(seed: 7))
+                                      fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
         XCTAssertEqual(reloaded.representativeSpeciesID, 2)
         XCTAssertEqual(reloaded.representativeSubject,
                        CompanionStore.RepresentativeSubject(speciesID: 2, isShiny: true))
@@ -569,7 +569,7 @@ final class CompanionStoreTests: XCTestCase {
         try Data(#"{"dex":\#(dexJSON),"active":\#(activeJSON),"representativeSpeciesID":1}"#.utf8)
             .write(to: url)
         let s = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                               fileURL: url, rng: SeededRNG(seed: 7))
+                               fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
 
         nonisolated(unsafe) var didChange = false   // onChange는 동기 발화; 테스트 스레드 밖 접근 없음
         withObservationTracking {
@@ -596,7 +596,7 @@ final class CompanionStoreTests: XCTestCase {
             .write(to: url)
 
         let s = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                               fileURL: url, rng: SeededRNG(seed: 7))
+                               fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
         XCTAssertEqual(s.representativeSpeciesID, 1)
         XCTAssertTrue(s.buyFreshEgg())
         XCTAssertEqual(s.representativeSpeciesID, 1, "놓아준 종도 보유분이라 선택이 유지된다")
@@ -609,7 +609,7 @@ final class CompanionStoreTests: XCTestCase {
         try Data(#"{"representativeSpeciesID":999}"#.utf8).write(to: url)
 
         let s = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                               fileURL: url, rng: SeededRNG(seed: 7))
+                               fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
         XCTAssertNil(s.representativeSpeciesID)
         XCTAssertFalse(s.setRepresentativeSpeciesID(999), "도감 밖 종은 새로 저장할 수도 없다")
     }
@@ -626,7 +626,7 @@ final class CompanionStoreTests: XCTestCase {
             let json = String(decoding: try JSONEncoder().encode(active), as: UTF8.self)
             try Data(#"{"active":\#(json),"language":"ko"}"#.utf8).write(to: url)
             return CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                                  fileURL: url, rng: SeededRNG(seed: 7))
+                                  fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
         }
         let disguised = try store(revealed: false)
         XCTAssertTrue(disguised.state.active?.isShiny ?? false, "내부적으론 이로치")
@@ -672,7 +672,7 @@ final class CompanionStoreTests: XCTestCase {
         let dexJSON = String(decoding: try JSONEncoder().encode([entry]), as: UTF8.self)
         try Data(#"{"dex":\#(dexJSON),"language":"ko"}"#.utf8).write(to: url)
         let provider = CountingLineProvider(value: linear3)
-        let s = CompanionStore(provider: provider, clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 7))
+        let s = CompanionStore(provider: provider, clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
 
         await s.backfillMissingDexNames()
 
@@ -689,14 +689,14 @@ final class CompanionStoreTests: XCTestCase {
         try Data(#"{"dex":\#(dexJSON),"language":"ko"}"#.utf8).write(to: url)
 
         let offline = CompanionStore(provider: LineThrowsProvider(), clock: { fixedNow },
-                                     fileURL: url, rng: SeededRNG(seed: 7))
+                                     fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
         await offline.backfillMissingDexNames()
         XCTAssertNil(offline.state.dex.first?.names, "폴백은 저장하지 않는다")
         XCTAssertEqual(offline.dexSpecies.map(\.name), ["#1", "#2", "#3"])
 
         // 같은 저장 파일을 온라인 provider 로 다시 연다(= 다음 진입).
         let online = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                                    fileURL: url, rng: SeededRNG(seed: 7))
+                                    fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
         await online.backfillMissingDexNames()
         XCTAssertEqual(online.dexSpecies.map(\.name), ["포1", "포2", "포3"])
     }
@@ -730,7 +730,7 @@ final class CompanionStoreTests: XCTestCase {
         try Data(#"{"dex":\#(dexJSON),"active":\#(activeJSON),"language":"ko"}"#.utf8).write(to: url)
 
         let s = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                               fileURL: url, rng: SeededRNG(seed: 7))
+                               fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
         XCTAssertEqual(s.dexSpecies.map(\.isRaising), [false, true, false])
     }
 
@@ -749,7 +749,7 @@ final class CompanionStoreTests: XCTestCase {
         try Data(#"{"active":\#(activeJSON),"usedSinceInstall":5000000000}"#.utf8).write(to: url)
 
         let s = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                               fileURL: url, rng: SeededRNG(seed: 7))
+                               fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
         XCTAssertEqual(s.dexSpecies.map(\.id), [1, 2], "육성 중 도달분")
         XCTAssertTrue(s.buyFreshEgg())
 
@@ -771,7 +771,7 @@ final class CompanionStoreTests: XCTestCase {
         try Data(#"{"active":\#(activeJSON),"usedSinceInstall":5000000000}"#.utf8).write(to: url)
 
         let s = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                               fileURL: url, rng: SeededRNG(seed: 7))
+                               fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
         XCTAssertTrue(s.buyFreshEgg())
         let released = try XCTUnwrap(s.state.dex.last)
         XCTAssertFalse(released.isShiny, "위장 중이면 리빌 전까지 숨김")
@@ -799,14 +799,14 @@ final class CompanionStoreTests: XCTestCase {
         let dexJSON = String(decoding: try JSONEncoder().encode([bare]), as: UTF8.self)
         try Data(#"{"dex":\#(dexJSON),"language":"ko"}"#.utf8).write(to: url)
         return CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                              fileURL: url, rng: SeededRNG(seed: 7))
+                              fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
     }
 
     /// 오프라인(line fetch 실패) + 저장 없음 → chainOrder 전 종을 종 번호(#id)로 폴백.
     func testDexResolveChainNamesOfflineFallback() async {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("poke-\(UUID().uuidString).json")
         let s = CompanionStore(provider: LineThrowsProvider(), clock: { fixedNow },
-                               fileURL: url, rng: SeededRNG(seed: 7))
+                               fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
         let bare = DexEntry(baseID: 1, finalID: 3, chainOrder: [1, 2, 3], rarity: .common, caughtAt: nil)
         let names = await s.dexResolveChainNames(bare)
         XCTAssertEqual(names, [1: "#1", 2: "#2", 3: "#3"])
@@ -962,7 +962,7 @@ final class CompanionStoreTests: XCTestCase {
         try Data(legacy.utf8).write(to: url)
 
         let s = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow }, fileURL: url,
-                               rng: SeededRNG(seed: 7))
+                               rng: SeededRNG(seed: 7), difficulty: 1)
         XCTAssertNil(s.state.claimedTodayTokensByProvider)
 
         s.update(todayTokensByProvider: ["codex": 500], todayDate: "d1", monthTotal: 0,
@@ -1039,7 +1039,7 @@ final class CompanionStoreTests: XCTestCase {
         try json.data(using: .utf8)!.write(to: url)
 
         let s = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                               fileURL: url, rng: SeededRNG(seed: 7))
+                               fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
         XCTAssertTrue(s.state.dex.isEmpty)
         XCTAssertEqual(s.dexEntries.count, 1)
         XCTAssertEqual(s.dexEntries[0].baseID, 529)
@@ -1054,7 +1054,7 @@ final class CompanionStoreTests: XCTestCase {
         try json.data(using: .utf8)!.write(to: url)
 
         let s = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                               fileURL: url, rng: SeededRNG(seed: 7))
+                               fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
         let sorted = s.dexEntriesSorted
 
         XCTAssertEqual(sorted.map(\.id), ["active-1-1", "legacy-graduated"])
@@ -1086,7 +1086,7 @@ final class CompanionStoreTests: XCTestCase {
     func testEggHatchesViaRESTFallbackWhenIndexDown() async {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("poke-\(UUID().uuidString).json")
         let s = CompanionStore(provider: FallbackOnlyProvider(),
-                               clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 7))
+                               clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
         base(s)
         use(s, PokemonBalance.eggHatchThreshold)
         await s.hatchIfNeeded()
@@ -1198,7 +1198,7 @@ final class CompanionStoreTests: XCTestCase {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("poke-\(UUID().uuidString).json")
         let json = #"{"installBaselineSet":true,"usedSinceInstall":5,"claimedTodayTokens":5,"lastDate":"d","active":null,"dex":[{"baseID":265,"finalID":266,"chainOrder":[265,266],"rarity":"common"}],"collectedFinals":["265:266"],"language":"ko"}"#
         try Data(json.utf8).write(to: url)
-        let s = CompanionStore(provider: StubProvider(value: wurmpleLine), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 1))
+        let s = CompanionStore(provider: StubProvider(value: wurmpleLine), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 1), difficulty: 1)
         await s.hatch(baseID: 265)
 
         XCTAssertEqual(s.lineNodes, [
@@ -1250,7 +1250,7 @@ final class CompanionStoreTests: XCTestCase {
         let evo = PokemonBalance.phaseThreshold(rarity: .common, totalForms: 2, stageIndex: 0)
         let grad = PokemonBalance.phaseThreshold(rarity: .common, totalForms: 2, stageIndex: 1)
 
-        let s = CompanionStore(provider: StubProvider(value: branch3), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 42))
+        let s = CompanionStore(provider: StubProvider(value: branch3), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 42), difficulty: 1)
 
         // First hatch must pick 12 or 13, never 11
         await s.hatch(baseID: 10)
@@ -1287,7 +1287,7 @@ final class CompanionStoreTests: XCTestCase {
         state1.collectedFinals = ["265:269"]
         try JSONEncoder().encode(state1).write(to: url1)
 
-        let s1 = CompanionStore(provider: StubProvider(value: wurmpleLine), clock: { fixedNow }, fileURL: url1, rng: SeededRNG(seed: 1))
+        let s1 = CompanionStore(provider: StubProvider(value: wurmpleLine), clock: { fixedNow }, fileURL: url1, rng: SeededRNG(seed: 1), difficulty: 1)
         await s1.hatch(baseID: 265)
         XCTAssertEqual(s1.state.active?.plannedPathIDs, [265, 266, 267])
         XCTAssertEqual(s1.state.active?.stageIndex, 0)
@@ -1331,7 +1331,7 @@ final class CompanionStoreTests: XCTestCase {
         state2.collectedFinals = ["265:267"]
         try JSONEncoder().encode(state2).write(to: url2)
 
-        let s2 = CompanionStore(provider: StubProvider(value: wurmpleLine), clock: { fixedNow }, fileURL: url2, rng: SeededRNG(seed: 2))
+        let s2 = CompanionStore(provider: StubProvider(value: wurmpleLine), clock: { fixedNow }, fileURL: url2, rng: SeededRNG(seed: 2), difficulty: 1)
         await s2.hatch(baseID: 265)
         XCTAssertEqual(s2.state.active?.plannedPathIDs, [265, 268, 269])
         XCTAssertEqual(s2.state.active?.stageIndex, 0)
@@ -1376,7 +1376,7 @@ final class CompanionStoreTests: XCTestCase {
         let json = #"{"installBaselineSet":true,"usedSinceInstall":5,"claimedTodayTokens":5,"lastDate":"d","active":null,"dex":[{"baseID":265,"finalID":266,"chainOrder":[265,266],"rarity":"common"},{"baseID":265,"finalID":269,"chainOrder":[265,268,269],"rarity":"common"}],"collectedFinals":["265:269"],"language":"ko"}"#
         try Data(json.utf8).write(to: url)
 
-        let s = CompanionStore(provider: StubProvider(value: wurmpleLine), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 42))
+        let s = CompanionStore(provider: StubProvider(value: wurmpleLine), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 42), difficulty: 1)
         await s.hatch(baseID: 265)
 
         // Must pick Silcoon -> Beautifly since Beautifly is still missing!
@@ -1406,7 +1406,7 @@ final class CompanionStoreTests: XCTestCase {
             ]
             try JSONEncoder().encode(state).write(to: url)
 
-            let s = CompanionStore(provider: StubProvider(value: wurmpleLine), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: UInt64(seed)))
+            let s = CompanionStore(provider: StubProvider(value: wurmpleLine), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: UInt64(seed)), difficulty: 1)
 
             await s.hatch(baseID: 265)
             let plan = try XCTUnwrap(s.state.active?.plannedPathIDs)
@@ -1429,7 +1429,7 @@ final class CompanionStoreTests: XCTestCase {
         let json = #"{"installBaselineSet":true,"usedSinceInstall":5,"claimedTodayTokens":5,"lastDate":"d","active":null,"dex":[{"baseID":43,"finalID":45,"chainOrder":[43,44,45],"rarity":"common"}],"collectedFinals":["43:45"],"language":"ko"}"#
         try Data(json.utf8).write(to: url)
 
-        let s = CompanionStore(provider: StubProvider(value: delayedBranchLine), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 42))
+        let s = CompanionStore(provider: StubProvider(value: delayedBranchLine), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 42), difficulty: 1)
         await s.hatch(baseID: 43)
 
         // Must plan Bellossom (182) route
@@ -1487,7 +1487,7 @@ final class CompanionStoreTests: XCTestCase {
         let json = #"{"installBaselineSet":true,"usedSinceInstall":5,"claimedTodayTokens":5,"lastDate":"d","active":null,"dex":[{"baseID":100,"finalID":105,"chainOrder":[100,104,105],"rarity":"common"}],"collectedFinals":["100:105"],"language":"ko"}"#
         try Data(json.utf8).write(to: url)
 
-        let s = CompanionStore(provider: StubProvider(value: deepLine), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 42))
+        let s = CompanionStore(provider: StubProvider(value: deepLine), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 42), difficulty: 1)
         await s.hatch(baseID: 100)
 
         XCTAssertEqual(s.state.active?.plannedPathIDs, [100, 101, 102, 103])
@@ -1540,7 +1540,7 @@ final class CompanionStoreTests: XCTestCase {
     func testHatchPreselectsWurmpleRouteAndEvolutionDoesNotConsumeRNG() async {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("poke-\(UUID().uuidString).json")
         let rng = CountingRNG(seed: 7)
-        let s = CompanionStore(provider: StubProvider(value: wurmpleLine), clock: { fixedNow }, fileURL: url, rng: rng)
+        let s = CompanionStore(provider: StubProvider(value: wurmpleLine), clock: { fixedNow }, fileURL: url, rng: rng, difficulty: 1)
 
         await s.hatch(baseID: 265)
 
@@ -1562,11 +1562,11 @@ final class CompanionStoreTests: XCTestCase {
 
     func testPersistenceRoundTrip() async {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("poke-persist-\(UUID().uuidString).json")
-        let s1 = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 1))
+        let s1 = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 1), difficulty: 1)
         await s1.hatch(baseID: 1)
         s1.applyUsage(PokemonBalance.phaseThreshold(rarity: .common, totalForms: 3, stageIndex: 0))
         s1.setLanguage(.ja)
-        let s2 = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 1))
+        let s2 = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 1), difficulty: 1)
         XCTAssertEqual(s2.state.active?.currentID, 2)
         XCTAssertEqual(s2.state.active?.stageIndex, 1)
         XCTAssertEqual(s2.language, .ja)
@@ -1576,7 +1576,7 @@ final class CompanionStoreTests: XCTestCase {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("poke-repeat-persist-\(UUID().uuidString).json")
         let s1 = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                                fileURL: url, rng: SeededRNG(seed: 1))
+                                fileURL: url, rng: SeededRNG(seed: 1), difficulty: 1)
         await s1.hatch(baseID: 1)
         for stage in 0..<3 {
             s1.applyUsage(PokemonBalance.phaseThreshold(
@@ -1586,7 +1586,7 @@ final class CompanionStoreTests: XCTestCase {
         XCTAssertTrue(s1.state.active?.hasGrowthBoost == true)
 
         let s2 = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                                fileURL: url, rng: SeededRNG(seed: 1))
+                                fileURL: url, rng: SeededRNG(seed: 1), difficulty: 1)
         XCTAssertTrue(s2.state.active?.hasGrowthBoost == true)
         XCTAssertEqual(s2.tokensToNext, 62_500_000)
 
@@ -1599,14 +1599,14 @@ final class CompanionStoreTests: XCTestCase {
     func testReloadPreservesCompleteShortPlannedRouteLength() async {
         let line = makeLine(base: 1, tree: node(1, [node(2), node(3, [node(4)])]))
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("poke-reload-plan-\(UUID().uuidString).json")
-        let s1 = CompanionStore(provider: StubProvider(value: line), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 7))
+        let s1 = CompanionStore(provider: StubProvider(value: line), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
         await s1.hatch(baseID: 1)
         XCTAssertEqual(s1.state.active?.plannedPathIDs, [1, 2], "seed selects the short complete route")
 
         var opposing = SeededRNG(seed: 1)
         XCTAssertEqual(opposing.next() % 2, 1, "a reroll would select the opposite branch (3)")
         let rng = CountingRNG(seed: 1)
-        let s2 = CompanionStore(provider: StubProvider(value: line), clock: { fixedNow }, fileURL: url, rng: rng)
+        let s2 = CompanionStore(provider: StubProvider(value: line), clock: { fixedNow }, fileURL: url, rng: rng, difficulty: 1)
         s2.update(todayTokensByProvider: ["test": 0], todayDate: "d1", monthTotal: 0,
                   burnTier: .idle, limitWarning: false, hasUsageData: true)
         let loaded = await waitUntil { s2.currentLine != nil }
@@ -1627,7 +1627,7 @@ final class CompanionStoreTests: XCTestCase {
         let legacy = #"{"active":{"baseID":265,"pathIDs":[265],"stageIndex":0,"usedAtStage":0,"rarity":"common","totalForms":1}}"#
         try Data(legacy.utf8).write(to: url)
         let rng = CountingRNG(seed: 7)
-        let s = CompanionStore(provider: StubProvider(value: line), clock: { fixedNow }, fileURL: url, rng: rng)
+        let s = CompanionStore(provider: StubProvider(value: line), clock: { fixedNow }, fileURL: url, rng: rng, difficulty: 1)
 
         s.update(todayTokensByProvider: ["test": 0], todayDate: "d1", monthTotal: 0,
                  burnTier: .idle, limitWarning: false, hasUsageData: true)
@@ -1641,7 +1641,7 @@ final class CompanionStoreTests: XCTestCase {
         XCTAssertEqual(rng.callCount, 2, "Wurmple suffix selection rolls once per evolution edge")
 
         let reloadRNG = CountingRNG(seed: 1)
-        let reloaded = CompanionStore(provider: StubProvider(value: line), clock: { fixedNow }, fileURL: url, rng: reloadRNG)
+        let reloaded = CompanionStore(provider: StubProvider(value: line), clock: { fixedNow }, fileURL: url, rng: reloadRNG, difficulty: 1)
         reloaded.update(todayTokensByProvider: ["test": 0], todayDate: "d1", monthTotal: 0,
                         burnTier: .idle, limitWarning: false, hasUsageData: true)
         let reloadedLine = await waitUntil { reloaded.currentLine != nil }
@@ -1654,7 +1654,7 @@ final class CompanionStoreTests: XCTestCase {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("poke-invalid-plan-\(UUID().uuidString).json")
         let saved = #"{"active":{"baseID":265,"pathIDs":[265,266],"plannedPathIDs":[265,266,269],"stageIndex":1,"usedAtStage":42,"rarity":"common","totalForms":3}}"#
         try Data(saved.utf8).write(to: url)
-        let s = CompanionStore(provider: StubProvider(value: wurmpleLine), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 9))
+        let s = CompanionStore(provider: StubProvider(value: wurmpleLine), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 9), difficulty: 1)
 
         s.update(todayTokensByProvider: ["test": 0], todayDate: "d1", monthTotal: 0,
                  burnTier: .idle, limitWarning: false, hasUsageData: true)
@@ -1672,7 +1672,7 @@ final class CompanionStoreTests: XCTestCase {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("poke-wrong-root-\(UUID().uuidString).json")
         let saved = #"{"active":{"baseID":265,"pathIDs":[999],"plannedPathIDs":[999],"stageIndex":0,"usedAtStage":42,"rarity":"common","totalForms":1,"isShiny":true,"nature":"timid","dittoDisguise":265}}"#
         try Data(saved.utf8).write(to: url)
-        let s = CompanionStore(provider: StubProvider(value: wurmpleLine), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 9))
+        let s = CompanionStore(provider: StubProvider(value: wurmpleLine), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 9), difficulty: 1)
 
         s.update(todayTokensByProvider: ["test": 0], todayDate: "d1", monthTotal: 0,
                  burnTier: .idle, limitWarning: false, hasUsageData: true)
@@ -1693,7 +1693,7 @@ final class CompanionStoreTests: XCTestCase {
         let saved = #"{"active":{"baseID":265,"pathIDs":[265,266,267],"plannedPathIDs":[265,266,267],"stageIndex":2,"usedAtStage":42,"rarity":"common","totalForms":3}}"#
         try Data(saved.utf8).write(to: url)
         let rng = CountingRNG(seed: 9)
-        let s = CompanionStore(provider: StubProvider(value: wurmpleLine), clock: { fixedNow }, fileURL: url, rng: rng)
+        let s = CompanionStore(provider: StubProvider(value: wurmpleLine), clock: { fixedNow }, fileURL: url, rng: rng, difficulty: 1)
 
         s.update(todayTokensByProvider: ["test": 0], todayDate: "d1", monthTotal: 0,
                  burnTier: .idle, limitWarning: false, hasUsageData: true)
@@ -1710,7 +1710,7 @@ final class CompanionStoreTests: XCTestCase {
         let saved = #"{"active":{"baseID":1,"pathIDs":[1],"stageIndex":0,"usedAtStage":0,"rarity":"common","totalForms":1,"nature":"adamant"},"inventory":{"mint":1}}"#
         try Data(saved.utf8).write(to: url)
         let provider = SuspendedLineProvider(value: linear3)
-        let s = CompanionStore(provider: provider, clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 7))
+        let s = CompanionStore(provider: provider, clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
 
         s.update(todayTokensByProvider: ["test": 0], todayDate: "d1", monthTotal: 0,
                  burnTier: .idle, limitWarning: false, hasUsageData: true)
@@ -1750,7 +1750,7 @@ final class CompanionStoreTests: XCTestCase {
     func testAsymmetricBranchGraduatesSafely() async {
         let line = makeLine(base: 1, tree: node(1, [node(2), node(3, [node(4)])]))   // depth=3, 분기 {2, 3→4}
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("poke-asym-\(UUID().uuidString).json")
-        let s = CompanionStore(provider: StubProvider(value: line), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 7))
+        let s = CompanionStore(provider: StubProvider(value: line), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
         await s.hatch(baseID: 1)
         XCTAssertEqual(s.state.active?.totalForms, s.state.active?.plannedPathIDs.count,
                        "totalForms = 선택된 계획 경로 길이")
@@ -1875,7 +1875,7 @@ final class DexSortingTests: XCTestCase {
         let provider = MutableProvider()
         let s = CompanionStore(provider: provider,
                                clock: { fixedNow.addingTimeInterval(TimeInterval(tick)) },
-                               fileURL: url, rng: SeededRNG(seed: 3))
+                               fileURL: url, rng: SeededRNG(seed: 3), difficulty: 1)
 
         // legendary (가장 먼저 — 희귀도 우선 정렬이면 맨 앞으로 올라온다)
         provider.line = makeLine(base: 200, tree: node(200), rarity: .legendary)
@@ -1918,7 +1918,7 @@ private final class MutableProvider: PokeProviding, @unchecked Sendable {
 final class CompanionIdentityTests: XCTestCase {
     private func store(_ line: EvoLine, seed: UInt64) -> CompanionStore {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("poke-\(UUID().uuidString).json")
-        return CompanionStore(provider: StubProvider(value: line), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: seed))
+        return CompanionStore(provider: StubProvider(value: line), clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: seed), difficulty: 1)
     }
 
     /// 직접 hatch(baseID:) 는 rng 를 shiny → nature 순으로 소비한다. 같은 시드 재생으로 기대값 산출.
@@ -2033,14 +2033,14 @@ final class CompanionIdentityTests: XCTestCase {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("poke-\(UUID().uuidString).json")
         // 1차 스토어: 부화 후 저장
         let s1 = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                                fileURL: url, rng: SeededRNG(seed: 5))
+                                fileURL: url, rng: SeededRNG(seed: 5), difficulty: 1)
         s1.update(todayTokensByProvider: ["test": 0], todayDate: "d1", monthTotal: 0, burnTier: .idle, limitWarning: false, hasUsageData: true)
         await s1.hatch(baseID: 1)
         XCTAssertNotNil(s1.state.active)
 
         // 2차 스토어(재시작 시뮬레이션): active 는 로드됐지만 currentLine 은 nil
         let s2 = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
-                                fileURL: url, rng: SeededRNG(seed: 5))
+                                fileURL: url, rng: SeededRNG(seed: 5), difficulty: 1)
         XCTAssertNotNil(s2.state.active)
         XCTAssertNil(s2.currentLine)
         // 라인 없는 상태에서 stage0 임계(125M) 초과 델타 → 유실 없이 적립, 진화는 보류
@@ -2063,7 +2063,7 @@ final class CompanionIdentityTests: XCTestCase {
         try Data(json.utf8).write(to: url)
         let supportedLine = makeLine(base: 56, tree: node(56, [node(57, [node(1026)])]))
         let s = CompanionStore(provider: StubProvider(value: supportedLine), clock: { fixedNow },
-                               fileURL: url, rng: SeededRNG(seed: 5))
+                               fileURL: url, rng: SeededRNG(seed: 5), difficulty: 1)
 
         s.update(todayTokensByProvider: ["test": 0], todayDate: "d1", monthTotal: 0,
                  burnTier: .idle, limitWarning: false, hasUsageData: true)
@@ -2117,7 +2117,7 @@ final class CompanionIdentityTests: XCTestCase {
                               preloadState: CompanionState? = nil) -> CompanionStore {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("poke-\(UUID().uuidString).json")
         if let st = preloadState, let data = try? JSONEncoder().encode(st) { try? data.write(to: url) }
-        return CompanionStore(provider: provider, clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: seed))
+        return CompanionStore(provider: provider, clock: { fixedNow }, fileURL: url, rng: SeededRNG(seed: seed), difficulty: 1)
     }
 
     /// 알을 임계 이상으로 채운 상태(installBaseline 포함) — rng 미소비 경로.
@@ -2355,7 +2355,7 @@ final class CompanionIdentityTests: XCTestCase {
             fileURL: url,
             rng: SeededRNG(seed: 42),
             dittoDisguiseRollingEnabled: false
-        )
+        , difficulty: 1)
 
         XCTAssertTrue(store.isEgg)
         XCTAssertEqual(store.eggProgress, 1.0)
@@ -2385,7 +2385,7 @@ final class CompanionIdentityTests: XCTestCase {
             fileURL: url,
             rng: SeededRNG(seed: 42),
             dittoDisguiseRollingEnabled: false
-        )
+        , difficulty: 1)
 
         // 오프라인 부화 실패로 플래그 true 설정
         await store.hatchIfNeeded()

@@ -69,6 +69,10 @@ struct EggDesign {
     var outline: EggColor
     /// Light drawn over the outline, so thin sparks keep their color.
     var glow: (inout EggCanvas, EggFrame) -> Void = { _, _ in }
+    /// The egg's height against the others', and where it stands: smaller and higher leaves room for what hangs under
+    /// it (the Friendship Egg's balloon basket).
+    var scale = 1.0
+    var center = 35.0
 }
 
 /// The custom eggs: a gem for each rarer guarantee, one per type and Type: Null's, each its own shape and things around
@@ -82,8 +86,8 @@ enum EggDesigns {
     static func render(_ design: EggDesign, phase: Double) -> CGImage? {
         var canvas = EggCanvas(size: pixels)
         let frame = EggFrame(phase: phase, yaw: 0.52 * sin(phase), tilt: 0.09 * cos(phase),
-                             lift: Int((2 * sin(phase)).rounded()), cx: Double(pixels) / 2, cy: 35,
-                             unitsPerPixel: 2 / eggHeight)
+                             lift: Int((2 * sin(phase)).rounded()), cx: Double(pixels) / 2, cy: design.center,
+                             unitsPerPixel: 2 / (eggHeight * design.scale))
         design.back(&canvas, frame)
         drawEgg(&canvas, frame, design.surface)
         design.front(&canvas, frame)
@@ -226,6 +230,8 @@ enum EggDesigns {
         case .type(let type): return design(for: type)
         case .typeNull: return typeNull
         case .birthday: return birthdaySurprise
+        case .event(let event): return EventEggArt.design(event)
+        case .fossil: return FossilEggArt.design
         case .tier(.uncommon): return emerald
         case .tier(.rare): return sapphire
         case .tier(.legendary): return legendary

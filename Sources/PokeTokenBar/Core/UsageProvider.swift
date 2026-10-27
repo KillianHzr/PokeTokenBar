@@ -34,8 +34,6 @@ struct ProviderEnrichment: Sendable {
     /// Newest entry with tokens. Unlike week/month totals it does not reset at a calendar boundary,
     /// so it keeps the tab (and its official limits) of a provider used recently but not today (#336).
     var lastUsage: Date? = nil
-    /// The last week's tokens, minute by minute, for the limit windows' candy grants. Gated by `periodsOK`.
-    var recentTokens: TokenTimeline? = nil
 }
 
 extension ProviderEnrichment {
@@ -71,7 +69,6 @@ extension ProviderEnrichment {
         result.periodsOK = true
         // Zero-token `<synthetic>` records are not use: an installed-only provider stays hidden (#56).
         result.lastUsage = entries.lazy.filter { $0.total > 0 }.map(\.date).max()
-        result.recentTokens = TokenTimeline(entries: entries, now: now)
         return result
     }
 }

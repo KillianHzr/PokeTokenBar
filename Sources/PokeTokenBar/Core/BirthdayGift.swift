@@ -47,9 +47,8 @@ struct Birthday: Codable, Hashable, Sendable {
     }
 }
 
-/// The birthday gift: a Birthday Egg, once a year per save. It waits a week after the birthday, in case the Mac stays
-/// off that day; a save that never got one can still claim the last birthday's for three months, so that a birthday
-/// just before the player entered it, or before the gift existed, is not lost.
+/// The birthday gift: a Birthday Egg, once a year per save. From the birthday on, the player claims it the first time they
+/// open the app, up to three months later: on holiday, with the Mac off, or before they entered the date.
 enum BirthdayGift {
     static let claimDays = 7
     static let catchUpMonths = 3
@@ -57,22 +56,24 @@ enum BirthdayGift {
     enum Occasion: Equatable, Sendable {
         /// The birthday's week.
         case birthday
-        /// A first gift, for a birthday a little while ago.
+        /// After the birthday's week, within three months.
         case belated
     }
 
     /// The gift claimable at `now`: its birthday's year and the occasion. Nil when no birthday is set, its gift was
     /// claimed, or its time has passed. A birthday in the last days of December claimed in January counts for the
-    /// year before, so the next one still brings a gift.
-    static func claimable(birthday: Birthday?, lastGiftYear: Int?, now: Date,
+    /// year before, so the next one still brings a gift. `changedAfterGiftYear`: the birthday changed after a gift
+    /// claimed that calendar year, so only a later birthday year brings one (a December gift claimed in January, then a
+    /// February date, would otherwise bring two eggs within weeks).
+    static func claimable(birthday: Birthday?, lastGiftYear: Int?, changedAfterGiftYear: Int? = nil, now: Date,
                           calendar: Calendar) -> (year: Int, occasion: Occasion)? {
         guard let birthday else { return nil }
         let last = birthday.last(atOrBefore: now, calendar: calendar)
         let year = calendar.component(.year, from: last)
         if let lastGiftYear, lastGiftYear >= year { return nil }
+        if let changedAfterGiftYear, changedAfterGiftYear >= year { return nil }
         if let week = calendar.date(byAdding: .day, value: claimDays, to: last), now < week { return (year, .birthday) }
-        guard lastGiftYear == nil, let catchUp = calendar.date(byAdding: .month, value: catchUpMonths, to: last),
-              now < catchUp else { return nil }
+        guard let catchUp = calendar.date(byAdding: .month, value: catchUpMonths, to: last), now < catchUp else { return nil }
         return (year, .belated)
     }
 

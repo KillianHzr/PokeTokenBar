@@ -66,6 +66,212 @@ enum Changelog {
     }
 
     static let days: [ChangelogDay] = [
+        ChangelogDay(date: "2026-10-27", entries: [
+            .improved("2026-10-27-achievement-names") { $0.t("업적에서 필요한 포켓몬에 마우스를 올리면 그 이름이 보여요.",
+                                                           "In Achievements, hovering a Pokémon a goal asks for shows its name.",
+                                                           "実績で、条件のポケモンにポインタを重ねると名前が表示されます。",
+                                                           "En Logros, al pasar el cursor por un Pokémon de un objetivo se ve su nombre.",
+                                                           "Dans les Succès, survoler un Pokémon demandé affiche son nom.",
+                                                           "Em Conquistas, passar o cursor sobre um Pokémon de um objetivo mostra o nome dele.",
+                                                           "Bei den Erfolgen zeigt ein Pokémon, das ein Ziel verlangt, beim Darüberfahren seinen Namen.",
+                                                           "В достижениях при наведении на нужного покемона показывается его имя.") },
+            .new("2026-10-27-excavation") { $0.t("발굴: 바위 타입 포켓몬을 4마리 졸업시킬 때마다 화석 알을 하나 받아요(돌 탭, 15번). 화석 알에서는 아직 없는 화석 계열이 무작위로 태어나고, 이미 있는 계열은 발굴한 것으로 쳐요. 화석 포켓몬은 이제 화석 알에서만 태어나요.",
+                                                  "Excavation: every 4 Rock-type Pokémon graduated give a Fossil Egg (Stones tab, 15 digs). It hatches a fossil line you're missing at random; lines you already have count as dug. Fossil Pokémon now hatch from Fossil Eggs only.",
+                                                  "発掘：いわタイプのポケモンを4匹卒業させるたびに化石のタマゴがもらえます(いしタブ、全15回)。まだいない化石の系統がランダムに生まれ、すでにいる系統は発掘済みになります。化石ポケモンは化石のタマゴからしか生まれなくなりました。",
+                                                  "Excavación: cada 4 Pokémon de tipo Roca graduados dan un Huevo Fósil (pestaña Piedras, 15 excavaciones). Nace al azar una línea fósil que te falta; las que ya tienes cuentan como excavadas. Los Pokémon fósiles ya solo nacen de Huevos Fósiles.",
+                                                  "Fouilles : tous les 4 Pokémon de type Roche diplômés, un Œuf fossile (onglet Pierres, 15 fouilles). Il fait éclore au hasard une lignée fossile qui te manque ; celles que tu as déjà comptent comme fouillées. Les Pokémon fossiles n'éclosent plus que des Œufs fossiles.",
+                                                  "Escavação: a cada 4 Pokémon do tipo Pedra formados, um Ovo Fóssil (aba Pedras, 15 escavações). Nasce ao acaso uma linha fóssil que falta; as que você já tem contam como escavadas. Pokémon fósseis agora só nascem de Ovos Fósseis.",
+                                                  "Ausgrabung: Alle 4 verabschiedeten Gestein-Pokémon gibt es ein Fossil-Ei (Tab Steine, 15 Ausgrabungen). Daraus schlüpft zufällig eine fehlende Fossil-Linie; vorhandene Linien gelten als ausgegraben. Fossil-Pokémon schlüpfen jetzt nur noch aus Fossil-Eiern.",
+                                                  "Раскопки: каждые 4 выпущенных покемона каменного типа дают Яйцо-окаменелость (вкладка «Камни», 15 раскопок). Из него вылупляется случайная недостающая линия окаменелостей; уже имеющиеся считаются раскопанными. Покемоны-окаменелости теперь вылупляются только из Яиц-окаменелостей.") },
+            .fixed("2026-10-27-contrast") { $0.t("밝은 테마와 어두운 테마 모두에서 초록·주황 글자와 배지, 아직 없는 폼과 도감 칸이 더 잘 보여요.",
+                                                  "Green and orange text and badges, forms not caught yet and the Pokédex's missing species read better in both light and dark mode.",
+                                                  "ライトとダークの両方で、緑やオレンジの文字とバッジ、まだいないフォルムや図鑑のマスが見やすくなりました。",
+                                                  "Los textos e insignias verdes y naranjas, las formas aún no obtenidas y las especies que faltan en la Pokédex se leen mejor en modo claro y oscuro.",
+                                                  "Les textes et badges verts et orange, les formes pas encore obtenues et les espèces manquantes du Pokédex se lisent mieux en thème clair comme en sombre.",
+                                                  "Textos e selos verdes e laranja, formas ainda não obtidas e espécies que faltam na Pokédex ficam mais legíveis nos modos claro e escuro.",
+                                                  "Grüne und orange Texte und Abzeichen, noch fehlende Formen und die fehlenden Arten im Pokédex sind im hellen und dunklen Modus besser lesbar.",
+                                                  "Зелёный и оранжевый текст и значки, ещё не полученные формы и недостающие виды в покедексе лучше читаются в светлой и тёмной теме.") },
+            .new("2026-10-27-whole-pokedex") { $0.t("도감이 모든 포켓몬을 지방별로 보여 줘요(TokenDex처럼). 지방마다 진행률과 희귀도, 아직 없는 종은 번호로. 전체·보유·미보유로 골라 볼 수 있어요.",
+                                                     "The Pokédex shows every Pokémon region by region, as TokenDex does: each region's progress and rarities, the species you're missing by their number. Switch between All, Caught and Missing.",
+                                                     "図鑑がすべてのポケモンを地方ごとに表示します(TokenDexのように)。地方ごとの進み具合とレア度、まだいない種は番号で。すべて・入手済み・未入手を切り替えられます。",
+                                                     "La Pokédex muestra todos los Pokémon región por región, como TokenDex: el progreso y las rarezas de cada región, y las especies que te faltan por su número. Cambia entre Todos, Obtenidos y Faltan.",
+                                                     "Le Pokédex montre tous les Pokémon région par région, comme TokenDex : la progression et les raretés de chaque région, et les espèces qui te manquent par leur numéro. Passe de Tous à Obtenus ou Manquants.",
+                                                     "A Pokédex mostra todos os Pokémon região por região, como o TokenDex: o progresso e as raridades de cada região, e as espécies que faltam pelo número. Alterne entre Todos, Obtidos e Faltando.",
+                                                     "Der Pokédex zeigt alle Pokémon Region für Region, wie TokenDex: Fortschritt und Seltenheiten jeder Region, fehlende Arten mit ihrer Nummer. Wechsle zwischen Alle, Gefangen und Fehlend.",
+                                                     "Покедекс показывает всех покемонов по регионам, как TokenDex: прогресс и редкость каждого региона, а недостающие виды по номеру. Переключайтесь между «Все», «Пойманы» и «Не хватает».") },
+            .new("2026-10-27-stats-page") { $0.t("통계 페이지: 홈의 차트 버튼으로 이번 달 일별 그래프, 주·월·년 요약과 그 날짜별 표(토큰, 졸업한 포켓몬), 컬렉션 숫자를 한곳에서 봐요.",
+                                                  "A Stats page: Home's chart button gathers this month day by day, the recap of a week, a month or a year with a table of its days (tokens, Pokémon graduated), and your collection in numbers.",
+                                                  "統計ページ：ホームのグラフボタンで、今月の日ごとのグラフ、週・月・年のまとめと日ごとの表(トークン、卒業したポケモン)、コレクションの数字をまとめて見られます。",
+                                                  "Una página de Estadísticas: el botón de gráfico de Inicio reúne este mes día a día, el resumen de una semana, un mes o un año con una tabla de sus días (tokens, Pokémon graduados) y tu colección en cifras.",
+                                                  "Une page Statistiques : le bouton graphique de l'accueil réunit ce mois jour par jour, le récap d'une semaine, d'un mois ou d'une année avec le tableau de ses jours (tokens, Pokémon diplômés) et ta collection en chiffres.",
+                                                  "Uma página de Estatísticas: o botão de gráfico do Início reúne este mês dia a dia, o resumo de uma semana, um mês ou um ano com uma tabela dos dias (tokens, Pokémon formados) e sua coleção em números.",
+                                                  "Eine Statistikseite: Der Diagramm-Knopf der Startseite vereint diesen Monat Tag für Tag, den Rückblick auf eine Woche, einen Monat oder ein Jahr mit einer Tabelle seiner Tage (Tokens, verabschiedete Pokémon) und deine Sammlung in Zahlen.",
+                                                  "Страница статистики: кнопка графика на главной собирает этот месяц по дням, итоги недели, месяца или года с таблицей дней (токены, выпущенные покемоны) и вашу коллекцию в цифрах.") },
+            .new("2026-10-27-ideas") { $0.t("아이디어나 버그를 앱에서 바로 보낼 수 있어요(전구 버튼). GitHub 이슈로 올라가고, GitHub CLI로 로그인돼 있으면 앱이 직접 올려요.",
+                                             "Send an idea or a bug from the app (the light bulb button): it becomes a GitHub issue, posted by the app itself when the GitHub CLI is signed in.",
+                                             "アプリからアイデアやバグを送れます(電球ボタン)。GitHubのissueになり、GitHub CLIでログインしていればアプリが直接投稿します。",
+                                             "Envía una idea o un error desde la app (el botón de la bombilla): se convierte en una issue de GitHub, que la app publica sola si la CLI de GitHub tiene la sesión iniciada.",
+                                             "Propose une idée ou signale un bug depuis l'app (le bouton ampoule) : ça devient une issue GitHub, publiée par l'app elle-même si la CLI GitHub est connectée.",
+                                             "Envie uma ideia ou um bug pelo app (o botão da lâmpada): vira uma issue no GitHub, publicada pelo próprio app se a CLI do GitHub estiver conectada.",
+                                             "Schick eine Idee oder einen Fehler aus der App (der Glühbirnen-Knopf): Daraus wird ein GitHub-Issue, das die App selbst postet, wenn die GitHub-CLI angemeldet ist.",
+                                             "Отправьте идею или ошибку из приложения (кнопка с лампочкой): она станет issue на GitHub, а если GitHub CLI авторизован, приложение опубликует её само.") },
+            .improved("2026-10-27-whats-new-updates") { $0.t("새 소식이 업데이트별로 새 기능, 개선, 수정으로 나뉘어 보이고, 신문 아이콘으로 바뀌었어요.",
+                                                             "What's New now shows each update with its changes grouped as new, improved and fixed, behind a newspaper icon.",
+                                                             "最新情報がアップデートごとに新機能・改善・修正に分かれて表示され、新聞のアイコンになりました。",
+                                                             "Novedades muestra cada actualización con sus cambios agrupados en nuevos, mejoras y correcciones, tras un icono de periódico.",
+                                                             "Les Nouveautés montrent chaque mise à jour, ses changements regroupés en nouveautés, améliorations et corrections, derrière une icône de journal.",
+                                                             "Novidades mostra cada atualização com as mudanças agrupadas em novas, melhorias e correções, atrás de um ícone de jornal.",
+                                                             "Neuigkeiten zeigen jedes Update mit seinen Änderungen nach neu, verbessert und behoben, hinter einem Zeitungssymbol.",
+                                                             "«Что нового» показывает каждое обновление, разбив изменения на новое, улучшения и исправления, за значком газеты.") },
+            .improved("2026-10-27-light-ball-rewards") { l in
+                let ball = l.itemName(.lightBall), list = l.rewardsList(ItemKind.lightBall.achievementRewards)
+                return l.t("\(KoreanParticle.subject.attach(to: ball)) 이제 피츄 계열을 빨리 키우는 대신 가방에 넣어 줘요: \(list). 이미 가진 플레이어도 한 번 받아요.",
+                           "The \(ball) no longer speeds up Pikachu's line, which you stop raising once every costume is yours: it now puts in your Bag \(list). Players who already have it get them once.",
+                           "\(ball)はピカチュウ系統を早く育てるかわりに、バッグに入れてくれます：\(list)。すでに持っているプレイヤーも1回もらえます。",
+                           "La \(ball) ya no acelera la línea de Pikachu, que dejas de criar al tener todos los disfraces: ahora pone en tu bolsa \(list). Quien ya la tenía los recibe una vez.",
+                           "La \(ball) n'accélère plus la lignée de Pikachu, qu'on n'élève plus une fois tous les costumes obtenus : elle met maintenant dans ton sac \(list). Ceux qui l'avaient déjà les reçoivent une fois.",
+                           "A \(ball) não acelera mais a linha do Pikachu, que você para de criar ao ter todas as fantasias: agora coloca na sua bolsa \(list). Quem já tinha recebe uma vez.",
+                           "Der \(ball) beschleunigt nicht mehr Pikachus Reihe, die du mit allen Kostümen nicht mehr aufziehst: Er legt jetzt in deinen Beutel \(list). Wer ihn schon hat, bekommt sie einmal.",
+                           "«\(ball)» больше не ускоряет линию Пикачу, которую уже не растят, собрав все костюмы: теперь он кладёт в сумку \(list). Те, у кого он уже был, получат их один раз.")
+            },
+            .new("2026-10-27-forms-achievements") { $0.t("업적에 폼 탭이 생겼어요. 로토무, 메테노, 마휘핑, 비비용, 안농 등 10종의 모든 폼을 졸업시키면 이상한 사탕, 알, 또는 새 폼으로 태어난 포켓몬마다 사탕을 주는 로토무카탈로그를 받아요.",
+                                                           "A Forms tab in Achievements: graduate every form of Rotom, Minior, Alcremie, Vivillon, Unown and five more species to earn Rare Candies, eggs, or the Rotom Catalog, which gives a candy for each Pokémon hatched in a new form.",
+                                                           "実績にフォルムのタブができました。ロトム、メテノ、マホイップ、ビビヨン、アンノーンなど10種のすべてのフォルムを卒業させると、ふしぎなアメやタマゴ、新しいフォルムで生まれたポケモンごとにアメをくれるロトムのカタログがもらえます。",
+                                                           "Una pestaña Formas en Logros: gradúa todas las formas de Rotom, Minior, Alcremie, Vivillon, Unown y otras cinco especies para ganar Caramelos Raros, huevos o el Catálogo Rotom, que da un caramelo por cada Pokémon que nace en una forma nueva.",
+                                                           "Un onglet Formes dans les Succès : diplôme toutes les formes de Motisma, Météno, Charmilly, Prismillon, Zarbi et cinq autres espèces pour gagner des Super Bonbons, des œufs ou le Moti-Catalogue, qui donne un bonbon pour chaque Pokémon éclos dans une nouvelle forme.",
+                                                           "Uma aba Formas em Conquistas: forme todas as formas de Rotom, Minior, Alcremie, Vivillon, Unown e mais cinco espécies para ganhar Doces Raros, ovos ou o Catálogo Rotom, que dá um doce por cada Pokémon que nasce numa forma nova.",
+                                                           "Ein Formen-Tab bei den Erfolgen: Verabschiede jede Form von Rotom, Meteno, Pokusan, Vivillon, Icognito und fünf weiteren Arten für Sonderbonbons, Eier oder den Rotom-Katalog, der für jedes in einer neuen Form geschlüpfte Pokémon ein Bonbon gibt.",
+                                                           "Вкладка «Формы» в достижениях: выпустите все формы Ротома, Минёра, Алкреми, Вивиллона, Аноуна и ещё пяти видов, чтобы получить Редкие конфеты, яйца или Каталог Ротома, который дарит конфету за каждого покемона, вылупившегося в новой форме.") },
+            .fixed("2026-10-27-form-names-whole") { $0.t("도감 페이지에서 긴 폼 이름(비비용의 무늬, 마휘핑의 데코)과 포켓몬 이름이 잘리지 않고 다 보여요.",
+                                                         "Long form names on Pokédex pages (Vivillon's patterns, Alcremie's sweets) and the Pokémon's name above them now show whole instead of being cut.",
+                                                         "図鑑ページの長いフォルム名(ビビヨンのもよう、マホイップのデコ)とポケモンの名前が、切れずに全部表示されます。",
+                                                         "Los nombres de forma largos de la Pokédex (diseños de Vivillon, dulces de Alcremie) y el nombre del Pokémon se ven enteros en vez de cortarse.",
+                                                         "Les noms de forme longs des pages du Pokédex (motifs de Prismillon, douceurs de Charmilly) et le nom du Pokémon s'affichent en entier au lieu d'être coupés.",
+                                                         "Nomes de forma longos da Pokédex (padrões de Vivillon, doces de Alcremie) e o nome do Pokémon aparecem inteiros em vez de cortados.",
+                                                         "Lange Formnamen auf Pokédex-Seiten (Vivillons Muster, Pokusans Naschereien) und der Name des Pokémon werden ganz angezeigt statt abgeschnitten.",
+                                                         "Длинные названия форм на страницах покедекса (узоры Вивиллона, сладости Алкреми) и имя покемона теперь видны целиком, а не обрезаны.") },
+            .fixed("2026-10-27-badges-wrap") { $0.t("포획 로그와 홈의 배지가 길면 캡슐 안에서 깨지지 않고 다음 줄로 넘어가요.",
+                                                      "Badges in the catch log and on Home go to a second line when they are long, instead of breaking inside their capsule.",
+                                                      "捕獲ログとホームのバッジが長いときは、カプセルの中で折れずに次の行へ回ります。",
+                                                      "Las insignias del registro de capturas y de Inicio pasan a una segunda línea cuando son largas, en lugar de partirse dentro de su cápsula.",
+                                                      "Les badges du journal de captures et de l'accueil passent à la ligne quand ils sont longs, au lieu de se casser dans leur pastille.",
+                                                      "Os selos do registro de capturas e do Início vão para uma segunda linha quando são longos, em vez de quebrar dentro da cápsula.",
+                                                      "Lange Abzeichen im Fangprotokoll und auf der Startseite rutschen in eine zweite Zeile, statt in ihrer Kapsel umzubrechen.",
+                                                      "Длинные значки в журнале поимок и на главной переносятся на вторую строку, а не ломаются внутри своей капсулы.") },
+            .new("2026-10-27-event-eggs") { $0.t("이벤트 알: 크리스마스, 새해, 밸런타인데이, 포켓몬 데이, 부활절, 핼러윈, 계절의 시작, 첫 포획 기념일마다 그날의 알이 와요. 이벤트 동안이나 그 뒤 2주 안에 받으면 그 이벤트의 포켓몬이 태어나요. 대부분 이로치예요.",
+                                                 "Event eggs: Christmas, New Year, Valentine's Day, Pokémon Day, Easter, Halloween, each season's start and the anniversary of your first catch bring an egg of their own. Take it during the event or the two weeks after; it hatches the event's Pokémon, most of them shiny.",
+                                                 "イベントのタマゴ：クリスマス、お正月、バレンタイン、ポケモンデー、イースター、ハロウィン、季節の始まり、最初の捕獲の記念日に専用のタマゴが届きます。イベント中かその後2週間に受け取ると、イベントのポケモンが生まれます。ほとんどが色違いです。",
+                                                 "Huevos de evento: Navidad, Año Nuevo, San Valentín, el Día de Pokémon, Pascua, Halloween, el inicio de cada estación y el aniversario de tu primera captura traen su propio huevo. Recógelo durante el evento o las dos semanas siguientes; nace un Pokémon del evento, casi siempre variocolor.",
+                                                 "Œufs d'événement : Noël, le Nouvel An, la Saint-Valentin, la Journée Pokémon, Pâques, Halloween, le début de chaque saison et l'anniversaire de ta première capture apportent chacun leur œuf. Récupère-le pendant l'événement ou les deux semaines suivantes : il fait éclore un Pokémon de l'événement, chromatique la plupart du temps.",
+                                                 "Ovos de evento: Natal, Ano Novo, Dia dos Namorados, Dia Pokémon, Páscoa, Halloween, o início de cada estação e o aniversário da sua primeira captura trazem um ovo próprio. Pegue durante o evento ou nas duas semanas seguintes; dele nasce um Pokémon do evento, quase sempre brilhante.",
+                                                 "Event-Eier: Weihnachten, Neujahr, Valentinstag, Pokémon-Tag, Ostern, Halloween, jeder Jahreszeitbeginn und der Jahrestag deines ersten Fangs bringen ihr eigenes Ei. Hol es während des Events oder in den zwei Wochen danach; daraus schlüpft ein Pokémon des Events, meist schillernd.",
+                                                 "Яйца событий: Рождество, Новый год, День святого Валентина, День покемонов, Пасха, Хэллоуин, начало каждого сезона и годовщина вашей первой поимки приносят своё яйцо. Заберите его во время события или в две недели после; из него вылупится покемон события, чаще всего сияющий.") },
+            .fixed("2026-10-27-cursor-login") { $0.t("Cursor가 로그인을 갱신한 뒤에도 Cursor 사용량이 예전 숫자에 멈추지 않고 계속 업데이트돼요.",
+                                                     "Cursor usage keeps updating after Cursor renews its login, instead of freezing on old numbers.",
+                                                     "Cursorがログインを更新したあとも、Cursorの使用量が古い数字で止まらずに更新されます。",
+                                                     "El uso de Cursor sigue actualizándose después de que Cursor renueve su sesión, en lugar de quedarse en cifras antiguas.",
+                                                     "L'utilisation de Cursor continue de se mettre à jour quand Cursor renouvelle sa connexion, au lieu de rester figée.",
+                                                     "O uso do Cursor continua atualizando depois que o Cursor renova o login, em vez de parar em números antigos.",
+                                                     "Die Cursor-Nutzung aktualisiert sich weiter, wenn Cursor seine Anmeldung erneuert, statt bei alten Zahlen stehen zu bleiben.",
+                                                     "Расход Cursor продолжает обновляться после того, как Cursor обновит вход, а не застывает на старых цифрах.") },
+            .improved("2026-10-27-birthday-three-months") { l in
+                let egg = l.itemName(.birthdayEgg)
+                return l.t("\(egg)은 생일부터 3개월 안에 앱을 열면 언제든 받을 수 있어요. 휴가 중이어도 놓치지 않아요.",
+                           "The \(egg) waits for you from your birthday until three months later, so a holiday never makes you miss it.",
+                           "\(egg)は誕生日から3か月以内にアプリを開けばいつでも受け取れます。休暇中でも逃しません。",
+                           "El \(egg) te espera desde tu cumpleaños hasta tres meses después: unas vacaciones no te lo hacen perder.",
+                           "L'\(egg) t'attend de ton anniversaire jusqu'à trois mois après : des vacances ne te le font plus rater.",
+                           "O \(egg) espera por você do aniversário até três meses depois: férias não fazem você perdê-lo.",
+                           "Das \(egg) wartet ab deinem Geburtstag drei Monate auf dich, ein Urlaub kostet es dich nicht mehr.",
+                           "«\(egg)» ждёт вас с дня рождения три месяца, так что отпуск больше не помешает его получить.")
+            },
+            .improved("2026-10-27-menu-bar-companion") { $0.t("메뉴 막대에 오늘 토큰과 비용 대신 진화·부화까지 남은 토큰(↑)과 상점 토큰(¤)을 보여 줘요. 설정에서 바꿀 수 있어요.",
+                          "The menu bar shows the tokens left to evolve or hatch (↑) and your Shop tokens (¤) instead of today's tokens and cost. Choose in Settings.",
+                          "メニューバーに今日のトークンとコストの代わりに、進化・孵化までの残りトークン(↑)とショップのトークン(¤)を表示します。設定で選べます。",
+                          "La barra de menús muestra los tokens que faltan para evolucionar o eclosionar (↑) y tus tokens de la tienda (¤) en lugar de los tokens y el coste de hoy. Elige en Ajustes.",
+                          "La barre des menus affiche les tokens restants avant l'évolution ou l'éclosion (↑) et tes tokens en boutique (¤) au lieu des tokens et du coût du jour. Au choix dans les Réglages.",
+                          "A barra de menus mostra os tokens que faltam para evoluir ou chocar (↑) e seus tokens da loja (¤) em vez dos tokens e do custo de hoje. Escolha nos Ajustes.",
+                          "Die Menüleiste zeigt die Tokens bis zur Entwicklung oder zum Schlüpfen (↑) und deine Shop-Tokens (¤) statt der heutigen Tokens und Kosten. Wählbar in den Einstellungen.",
+                          "В строке меню теперь токены до эволюции или вылупления (↑) и токены магазина (¤) вместо токенов и стоимости за сегодня. Настраивается в настройках.") },
+            .new("2026-10-27-duplicate-badge") { $0.t("홈에서 지금 포켓몬이 100% 중복인지 보여 줘요. 갈 수 있는 모든 종과 폼이 이미 졸업했다면 놓아줘도 잃는 게 없어요. 아니면 \"신규\" 배지에 마우스를 올려 무엇이 추가되는지 볼 수 있어요.",
+                          "Home shows when your Pokémon is a 100% duplicate: every species and form it can bring has graduated, so sending it off loses nothing. Otherwise hover its New badge to see what it adds.",
+                          "いまのポケモンが100%ダブりかホームに表示します。たどり着ける種とフォルムがすべて卒業済みなら、手放しても失うものはありません。そうでなければ「新規」バッジにポインタを重ねると何が増えるか分かります。",
+                          "Inicio muestra si tu Pokémon es 100 % repetido: todas las especies y formas que puede traer ya se graduaron, así que soltarlo no te hace perder nada. Si no, pasa el cursor por su insignia Nuevo para ver qué añade.",
+                          "L'accueil indique quand ton Pokémon est 100 % doublon : toutes les espèces et formes qu'il peut apporter sont diplômées, le laisser partir ne fait rien perdre. Sinon, survole son badge Nouveau pour voir ce qu'il ajoute.",
+                          "O Início mostra quando seu Pokémon é 100% repetido: todas as espécies e formas que ele pode trazer já se formaram, então soltá-lo não faz perder nada. Se não, passe o cursor no selo Novo para ver o que ele adiciona.",
+                          "Die Startseite zeigt, wenn dein Pokémon zu 100 % doppelt ist: Alle Arten und Formen, die es bringen kann, hatten ihren Abschied, es abzugeben kostet nichts. Sonst zeigt das Neu-Abzeichen beim Darüberfahren, was es bringt.",
+                          "Главная показывает, если покемон на 100% дубликат: все виды и формы, которые он может принести, уже выпущены, и отпустить его ничего не стоит. Иначе наведите на значок «Новое», чтобы увидеть, что он добавит.") },
+            .fixed("2026-10-27-birthday-once-a-year") { l in
+                let egg = l.itemName(.birthdayEgg)
+                return l.t("\(egg)을 받은 뒤 생일을 바꿔도 1년 안에 하나 더 받을 수 없어요.",
+                           "Changing your birthday after its \(egg) no longer brings a second one within a year.",
+                           "\(egg)を受け取ったあとに誕生日を変えても、1年以内にもう1つもらうことはできません。",
+                           "Cambiar tu cumpleaños después de recibir su \(egg) ya no da un segundo en el mismo año.",
+                           "Changer ta date d'anniversaire après avoir reçu son \(egg) ne t'en donne plus un deuxième dans l'année.",
+                           "Mudar seu aniversário depois de receber o \(egg) não dá mais um segundo no mesmo ano.",
+                           "Wer seinen Geburtstag nach dem \(egg) ändert, bekommt im selben Jahr kein zweites mehr.",
+                           "Смена дня рождения после получения «\(egg)» больше не даёт второе в течение года.")
+            },
+            .improved("2026-10-27-candies-as-you-go") { l in
+                let candy = l.itemName(.rareCandy)
+                return l.t("사용량 한도가 100%가 될 때까지 기다리지 않고, 차는 만큼 \(candy)을 받아요. Pro 5시간 세션 하나가 1개이고, 더 큰 요금제는 그만큼 더 받아요(Max 20x 세션은 5%마다 1개).",
+                           "\(candy) comes as your usage limits fill, without waiting for 100%: a whole Pro session is one, and a bigger plan pays as many Pro plans as it holds (a Max 20x session, one every 5%).",
+                           "使用量の上限が100%になるのを待たず、埋まるにつれて\(candy)がもらえます。Proの5時間セッション1つで1個、大きなプランはその分多く(Max 20xのセッションは5%ごとに1個)。",
+                           "Los \(candy) llegan a medida que se llenan tus límites de uso, sin esperar al 100%: una sesión Pro entera da uno, y un plan mayor da tantos como planes Pro contiene (una sesión Max 20x, uno cada 5%).",
+                           "Les \(candy) arrivent au fil de tes limites d'utilisation, sans attendre 100 % : une session Pro entière en donne un, et un plan plus grand autant de fois qu'il vaut de plans Pro (une session Max 20x, un tous les 5 %).",
+                           "Os \(candy) chegam conforme seus limites de uso enchem, sem esperar 100%: uma sessão Pro inteira dá um, e um plano maior dá tantos quantos planos Pro ele vale (uma sessão Max 20x, um a cada 5%).",
+                           "\(candy) gibt es, während sich deine Nutzungslimits füllen, ohne auf 100 % zu warten: eine ganze Pro-Sitzung bringt eins, ein größerer Plan so viele, wie er Pro-Pläne enthält (eine Max-20x-Sitzung alle 5 %).",
+                           "«\(candy)» выдаются по мере заполнения лимитов, не дожидаясь 100%: целая сессия Pro даёт одну, а план больше столько, сколько планов Pro он вмещает (сессия Max 20x: одну каждые 5%).")
+            },
+            .improved("2026-10-27-one-difficulty") { $0.t("성장·상점 난이도 설정이 없어지고 모두 10%로 플레이해요. 모두가 고른 값이에요. 지금 알이나 단계의 진행률은 그대로예요.",
+                          "The growth and Shop difficulty settings are gone: everyone plays at 10%, the value every player had chosen. Your current egg or stage keeps its progress.",
+                          "成長とショップの難易度設定がなくなり、みんな10%で遊びます。全員が選んでいた値です。いまのタマゴや段階の進み具合はそのままです。",
+                          "Los ajustes de dificultad de crecimiento y de tienda desaparecen: todos juegan al 10%, el valor que todos habían elegido. Tu huevo o etapa actual conserva su progreso.",
+                          "Les réglages de difficulté de croissance et de boutique disparaissent : tout le monde joue à 10 %, la valeur que chacun avait choisie. Ton œuf ou ton stade en cours garde sa progression.",
+                          "Os ajustes de dificuldade de crescimento e da loja somem: todos jogam a 10%, o valor que todos tinham escolhido. Seu ovo ou estágio atual mantém o progresso.",
+                          "Die Schwierigkeitseinstellungen für Wachstum und Shop entfallen: Alle spielen mit 10 %, dem Wert, den alle gewählt hatten. Dein aktuelles Ei oder deine Stufe behält den Fortschritt.",
+                          "Настройки сложности роста и магазина убраны: все играют на 10%, которые и так выбрали все. Текущее яйцо или стадия сохраняют прогресс.") },
+            .fixed("2026-10-27-claude-sessions-cpu") { $0.t("긴 Claude Code 세션 동안에도 새로고침마다 세션 전체를 다시 읽지 않고 새로 추가된 부분만 읽어요. CPU를 계속 쓰며 Mac을 뜨겁게 하지 않아요.",
+                          "The app no longer reads your whole Claude Code sessions again at every refresh, only what they added: it stops keeping the CPU busy and heating the Mac during long sessions.",
+                          "長いClaude Codeセッション中も、更新のたびにセッション全体を読み直さず、追加された部分だけを読みます。CPUを使い続けてMacを熱くすることがなくなりました。",
+                          "La app ya no vuelve a leer tus sesiones de Claude Code enteras en cada actualización, solo lo añadido: deja de ocupar la CPU y de calentar el Mac en las sesiones largas.",
+                          "L'app ne relit plus tes sessions Claude Code en entier à chaque actualisation, seulement ce qui s'y est ajouté : elle n'occupe plus le processeur et ne fait plus chauffer le Mac pendant les longues sessions.",
+                          "O app não relê mais suas sessões do Claude Code inteiras a cada atualização, só o que foi adicionado: deixa de ocupar a CPU e de esquentar o Mac nas sessões longas.",
+                          "Die App liest deine Claude-Code-Sitzungen nicht mehr bei jeder Aktualisierung ganz neu, nur das Hinzugekommene: Sie hält die CPU nicht mehr beschäftigt und heizt den Mac bei langen Sitzungen nicht auf.",
+                          "Приложение больше не перечитывает сессии Claude Code целиком при каждом обновлении, только добавленное: оно не загружает процессор и не греет Mac во время долгих сессий.") },
+            .new("2026-10-27-legendary-artifacts") { $0.t("아직 어떤 업적에도 없던 전설·환상의 포켓몬을 위한 새 유물 9개.",
+                          "Nine new Artifacts for the legendary and mythical Pokémon no achievement counted yet.",
+                          "まだどの実績にも入っていなかった伝説・幻のポケモンのための新しいどうぐが9つ。",
+                          "Nueve Objetos nuevos para los Pokémon legendarios y singulares que ningún logro contaba aún.",
+                          "Neuf nouveaux Artefacts pour les Pokémon légendaires et fabuleux qu'aucun succès ne comptait encore.",
+                          "Nove Objetos novos para os Pokémon lendários e míticos que nenhuma conquista contava ainda.",
+                          "Neun neue Artefakte für die legendären und mysteriösen Pokémon, die noch kein Erfolg zählte.",
+                          "Девять новых реликвий для легендарных и мифических покемонов, которых ещё не было ни в одном достижении.") },
+            .new("2026-10-27-legend-plate-eggs") { l in
+                let plate = l.itemName(.legendPlate), rare = l.eggName(.rare), uncommon = l.eggName(.uncommon)
+                return l.t("아르세우스를 졸업시키면 \(plate): 가방에 \(rare)과 \(uncommon)이 하나씩 들어와요.",
+                           "Graduating Arceus earns the \(plate): a \(rare) and an \(uncommon) in your Bag.",
+                           "アルセウスを卒業させると\(plate)。\(rare)と\(uncommon)が1個ずつバッグに入ります。",
+                           "Graduar a Arceus da la \(plate): un \(rare) y un \(uncommon) en tu bolsa.",
+                           "Diplômer Arceus rapporte la \(plate) : un \(rare) et un \(uncommon) dans ton sac.",
+                           "Formar Arceus rende a \(plate): um \(rare) e um \(uncommon) na sua bolsa.",
+                           "Arceus' Abschied bringt die \(plate): ein \(rare) und ein \(uncommon) in deinen Beutel.",
+                           "Выпуск Арсеуса приносит «\(plate)»: «\(rare)» и «\(uncommon)» в сумку.")
+            },
+            .improved("2026-10-27-artifact-goals") { l in
+                let dna = l.itemName(.dnaSplicers), liberty = l.itemName(.libertyPass)
+                let magma = l.itemName(.magmaStone), teal = l.itemName(.tealMask)
+                let incense = l.itemName(.seaIncense)
+                return l.t("큐레무가 \(dna)에 필요해졌고, 케르디오는 \(liberty)에, 히드런은 그란돈과 함께 \(magma)에, 복숭악동은 \(teal)에 들어가요. \(incense)에는 마나피와 가이오가가 필요해요.",
+                           "Kyurem now joins Reshiram and Zekrom for the \(dna); Keldeo counts for the \(liberty), Heatran with Groudon for the \(magma), and Pecharunt for the \(teal). The \(incense) asks for Manaphy and Kyogre.",
+                           "\(dna)にキュレムが必要になり、ケルディオは\(liberty)に、ヒードランはグラードンと\(magma)に、モモワロウは\(teal)に数えられます。\(incense)はマナフィとカイオーガです。",
+                           "Kyurem se une a Reshiram y Zekrom para la \(dna); Keldeo cuenta para el \(liberty), Heatran con Groudon para la \(magma) y Pecharunt para la \(teal). El \(incense) pide a Manaphy y Kyogre.",
+                           "Kyurem rejoint Reshiram et Zekrom pour le \(dna) ; Keldeo compte pour le \(liberty), Heatran avec Groudon pour la \(magma) et Pêchaminus pour le \(teal). L'\(incense) demande Manaphy et Kyogre.",
+                           "Kyurem se junta a Reshiram e Zekrom para o \(dna); Keldeo conta para o \(liberty), Heatran com Groudon para a \(magma) e Pecharunt para a \(teal). O \(incense) pede Manaphy e Kyogre.",
+                           "Kyurem kommt für den \(dna) zu Reshiram und Zekrom; Keldeo zählt für den \(liberty), Heatran mit Groudon für den \(magma) und Infamomo für die \(teal). Das \(incense) verlangt Manaphy und Kyogre.",
+                           "Кюрем теперь нужен для «\(dna)» вместе с Реширамом и Зекромом; Келдео засчитывается для «\(liberty)», Хитран с Граудоном для «\(magma)», Пичарант для «\(teal)». «\(incense)» требует Манафи и Кайогра.")
+            },
+        ]),
         ChangelogDay(date: "2026-10-26", entries: [
             .fixed("2026-10-26-changelog-per-change") { $0.t("새 소식이 이미 읽은 날짜에 추가된 변경도 업데이트 뒤 새로 표시해요.",
                           "What's New marks every change that came with an update, even on a day you already read.",
@@ -457,13 +663,6 @@ extension L {
     var changelogTitle: String {
         t("새 소식", "What's new", "最新情報", "Novedades", "Nouveautés", "Novidades", "Neuigkeiten", "Что нового")
     }
-    func changelogKind(_ kind: ChangelogEntry.Kind) -> String {
-        switch kind {
-        case .new: return t("새 기능", "New", "新機能", "Nuevo", "Nouveau", "Novo", "Neu", "Новое")
-        case .improved: return t("개선", "Improved", "改善", "Mejorado", "Amélioré", "Melhorado", "Verbessert", "Улучшено")
-        case .fixed: return t("수정", "Fixed", "修正", "Corregido", "Corrigé", "Corrigido", "Behoben", "Исправлено")
-        }
-    }
     var changelogUnseen: String {
         t("새 소식", "New", "NEW", "Nuevo", "Nouveau", "Novo", "Neu", "Новое")
     }
@@ -474,4 +673,24 @@ extension L {
           "Изменений с прошлого раза: \(count)")
     }
     var changelogOpen: String { t("보기", "See", "見る", "Ver", "Voir", "Ver", "Ansehen", "Смотреть") }
+    /// The heading of an update's changes of one kind.
+    func changelogSection(_ kind: ChangelogEntry.Kind) -> String {
+        switch kind {
+        case .new: return t("새 기능", "New features", "新機能", "Funciones nuevas", "Nouvelles fonctions", "Recursos novos",
+                            "Neue Funktionen", "Новые функции")
+        case .improved: return t("개선", "Improvements", "改善", "Mejoras", "Améliorations", "Melhorias", "Verbesserungen", "Улучшения")
+        case .fixed: return t("수정", "Fixes", "修正", "Correcciones", "Corrections", "Correções", "Fehlerbehebungen", "Исправления")
+        }
+    }
+    /// An update's title, from its date ("26 October 2026").
+    func changelogUpdateTitle(_ date: String) -> String {
+        t("\(date) 업데이트", "Update of \(date)", "\(date)のアップデート", "Actualización del \(date)", "Mise à jour du \(date)",
+          "Atualização de \(date)", "Update vom \(date)", "Обновление от \(date)")
+    }
+    func changelogChangeCount(_ count: Int) -> String {
+        let one = count == 1
+        return t("변경 \(count)개", one ? "1 change" : "\(count) changes", "\(count)件の変更", one ? "1 cambio" : "\(count) cambios",
+                 one ? "1 changement" : "\(count) changements", one ? "1 mudança" : "\(count) mudanças",
+                 one ? "1 Änderung" : "\(count) Änderungen", "Изменений: \(count)")
+    }
 }

@@ -27,7 +27,7 @@ final class MintTests: XCTestCase {
         let json = "{\"installBaselineSet\":true,\"usedSinceInstall\":\(used),\"spentTokens\":\(spent),"
             + "\"lastDate\":\"d\",\"active\":\(active),\"dex\":[],\"collectedFinals\":[]\(inv)}"
         try? json.data(using: .utf8)!.write(to: url)
-        return CompanionStore(provider: MintNoProvider(), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: seed))
+        return CompanionStore(provider: MintNoProvider(), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: seed), difficulty: 1)
     }
 
     // MARK: 사용
@@ -83,7 +83,7 @@ final class MintTests: XCTestCase {
         let json = "{\"installBaselineSet\":true,\"usedSinceInstall\":1,\"lastDate\":\"d\","
             + "\"dex\":[],\"collectedFinals\":[],\"inventory\":{\"mint\":2}}"
         try? json.data(using: .utf8)!.write(to: url)
-        let s = CompanionStore(provider: MintNoProvider(), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: 1))
+        let s = CompanionStore(provider: MintNoProvider(), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: 1), difficulty: 1)
         XCTAssertTrue(s.isEgg)
         XCTAssertFalse(s.canUseMint)
         XCTAssertNil(s.useMint())
@@ -116,11 +116,11 @@ final class MintTests: XCTestCase {
             + "\"active\":{\"baseID\":1,\"pathIDs\":[1],\"stageIndex\":0,\"usedAtStage\":0,\"rarity\":\"common\",\"totalForms\":3,\"nature\":\"adamant\"},"
             + "\"inventory\":{\"mint\":2},\"dex\":[],\"collectedFinals\":[]}"
         try? json.data(using: .utf8)!.write(to: url)
-        let s1 = CompanionStore(provider: MintNoProvider(), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: 3))
+        let s1 = CompanionStore(provider: MintNoProvider(), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: 3), difficulty: 1)
         let new = s1.useMint()
         XCTAssertNotNil(new)
 
-        let s2 = CompanionStore(provider: MintNoProvider(), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: 3))
+        let s2 = CompanionStore(provider: MintNoProvider(), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: 3), difficulty: 1)
         XCTAssertEqual(s2.state.active?.nature, new, "바뀐 성격 영속")
         XCTAssertEqual(s2.itemCount(.mint), 1, "재고 감소 영속")
     }

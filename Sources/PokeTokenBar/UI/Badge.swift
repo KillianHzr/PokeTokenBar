@@ -43,7 +43,7 @@ enum BadgeTint {
     /// nil = a PokeAPI type outside the 18 (stellar, shadow, unknown) → neutral gray.
     case type(PokemonType?)
     case rarity(Rarity?)
-    case accent, orange, blue, secondary
+    case accent, orange, blue, green, secondary
 
     var color: Color {
         switch self {
@@ -52,6 +52,7 @@ enum BadgeTint {
         case .accent: .accentColor
         case .orange: .orange
         case .blue: .blue
+        case .green: .green
         case .secondary: .secondary
         }
     }
@@ -70,10 +71,15 @@ struct Badge<Label: View>: View {
     var verticalPadding: CGFloat = 1
     @ViewBuilder var label: Label
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         label
             .font(.system(size: size, weight: .bold))
             .foregroundStyle(style == .solid ? Color.white : tint.color)
+            // Tinted text on its faint tint: a shade darker on a light card, lighter on a dark one, so green, orange
+            // and the accent read on both ("RAISING" was dim on dark, "NEW" pale on light).
+            .brightness(style == .tinted ? (colorScheme == .dark ? 0.18 : -0.22) : 0)
             // Light type fills (electric, ice, fairy…) keep white text legible the way the game chart does.
             .shadow(color: isType ? .black.opacity(0.35) : .clear, radius: 0.5, y: 0.5)
             .padding(.horizontal, horizontalPadding).padding(.vertical, verticalPadding)
