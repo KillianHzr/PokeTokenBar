@@ -97,7 +97,7 @@ struct UnlockRequirementView: View {
                     if compact && progress.isMet { checkmark }
                     ForEach(goal.species, id: \.self) { id in
                         let has = progress.registered.contains(id)
-                        SpriteView(speciesID: id, size: spriteSize(count: goal.species.count))
+                        SpriteView(speciesID: id, size: spriteSize(count: goal.species.count), sameScale: true)
                             .grayscale(has ? 0 : 1).opacity(has ? 1 : 0.35)
                             .speciesNameTooltip(id, language: store.language)
                     }

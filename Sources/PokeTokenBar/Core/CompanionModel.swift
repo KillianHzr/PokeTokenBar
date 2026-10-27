@@ -1229,8 +1229,11 @@ struct CompanionState: Codable, Sendable {
     var eggFromBirthdayEgg = false
     /// The egg in incubation is a Fossil Egg (`FossilDig`).
     var eggFromFossilEgg = false
-    /// Fossil Eggs hatched so far: the fossil lines graduated beyond them came some other way, and count as dug.
+    /// Fossil Eggs hatched so far.
     var fossilEggsHatched = 0
+    /// The fossil lines graduated when the save first met the digs: their digs are done with nothing to claim. Taken
+    /// once: a line hatched from a Fossil Egg afterwards must never free a dig (`FossilDig`).
+    var fossilLinesBeforeDigs: Set<Int>?
     /// The pre-rolled hatch is shiny whatever its roll: a Birthday Egg once every legendary and mythical graduated.
     var pendingShiny = false
     /// The line of the last Pokémon hatched: the next egg never brings it again while another line is left.
@@ -1352,6 +1355,7 @@ struct CompanionState: Codable, Sendable {
         eggFromBirthdayEgg = c.lenient(Bool.self, forKey: .eggFromBirthdayEgg, default: false)
         eggFromFossilEgg = c.lenient(Bool.self, forKey: .eggFromFossilEgg, default: false)
         fossilEggsHatched = c.lenient(Int.self, forKey: .fossilEggsHatched, default: 0)
+        fossilLinesBeforeDigs = c.lenientOptional(Set<Int>.self, forKey: .fossilLinesBeforeDigs)
         pendingShiny = c.lenient(Bool.self, forKey: .pendingShiny, default: false)
         lastHatchedBaseID = c.lenientOptional(Int.self, forKey: .lastHatchedBaseID)
         birthday = c.lenientOptional(Birthday.self, forKey: .birthday)

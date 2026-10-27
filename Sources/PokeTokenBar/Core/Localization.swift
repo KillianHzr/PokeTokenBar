@@ -2159,14 +2159,14 @@ struct L {
                      "Arceus' Belohnung: Holst du sie ab, kommen ein \(rare) und ein \(uncommon) in deinen Beutel.",
                      "Награда Арсеуса: получив её, вы найдёте в сумке «\(rare)» и «\(uncommon)».")
         case .excavation:
-            return t("바위 타입 포켓몬을 4마리 졸업시킬 때마다 화석 알을 하나 발굴해요. 화석 계열마다 하나씩 15번. 이미 도감에 있는 화석 계열은 받을 것 없이 발굴한 것으로 쳐요. 화석 포켓몬은 이 알에서만 태어나요.",
-                     "Every 4 Rock-type Pokémon graduated dig up a Fossil Egg: 15 digs, one per fossil line. A fossil line already in your Pokédex counts as dug, with nothing to claim. Fossil Pokémon hatch from these eggs only.",
-                     "いわタイプのポケモンを4匹卒業させるたびに化石のタマゴを1つ発掘します。化石の系統ごとに1つ、全15回。すでに図鑑にいる化石の系統は、もらうものなしで発掘済みになります。化石ポケモンはこのタマゴからしか生まれません。",
-                     "Cada 4 Pokémon de tipo Roca graduados desentierran un Huevo Fósil: 15 excavaciones, una por línea fósil. Una línea fósil que ya está en tu Pokédex cuenta como excavada, sin nada que reclamar. Los Pokémon fósiles solo nacen de estos huevos.",
-                     "Tous les 4 Pokémon de type Roche diplômés, tu déterres un Œuf fossile : 15 fouilles, une par lignée fossile. Une lignée fossile déjà dans ton Pokédex compte comme fouillée, sans rien à récupérer. Les Pokémon fossiles n'éclosent que de ces œufs.",
-                     "A cada 4 Pokémon do tipo Pedra formados, você desenterra um Ovo Fóssil: 15 escavações, uma por linha fóssil. Uma linha fóssil que já está na sua Pokédex conta como escavada, sem nada para resgatar. Pokémon fósseis só nascem desses ovos.",
-                     "Alle 4 verabschiedeten Gestein-Pokémon gräbst du ein Fossil-Ei aus: 15 Ausgrabungen, eine pro Fossil-Linie. Eine Fossil-Linie, die schon in deinem Pokédex ist, gilt als ausgegraben, ohne etwas abzuholen. Fossil-Pokémon schlüpfen nur aus diesen Eiern.",
-                     "Каждые 4 выпущенных покемона каменного типа приносят Яйцо-окаменелость: 15 раскопок, по одной на линию окаменелостей. Линия, которая уже есть в покедексе, считается раскопанной без награды. Покемоны-окаменелости вылупляются только из этих яиц.")
+            return t("바위 타입 포켓몬을 4마리 졸업시킬 때마다 화석 알을 하나 발굴해요. 알에서는 아직 없는 화석 계열이 태어나요. 화석 계열은 이 알에서만 태어나고, 졸업한 뒤에는 모든 알에서 나올 수 있어요.",
+                     "Every 4 Rock-type Pokémon you graduate dig up a Fossil Egg. It hatches a fossil line you're missing: a fossil line hatches from these eggs only, then from any egg once graduated.",
+                     "いわタイプのポケモンを4匹卒業させるたびに化石のタマゴを1つ発掘します。まだいない化石の系統が生まれます。化石の系統はこのタマゴからしか生まれず、卒業したあとはどのタマゴからも生まれます。",
+                     "Cada 4 Pokémon de tipo Roca que gradúas desentierran un Huevo Fósil. De él nace una línea fósil que te falta: una línea fósil solo nace de estos huevos y, una vez graduada, de cualquier huevo.",
+                     "Tous les 4 Pokémon de type Roche que tu diplômes, tu déterres un Œuf fossile. Il fait éclore une lignée fossile qui te manque : une lignée fossile n'éclot que de ces œufs, puis de tous les œufs une fois diplômée.",
+                     "A cada 4 Pokémon do tipo Pedra que você forma, você desenterra um Ovo Fóssil. Dele nasce uma linha fóssil que falta: uma linha fóssil só nasce desses ovos e, depois de formada, de qualquer ovo.",
+                     "Alle 4 Gestein-Pokémon, die du verabschiedest, gräbst du ein Fossil-Ei aus. Daraus schlüpft eine Fossil-Linie, die dir fehlt: Eine Fossil-Linie schlüpft nur aus diesen Eiern, nach ihrem Abschied dann aus jedem Ei.",
+                     "Каждые 4 выпущенных покемона каменного типа приносят Яйцо-окаменелость. Из него вылупляется недостающая линия окаменелостей: такая линия вылупляется только из этих яиц, а после выпуска из любых яиц.")
         case .fossilEgg:
             return t("지금 포켓몬을 놓아주고 이 알을 받아요. 아직 없는 화석 계열의 포켓몬이 무작위로 태어나요.",
                      "Send off your current Pokémon for it: it hatches, at random, a fossil Pokémon whose line you don't have yet.",
@@ -2531,22 +2531,33 @@ struct L {
         t("없는 화석 계열", "A fossil line you're missing", "まだいない化石の系統", "Una línea fósil que te falta",
           "Une lignée fossile qui te manque", "Uma linha fóssil que falta", "Eine fehlende Fossil-Linie", "Недостающая линия окаменелостей")
     }
-    /// Under the fossil lines: how many digs the lines already graduated settle.
-    func excavationWaivedCount(_ count: Int) -> String {
-        let one = count == 1
-        return t("화석 계열 \(count)개가 이미 도감에 있어 발굴한 것으로 쳐요.",
-                 one ? "1 fossil line already in your Pokédex counts as dug." : "\(count) fossil lines already in your Pokédex count as dug.",
-                 "化石の系統\(count)つがすでに図鑑にいるので、発掘済みになります。",
-                 one ? "1 línea fósil ya en tu Pokédex cuenta como excavada." : "\(count) líneas fósiles ya en tu Pokédex cuentan como excavadas.",
-                 one ? "1 lignée fossile déjà dans ton Pokédex compte comme fouillée." : "\(count) lignées fossiles déjà dans ton Pokédex comptent comme fouillées.",
-                 one ? "1 linha fóssil já na sua Pokédex conta como escavada." : "\(count) linhas fósseis já na sua Pokédex contam como escavadas.",
-                 one ? "1 Fossil-Linie schon in deinem Pokédex gilt als ausgegraben." : "\(count) Fossil-Linien schon in deinem Pokédex gelten als ausgegraben.",
-                 "Линий окаменелостей уже в покедексе: \(count), они считаются раскопанными.")
+    var excavationEggOpened: String {
+        t("부화함", "Hatched", "かえした", "Abierto", "Ouvert", "Aberto", "Geöffnet", "Открыто")
     }
-    var excavationWaived: String {
-        t("이미 도감에 있는 화석 계열", "A fossil line already in your Pokédex", "すでに図鑑にいる化石の系統", "Una línea fósil ya en tu Pokédex",
-          "Une lignée fossile déjà dans ton Pokédex", "Uma linha fóssil já na sua Pokédex", "Eine Fossil-Linie schon in deinem Pokédex",
-          "Линия окаменелостей уже в покедексе")
+    var excavationEggInBag: String {
+        t("가방에", "In the Bag", "バッグの中", "En la Bolsa", "Dans le sac", "Na Bolsa", "Im Beutel", "В сумке")
+    }
+    var excavationEggReady: String {
+        t("받을 수 있음", "To claim", "受け取れる", "Por reclamar", "À récupérer", "Para resgatar", "Abholbereit", "Можно забрать")
+    }
+    var excavationEggToEarn: String {
+        t("앞으로 받을 알", "To earn", "これから", "Por ganar", "À gagner", "A ganhar", "Noch zu verdienen", "Впереди")
+    }
+    var excavationEggNotClaimable: String {
+        t("받을 수 없음", "Not claimable", "受け取れない", "No reclamable", "Non récupérable", "Não resgatável", "Nicht abholbar",
+          "Нельзя забрать")
+    }
+    func excavationNextEgg(_ count: Int, of needed: Int) -> String {
+        t("다음 알: 바위 타입 \(count)/\(needed)", "Next egg: \(count)/\(needed) Rock-type Pokémon",
+          "次のタマゴ: いわタイプ \(count)/\(needed)", "Próximo huevo: \(count)/\(needed) Pokémon de tipo Roca",
+          "Prochain œuf : \(count)/\(needed) Pokémon de type Roche", "Próximo ovo: \(count)/\(needed) Pokémon do tipo Pedra",
+          "Nächstes Ei: \(count)/\(needed) Gestein-Pokémon", "Следующее яйцо: \(count)/\(needed) каменного типа")
+    }
+    func excavationLines(_ owned: Int, of total: Int) -> String {
+        t("가진 화석 계열: \(owned)/\(total)", "Fossil lines you have: \(owned)/\(total)", "持っている化石の系統: \(owned)/\(total)",
+          "Líneas fósiles que tienes: \(owned)/\(total)", "Lignées fossiles obtenues : \(owned)/\(total)",
+          "Linhas fósseis que você tem: \(owned)/\(total)", "Deine Fossil-Linien: \(owned)/\(total)",
+          "Ваши линии окаменелостей: \(owned)/\(total)")
     }
     var rotomCatalogEffectHint: String {
         t("새 폼마다 사탕 +1 · 적용 중", "+1 candy per new form · active", "新フォルムごとにアメ+1 · 適用中", "+1 caramelo por forma nueva · activo",

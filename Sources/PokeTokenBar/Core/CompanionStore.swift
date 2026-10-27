@@ -88,6 +88,8 @@ final class CompanionStore {
         migrateToAdditiveGrowthIfNeeded()
         migratePokemonProfilesIfNeeded()
         migrateLightBallToRewardsIfNeeded()
+        recordFossilLinesBeforeDigsIfNeeded()
+        reconcileOverclaimedDigsIfNeeded()
         refreshRepresentativeSubject()
         refreshSnapshots()
         if state.active != nil { displayState = .idle }
@@ -135,6 +137,31 @@ final class CompanionStore {
             state.inventory[reward.kind.rawValue, default: 0] += reward.count
         }
         AppLog.write("light ball: traded for its rewards")
+        save()
+    }
+
+    /// The fossil lines had before the digs, taken once (`CompanionState.fossilLinesBeforeDigs`). Counting them again
+    /// from the lines graduated minus the Fossil Eggs hatched freed a dig as soon as an egg hatched, its line not
+    /// graduated yet: a sixth egg for five missing lines. Kept with the next save, not written here: a fresh or reset
+    /// state must not touch the file on launch, and until a Fossil Egg hatches it would read the same again.
+    private func recordFossilLinesBeforeDigsIfNeeded() {
+        guard state.fossilLinesBeforeDigs == nil else { return }
+        state.fossilLinesBeforeDigs = Set(FossilDig.lines.filter(graduatedSpeciesIDs.contains))
+    }
+
+    /// Digs claimed beyond the eggs owed, the extra egg the old count gave when a Fossil Egg hatched: the extra Fossil
+    /// Eggs still in the Bag leave it, and their digs are done again with nothing to claim. One already used stays used.
+    private func reconcileOverclaimedDigsIfNeeded() {
+        guard let had = state.fossilLinesBeforeDigs else { return }
+        let digs = (ItemKind.excavation.regionGoals ?? []).map(\.generation)
+        let claimed = digs.filter { isRegionTierClaimed(.excavation, generation: $0) }
+        let extra = min(max(0, claimed.count - (digs.count - had.count)), itemCount(.fossilEgg))
+        guard extra > 0 else { return }
+        state.inventory[ItemKind.fossilEgg.rawValue] = itemCount(.fossilEgg) - extra
+        for generation in claimed.suffix(extra) {
+            state.claimedAchievements.remove(CompanionState.regionTierKey(.excavation, generation: generation))
+        }
+        AppLog.write("excavation: \(extra) extra fossil egg(s) taken back")
         save()
     }
 
@@ -2025,21 +2052,52 @@ final class CompanionStore {
     }
 
     /// The digs: Rock-type species graduated in a Rock form count toward each; the last ones are done with nothing to
-    /// claim for every fossil line graduated beyond the Fossil Eggs hatched, so the eggs to claim match the lines
-    /// still missing.
+    /// claim for every fossil line had before the digs, so the eggs match the lines that were missing.
     private func excavationTiers(_ goals: [(generation: Int, goal: SpeciesGoal)]) -> [RegionTier] {
         let rock = rockSpeciesGraduated
         var tiers = goals.map { generation, goal in
             RegionTier(generation: generation, progress: GoalProgress(goal: goal, registered: goal.species.filter(rock.contains)),
                        isClaimed: isRegionTierClaimed(.excavation, generation: generation))
         }
-        let graduatedLines = FossilDig.lines.filter(graduatedSpeciesIDs.contains).count
-        var waived = min(max(0, graduatedLines - state.fossilEggsHatched), tiers.filter { !$0.isClaimed }.count)
+        var waived = min(state.fossilLinesBeforeDigs?.count ?? 0, tiers.filter { !$0.isClaimed }.count)
         for index in tiers.indices.reversed() where waived > 0 && !tiers[index].isClaimed {
             tiers[index].isWaived = true
             waived -= 1
         }
         return tiers
+    }
+
+    /// The digs as the Achievements card tells them: 15 eggs, one per fossil line, in the digs' order. Claimed ones
+    /// were opened or still wait in the Bag; then those ready to claim, the next one with the Rock-type Pokémon it
+    /// still wants, those still to earn, and last those not claimable, for lines graduated before the digs.
+    struct ExcavationProgress: Equatable, Sendable {
+        let total: Int
+        /// Claimed and used: hatched, or hatching now.
+        let opened: Int
+        /// Claimed and still in the Bag.
+        let inBag: Int
+        let ready: Int
+        /// Done with nothing to claim.
+        let notClaimable: Int
+        /// Rock-type species graduated toward the next dig, out of `FossilDig.rockPerDig`. nil once every dig is met.
+        let towardNext: Int?
+        let linesGraduated: Int
+        /// Still to earn, the next one included.
+        var toEarn: Int { total - opened - inBag - ready - notClaimable }
+    }
+
+    var excavationProgress: ExcavationProgress {
+        let tiers = regionTiers(.excavation)
+        let claimed = tiers.filter(\.isClaimed).count
+        let inBag = min(claimed, itemCount(.fossilEgg))
+        // The digs ask for 4, 8, 12… Rock species in all: the next one counts from where the one before it stopped.
+        let towardNext = tiers.first { !$0.progress.isMet && !$0.isDone }.map { dig in
+            min(FossilDig.rockPerDig, max(0, dig.progress.count - (dig.progress.goal.needed - FossilDig.rockPerDig)))
+        }
+        return ExcavationProgress(total: tiers.count, opened: claimed - inBag, inBag: inBag,
+                                  ready: tiers.filter(\.isReady).count, notClaimable: tiers.filter(\.isWaived).count,
+                                  towardNext: towardNext,
+                                  linesGraduated: FossilDig.lines.filter(graduatedSpeciesIDs.contains).count)
     }
 
     /// Species graduated in a Rock-type form: their usual one, or one of their forms (Hisuian Arcanine).
@@ -2255,15 +2313,18 @@ final class CompanionStore {
             if kind.isRegional {
                 let tiers = regionTiers(kind, registered: registered)
                 if tiers.contains(where: \.isReady) { return 0 }
-                return tiers.allSatisfy(\.isClaimed) ? 2 : 1
+                // A dig done with nothing to claim is done: counting only claims kept a finished Excavation in progress.
+                return tiers.allSatisfy(\.isDone) ? 2 : 1
             }
             if isClaimed(kind) { return 2 }
             return isUnlocked(kind, registered: registered) ? 0 : 1
         }
         let items = ItemKind.allCases.filter { $0.collectorGroup == group }
         let ranks = Dictionary(uniqueKeysWithValues: items.map { ($0, rank($0)) })
+        // The Excavation is not a stone: it closes the Stones tab whatever its state.
+        func last(_ kind: ItemKind) -> Int { kind == .excavation ? 1 : 0 }
         return items.enumerated()
-            .sorted { (ranks[$0.element]!, $0.offset) < (ranks[$1.element]!, $1.offset) }
+            .sorted { (last($0.element), ranks[$0.element]!, $0.offset) < (last($1.element), ranks[$1.element]!, $1.offset) }
             .map(\.element)
     }
 
@@ -3180,9 +3241,11 @@ final class CompanionStore {
             // 등급 보증 알은 후보를 먼저 좁힌다 — capture_rate 상한이 곧 등급 하한이고, 전설은 플래그로
             // 늘 들어간다(`Rarity.admits`: capture_rate 255 인 Necrozma·Eternatus·Terapagos 도 "희귀 이상").
             // 좁힌 결과가 비면 보증을 못 지키므로 전체 풀로 폴백하지 말고 알을 유지한다(다음 틱 재시도).
-            // Fossil lines only hatch from Fossil Eggs (`FossilDig`), never from any other egg.
-            let unfossil = full.filter { !FossilDig.isFossilLine($0.id) }
-            var index = tier.map { t in unfossil.filter(t.admits) } ?? unfossil
+            // A fossil line hatches from Fossil Eggs only until it graduates (`FossilDig`), then from any egg like
+            // every other species: shiny, twice, with another nature.
+            let graduated = graduatedSpeciesIDs
+            let admitted = full.filter { !FossilDig.isFossilLine($0.id) || graduated.contains($0.id) }
+            var index = tier.map { t in admitted.filter(t.admits) } ?? admitted
             // A Legendary Egg hatches a legendary or mythical Pokémon, any of them.
             if state.eggFromLegendaryEgg { index = index.filter(\.isLegendary) }
             if let targetType = typeGuarantee {
@@ -3293,7 +3356,9 @@ final class CompanionStore {
                     if let tier, !tier.admits(bs) { continue }
                     if state.eggFromLegendaryEgg || state.eggFromBirthdayEgg, !bs.isLegendary { continue }
                     if state.eggFromFossilEgg, !fossilCandidates.contains(bs.id) { continue }
-                    if !state.eggFromFossilEgg, FossilDig.isFossilLine(bs.id) { continue }
+                    if !state.eggFromFossilEgg, FossilDig.isFossilLine(bs.id), !graduatedSpeciesIDs.contains(bs.id) {
+                        continue
+                    }
                     if let typeGuarantee, !PokemonTypeData.canHatch(baseID: bs.id, as: typeGuarantee) { continue }
                     if let event = state.eggEvent, !event.admits(bs, companionLine: firstCatch?.baseID) { continue }
                     // Not the line hatched last again; the index path keeps it when it is the only one, this one
@@ -3375,6 +3440,8 @@ final class CompanionStore {
         migrateToAdditiveGrowthIfNeeded()
         migratePokemonProfilesIfNeeded()
         migrateLightBallToRewardsIfNeeded()
+        recordFossilLinesBeforeDigsIfNeeded()
+        reconcileOverclaimedDigsIfNeeded()
         save()
         if state.active != nil { Task { await loadCurrentLine() } }
         if detailProvider != nil { Task { await preparePokemonProfiles() } }

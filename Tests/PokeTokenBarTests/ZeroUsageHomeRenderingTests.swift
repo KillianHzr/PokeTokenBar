@@ -173,7 +173,8 @@ final class ZeroUsageHomeRenderingTests: XCTestCase {
                 }
             }
         }
-        let chartVisible = visible(companion.l.dailyTrend)
+        // The Stats page titles its chart by the day; Home must not show the old daily chart.
+        let chartVisible = visible(stats ? companion.l.statsDayByDay : companion.l.dailyTrend)
         let candidates = (request.results ?? []).enumerated().map { index, observation in
             let alternatives = observation.topCandidates(10).map {
                 "\($0.string.debugDescription) confidence=\($0.confidence)"
