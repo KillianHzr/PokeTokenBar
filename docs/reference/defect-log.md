@@ -1719,6 +1719,16 @@ read_when:
   This keeps the guard focused on restoring the viewed catch row rather than reading an
   ambiguous digit in a synthetic name.
 
+- **A strip crop cuts the label on its edge: read it in the strip that holds it whole.**
+  `SnapshotHistoryRenderingTests.testEmptyHistoryIsDisclosedAndManualCreationRemainsAvailable` failed in CI run
+  `40509457420` once Settings lost its difficulty rows: "No snapshots saved yet" then ended 2 px above the bottom of
+  a 772 px strip, the strip's edge clipped the y's descender and Vision read "vet". The next strip, overlapping by
+  96 px, read "yet", but the merge keeps the first observation at equal confidence, so the test never saw it.
+  Replaying the test's strips and merge on CI's saved render reproduced the miss on this machine too. Each strip now
+  drops an observation within 8 px of an inner crop edge, which the overlap shows whole in the neighboring strip;
+  the same replay reads the caption and keeps every CI render's `Restore` count (0 or 10). The other cropped OCR
+  (`DexColorRenderingTests`) reads one fixed region with no merge.
+
 - **A wider navigation label must not squeeze numeric period summaries.** Adding the localized
   recap capsule to the home's fixed-width summary row left too little space for its week/month
   labels and costs: the real English and German popovers split `$31.64` and `$121.30` across
