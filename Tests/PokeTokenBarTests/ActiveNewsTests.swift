@@ -15,12 +15,13 @@ private struct NewsProvider: PokeProviding {
 final class ActiveNewsTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1_790_000_000)
 
-    private func store(active: MonState, dex: [DexEntry]) throws -> CompanionStore {
+    private func store(active: MonState, dex: [DexEntry], costumes: Set<PikachuCostume> = []) throws -> CompanionStore {
         var st = CompanionState()
         st.installBaselineSet = true
         st.lastDate = "2026-10-27"
         st.active = active
         st.dex = dex
+        st.pikachuCostumes = costumes
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("news-\(UUID().uuidString).json")
         try JSONEncoder().encode(st).write(to: url)
         addTeardownBlock { try? FileManager.default.removeItem(at: url) }
@@ -38,6 +39,27 @@ final class ActiveNewsTests: XCTestCase {
                          totalForms: 3, form: form)
         m.isShiny = shiny
         return m
+    }
+
+    /// A Pichu becomes a Pikachu, which brings a costume while one is missing: sending it off loses that costume, so
+    /// it is no duplicate, on Home or in the catch log (review of #72). Once Pikachu, it brought its own.
+    func testAPichuThatWillBringACostumeIsNotADuplicate() throws {
+        let line = graduated([172, 25, 26])
+        let pichu = try store(active: mon([172]), dex: [line])
+        let news = try XCTUnwrap(pichu.activeNews)
+        XCTAssertEqual(news.newSpecies, [])
+        XCTAssertTrue(news.costume)
+        XCTAssertFalse(news.isDuplicate)
+        XCTAssertEqual(pichu.activeNewsHint, pichu.l.activeCostumeHint)
+        XCTAssertFalse(pichu.isDuplicateCatch(try XCTUnwrap(pichu.dexEntriesSorted.first)), "nor in the catch log")
+
+        let everyCostume = try store(active: mon([172]), dex: [line], costumes: Set(PikachuCostume.allCases))
+        XCTAssertEqual(everyCostume.activeNews?.isDuplicate, true, "every costume owned")
+        XCTAssertTrue(everyCostume.isDuplicateCatch(try XCTUnwrap(everyCostume.dexEntriesSorted.first)))
+
+        let pikachu = try store(active: mon([172, 25], stage: 1), dex: [line])
+        XCTAssertEqual(pikachu.activeNews?.costume, false, "its costume came when it arrived")
+        XCTAssertEqual(pikachu.activeNews?.isDuplicate, true)
     }
 
     func testALineGraduatedWholeIsADuplicate() throws {

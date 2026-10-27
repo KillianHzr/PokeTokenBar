@@ -67,6 +67,14 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-27", entries: [
+            .fixed("2026-10-27-badges-wrap") { $0.t("포획 로그와 홈의 배지가 길면 캡슐 안에서 깨지지 않고 다음 줄로 넘어가요.",
+                                                      "Badges in the catch log and on Home go to a second line when they are long, instead of breaking inside their capsule.",
+                                                      "捕獲ログとホームのバッジが長いときは、カプセルの中で折れずに次の行へ回ります。",
+                                                      "Las insignias del registro de capturas y de Inicio pasan a una segunda línea cuando son largas, en lugar de partirse dentro de su cápsula.",
+                                                      "Les badges du journal de captures et de l'accueil passent à la ligne quand ils sont longs, au lieu de se casser dans leur pastille.",
+                                                      "Os selos do registro de capturas e do Início vão para uma segunda linha quando são longos, em vez de quebrar dentro da cápsula.",
+                                                      "Lange Abzeichen im Fangprotokoll und auf der Startseite rutschen in eine zweite Zeile, statt in ihrer Kapsel umzubrechen.",
+                                                      "Длинные значки в журнале поимок и на главной переносятся на вторую строку, а не ломаются внутри своей капсулы.") },
             .new("2026-10-27-event-eggs") { $0.t("이벤트 알: 크리스마스, 새해, 밸런타인데이, 포켓몬 데이, 부활절, 핼러윈, 계절의 시작, 첫 포획 기념일마다 그날의 알이 와요. 이벤트 동안이나 그 뒤 2주 안에 받으면 그 이벤트의 포켓몬이 태어나요. 대부분 이로치예요.",
                                                  "Event eggs: Christmas, New Year, Valentine's Day, Pokémon Day, Easter, Halloween, each season's start and the anniversary of your first catch bring an egg of their own. Take it during the event or the two weeks after; it hatches the event's Pokémon, most of them shiny.",
                                                  "イベントのタマゴ：クリスマス、お正月、バレンタイン、ポケモンデー、イースター、ハロウィン、季節の始まり、最初の捕獲の記念日に専用のタマゴが届きます。イベント中かその後2週間に受け取ると、イベントのポケモンが生まれます。ほとんどが色違いです。",

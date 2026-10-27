@@ -985,7 +985,7 @@ struct CompanionHeader: View {
         if isNewForm {
             Badge(l.newFormBadge.uppercased(), tint: .blue, style: .tinted)
                 .lineLimit(1).fixedSize()
-                .help(l.activeNewHint(store.activeNewsNames))
+                .help(store.activeNewsHint)
         }
         if let news = store.activeNews {
             if news.isDuplicate {
@@ -995,7 +995,7 @@ struct CompanionHeader: View {
             } else if !isNewForm {
                 Badge(l.activeNewBadge.uppercased(), tint: .green, style: .tinted)
                     .lineLimit(1).fixedSize()
-                    .help(l.activeNewHint(store.activeNewsNames))
+                    .help(store.activeNewsHint)
             }
         }
     }
@@ -1060,7 +1060,8 @@ struct CompanionHeader: View {
                     // The rarity above the name, so a long name ("Alolan Ninetales") wraps whole instead of being cut
                     // short beside the badge.
                     if let r = store.rarity {
-                        HStack(spacing: 4) {
+                        // Wraps rather than run off the card in a long language.
+                        WrappingHStack(spacing: 4, lineSpacing: 4) {
                             if r == .legendary {
                                 LegendaryBadge(text: store.l.rarityLabel(r).uppercased()).lineLimit(1).fixedSize()
                             } else {
@@ -2706,35 +2707,40 @@ private struct DexEntryRow: View {
         // 저장분 우선(즉시·언어대응), 없으면 async 로 채운 resolved 사용.
         let names = store.dexStoredChainNames(entry) ?? (resolved.isEmpty ? nil : resolved)
         VStack(alignment: .leading, spacing: 3) {
-            HStack {
-                Badge(store.l.rarityLabel(entry.rarity).uppercased(), tint: .rarity(entry.rarity), size: 10)
-                if store.isActiveDexEntry(entry) {
-                    Badge(store.l.dexRaising.uppercased(), tint: .accent, style: .tinted, size: 10)
-                } else if entry.isReleased {
-                    // 놓아준 개체 — 종은 도감에 남지만 이 개체는 끝까지 키우지 않았다.
-                    // 중립색(secondary)으로 둔다: 실패가 아니라 다른 종류의 기록이라 경고색은 과하다.
-                    Badge(store.l.dexReleased.uppercased(), tint: .secondary, style: .tinted, size: 10)
+            HStack(alignment: .top, spacing: 6) {
+                // The badges go to a second line rather than squeeze one: in one row, French broke "NOUVELLE FORME"
+                // inside its capsule.
+                WrappingHStack(spacing: 6, lineSpacing: 4) {
+                    Badge(store.l.rarityLabel(entry.rarity).uppercased(), tint: .rarity(entry.rarity), size: 10)
+                    if store.isActiveDexEntry(entry) {
+                        Badge(store.l.dexRaising.uppercased(), tint: .accent, style: .tinted, size: 10)
+                    } else if entry.isReleased {
+                        // 놓아준 개체 — 종은 도감에 남지만 이 개체는 끝까지 키우지 않았다.
+                        // 중립색(secondary)으로 둔다: 실패가 아니라 다른 종류의 기록이라 경고색은 과하다.
+                        Badge(store.l.dexReleased.uppercased(), tint: .secondary, style: .tinted, size: 10)
+                    }
+                    if entry.hasNewForm {
+                        Badge(store.l.newFormBadge.uppercased(), tint: .blue, style: .tinted, size: 10)
+                    }
+                    if store.isDuplicateCatch(entry) {
+                        Text(store.l.dexDuplicate.uppercased())
+                            .font(.system(size: 10, weight: .bold))
+                            .padding(.horizontal, 5).padding(.vertical, 1)
+                            .background(Color.secondary.opacity(0.14))
+                            .foregroundStyle(Color.secondary)
+                            .clipShape(Capsule())
+                    }
+                    if entry.isShiny {
+                        // 이모지는 스크린리더가 일관되게 읽지 못해 명사 라벨을 붙인다(도감 칸과 동일 규칙).
+                        Text("✨").font(.system(size: 10))
+                            .accessibilityLabel(store.l.dexShinyLabel)
+                    }
                 }
-                if entry.hasNewForm {
-                    Badge(store.l.newFormBadge.uppercased(), tint: .blue, style: .tinted, size: 10)
-                }
-                if store.isDuplicateCatch(entry) {
-                    Text(store.l.dexDuplicate.uppercased())
-                        .font(.system(size: 10, weight: .bold))
-                        .padding(.horizontal, 5).padding(.vertical, 1)
-                        .background(Color.secondary.opacity(0.14))
-                        .foregroundStyle(Color.secondary)
-                        .clipShape(Capsule())
-                }
-                if entry.isShiny {
-                    // 이모지는 스크린리더가 일관되게 읽지 못해 명사 라벨을 붙인다(도감 칸과 동일 규칙).
-                    Text("✨").font(.system(size: 10))
-                        .accessibilityLabel(store.l.dexShinyLabel)
-                }
-                Spacer()
+                .frame(maxWidth: .infinity, alignment: .leading)
                 if let nature = entry.nature {
                     Text(nature.name(store.language))
                         .font(.system(size: 11)).foregroundStyle(.secondary)
+                        .fixedSize()
                 }
             }
             EvoLineView(nodes: entry.chainOrder.map { EvoLineItem(.species($0), .done) },

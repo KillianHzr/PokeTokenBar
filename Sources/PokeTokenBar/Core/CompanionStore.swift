@@ -598,8 +598,10 @@ final class CompanionStore {
     struct ActiveNews: Equatable, Sendable {
         var newSpecies: [Int]
         var firstShiny: Bool
-        /// Nothing new: sending it off loses nothing the Pokédex does not already hold.
-        var isDuplicate: Bool { newSpecies.isEmpty && !firstShiny }
+        /// A Pikachu still ahead in its line while a costume is missing: it brings one when it arrives.
+        var costume = false
+        /// Nothing new: sending it off loses nothing the Pokédex and the costumes do not already hold.
+        var isDuplicate: Bool { newSpecies.isEmpty && !firstShiny && !costume }
     }
 
     /// Nil for an egg.
@@ -617,7 +619,19 @@ final class CompanionStore {
         }
         let newSpecies = line.filter { !held.contains(DexSpeciesKey(speciesID: $0, form: a.form)) }
         let firstShiny = a.isShiny && !graduated.contains { $0.isShiny && $0.chainOrder.contains(a.currentID) }
-        return ActiveNews(newSpecies: newSpecies, firstShiny: firstShiny)
+        // The costume comes on arriving as Pikachu (`grantPikachuCostume`): one already reached brought its own.
+        let costume = line.contains(PikachuCostume.speciesID)
+            && !a.pathIDs.prefix(a.stageIndex + 1).contains(PikachuCostume.speciesID)
+            && PikachuCostume.next(owned: state.pikachuCostumes, seed: 0) != nil
+        return ActiveNews(newSpecies: newSpecies, firstShiny: firstShiny, costume: costume)
+    }
+
+    /// The hint of the Home badge saying it brings something: what graduating it adds, and a costume it brings.
+    var activeNewsHint: String {
+        guard let news = activeNews else { return "" }
+        let names = activeNewsNames
+        return ([names.isEmpty ? nil : l.activeNewHint(names), news.costume ? l.activeCostumeHint : nil] as [String?])
+            .compactMap { $0 }.joined(separator: " ")
     }
 
     /// The new species of `activeNews`, named in their form, for the badge's hint.
@@ -659,7 +673,9 @@ final class CompanionStore {
                     form: e.form,
                     collectedSpecies: seenGraduatedSpecies
                 )
-                if reachedSpeciesSeen && !uncollected {
+                // The one being raised still brings a costume while one is missing (`ActiveNews.costume`).
+                let bringsCostume = isActiveDexEntry(e) && activeNews?.costume == true
+                if reachedSpeciesSeen && !uncollected && !bringsCostume {
                     duplicates.insert(e.id)
                 }
             } else {

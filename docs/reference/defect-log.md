@@ -75,6 +75,16 @@ read_when:
   egg disguising. Every roll path applies the same filters: add a filter to `chooseBase` and to `chooseBaseViaREST`
   together (`testTheOvalCharmAlsoGuidesTheRestFallback`).
 
+- **"Nothing to lose" counts what a stage brings, not only the Pokédex.** The Home's 100% duplicate badge and the
+  catch log's duplicate mark read species and forms only: a Pichu whose line had graduated whole showed "nothing to
+  lose" while, on becoming Pikachu, it would bring a costume still missing (`grantPikachuCostume`). Caught in review
+  of #72 before it shipped. **Why it was missed:** the tests built every case from the Pokédex, and nothing listed
+  what else a stage gives on arrival. `ActiveNews.costume` counts a Pikachu still ahead while a costume is missing,
+  and the catch log's rule reads it for the Pokémon being raised. Guard:
+  `ActiveNewsTests.testAPichuThatWillBringACostumeIsNotADuplicate`; dropping either half fails it. Sweep: the costume
+  is the only per-Pokémon reward of an evolution step; `announceFormUnlocks` only reports forms the Pokédex's
+  species already decide, which the species check covers.
+
 - **An event egg's promise holds on every path.** Found while building the event eggs, before they shipped: a winter
   egg admitted Vulpix through its Alolan (Ice) form, but the form roll only knew a stone's type, so it could hatch a
   Fire Vulpix; the REST fallback returned every egg as not shiny, breaking the Christmas egg's 100% shiny there; and

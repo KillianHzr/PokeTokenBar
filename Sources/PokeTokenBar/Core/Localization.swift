@@ -1237,6 +1237,15 @@ struct L {
                  "Diplômé, il ajoutera à ton Pokédex : \(list)", "Ao se formar, adiciona à sua Pokédex: \(list)",
                  "Mit seinem Abschied kommt in deinen Pokédex: \(list)", "После выпуска в Покедекс добавится: \(list)")
     }
+    var activeCostumeHint: String {
+        t("피카츄로 진화하면 아직 없는 코스튬을 가져와요.", "Becoming Pikachu, it brings a costume you don't have yet.",
+          "ピカチュウに進化すると、まだ持っていないコスチュームを持ってきます。",
+          "Al convertirse en Pikachu, trae un disfraz que aún no tienes.",
+          "En devenant Pikachu, il apporte un costume que tu n'as pas encore.",
+          "Ao virar Pikachu, ele traz uma fantasia que você ainda não tem.",
+          "Wird es zu Pikachu, bringt es ein Kostüm mit, das du noch nicht hast.",
+          "Став Пикачу, он принесёт костюм, которого у вас ещё нет.")
+    }
     var activeFirstShiny: String {
         t("첫 이로치", "its first shiny", "初めての色違い", "su primer variocolor", "son premier chromatique",
           "seu primeiro shiny", "sein erstes schillerndes", "первый шайни")
