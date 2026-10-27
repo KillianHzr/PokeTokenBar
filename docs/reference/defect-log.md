@@ -85,6 +85,12 @@ read_when:
   is the only per-Pokémon reward of an evolution step; `announceFormUnlocks` only reports forms the Pokédex's
   species already decide, which the species check covers.
 
+- **No achievement asks for a single Pokémon, Arceus's apart.** The player's rule: an achievement needs two
+  Pokémon at least. The Sea Incense asked for Manaphy alone, and one of the Magma Stone's ways for Heatran alone.
+  **Why it was missed:** the rule lived in a conversation, not in a test. They now ask for Manaphy and Kyogre, and for
+  Heatran and Groudon. Guard: `CollectorItemsTests.testNoAchievementAsksForASinglePokemonButArceus`, which fails on
+  either one alone.
+
 - **An event egg's promise holds on every path.** Found while building the event eggs, before they shipped: a winter
   egg admitted Vulpix through its Alolan (Ice) form, but the form roll only knew a stone's type, so it could hatch a
   Fire Vulpix; the REST fallback returned every egg as not shiny, breaking the Christmas egg's 100% shiny there; and

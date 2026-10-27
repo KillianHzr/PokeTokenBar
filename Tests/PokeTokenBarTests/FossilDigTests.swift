@@ -147,6 +147,31 @@ final class FossilDigTests: XCTestCase {
         XCTAssertGreaterThan(hatched, 0)
     }
 
+    /// Fossil lines hatch from Fossil Eggs only: a plain egg, a rarity's egg, a stone's egg or an event's never brings
+    /// one, nor does the REST fallback.
+    func testFossilLinesHatchFromFossilEggsOnly() async throws {
+        func hatch(seed: UInt64, indexDown: Bool = false, _ edit: (inout CompanionState) -> Void = { _ in }) async throws -> Int? {
+            let s = try store(seed: seed, indexDown: indexDown, edit)
+            s.setEggUsageForTesting(s.eggHatchThreshold)
+            await s.hatchIfNeeded()
+            return s.state.active?.baseID
+        }
+        for seed: UInt64 in 1...8 {
+            let plain = try await hatch(seed: seed)
+            XCTAssertEqual(plain, 1, "a plain egg: seed \(seed)")
+            let rare = try await hatch(seed: seed) { $0.eggTier = .rare }
+            XCTAssertEqual(rare, 1, "a Rare Egg: seed \(seed)")
+            // Omanyte, Kabuto, Tirtouga and Dracovish are Water: a Water Stone's egg has no other candidate here.
+            let water = try await hatch(seed: seed) { $0.eggTypeGuarantee = .water }
+            XCTAssertNil(water, "no fossil for a Water Stone's egg: it waits")
+            let kanto = try await hatch(seed: seed) { $0.eggEvent = .pokemonDay }
+            XCTAssertEqual(kanto, 1, "Pokémon Day's Kanto pool without Omanyte, Kabuto, Aerodactyl")
+            if let rest = try await hatch(seed: seed, indexDown: true) {
+                XCTAssertFalse(FossilDig.isFossilLine(rest), "the REST fallback: seed \(seed)")
+            }
+        }
+    }
+
     func testTheSaveKeepsTheDigs() throws {
         var st = CompanionState()
         st.eggFromFossilEgg = true

@@ -195,7 +195,7 @@ Pi는 모델 여러 개를 세션 로그 하나로 흘려보낼 수 있습니다
 | **오래된해도** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/old-sea-map.png" width="28" height="28" alt="오래된해도"> | 뮤츠, 뮤 | 토큰 사용으로 얻는 성장 +20% |
 | **투명한방울** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/clear-bell.png" width="28" height="28" alt="투명한방울"> | 라이코, 앤테이, 스이쿤 | 희귀 등급 포켓몬이 25% 더 빨리 성장해요 |
 | **무지갯빛날개** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rainbow-wing.png" width="28" height="28" alt="무지갯빛날개"> | 루기아, 칠색조 | 상점의 모든 구매 25% 할인 |
-| **화산의돌** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/magma-stone.png" width="28" height="28" alt="화산의돌"> | 레지락, 레지아이스, 레지스틸 **또는** 레지에레키, 레지드래고 **또는** 화석 포켓몬 아무거나 4마리¹ **또는** 히드런 | 이미 졸업시킨 라인의 성장 요구량 25% 감소 |
+| **화산의돌** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/magma-stone.png" width="28" height="28" alt="화산의돌"> | 레지락, 레지아이스, 레지스틸 **또는** 레지에레키, 레지드래고 **또는** 화석 포켓몬 아무거나 4마리¹ **또는** 히드런, 그란돈 | 이미 졸업시킨 라인의 성장 요구량 25% 감소 |
 | **마음의물방울** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/soul-dew.png" width="28" height="28" alt="마음의물방울"> | 라티아스, 라티오스 | 이상한 사탕 경험치 +50% |
 | **초록구슬** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/jade-orb.png" width="28" height="28" alt="초록구슬"> | 가이오가, 그란돈, 레쿠쟈 | 알 추가 20% 할인 |
 | **그라시데아꽃** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/gracidea.png" width="28" height="28" alt="그라시데아꽃"> | 유크시, 엠라이트, 아그놈 | 진화할 포켓몬이 첫 단계에서 25% 빨리 자라요 |
@@ -217,7 +217,7 @@ Pi는 모델 여러 개를 세션 로그 하나로 흘려보낼 수 있습니다
 | **초승달깃털** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/lunar-wing.png" width="28" height="28" alt="초승달깃털"> | 크레세리아, 다크라이 | 에스퍼·악타입 포켓몬이 30% 더 빨리 성장해요 |
 | **운석** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/meteorite.png" width="28" height="28" alt="운석"> | 지라치, 테오키스 | 토큰 한도를 다 채울 때마다 이상한 사탕 1개 더 |
 | **오박사의편지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/oaks-letter.png" width="28" height="28" alt="오박사의편지"> | 세레비, 쉐이미 | 모든 지방의 스타팅 포켓몬이 어느 단계든 25% 빨리 자라요 |
-| **바닷물향로** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sea-incense.png" width="28" height="28" alt="바닷물향로"> | 마나피 (피오네가 진화해요) | 등급이 확정된 알(상점, 레전드플레이트)이 2배 빨리 부화해요 |
+| **바닷물향로** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sea-incense.png" width="28" height="28" alt="바닷물향로"> | 마나피 (피오네가 진화해요), 가이오가 | 등급이 확정된 알(상점, 레전드플레이트)이 2배 빨리 부화해요 |
 | **번개카세트** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/shock-drive.png" width="28" height="28" alt="번개카세트"> | 비크티니, 메로엣타, 게노세크트 | 화석 포켓몬¹이 어느 단계든 50% 빨리 자라요 |
 | **Z링** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/z-ring.png" width="28" height="28" alt="Z링"> | 실버디, 마기아나, 마샤도, 제라오라, 멜메탈 중 4마리 | 강철·전기타입 포켓몬이 30% 더 빨리 성장해요 |
 | **악의 족자** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/scroll-of-darkness.png" width="28" height="28" alt="악의 족자"> | 우라오스, 자루도 | 격투타입 포켓몬이 30% 더 빨리 성장해요 |
@@ -235,7 +235,7 @@ Pi는 모델 여러 개를 세션 로그 하나로 흘려보낼 수 있습니다
 ³ 위대한엄니, 우렁찬꼬리, 사나운버섯, 날개치는머리, 땅을기는날개, 모래털가죽, 무쇠바퀴, 무쇠보따리, 무쇠손, 무쇠머리, 무쇠독나방, 무쇠가시, 고동치는달, 무쇠무인, 굽이치는물결, 무쇠잎새, 꿰뚫는화염, 날뛰는우레, 무쇠암석, 무쇠감투.
 ⁴ 실버디는 타입:널로 태어나 노말폼으로 진화해요. 도감에 있는 전설·환상의 포켓몬마다(놓아준 개체 포함) 그 폼의 타입 메모리를 줘요(파이어: 불꽃·비행, 가라르 파이어: 악·비행). 벌레타입 전설은 게노세크트뿐이에요. 실버디가 도감에 있으면 메모리마다 그 폼이 해금되고(도감의 폼 목록에 표시), 17개를 모두 모으면 타입:널의 알을 받아요.
 
-**발굴** (돌 탭): 바위 타입 포켓몬을 4종 졸업시킬 때마다(평소 바위 타입 74종, 폼으로 몇 종 더) 화석 알을 하나 발굴해요. 화석 계열마다 하나씩 모두 15개. 화석 알에서는 아직 없는 화석 계열이 무작위로 태어나고, 이미 있는 화석 계열은 받을 것 없이 발굴한 것으로 쳐요.
+**발굴** (돌 탭): 바위 타입 포켓몬을 4종 졸업시킬 때마다(평소 바위 타입 74종, 폼으로 몇 종 더) 화석 알을 하나 발굴해요. 화석 계열마다 하나씩 모두 15개. 화석 알에서는 아직 없는 화석 계열이 무작위로 태어나고, 이미 있는 화석 계열은 받을 것 없이 발굴한 것으로 쳐요. 화석 포켓몬은 화석 알에서만 태어나요.
 
 **폼** (업적의 새 탭): 한 종의 모든 폼을 졸업시키면 받아요.
 

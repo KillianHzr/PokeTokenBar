@@ -113,10 +113,13 @@ final class LegendaryArtifactsTests: XCTestCase {
         }
     }
 
-    /// Phione evolves into Manaphy here, so a graduated Phione counts for the Sea Incense.
+    /// Phione evolves into Manaphy here, so a graduated Phione counts for the Sea Incense, with Kyogre: never Manaphy
+    /// alone, as no achievement but Arceus's asks for one Pokémon.
     func testPhionesLineCountsForTheSeaIncense() throws {
-        XCTAssertTrue(try store(dex: [graduated([489, 490])]).isUnlocked(.seaIncense))
-        XCTAssertFalse(try store(dex: [graduated([489, 490], released: true)]).isUnlocked(.seaIncense), "graduated only")
+        XCTAssertTrue(try store(dex: [graduated([489, 490]), graduated([382])]).isUnlocked(.seaIncense))
+        XCTAssertFalse(try store(dex: [graduated([489, 490])]).isUnlocked(.seaIncense), "Kyogre too")
+        XCTAssertFalse(try store(dex: [graduated([489, 490], released: true), graduated([382])]).isUnlocked(.seaIncense),
+                       "graduated only")
     }
 
     /// The Oak's Letter and the Shock Drive favor whole lines: every stage of the stones' starters, every stage of the

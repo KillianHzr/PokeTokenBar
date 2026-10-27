@@ -195,7 +195,7 @@ Pi は複数のモデルを一つのセッションログに流すことがあ�
 | **ふるびたかいず** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/old-sea-map.png" width="28" height="28" alt="ふるびたかいず"> | ミュウツー、ミュウ | トークン消費による成長 +20% |
 | **とうめいなスズ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/clear-bell.png" width="28" height="28" alt="とうめいなスズ"> | ライコウ、エンテイ、スイクン | レアのポケモンが25%早く育つ |
 | **にじいろのはね** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rainbow-wing.png" width="28" height="28" alt="にじいろのはね"> | ルギア、ホウオウ | ショップの全商品が25%引き |
-| **かざんのおきいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/magma-stone.png" width="28" height="28" alt="かざんのおきいし"> | レジロック、レジアイス、レジスチル **または** レジエレキ、レジドラゴ **または** 化石ポケモンのうち4匹¹ **または** ヒードラン | 卒業済みのラインの成長必要量が25%減 |
+| **かざんのおきいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/magma-stone.png" width="28" height="28" alt="かざんのおきいし"> | レジロック、レジアイス、レジスチル **または** レジエレキ、レジドラゴ **または** 化石ポケモンのうち4匹¹ **または** ヒードラン、グラードン | 卒業済みのラインの成長必要量が25%減 |
 | **こころのしずく** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/soul-dew.png" width="28" height="28" alt="こころのしずく"> | ラティアス、ラティオス | ふしぎなアメの経験値 +50% |
 | **もえぎいろのたま** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/jade-orb.png" width="28" height="28" alt="もえぎいろのたま"> | カイオーガ、グラードン、レックウザ | タマゴがさらに20%引き |
 | **グラシデアのはな** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/gracidea.png" width="28" height="28" alt="グラシデアのはな"> | ユクシー、エムリット、アグノム | 進化するポケモンが最初の段階で25%早く育つ |
@@ -217,7 +217,7 @@ Pi は複数のモデルを一つのセッションログに流すことがあ�
 | **みかづきのはね** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/lunar-wing.png" width="28" height="28" alt="みかづきのはね"> | クレセリア、ダークライ | エスパー・あくタイプのポケモンが30%早く育つ |
 | **いんせき** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/meteorite.png" width="28" height="28" alt="いんせき"> | ジラーチ、デオキシス | トークン上限を使い切るたびにふしぎなアメが1個多くもらえる |
 | **オーキドのてがみ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/oaks-letter.png" width="28" height="28" alt="オーキドのてがみ"> | セレビィ、シェイミ | すべての地方の御三家がどの段階でも25%早く育つ |
-| **うしおのおこう** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sea-incense.png" width="28" height="28" alt="うしおのおこう"> | マナフィ(フィオネが進化する) | レア度確定のタマゴ(ショップ、レジェンドプレート)が2倍早くかえる |
+| **うしおのおこう** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sea-incense.png" width="28" height="28" alt="うしおのおこう"> | マナフィ(フィオネが進化する)、カイオーガ | レア度確定のタマゴ(ショップ、レジェンドプレート)が2倍早くかえる |
 | **イナズマカセット** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/shock-drive.png" width="28" height="28" alt="イナズマカセット"> | ビクティニ、メロエッタ、ゲノセクト | 化石ポケモン¹がどの段階でも50%早く育つ |
 | **Ｚリング** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/z-ring.png" width="28" height="28" alt="Ｚリング"> | シルヴァディ、マギアナ、マーシャドー、ゼラオラ、メルメタルのうち4匹 | はがね・でんきタイプのポケモンが30%早く育つ |
 | **あくのかけじく** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/scroll-of-darkness.png" width="28" height="28" alt="あくのかけじく"> | ウーラオス、ザルード | かくとうタイプのポケモンが30%早く育つ |
@@ -235,7 +235,7 @@ Pi は複数のモデルを一つのセッションログに流すことがあ�
 ³ イダイナキバ、サケブシッポ、アラブルタケ、ハバタクカミ、チヲハウハネ、スナノケガワ、テツノワダチ、テツノツツミ、テツノカイナ、テツノコウベ、テツノドクガ、テツノイバラ、トドロクツキ、テツノブジン、ウネルミナモ、テツノイサハ、ウガツホムラ、タケルライコ、テツノイワオ、テツノカシラ。
 ⁴ シルヴァディはタイプ：ヌルとして生まれ、ノーマルフォルムで進化します。図鑑にいる伝説・幻のポケモン(手放した個体も含む)ごとに、そのフォルムのタイプのメモリが手に入ります(ファイヤー：ほのお・ひこう、ガラルのすがたのファイヤー：あく・ひこう)。むしタイプの伝説はゲノセクトだけです。シルヴァディが図鑑にいれば、メモリごとにそのフォルムが解放され(図鑑のフォルム一覧に表示)、17個すべてそろうとタイプ：ヌルのタマゴを受け取れます。
 
-**発掘**(いしタブ):いわタイプのポケモンを4種卒業させるたびに(ふだんいわタイプなのは74種、フォルムでさらに数種)化石のタマゴを1つ発掘します。化石の系統ごとに1つ、全15個。化石のタマゴからはまだいない化石の系統がランダムに生まれ、すでにいる化石の系統はもらうものなしで発掘済みになります。
+**発掘**(いしタブ):いわタイプのポケモンを4種卒業させるたびに(ふだんいわタイプなのは74種、フォルムでさらに数種)化石のタマゴを1つ発掘します。化石の系統ごとに1つ、全15個。化石のタマゴからはまだいない化石の系統がランダムに生まれ、すでにいる化石の系統はもらうものなしで発掘済みになります。化石ポケモンは化石のタマゴからしか生まれません。
 
 **フォルム**(実績の新しいタブ):1種のすべてのフォルムを卒業させるともらえます。
 

@@ -271,8 +271,37 @@ private struct RegionGrid: View {
         let l = store.l
         // The digs are numbered, the regions named.
         let isDig = kind == .excavation
+        let tiers = store.regionTiers(kind)
+        VStack(alignment: .leading, spacing: 6) {
+            if isDig { fossilLines(waived: tiers.filter(\.isWaived).count, l) }
+            grid(isDig ? tiers.filter { !$0.isWaived } : tiers, isDig: isDig, l)
+        }
+    }
+
+    /// The fossil lines: those graduated in color, the missing ones faded. The digs their lines already make
+    /// unnecessary are said in a line, not shown as digs done.
+    private func fossilLines(waived: Int, _ l: L) -> some View {
+        let graduated = store.graduatedSpeciesIDs
+        return VStack(alignment: .leading, spacing: 4) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 8), spacing: 2) {
+                ForEach(FossilDig.lines, id: \.self) { line in
+                    let owned = graduated.contains(line)
+                    SpriteView(speciesID: line, size: 26)
+                        .frame(width: 28, height: 28)
+                        .grayscale(owned ? 0 : 1).opacity(owned ? 1 : 0.35)
+                        .help(owned ? l.excavationWaived : l.fossilEggHint)
+                }
+            }
+            if waived > 0 {
+                Text(l.excavationWaivedCount(waived)).font(.caption2).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func grid(_ tiers: [CompanionStore.RegionTier], isDig: Bool, _ l: L) -> some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 3), alignment: .leading, spacing: 4) {
-            ForEach(store.regionTiers(kind), id: \.generation) { tier in
+            ForEach(tiers, id: \.generation) { tier in
                 HStack(spacing: 3) {
                     Text(isDig ? "#\(tier.generation)" : l.regionName(generation: tier.generation))
                         .font(.caption2.weight(.semibold))

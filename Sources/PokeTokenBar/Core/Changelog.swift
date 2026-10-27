@@ -67,14 +67,14 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-27", entries: [
-            .new("2026-10-27-excavation") { $0.t("발굴: 바위 타입 포켓몬을 4마리 졸업시킬 때마다 화석 알을 하나 받아요(돌 탭, 15번). 화석 알에서는 아직 없는 화석 계열이 무작위로 태어나고, 이미 있는 계열은 발굴한 것으로 쳐요.",
-                                                  "Excavation: every 4 Rock-type Pokémon graduated give a Fossil Egg (Stones tab, 15 digs). It hatches a fossil line you're missing at random; lines you already have count as dug.",
-                                                  "発掘：いわタイプのポケモンを4匹卒業させるたびに化石のタマゴがもらえます(いしタブ、全15回)。まだいない化石の系統がランダムに生まれ、すでにいる系統は発掘済みになります。",
-                                                  "Excavación: cada 4 Pokémon de tipo Roca graduados dan un Huevo Fósil (pestaña Piedras, 15 excavaciones). Nace al azar una línea fósil que te falta; las que ya tienes cuentan como excavadas.",
-                                                  "Fouilles : tous les 4 Pokémon de type Roche diplômés, un Œuf fossile (onglet Pierres, 15 fouilles). Il fait éclore au hasard une lignée fossile qui te manque ; celles que tu as déjà comptent comme fouillées.",
-                                                  "Escavação: a cada 4 Pokémon do tipo Pedra formados, um Ovo Fóssil (aba Pedras, 15 escavações). Nasce ao acaso uma linha fóssil que falta; as que você já tem contam como escavadas.",
-                                                  "Ausgrabung: Alle 4 verabschiedeten Gestein-Pokémon gibt es ein Fossil-Ei (Tab Steine, 15 Ausgrabungen). Daraus schlüpft zufällig eine fehlende Fossil-Linie; vorhandene Linien gelten als ausgegraben.",
-                                                  "Раскопки: каждые 4 выпущенных покемона каменного типа дают Яйцо-окаменелость (вкладка «Камни», 15 раскопок). Из него вылупляется случайная недостающая линия окаменелостей; уже имеющиеся считаются раскопанными.") },
+            .new("2026-10-27-excavation") { $0.t("발굴: 바위 타입 포켓몬을 4마리 졸업시킬 때마다 화석 알을 하나 받아요(돌 탭, 15번). 화석 알에서는 아직 없는 화석 계열이 무작위로 태어나고, 이미 있는 계열은 발굴한 것으로 쳐요. 화석 포켓몬은 이제 화석 알에서만 태어나요.",
+                                                  "Excavation: every 4 Rock-type Pokémon graduated give a Fossil Egg (Stones tab, 15 digs). It hatches a fossil line you're missing at random; lines you already have count as dug. Fossil Pokémon now hatch from Fossil Eggs only.",
+                                                  "発掘：いわタイプのポケモンを4匹卒業させるたびに化石のタマゴがもらえます(いしタブ、全15回)。まだいない化石の系統がランダムに生まれ、すでにいる系統は発掘済みになります。化石ポケモンは化石のタマゴからしか生まれなくなりました。",
+                                                  "Excavación: cada 4 Pokémon de tipo Roca graduados dan un Huevo Fósil (pestaña Piedras, 15 excavaciones). Nace al azar una línea fósil que te falta; las que ya tienes cuentan como excavadas. Los Pokémon fósiles ya solo nacen de Huevos Fósiles.",
+                                                  "Fouilles : tous les 4 Pokémon de type Roche diplômés, un Œuf fossile (onglet Pierres, 15 fouilles). Il fait éclore au hasard une lignée fossile qui te manque ; celles que tu as déjà comptent comme fouillées. Les Pokémon fossiles n'éclosent plus que des Œufs fossiles.",
+                                                  "Escavação: a cada 4 Pokémon do tipo Pedra formados, um Ovo Fóssil (aba Pedras, 15 escavações). Nasce ao acaso uma linha fóssil que falta; as que você já tem contam como escavadas. Pokémon fósseis agora só nascem de Ovos Fósseis.",
+                                                  "Ausgrabung: Alle 4 verabschiedeten Gestein-Pokémon gibt es ein Fossil-Ei (Tab Steine, 15 Ausgrabungen). Daraus schlüpft zufällig eine fehlende Fossil-Linie; vorhandene Linien gelten als ausgegraben. Fossil-Pokémon schlüpfen jetzt nur noch aus Fossil-Eiern.",
+                                                  "Раскопки: каждые 4 выпущенных покемона каменного типа дают Яйцо-окаменелость (вкладка «Камни», 15 раскопок). Из него вылупляется случайная недостающая линия окаменелостей; уже имеющиеся считаются раскопанными. Покемоны-окаменелости теперь вылупляются только из Яиц-окаменелостей.") },
             .fixed("2026-10-27-contrast") { $0.t("밝은 테마와 어두운 테마 모두에서 초록·주황 글자와 배지, 아직 없는 폼과 도감 칸이 더 잘 보여요.",
                                                   "Green and orange text and badges, forms not caught yet and the Pokédex's missing species read better in both light and dark mode.",
                                                   "ライトとダークの両方で、緑やオレンジの文字とバッジ、まだいないフォルムや図鑑のマスが見やすくなりました。",
@@ -253,14 +253,15 @@ enum Changelog {
             .improved("2026-10-27-artifact-goals") { l in
                 let dna = l.itemName(.dnaSplicers), liberty = l.itemName(.libertyPass)
                 let magma = l.itemName(.magmaStone), teal = l.itemName(.tealMask)
-                return l.t("큐레무가 \(dna)에 필요해졌고, 케르디오·히드런·복숭악동도 \(liberty)·\(magma)·\(teal)에 들어가요.",
-                           "Kyurem now joins Reshiram and Zekrom for the \(dna), and Keldeo, Heatran and Pecharunt count for the \(liberty), the \(magma) and the \(teal).",
-                           "\(dna)にキュレムが必要になり、ケルディオ・ヒードラン・モモワロウも\(liberty)・\(magma)・\(teal)に数えられます。",
-                           "Kyurem se une a Reshiram y Zekrom para la \(dna), y Keldeo, Heatran y Pecharunt cuentan para el \(liberty), la \(magma) y la \(teal).",
-                           "Kyurem rejoint Reshiram et Zekrom pour le \(dna), et Keldeo, Heatran et Pêchaminus comptent pour le \(liberty), la \(magma) et le \(teal).",
-                           "Kyurem se junta a Reshiram e Zekrom para o \(dna), e Keldeo, Heatran e Pecharunt contam para o \(liberty), a \(magma) e a \(teal).",
-                           "Kyurem kommt für den \(dna) zu Reshiram und Zekrom, und Keldeo, Heatran und Infamomo zählen für den \(liberty), den \(magma) und die \(teal).",
-                           "Кюрем теперь нужен для «\(dna)» вместе с Реширамом и Зекромом, а Келдео, Хитран и Пичарант засчитываются для «\(liberty)», «\(magma)» и «\(teal)».")
+                let incense = l.itemName(.seaIncense)
+                return l.t("큐레무가 \(dna)에 필요해졌고, 케르디오는 \(liberty)에, 히드런은 그란돈과 함께 \(magma)에, 복숭악동은 \(teal)에 들어가요. \(incense)에는 마나피와 가이오가가 필요해요.",
+                           "Kyurem now joins Reshiram and Zekrom for the \(dna); Keldeo counts for the \(liberty), Heatran with Groudon for the \(magma), and Pecharunt for the \(teal). The \(incense) asks for Manaphy and Kyogre.",
+                           "\(dna)にキュレムが必要になり、ケルディオは\(liberty)に、ヒードランはグラードンと\(magma)に、モモワロウは\(teal)に数えられます。\(incense)はマナフィとカイオーガです。",
+                           "Kyurem se une a Reshiram y Zekrom para la \(dna); Keldeo cuenta para el \(liberty), Heatran con Groudon para la \(magma) y Pecharunt para la \(teal). El \(incense) pide a Manaphy y Kyogre.",
+                           "Kyurem rejoint Reshiram et Zekrom pour le \(dna) ; Keldeo compte pour le \(liberty), Heatran avec Groudon pour la \(magma) et Pêchaminus pour le \(teal). L'\(incense) demande Manaphy et Kyogre.",
+                           "Kyurem se junta a Reshiram e Zekrom para o \(dna); Keldeo conta para o \(liberty), Heatran com Groudon para a \(magma) e Pecharunt para a \(teal). O \(incense) pede Manaphy e Kyogre.",
+                           "Kyurem kommt für den \(dna) zu Reshiram und Zekrom; Keldeo zählt für den \(liberty), Heatran mit Groudon für den \(magma) und Infamomo für die \(teal). Das \(incense) verlangt Manaphy und Kyogre.",
+                           "Кюрем теперь нужен для «\(dna)» вместе с Реширамом и Зекромом; Келдео засчитывается для «\(liberty)», Хитран с Граудоном для «\(magma)», Пичарант для «\(teal)». «\(incense)» требует Манафи и Кайогра.")
             },
         ]),
         ChangelogDay(date: "2026-10-26", entries: [

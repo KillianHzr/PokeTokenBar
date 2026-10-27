@@ -3180,7 +3180,9 @@ final class CompanionStore {
             // 등급 보증 알은 후보를 먼저 좁힌다 — capture_rate 상한이 곧 등급 하한이고, 전설은 플래그로
             // 늘 들어간다(`Rarity.admits`: capture_rate 255 인 Necrozma·Eternatus·Terapagos 도 "희귀 이상").
             // 좁힌 결과가 비면 보증을 못 지키므로 전체 풀로 폴백하지 말고 알을 유지한다(다음 틱 재시도).
-            var index = tier.map { t in full.filter(t.admits) } ?? full
+            // Fossil lines only hatch from Fossil Eggs (`FossilDig`), never from any other egg.
+            let unfossil = full.filter { !FossilDig.isFossilLine($0.id) }
+            var index = tier.map { t in unfossil.filter(t.admits) } ?? unfossil
             // A Legendary Egg hatches a legendary or mythical Pokémon, any of them.
             if state.eggFromLegendaryEgg { index = index.filter(\.isLegendary) }
             if let targetType = typeGuarantee {
@@ -3291,6 +3293,7 @@ final class CompanionStore {
                     if let tier, !tier.admits(bs) { continue }
                     if state.eggFromLegendaryEgg || state.eggFromBirthdayEgg, !bs.isLegendary { continue }
                     if state.eggFromFossilEgg, !fossilCandidates.contains(bs.id) { continue }
+                    if !state.eggFromFossilEgg, FossilDig.isFossilLine(bs.id) { continue }
                     if let typeGuarantee, !PokemonTypeData.canHatch(baseID: bs.id, as: typeGuarantee) { continue }
                     if let event = state.eggEvent, !event.admits(bs, companionLine: firstCatch?.baseID) { continue }
                     // Not the line hatched last again; the index path keeps it when it is the only one, this one

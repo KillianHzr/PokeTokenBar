@@ -505,7 +505,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .magmaStone:  return .species([SpeciesGoal([377, 378, 379]),       // Legendary titans
                                             SpeciesGoal([894, 895]),            // Regieleki, Regidrago
                                             SpeciesGoal(SpeciesGoal.fossils, needed: 4),
-                                            SpeciesGoal([485])])                // Heatran, whose item it is
+                                            SpeciesGoal([485, 383])])           // Heatran, whose item it is, and Groudon
         case .soulDew:     return .species([SpeciesGoal([380, 381])])           // Latias, Latios
         case .jadeOrb:     return .species([SpeciesGoal([382, 383, 384])])      // Weather trio
         case .gracidea:    return .species([SpeciesGoal([480, 481, 482])])      // Lake guardians
@@ -527,7 +527,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .lunarWing:   return .species([SpeciesGoal([488, 491])])           // Cresselia, Darkrai
         case .meteorite:   return .species([SpeciesGoal([385, 386])])           // Jirachi, Deoxys
         case .oaksLetter:  return .species([SpeciesGoal([251, 492])])           // Celebi, Shaymin
-        case .seaIncense:  return .species([SpeciesGoal([490])])                // Manaphy (Phione's line too)
+        case .seaIncense:  return .species([SpeciesGoal([490, 382])])           // Manaphy (Phione's line too), Kyogre
         case .shockDrive:  return .species([SpeciesGoal([494, 648, 649])])      // Victini, Meloetta, Genesect
         // Silvally, Magearna, Marshadow, Zeraora, Melmetal: the legends of Alola left.
         case .zRing:       return .species([SpeciesGoal([773, 801, 802, 807, 809], needed: 4)])

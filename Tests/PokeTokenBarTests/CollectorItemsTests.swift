@@ -478,18 +478,28 @@ final class CollectorItemsTests: XCTestCase {
             (.tealMask, [1014, 1015, 1016, 1017]), (.teraOrb, [1007, 1008, 1024]),
             (.beastBall, [793, 798, 803, 806]), (.boosterEnergy, [984, 990, 1009, 1023]),
             (.revealGlass, [641, 642, 905]), (.relicStatue, [377, 378, 379, 486, 894, 895]),
-            (.lunarWing, [488, 491]), (.meteorite, [385, 386]), (.oaksLetter, [251, 492]), (.seaIncense, [490]),
+            (.lunarWing, [488, 491]), (.meteorite, [385, 386]), (.oaksLetter, [251, 492]), (.seaIncense, [490, 382]),
             (.shockDrive, [494, 648, 649]), (.zRing, [773, 801, 802, 807]), (.scrollOfDarkness, [892, 893]),
             (.relicVase, [1001, 1002, 1003, 1004]), (.legendPlate, [493]),
             // Kyurem is needed with Reshiram and Zekrom; Keldeo and Pecharunt can stand in for one of the others.
             (.dnaSplicers, [643, 644, 646]), (.libertyPass, [638, 639, 647]), (.tealMask, [1014, 1015, 1016, 1025]),
-            (.magmaStone, [485]),
+            // Heatran with Groudon, never alone: no achievement but Arceus's asks for one Pokémon.
+            (.magmaStone, [485, 383]),
         ]
         for (item, ids) in goals {
             XCTAssertTrue(store(dex: entries(ids, rarity: .legendary)).isUnlocked(item), "\(item)")
             XCTAssertFalse(store(dex: entries(Array(ids.dropLast()), rarity: .legendary)).isUnlocked(item), "\(item)")
         }
         XCTAssertTrue(store(dex: entries([697, 699, 880, 883])).isUnlocked(.magmaStone), "later fossils count")
+    }
+
+    /// No achievement but Arceus's can be earned with a single Pokémon: every goal asks for two at least (the
+    /// player's rule; Manaphy alone and Heatran alone broke it).
+    func testNoAchievementAsksForASinglePokemonButArceus() {
+        for kind in ItemKind.allCases where kind != .legendPlate && !kind.isRegional {
+            guard case .species(let goals) = kind.unlock else { continue }
+            for goal in goals { XCTAssertGreaterThanOrEqual(goal.needed, 2, "\(kind): \(goal.species)") }
+        }
     }
 
     func testRainbowWingAndJadeOrbDiscounts() throws {
