@@ -179,6 +179,18 @@ final class DexColorRenderingTests: XCTestCase {
         XCTAssertTrue(text.contains("Shiny"), "the page opens on the shiny individual: \(text)")
     }
 
+    /// Caught shiny only: the picker still shows, and Normal shows the normal look as a preview. It used to need both
+    /// looks caught, so a form caught shiny only had no way to its usual colors.
+    func testAPokemonCaughtShinyOnlyStillShowsItsNormalLook() async throws {
+        let (store, file) = try fixture(onlyShiny: true)
+        defer { try? FileManager.default.removeItem(at: file) }
+        let (host, window) = try mountDetail(store, selectedShiny: false)
+        defer { window.close() }
+        let bitmap = try await waitForDetailSprite(host, shiny: false)
+        XCTAssertGreaterThan(colorRows(bitmap, shiny: false).count, 40, "Normal picked: the normal look")
+        XCTAssertEqual(colorRows(bitmap, shiny: true).count, 0)
+    }
+
     func testDetailSelectorChangesMountedPixelsAndReturnsToNormal() async throws {
         let (store, file) = try fixture(shinyLast: true)
         defer { try? FileManager.default.removeItem(at: file) }

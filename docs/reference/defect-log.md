@@ -1447,6 +1447,20 @@ read_when:
   `CompanionStore.evolutionTrackForm`, as the catch log (`entry.form`) and the Pokédex family (`family.form`) already
   did. Guard: `EvolutionTrackTests.testEveryStageKeepsTheIndividualsForm`.
 
+- **A choice offered only when both options are owned hides the one the player wants.** A Pokémon's page showed
+  its Normal/Shiny picker only when that form was caught both ways, and ignored Normal otherwise: a Vivillon pattern
+  caught shiny only, beside other patterns caught normal, had no way to its usual colors. The tests opened species
+  caught both ways or one way without forms, never a form caught shiny only. Normal is never a secret: the picker
+  now shows whenever the form was caught shiny, and Normal shows the usual look as a preview when none was caught
+  (`testAPokemonCaughtShinyOnlyStillShowsItsNormalLook`; the old condition fails it). Shiny stays for forms caught
+  shiny.
+- **A goal card says what to do next, not what the rewards are.** The Excavation card opened on the 15 fossil lines
+  (its rewards) and numbered digs with cumulative counts ("#4 15/16, #5 15/20"): players read it as "catch every
+  fossil" and could not tell how far the next egg was. It now shows one egg per dig (dug, ready, the next one
+  filling with its Rock-type Pokémon, the rest outlined), "Next egg: 3/4 Rock-type Pokémon", why there are fewer
+  than 15 eggs when lines were had before, the Fossil Eggs waiting in the Bag, and the fossil lines folded away.
+  The other regional cards name their regions and count each one's own species, with no cumulative goal.
+
 ## 에너지 (상시 표시 애니메이션)
 
 - **절전용 정지 상태는 짝 알림 하나에만 복구를 맡기지 마라.** `screensDidSleep` 이 폴링 타이머를 끄고

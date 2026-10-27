@@ -124,6 +124,9 @@ struct SpriteView: View {
     /// Draws the Pokémon at one scale with its neighbors (`SpriteFit.sameScaleSize`) instead of filling the box:
     /// for the Pokédex grid and evolution lines, where a Charmander sits next to a Charizard.
     var sameScale: Bool = false
+    /// Stands the Pokémon on the bottom of its box, whatever the empty margin under it in its image: for the catch log
+    /// and a Pokémon's page. The Pokédex's small boxes keep the image centered.
+    var bottomAligned: Bool = false
     private let spriteStore: SpriteStore
     @State private var subject: SpriteSubject
     @State private var up = false
@@ -132,9 +135,11 @@ struct SpriteView: View {
 
     init(speciesID: Int?, size: CGFloat = 84, bob: Bool = false, animated: Bool = false,
          shiny: Bool = false, minFrameDelay: TimeInterval = 0, spriteStore: SpriteStore = .shared,
-         form: PokemonForm? = nil, egg: EggKind = .plain, isSilhouette: Bool = false, sameScale: Bool = false) {
+         form: PokemonForm? = nil, egg: EggKind = .plain, isSilhouette: Bool = false, sameScale: Bool = false,
+         bottomAligned: Bool = false) {
         self.speciesID = speciesID
         self.sameScale = sameScale
+        self.bottomAligned = bottomAligned
         self.spriteStore = spriteStore
         self.size = size
         self.bob = bob
@@ -218,9 +223,12 @@ struct SpriteView: View {
     /// 비율 유지로 잰 이미지 프레임 + 바깥 size×size 슬롯. 바깥 슬롯을 유지하는 이유: 진화 라인·도감
     /// 그리드의 폭 계산(EvoLineView.rowWidth 등)이 칸을 정사각으로 전제한다 — 안쪽만 줄여야 안 흔들린다.
     @ViewBuilder
-    private func fitted(_ image: NSImage) -> some View {
+    private func fitted(_ image: NSImage, margin: CGFloat? = nil) -> some View {
         // The egg (no species) keeps filling its box.
         let fit = Self.imageSize(for: image, box: size, sameScale: sameScale && speciesID != nil)
+        let grounded = bottomAligned && speciesID != nil
+        // Moved down by the transparent margin under the Pokémon, which then spills harmlessly below the box.
+        let drop = grounded ? fit.height * (margin ?? SpriteFit.bottomMargin(of: image)) : 0
         if isSilhouette {
             Image(nsImage: image)
                 .renderingMode(.template)
@@ -228,13 +236,15 @@ struct SpriteView: View {
                 .interpolation(.none)
                 .foregroundStyle(Color.black.opacity(0.85))
                 .frame(width: fit.width, height: fit.height)
-                .frame(width: size, height: size)
+                .offset(y: drop)
+                .frame(width: size, height: size, alignment: grounded ? .bottom : .center)
         } else {
             Image(nsImage: image)
                 .resizable()
                 .interpolation(.none)
                 .frame(width: fit.width, height: fit.height)
-                .frame(width: size, height: size)
+                .offset(y: drop)
+                .frame(width: size, height: size, alignment: grounded ? .bottom : .center)
         }
     }
 
@@ -243,7 +253,9 @@ struct SpriteView: View {
             if !frames.isEmpty {
                 // GIF 애니메이션 경로 — 현재 프레임만 렌더. Gen-V GIF 캔버스는 종마다 비정사각이라
                 // (잭키 36×66) 정사각으로 늘리면 뚱뚱해진다 → fitted 로 비율 유지.
-                fitted(frames[frameIndex % frames.count].image)
+                // One margin for the whole animation, its lowest: a frame of its own would make the Pokémon hop.
+                fitted(frames[frameIndex % frames.count].image,
+                       margin: bottomAligned ? frames.map { SpriteFit.bottomMargin(of: $0.image) }.min() : nil)
             } else if let img = subject.image {
                 fitted(animated && speciesID != nil ? SpriteLoader.animationPlaceholder(img) : img)
             } else {
@@ -345,6 +357,8 @@ struct EvoLineView: View {
     /// `onOpenDexEntry` it makes the sprites of species in the dex open their Pokédex page.
     var dexLinks: [Int: String] = [:]
     var onOpenDexEntry: ((String) -> Void)? = nil
+    /// Stands each stage on one ground line (`SpriteView.bottomAligned`): the catch log's lines.
+    var bottomAligned: Bool = false
 
     private static let spacing: CGFloat = 2
     /// 화살표 칸 폭 = 썸네일 × 이 비율. 고정 frame 을 줘 SF Symbol 글리프 폭에 의존하지 않게 한다 —
@@ -543,7 +557,7 @@ struct EvoLineView: View {
                     let uncaught = node.state == .uncaught
                     VStack(spacing: 1) {
                         SpriteView(speciesID: id, size: thumb, shiny: shiny && !uncaught, form: form,
-                                   isSilhouette: uncaught, sameScale: true)
+                                   isSilhouette: uncaught, sameScale: true, bottomAligned: bottomAligned)
                             .opacity(node.state == .future ? 0.32 : 1)
                             .saturation(node.state == .future ? 0.4 : 1)
                             .overlay(alignment: .bottom) {
@@ -585,13 +599,13 @@ struct EvoLineView: View {
                                     if item.isCollected {
                                         // Faded when it is a coming evolution (Home); a Pokédex page's family is caught.
                                         SpriteView(speciesID: item.speciesID, size: thumb, shiny: shiny, form: item.form ?? form,
-                                                   sameScale: true)
+                                                   sameScale: true, bottomAligned: bottomAligned)
                                             .opacity(node.state == .future ? 0.4 : 1)
                                             .saturation(node.state == .future ? 0.6 : 1)
                                     } else {
                                         // Silhouette noire (ombre) pour les évolutions non encore obtenues
                                         SpriteView(speciesID: item.speciesID, size: thumb, shiny: false, form: item.form ?? form,
-                                                   isSilhouette: true, sameScale: true)
+                                                   isSilhouette: true, sameScale: true, bottomAligned: bottomAligned)
                                     }
                                 }
                                 if let names {
@@ -2290,10 +2304,10 @@ struct PokemonDetailView: View {
     private var allIndividuals: [DexEntry] {
         store.pokemonIndividuals(speciesID: species.id, form: displayedSpecies.form)
     }
-    /// Shiny unless Normal is picked: a species caught shiny opens shiny, even when its latest catch is normal.
+    /// Shiny unless Normal is picked: a species caught shiny opens shiny, even when its latest catch is normal. Normal
+    /// can always be looked at, as a preview when none was caught in this form; shiny only once caught shiny.
     private var displayedShiny: Bool {
-        if let selectedShiny,
-           selectedShiny ? displayedSpecies.isShiny : displayedSpecies.hasNormal { return selectedShiny }
+        if let selectedShiny, !selectedShiny || displayedSpecies.isShiny { return selectedShiny }
         return displayedSpecies.isShiny
     }
     private var individuals: [DexEntry] {
@@ -2317,7 +2331,9 @@ struct PokemonDetailView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     if PokemonForm.hasForms(speciesID: species.id) { formPicker }
                     if species.id == PikachuCostume.speciesID { costumePicker }
-                    if displayedSpecies.hasNormal && displayedSpecies.isShiny { appearancePicker }
+                    // A form caught shiny only still shows its normal look: one of Vivillon's patterns caught shiny
+                    // had no way back to its usual colors.
+                    if displayedSpecies.isShiny { appearancePicker }
                     identityHeader
                     if individuals.count > 1 { individualPicker }
                     if individuals.isEmpty {
@@ -2504,7 +2520,7 @@ struct PokemonDetailView: View {
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 14) {
                 SpriteView(speciesID: species.id, size: 96, animated: true,
-                           shiny: displayedShiny, spriteStore: spriteStore, form: species.form)
+                           shiny: displayedShiny, spriteStore: spriteStore, form: species.form, bottomAligned: true)
                     .frame(width: 100, height: 100)
                     .background(alignment: .bottom) {
                         Ellipse().fill(Color.black.opacity(0.18)).frame(width: 60, height: 10).blur(radius: 2)
@@ -2940,7 +2956,7 @@ private struct DexEntryRow: View {
                         shiny: entry.isShiny, names: names,
                         maxWidth: PopoverMetrics.scrollContentWidth - Self.cardPadding * 2, form: entry.form,
                         nameFontSize: 11, nameLineLimit: 2, nameMinimumScaleFactor: 1,
-                        dexLinks: dexLinks, onOpenDexEntry: onOpenDexEntry)
+                        dexLinks: dexLinks, onOpenDexEntry: onOpenDexEntry, bottomAligned: true)
             if let caughtAt = entry.caughtAt {
                 Text(caughtAt, style: .relative).font(.system(size: 11)).foregroundStyle(.secondary)
             }

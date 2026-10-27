@@ -101,6 +101,27 @@ final class FossilDigTests: XCTestCase {
         XCTAssertEqual(hatched.regionTiers(.excavation).filter(\.isWaived).count, 0, "those came from Fossil Eggs")
     }
 
+    /// What the card tells: the eggs left to dig once the lines had before take theirs away, the ones dug and ready,
+    /// and the Rock-type Pokémon the next one still wants out of 4.
+    func testTheCardCountsTheEggsAndTheRockPokemonTowardTheNext() throws {
+        // Omanyte and Kabuto, had before the digs and Rock themselves, plus 9 more Rock: 11 in all.
+        let s = try store(dex: [138, 140].map { graduated($0) } + rocks.prefix(9).map { graduated($0) }) {
+            $0.claimedAchievements = [CompanionState.regionTierKey(.excavation, generation: 1)]
+        }
+        let progress = s.excavationProgress
+        XCTAssertEqual(progress.digs.count, 13, "15 digs, 2 lines already had")
+        XCTAssertEqual(progress.waived, 2)
+        XCTAssertEqual(progress.dug, 1)
+        XCTAssertEqual(progress.ready, 1, "8 Rock reached, not claimed yet")
+        XCTAssertEqual(progress.towardNext, 3, "the third egg wants 12: 11 is 3 of its 4")
+        XCTAssertEqual(progress.linesGraduated, 2)
+
+        let every = try store(dex: FossilDig.lines.map { graduated($0) }).excavationProgress
+        XCTAssertTrue(every.digs.isEmpty, "every line already had: no egg to dig")
+        XCTAssertNil(every.towardNext)
+        XCTAssertEqual(try store().excavationProgress.towardNext, 0, "nothing yet: 0 of 4")
+    }
+
     /// A Fossil Egg hatches a missing fossil line, each as likely; once every line graduated, any of them.
     func testAFossilEggHatchesAMissingLine() async throws {
         let owned = FossilDig.lines.dropFirst(2).map { graduated($0) }   // Omanyte and Kabuto missing
@@ -147,8 +168,8 @@ final class FossilDigTests: XCTestCase {
         XCTAssertGreaterThan(hatched, 0)
     }
 
-    /// Fossil lines hatch from Fossil Eggs only: a plain egg, a rarity's egg, a stone's egg or an event's never brings
-    /// one, nor does the REST fallback.
+    /// A fossil line not graduated yet hatches from Fossil Eggs only: a plain egg, a rarity's egg, a stone's egg or an
+    /// event's never brings one, nor does the REST fallback.
     func testFossilLinesHatchFromFossilEggsOnly() async throws {
         func hatch(seed: UInt64, indexDown: Bool = false, _ edit: (inout CompanionState) -> Void = { _ in }) async throws -> Int? {
             let s = try store(seed: seed, indexDown: indexDown, edit)
@@ -170,6 +191,24 @@ final class FossilDigTests: XCTestCase {
                 XCTAssertFalse(FossilDig.isFossilLine(rest), "the REST fallback: seed \(seed)")
             }
         }
+    }
+
+    /// Once graduated, a fossil line hatches from any egg like every other species: a Water Stone's egg brings the
+    /// Omanyte already graduated, never Kabuto, Tirtouga or Dracovish, still missing.
+    func testAGraduatedFossilLineJoinsEveryEgg() async throws {
+        var plain: Set<Int> = []
+        for seed: UInt64 in 1...16 {
+            let water = try store(dex: [graduated(138)], seed: seed) { $0.eggTypeGuarantee = .water }
+            water.setEggUsageForTesting(water.eggHatchThreshold)
+            await water.hatchIfNeeded()
+            XCTAssertEqual(water.state.active?.baseID, 138, "seed \(seed)")
+
+            let egg = try store(dex: [graduated(138)], seed: seed)
+            egg.setEggUsageForTesting(egg.eggHatchThreshold)
+            await egg.hatchIfNeeded()
+            plain.insert(try XCTUnwrap(egg.state.active).baseID)
+        }
+        XCTAssertEqual(plain, [1, 138], "a plain egg: Bulbasaur or Omanyte, never a fossil line still missing")
     }
 
     func testTheSaveKeepsTheDigs() throws {

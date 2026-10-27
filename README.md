@@ -234,7 +234,7 @@ Only the Azure Flute and the Oval Charm change which Pokémon hatch, and the Ova
 ³ Great Tusk, Scream Tail, Brute Bonnet, Flutter Mane, Slither Wing, Sandy Shocks, Iron Treads, Iron Bundle, Iron Hands, Iron Jugulis, Iron Moth, Iron Thorns, Roaring Moon, Iron Valiant, Walking Wake, Iron Leaves, Gouging Fire, Raging Bolt, Iron Boulder, Iron Crown.
 ⁴ Silvally hatches as Type: Null and evolves in its Normal form. Each legendary or mythical Pokémon in your Pokédex, released ones included, gives the Memory of its form's types (Moltres: Fire and Flying; Galarian Moltres: Dark and Flying); the only Bug one is Genesect. Once Silvally is in your Pokédex, each Memory unlocks its form, shown under each form in its Pokédex page, and all 17 earn the Type: Null Egg.
 
-**Excavation** (Stones tab): every 4 Rock-type species graduated (74 are Rock in their usual form, a few more through a form) dig up a Fossil Egg, 15 in all, one per fossil line. A Fossil Egg hatches a fossil line you are missing, at random; a fossil line you already have counts as dug, with nothing to claim. Fossil Pokémon hatch from Fossil Eggs only.
+**Excavation** (Stones tab): every 4 Rock-type species graduated (74 are Rock in their usual form, a few more through a form) dig up a Fossil Egg, 15 in all, one per fossil line. A Fossil Egg hatches a fossil line you are missing, at random; a fossil line you already have counts as dug, with nothing to claim. A fossil line hatches from Fossil Eggs only until you graduate it; then it joins every egg like any species, so you can get it again, shiny or with another nature.
 
 **Forms** (a tab of its own in Achievements): every form of one species graduated.
 

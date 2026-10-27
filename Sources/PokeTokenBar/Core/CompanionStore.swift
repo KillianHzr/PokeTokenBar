@@ -2042,6 +2042,32 @@ final class CompanionStore {
         return tiers
     }
 
+    /// The digs as the Achievements card tells them: one Fossil Egg per dig still asking for one, and how many
+    /// Rock-type Pokémon the next one still wants.
+    struct ExcavationProgress: Equatable, Sendable {
+        /// The digs that give an egg, in order: those done with nothing to claim are left out.
+        let digs: [RegionTier]
+        /// Rock-type species graduated toward the next dig, out of `FossilDig.rockPerDig`. nil once every dig is met.
+        let towardNext: Int?
+        let linesGraduated: Int
+        /// Digs done without an egg, for the fossil lines graduated before the digs.
+        let waived: Int
+        var dug: Int { digs.filter(\.isClaimed).count }
+        var ready: Int { digs.filter(\.isReady).count }
+    }
+
+    var excavationProgress: ExcavationProgress {
+        let tiers = regionTiers(.excavation)
+        let digs = tiers.filter { !$0.isWaived }
+        // The digs ask for 4, 8, 12… Rock species in all: the next one counts from where the one before it stopped.
+        let towardNext = digs.first { !$0.progress.isMet && !$0.isClaimed }.map { dig in
+            min(FossilDig.rockPerDig, max(0, dig.progress.count - (dig.progress.goal.needed - FossilDig.rockPerDig)))
+        }
+        return ExcavationProgress(digs: digs, towardNext: towardNext,
+                                  linesGraduated: FossilDig.lines.filter(graduatedSpeciesIDs.contains).count,
+                                  waived: tiers.count - digs.count)
+    }
+
     /// Species graduated in a Rock-type form: their usual one, or one of their forms (Hisuian Arcanine).
     var rockSpeciesGraduated: Set<Int> {
         Set(graduatedSpeciesIDs.filter { id in
@@ -3180,9 +3206,11 @@ final class CompanionStore {
             // 등급 보증 알은 후보를 먼저 좁힌다 — capture_rate 상한이 곧 등급 하한이고, 전설은 플래그로
             // 늘 들어간다(`Rarity.admits`: capture_rate 255 인 Necrozma·Eternatus·Terapagos 도 "희귀 이상").
             // 좁힌 결과가 비면 보증을 못 지키므로 전체 풀로 폴백하지 말고 알을 유지한다(다음 틱 재시도).
-            // Fossil lines only hatch from Fossil Eggs (`FossilDig`), never from any other egg.
-            let unfossil = full.filter { !FossilDig.isFossilLine($0.id) }
-            var index = tier.map { t in unfossil.filter(t.admits) } ?? unfossil
+            // A fossil line hatches from Fossil Eggs only until it graduates (`FossilDig`), then from any egg like
+            // every other species: shiny, twice, with another nature.
+            let graduated = graduatedSpeciesIDs
+            let admitted = full.filter { !FossilDig.isFossilLine($0.id) || graduated.contains($0.id) }
+            var index = tier.map { t in admitted.filter(t.admits) } ?? admitted
             // A Legendary Egg hatches a legendary or mythical Pokémon, any of them.
             if state.eggFromLegendaryEgg { index = index.filter(\.isLegendary) }
             if let targetType = typeGuarantee {
@@ -3293,7 +3321,9 @@ final class CompanionStore {
                     if let tier, !tier.admits(bs) { continue }
                     if state.eggFromLegendaryEgg || state.eggFromBirthdayEgg, !bs.isLegendary { continue }
                     if state.eggFromFossilEgg, !fossilCandidates.contains(bs.id) { continue }
-                    if !state.eggFromFossilEgg, FossilDig.isFossilLine(bs.id) { continue }
+                    if !state.eggFromFossilEgg, FossilDig.isFossilLine(bs.id), !graduatedSpeciesIDs.contains(bs.id) {
+                        continue
+                    }
                     if let typeGuarantee, !PokemonTypeData.canHatch(baseID: bs.id, as: typeGuarantee) { continue }
                     if let event = state.eggEvent, !event.admits(bs, companionLine: firstCatch?.baseID) { continue }
                     // Not the line hatched last again; the index path keeps it when it is the only one, this one

@@ -488,6 +488,41 @@ enum SpriteFit {
         return CGSize(width: pixelSize.width * scale, height: pixelSize.height * scale)
     }
 
+    /// The share of an image's height below its lowest visible pixel: 0 when the Pokémon touches the bottom, or when
+    /// the image cannot be read. Sprites sit on transparent canvases whose margin under the Pokémon varies from one to
+    /// the next, so a view that stands them on the bottom of their box moves each down by its own margin.
+    @MainActor static func bottomMargin(of image: NSImage) -> CGFloat {
+        if let known = bottomMargins.object(forKey: image) { return CGFloat(known.doubleValue) }
+        let margin = measureBottomMargin(image)
+        bottomMargins.setObject(NSNumber(value: Double(margin)), forKey: image)
+        return margin
+    }
+
+    @MainActor private static let bottomMargins = NSCache<NSImage, NSNumber>()
+
+    private static func measureBottomMargin(_ image: NSImage) -> CGFloat {
+        guard let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil), cg.width > 0, cg.height > 0
+        else { return 0 }
+        let width = cg.width, height = cg.height
+        var pixels = [UInt8](repeating: 0, count: width * height * 4)
+        let drawn = pixels.withUnsafeMutableBytes { buffer -> Bool in
+            guard let context = CGContext(data: buffer.baseAddress, width: width, height: height, bitsPerComponent: 8,
+                                          bytesPerRow: width * 4, space: CGColorSpaceCreateDeviceRGB(),
+                                          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
+            context.draw(cg, in: CGRect(x: 0, y: 0, width: width, height: height))
+            return true
+        }
+        guard drawn else { return 0 }
+        // The buffer's first row is the image's top: scan up from the last one. A faint edge pixel is not the ground.
+        for row in stride(from: height - 1, through: 0, by: -1) {
+            let start = row * width * 4
+            for column in 0..<width where pixels[start + column * 4 + 3] > 24 {
+                return CGFloat(height - 1 - row) / CGFloat(height)
+            }
+        }
+        return 0
+    }
+
     /// Same fit inside a `width`×`height` box. An empty source falls back to a square on the shorter side.
     static func size(for pixelSize: CGSize, width: CGFloat, height: CGFloat) -> CGSize {
         guard pixelSize.width > 0, pixelSize.height > 0 else {
