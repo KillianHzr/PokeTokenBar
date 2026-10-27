@@ -67,6 +67,14 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-27", entries: [
+            .fixed("2026-10-27-cursor-login") { $0.t("Cursor가 로그인을 갱신한 뒤에도 Cursor 사용량이 예전 숫자에 멈추지 않고 계속 업데이트돼요.",
+                                                     "Cursor usage keeps updating after Cursor renews its login, instead of freezing on old numbers.",
+                                                     "Cursorがログインを更新したあとも、Cursorの使用量が古い数字で止まらずに更新されます。",
+                                                     "El uso de Cursor sigue actualizándose después de que Cursor renueve su sesión, en lugar de quedarse en cifras antiguas.",
+                                                     "L'utilisation de Cursor continue de se mettre à jour quand Cursor renouvelle sa connexion, au lieu de rester figée.",
+                                                     "O uso do Cursor continua atualizando depois que o Cursor renova o login, em vez de parar em números antigos.",
+                                                     "Die Cursor-Nutzung aktualisiert sich weiter, wenn Cursor seine Anmeldung erneuert, statt bei alten Zahlen stehen zu bleiben.",
+                                                     "Расход Cursor продолжает обновляться после того, как Cursor обновит вход, а не застывает на старых цифрах.") },
             .improved("2026-10-27-birthday-three-months") { l in
                 let egg = l.itemName(.birthdayEgg)
                 return l.t("\(egg)은 생일부터 3개월 안에 앱을 열면 언제든 받을 수 있어요. 휴가 중이어도 놓치지 않아요.",
