@@ -41,7 +41,7 @@ PokeTokenBar は、あなたがすでに使っている AI コーディングト
 2. 🐣 **孵化。** [PokéAPI](https://pokeapi.co/) の**第1〜9世代すべての進化系統（起点541種）**から、公式の捕獲率で重み付けされて生まれます — よくいるポケモンは頻繁に、伝説は約220回に1回。孵化したポケモンは育成中もすぐに **図鑑** に表示されます。孵化ごとに25種類のせいかくがひとつ決まり — **ごくまれな偶然で ✨ 色違いが生まれます**。
 3. ⚡ **進化。** コーディングを続けると実際の進化ツリー（1/2/3段階、分岐）に沿って育ち、各段階で小さな演出が流れます。
 4. 🎓 **卒業 & 収集。** 最終進化 + 閾値で **図鑑** に永久保存されます — レアなほど時間がかかり（ヘビーユーザーで common ≈3日 → legendary ≈24日）— 新しいタマゴが届きます。
-5. 🍬 **上限を使い切ってごほうび。** 5時間または週間の使用量上限を使い切ると **ふしぎなアメ** がもらえます — 新しい **バッグ** タブから使って、いまのポケモンを育てましょう。
+5. 🍬 **使うほどアメがもらえる。** 5時間・週間の使用量上限が埋まるにつれて **ふしぎなアメ** がもらえます。どのプランでも同じペースです。**バッグ** タブから使って、いまのポケモンを育てましょう。
 6. 🛒 **ショップで使う。** これまで使ったトークンがそのまま通貨です — 新しい **ショップ** タブで **ふしぎなアメ**、せいかくをランダムに引き直す **ミント**、色違い確率を永続的に上げる **光るお守り**、いまのパートナーを手放してやり直すタマゴを購入できます。タマゴは3種類 — 通常の **ポケモンのタマゴ**、アンコモン以上が確定で孵る **アンコモンのタマゴ**、レア以上が確定で孵る **レアのタマゴ**。必要なポケモンを図鑑に登録すると、**しんかのいし**、**でんせつのどうぐ**、**ジムバッジ**を**実績**タブで無料で受け取れます。
 
 ## ツアー
@@ -91,8 +91,8 @@ PokeTokenBar は、あなたがすでに使っている AI コーディングト
 </tr>
 <tr>
 <td width="55%" valign="middle">
-<h3>🍬 上限を使い切ると、ふしぎなアメ</h3>
-5時間または週間の使用量上限を使い切ると <b>ふしぎなアメ</b> がもらえます。そのウィンドウで使ったトークンの10分の1、最低1個です。50億トークンを使った週間上限なら5個。新しい <b>バッグ</b> タブから使っていまのポケモンを育てましょう。レート制限にかかった瞬間が、レベルアップの瞬間になります。
+<h3>🍬 使うほど、ふしぎなアメ</h3>
+使用量の上限は、使い切らなくても埋まるにつれて <b>ふしぎなアメ</b> をくれます。Proプランの5時間セッション1つで1個、1週間で5個、もっと大きなプランはPro何個分かに応じて(Max 20xのセッションは5%ごと、1週間は1%ごとに1個)。同じ使い方なら、どのプランでも同じペースでもらえます。<b>バッグ</b> タブから使っていまのポケモンを育てましょう。
 </td>
 <td width="45%" align="center"><img src="assets/screenshot-bag-ja.png" width="300" alt="バッグの中のふしぎなアメとミント"></td>
 </tr>
@@ -141,8 +141,8 @@ Pi は複数のモデルを一つのセッションログに流すことがあ�
 <tr>
 <td width="45%" align="center"><img src="assets/screenshot-difficulty-ja.png" width="300" alt="自分のペースで育てる"></td>
 <td width="55%" valign="middle">
-<h3>自分のペースで育てる</h3>
-成長の閾値とショップ価格をそれぞれ <b>10%〜200%</b>で調整し、スライダー両端の簡単／難しい・安い／高い表示で方向を確認できます。操作は下書きで、<b>保存</b>を押すと適用。難易度を変えても現在の段階の進捗を維持し、突然進化しません。卒業済みの進化系統から再び孵化すると<b>2倍の速さ</b>で育ちます。道具とバッジの成長ボーナスは足し算され(+25%と+25%で+50%)、ダブりのボーナスがその合計に掛かります。ホームの<b>ボーナス</b>画面で一つずつ確認できます。ホームの孵化・成長バーにポインタを重ねると使用量・目標と進捗率を表示します。
+<h3>みんな同じ成長ペース</h3>
+成長の閾値とショップ価格は、すべてのプレイヤーで基本表の10分の1です。みんな最低にしていたスライダーはなくなり、別の値で作ったセーブも移るときに現在の段階の進捗を保ちます。卒業済みの進化系統から再び孵化すると<b>2倍の速さ</b>で育ちます。道具とバッジの成長ボーナスは足し算され(+25%と+25%で+50%)、ダブりのボーナスがその合計に掛かります。ホームの<b>ボーナス</b>画面で一つずつ確認できます。ホームの孵化・成長バーにポインタを重ねると使用量・目標と進捗率を表示します。
 </td>
 </tr>
 <tr>
@@ -195,14 +195,14 @@ Pi は複数のモデルを一つのセッションログに流すことがあ�
 | **ふるびたかいず** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/old-sea-map.png" width="28" height="28" alt="ふるびたかいず"> | ミュウツー、ミュウ | トークン消費による成長 +20% |
 | **とうめいなスズ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/clear-bell.png" width="28" height="28" alt="とうめいなスズ"> | ライコウ、エンテイ、スイクン | レアのポケモンが25%早く育つ |
 | **にじいろのはね** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rainbow-wing.png" width="28" height="28" alt="にじいろのはね"> | ルギア、ホウオウ | ショップの全商品が25%引き |
-| **かざんのおきいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/magma-stone.png" width="28" height="28" alt="かざんのおきいし"> | レジロック、レジアイス、レジスチル **または** レジエレキ、レジドラゴ **または** 化石ポケモンのうち4匹¹ | 卒業済みのラインの成長必要量が25%減 |
+| **かざんのおきいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/magma-stone.png" width="28" height="28" alt="かざんのおきいし"> | レジロック、レジアイス、レジスチル **または** レジエレキ、レジドラゴ **または** 化石ポケモンのうち4匹¹ **または** ヒードラン、グラードン | 卒業済みのラインの成長必要量が25%減 |
 | **こころのしずく** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/soul-dew.png" width="28" height="28" alt="こころのしずく"> | ラティアス、ラティオス | ふしぎなアメの経験値 +50% |
 | **もえぎいろのたま** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/jade-orb.png" width="28" height="28" alt="もえぎいろのたま"> | カイオーガ、グラードン、レックウザ | タマゴがさらに20%引き |
 | **グラシデアのはな** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/gracidea.png" width="28" height="28" alt="グラシデアのはな"> | ユクシー、エムリット、アグノム | 進化するポケモンが最初の段階で25%早く育つ |
 | **はっきんだま** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/griseous-orb.png" width="28" height="28" alt="はっきんだま"> | ディアルガ、パルキア、ギラティナ | ゴースト・ドラゴンタイプのポケモンが30%早く育つ |
-| **リバティチケット** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/liberty-pass.png" width="28" height="28" alt="リバティチケット"> | コバルオン、テラキオン、ビリジオン | まだ卒業させていないラインの成長必要量が25%減 |
+| **リバティチケット** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/liberty-pass.png" width="28" height="28" alt="リバティチケット"> | コバルオン、テラキオン、ビリジオン、ケルディオのうち3匹 | まだ卒業させていないラインの成長必要量が25%減 |
 | **うつしかがみ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/reveal-glass.png" width="28" height="28" alt="うつしかがみ"> | トルネロス、ボルトロス、ランドロス、ラブトロスのうち3匹 | 色違い確率2倍(光るお守りと重複) |
-| **いでんしのくさび** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dna-splicers.png" width="28" height="28" alt="いでんしのくさび"> | レシラム、ゼクロム | トークン消費による成長 +50% |
+| **いでんしのくさび** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dna-splicers.png" width="28" height="28" alt="いでんしのくさび"> | レシラム、ゼクロム、キュレム | トークン消費による成長 +50% |
 | **ジガルデキューブ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/zygarde-cube.png" width="28" height="28" alt="ジガルデキューブ"> | ゼルネアス、イベルタル、ジガルデ | 図鑑25種ごとにトークン消費による成長 +1%（最大+40%） |
 | **いましめのツボ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/prison-bottle.png" width="28" height="28" alt="いましめのツボ"> | ディアンシー、フーパ、ボルケニオン | 図鑑にない姿で生まれたポケモンが50%早く育つ |
 | **かがやくいし** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sparkling-stone.png" width="28" height="28" alt="かがやくいし"> | カプ・コケコ、カプ・テテフ、カプ・ブルル、カプ・レヒレ | フェアリータイプのポケモンが30%早く育つ |
@@ -211,10 +211,19 @@ Pi は複数のモデルを一つのセッションログに流すことがあ�
 | **くちたけん** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rusted-sword.png" width="28" height="28" alt="くちたけん"> | ザシアン、ザマゼンタ、ムゲンダイナ | 伝説のポケモンが25%早く育つ |
 | **キズナのタヅナ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/reins-of-unity.png" width="28" height="28" alt="キズナのタヅナ"> | ブリザポス、レイスポス、バドレックス | ポケモンが卒業するたびにふしぎなアメ+1 |
 | **ブーストエナジー** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/booster-energy.png" width="28" height="28" alt="ブーストエナジー"> | パラドックスポケモンのうち4匹³ | パラドックスポケモンが50%早く育つ |
-| **みどりのめん** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/teal-mask.png" width="28" height="28" alt="みどりのめん"> | オーガポン、イイネイヌ、マシマシラ、キチキギス | くさ・みず・ほのお・いわタイプのポケモンが20%早く育つ |
+| **みどりのめん** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/teal-mask.png" width="28" height="28" alt="みどりのめん"> | オーガポン、イイネイヌ、マシマシラ、キチキギス、モモワロウのうち4匹 | くさ・みず・ほのお・いわタイプのポケモンが20%早く育つ |
 | **テラスタルオーブ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/tera-orb.png" width="28" height="28" alt="テラスタルオーブ"> | コライドン、ミライドン、テラパゴス | 進化の石のタマゴが2倍早くかえる |
 | **こだいのせきぞう** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-statue.png" width="28" height="28" alt="こだいのせきぞう"> | レジロック、レジアイス、レジスチル、レジギガス、レジエレキ、レジドラゴ | 進化しないポケモンが25%早く育つ |
-| **でんきだま** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/light-ball.png" width="28" height="28" alt="でんきだま"> | ピカチュウのいしょう15着すべて | ピチュー、ピカチュウ、ライチュウが50%早く育つ |
+| **みかづきのはね** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/lunar-wing.png" width="28" height="28" alt="みかづきのはね"> | クレセリア、ダークライ | エスパー・あくタイプのポケモンが30%早く育つ |
+| **いんせき** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/meteorite.png" width="28" height="28" alt="いんせき"> | ジラーチ、デオキシス | トークン上限を使い切るたびにふしぎなアメが1個多くもらえる |
+| **オーキドのてがみ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/oaks-letter.png" width="28" height="28" alt="オーキドのてがみ"> | セレビィ、シェイミ | すべての地方の御三家がどの段階でも25%早く育つ |
+| **うしおのおこう** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sea-incense.png" width="28" height="28" alt="うしおのおこう"> | マナフィ(フィオネが進化する)、カイオーガ | レア度確定のタマゴ(ショップ、レジェンドプレート)が2倍早くかえる |
+| **イナズマカセット** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/shock-drive.png" width="28" height="28" alt="イナズマカセット"> | ビクティニ、メロエッタ、ゲノセクト | 化石ポケモン¹がどの段階でも50%早く育つ |
+| **Ｚリング** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/z-ring.png" width="28" height="28" alt="Ｚリング"> | シルヴァディ、マギアナ、マーシャドー、ゼラオラ、メルメタルのうち4匹 | はがね・でんきタイプのポケモンが30%早く育つ |
+| **あくのかけじく** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/scroll-of-darkness.png" width="28" height="28" alt="あくのかけじく"> | ウーラオス、ザルード | かくとうタイプのポケモンが30%早く育つ |
+| **こだいのツボ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-vase.png" width="28" height="28" alt="こだいのツボ"> | チオンジェン、パオジアン、ディンルー、イーユイ | 中間の進化段階のポケモンが25%早く育つ |
+| **レジェンドプレート** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/legend-plate.png" width="28" height="28" alt="レジェンドプレート"> | アルセウス | レアのタマゴとアンコモンのタマゴが1個ずつバッグに:ショップと同じく、ポケモンを手放してそのレア度以上のタマゴをもらう |
+| **でんきだま** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/light-ball.png" width="28" height="28" alt="でんきだま"> | ピカチュウのいしょう15着すべて | レアのタマゴ2個とふしぎなアメ5個がバッグに |
 | **タイプ：ヌルのタマゴ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/mystery-egg.png" width="28" height="28" alt="タイプ：ヌルのタマゴ"> | シルヴァディのメモリ17個すべて⁴ | いまのポケモンを手放して、タイプ：ヌルが生まれるタマゴを受け取る |
 | **まるいおまもり** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/oval-charm.png" width="28" height="28" alt="まるいおまもり"> | すべての種 (1,025) | 残っているあいだ、まだ集めていないフォルムがあるポケモンだけがそのフォルムで生まれる |
 | **きらめくおまもり** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/glimmering-charm.png" width="28" height="28" alt="きらめくおまもり"> | すべてのフォルム (1,350) | 生まれるポケモンがすべて色違いになる |
@@ -225,6 +234,23 @@ Pi は複数のモデルを一つのセッションログに流すことがあ�
 ² ウツロイド、マッシブーン、フェローチェ、デンジュモク、テッカグヤ、カミツルギ、アクジキング、ベベノム、アーゴヨン、ツンデツンデ、ズガドーン。
 ³ イダイナキバ、サケブシッポ、アラブルタケ、ハバタクカミ、チヲハウハネ、スナノケガワ、テツノワダチ、テツノツツミ、テツノカイナ、テツノコウベ、テツノドクガ、テツノイバラ、トドロクツキ、テツノブジン、ウネルミナモ、テツノイサハ、ウガツホムラ、タケルライコ、テツノイワオ、テツノカシラ。
 ⁴ シルヴァディはタイプ：ヌルとして生まれ、ノーマルフォルムで進化します。図鑑にいる伝説・幻のポケモン(手放した個体も含む)ごとに、そのフォルムのタイプのメモリが手に入ります(ファイヤー：ほのお・ひこう、ガラルのすがたのファイヤー：あく・ひこう)。むしタイプの伝説はゲノセクトだけです。シルヴァディが図鑑にいれば、メモリごとにそのフォルムが解放され(図鑑のフォルム一覧に表示)、17個すべてそろうとタイプ：ヌルのタマゴを受け取れます。
+
+**発掘**(いしタブ):いわタイプのポケモンを4種卒業させるたびに(ふだんいわタイプなのは74種、フォルムでさらに数種)化石のタマゴを1つ発掘します。化石の系統ごとに1つ、全15個。化石のタマゴからはまだいない化石の系統がランダムに生まれ、すでにいる化石の系統はもらうものなしで発掘済みになります。化石ポケモンは化石のタマゴからしか生まれません。
+
+**フォルム**(実績の新しいタブ):1種のすべてのフォルムを卒業させるともらえます。
+
+| 実績 | どうぐ | 条件 | ごほうび |
+|---|---|---|---|
+| **ロトムのカタログ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rotom-catalog.png" width="28" height="28" alt="ロトムのカタログ"> | ロトムの6フォルム | 持っていると、その進化ラインになかったフォルムで生まれたポケモンごとにふしぎなアメ1個 |
+| **すいせいのかけら** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/comet-shard.png" width="28" height="28" alt="すいせいのかけら"> | メテノの7つのコア | ふしぎなアメ5個 |
+| **くれないのミツ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/red-nectar.png" width="28" height="28" alt="くれないのミツ"> | オドリドリの4スタイル | ふしぎなアメ3個 |
+| **さらさらいわ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/smooth-rock.png" width="28" height="28" alt="さらさらいわ"> | ポワルンの4フォルム | ふしぎなアメ3個 |
+| **メブキジカの四季** |  | メブキジカの4つの季節 | アンコモンのタマゴ1個 |
+| **ようせいのハネ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/fairy-feather.png" width="28" height="28" alt="ようせいのハネ"> | フラージェスの5色 | アンコモンのタマゴ1個 |
+| **トリミアンの10のカット** |  | トリミアンの10のカット | レアのタマゴ1個 |
+| **ビビヨンの20のもよう** |  | ビビヨンの20のもよう | レアのタマゴ2個 |
+| **ホイップポップ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/whipped-dream.png" width="28" height="28" alt="ホイップポップ"> | マホイップの63フォルム | レアのタマゴ2個とふしぎなアメ5個 |
+| **アンノーンのアルファベット** |  | アンノーンの28文字 | レアのタマゴ2個 |
 
 ### ジムバッジ
 
@@ -266,15 +292,19 @@ Pi は複数のモデルを一つのセッションログに流すことがあ�
 - **消費予測** — 現在の5時間ウィンドウが100%に達する時刻を予測。
 - **アプリ内アップデート** — ワンクリックの更新確認、設定に現在のバージョンを表示。
 - **使用量のふりかえり** — 週・月・年ごとの図鑑風まとめ（合計・ゲージ・前の期間との比較・最高の日・最長連続・卒業）。ゲージにポインタを重ねると日付と省略しないトークン数を表示し、今週／今月／今年ボタンで現在の期間に戻れます。記録は今年と昨年分をローカルに保存します。
+- **統計ページ**: ホームのグラフボタンですべての数字をまとめて見られます。今月の日ごとのグラフ、上の使用量のふりかえりと日ごとの表(トークン、卒業したポケモン)、コレクションの数字。
 
 - **ローカルセーブのバックアップ** — 自動スナップショットと破損時の復旧に対応し、設定から以前の保存状態を復元できます。バックアップ履歴は折りたたんだ状態で開き、展開して確認できます。**スナップショットを作成**は一覧の外からすぐに使えます。
 - **ポケモンのフォルム** — リージョンフォームを含む全世代の別フォルムを集め、フォルムごとの個体を確認し、所持フォルムをメニューバーとフローティングペットの代表に選べます。姿は進化・保存・エクスポートでも維持され、以前のアンノーンの文字データも読み込めます。[フォルム一覧](docs/reference/pokemon-forms.md)をご覧ください。
+- **全国図鑑**: TokenDexのように全種を地方ごとに表示します。完成率と色違い、地方ごとの進み具合とレア度、入手した種はレア度の色で、見ただけの種は薄く、いない種は番号で。すべて・入手済み(ページごとの格子)・未入手を切り替えられます。
 - **ふしぎなアメの一括使用** — 複数のアメをまとめて使い、使用前に成長結果を確認できます。
 - **メニューバーのポケモン**: メニューバーのポケモンを、動かす・止める（1フレームで再描画なし）・隠して使用量の文字だけにする、から選べます（設定 → 一般）。文字の行をすべてオフにすると、隠したポケモンは止まった姿で戻り、いつでもクリックできます。
 - **新しいフォルムのバッジ**: その系統にないフォルムで生まれたポケモンは、育っているあいだホームに、卒業後は捕獲記録に表示されます。
 - **ピカチュウのいしょう**: ピカチュウが来るたびに、まだない衣装か帽子をひとつ持ってきて、育つあいだ着ています。図鑑のピカチュウのページで、ほかのピカチュウが着る衣装を選べます。15着そろうとでんきだまがもらえます。
-- **誕生日のプレゼント**: 設定に誕生日を入れると、その日（とその後1週間）バナーがプレゼントのタマゴを渡します。年に1回。なにが生まれるかはお楽しみ。
-- **最新情報**: きらきらボタンですべての変更を日ごとに確認でき、更新後は前回から変わったことをバナーでお知らせします。
+- **誕生日のプレゼント**: 設定に誕生日を入れると、その日から3か月以内にアプリを開いたとき、バナーがプレゼントのタマゴを渡します。年に1回。なにが生まれるかはお楽しみ。
+- **イベントのタマゴ**: クリスマス、お正月、バレンタイン、ポケモンデー、イースター、ハロウィン、季節の始まり、そして最初の捕獲の記念日に、その日のために描いたタマゴが届きます。イベント中とその後2週間、バナーが渡します。年に1回。生まれるのはイベントのポケモンで、色違いのことが多いです。
+- **最新情報**: 新聞ボタンですべての変更をアップデートごとに新機能・改善・修正に分けて確認でき、更新後は前回から変わったことをバナーでお知らせします。
+- **アイデア**: 電球ボタンでアイデアやバグをこのリポジトリのissueとして送れます。GitHub CLI(`gh`)でログインしていればアプリが直接投稿し、そうでなければ入力済みでブラウザに開きます。アプリはトークンを持ちません。
 - **上限の使用ペース** — ゲージの経過時間マーカーと6段階の色で使用ペースを確認できます。メニューバーの上限割合にも同じ色を使用します。
 
 <img src="assets/screenshot-usage-recap-ja.png" width="360" alt="選択した期間の使用量の振り返り">
@@ -292,13 +322,15 @@ Pi は複数のモデルを一つのセッションログに流すことがあ�
 | **OpenCode** | 今日 · 5時間ブロック · 週 · 月 | — |
 | **Hermes Agent** | 今日 · 5時間ブロック · 週 · 月 | — |
 | **Cursor** | 今日 · 5時間ブロック · 週 · 月 | — |
-| **Grok CLI** | 今日 · 5時間ブロック · 週 · 月 | — |
+| **Grok Build CLI** | 今日 · 5時間ブロック · 週 · 月 | — |
 | **Copilot CLI** | 今日 · 5時間ブロック · 週 · 月 | — |
 | **Kiro CLI** | 今日 · 5時間ブロック · 週 · 月 | — (推定値) |
 | **Pi Agent** | 今日 · 5時間ブロック · 週 · 月 | — |
 | **omp** (oh-my-pi) | 今日 · 5時間ブロック · 週 · 月 | — |
 | **Aside** | 今日 · 5時間ブロック · 週 · 月 | — |
 | **Kimi Code** | 今日 · 5時間ブロック · 週 · 月 | — |
+
+Grok の対応範囲は Grok Build CLI のローカルセッションログです。Grok Bot のクラウド使用量とサブスクリプションの上限は連携していません。
 
 すべてローカルから読み取り — 外部の使用量CLIは不要。ツールはプロバイダーの実装と登録で追加します（[CONTRIBUTING.ja.md](CONTRIBUTING.ja.md) 参照）。
 
@@ -350,7 +382,7 @@ swift test                   # ユニットテスト
 | `~/Library/Application Support/Cursor/User/globalStorage/state.vscdb` | Cursor daily/blocks/weekly/monthly | SQLite 読み取り専用のフォールバック（`cursorDiskKV` バブルエントリの `tokenCount`）；サインイン時は `cursor.com` ダッシュボード API が主ソース（プライバシー参照） |
 | `cursor.com`（ダッシュボード API） | Cursor daily/blocks/weekly/monthly | 非公式 JSON endpoint（`get-filtered-usage-events`）；セッションは `state.vscdb` の `cursorAuth/accessToken` または `CURSOR_SESSION_TOKEN`；プロバイダー更新のたびに再取得；ネットワーク失敗時はアカウント単位に分離された最大6時間以内のディスクキャッシュで代替；`CURSOR_USAGE_API=0` で無効化 |
 | `api2.cursor.sh`（ダッシュボード上限 API） | Cursor 公式の月間 included usage | Connect RPC `GetCurrentPeriodUsage`；`state.vscdb` または `CURSOR_SESSION_TOKEN` の Bearer JWT；usage events と同じ無効化スイッチ |
-| `~/.grok/sessions/**/updates.jsonl` | Grok CLI daily/blocks/weekly/monthly | `turn_completed` レコード（ターン単位の `usage`、サーバー報告のコスト）；`$GROK_HOME` を設定していればそのパス；サブエージェントのセッションは親ターンに合算済みのため除外 |
+| `~/.grok/sessions/**/updates.jsonl` | Grok Build CLI daily/blocks/weekly/monthly | `turn_completed` レコード（ターン単位の `usage`、サーバー報告のコスト）；`$GROK_HOME` を設定していればそのパス；サブエージェントのセッションは親ターンに合算済みのため除外 |
 | `~/.copilot/session-store.db` | Copilot CLI daily/blocks/weekly/monthly | SQLite 読み取り専用；`assistant_usage_events` の1行が API 呼び出し1回；`$COPILOT_HOME` を設定していればそのパス；`input_tokens` にキャッシュ分が含まれるため cache read/write を差し引いて集計；premium request 課金のためコストは推定しない |
 | `~/Library/Application Support/kiro-cli/data.sqlite3`<br>`~/.kiro/sessions/cli/*.jsonl`<br>`~/.kiro/sessions/<ws>/<session>/messages.jsonl` | Kiro CLI daily/blocks/weekly/monthly | 2.20 以前の SQLite と 2.20+ / `--v3` の JSONL。どちらも実トークン数を記録しないため、input は毎ターン再送される累積会話テキストをバイト÷4 で**推定**。`usage_summary` のクレジットは USD に換算しない。`/clear`・圧縮で消えた SQLite 会話の集計済みトークンはアプリ再起動まで数え続ける。`$KIRO_CLI_HOME` と `$KIRO_HOME` に対応 |
 | `~/.pi/agent/sessions/**/*.jsonl` | Pi Agent daily/blocks/weekly/monthly | 全プロジェクトの保存済み usage を直接集計；`$PI_CODING_AGENT_DIR`・`$PI_CODING_AGENT_SESSION_DIR` override 対応；output には reasoning がすでに含まれるため二重計上しない；fork のコピーは entry ID で重複排除；記録されたコストを使用 |

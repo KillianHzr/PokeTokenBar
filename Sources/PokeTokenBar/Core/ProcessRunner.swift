@@ -115,6 +115,34 @@ enum ProcessRunner {
         throw RunnerError.missingResponse(binary)
     }
 
+    /// Runs a short command to its end: its exit status and what it printed. The GitHub CLI's two calls
+    /// (`IdeaReport`). Output goes to a file, as above, so a full pipe never blocks the child.
+    static func run(binary: String, arguments: [String], timeout: TimeInterval = 30) async throws -> (status: Int32, output: String) {
+        let outURL = FileManager.default.temporaryDirectory.appendingPathComponent("poketokenbar-\(UUID().uuidString).out")
+        FileManager.default.createFile(atPath: outURL.path, contents: nil)
+        defer { try? FileManager.default.removeItem(at: outURL) }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: binary)
+        process.arguments = arguments
+        process.environment = BinaryLocator.augmentedEnvironment(binaryPath: binary)
+        let outHandle = try FileHandle(forWritingTo: outURL)
+        defer { try? outHandle.close() }
+        process.standardOutput = outHandle
+        process.standardError = outHandle
+        process.standardInput = FileHandle.nullDevice
+        try process.run()
+        let deadline = Date().addingTimeInterval(timeout)
+        while process.isRunning {
+            guard Date() < deadline else {
+                process.terminate()
+                throw RunnerError.timeout(binary)
+            }
+            try await Task.sleep(nanoseconds: 100_000_000)
+        }
+        let output = String(data: (try? Data(contentsOf: outURL)) ?? Data(), encoding: .utf8) ?? ""
+        return (process.terminationStatus, output)
+    }
+
     /// 실패 경로에서 stderr 마지막 300자를 로그로 — "exit 1" 만으로는 원인 규명이 불가능했던
     /// 버그 리포트 재발 방지. 성공 경로에서는 호출하지 않는다(로그 소음 방지).
     private static func logStderrTail(_ url: URL, binary: String) {

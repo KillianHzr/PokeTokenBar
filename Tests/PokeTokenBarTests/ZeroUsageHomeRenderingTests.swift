@@ -7,7 +7,7 @@ import XCTest
 private struct QuietHomeProvider: UsageProvider {
     let id = "fixture"
     let displayName = "Fixture"
-    let reportsCost = false
+    var reportsCost = false
     let enrichment: ProviderEnrichment
     func fetchDaily() async throws -> DailyUsage? { nil }
     func fetchEnrichment() async -> ProviderEnrichment { enrichment }
@@ -45,22 +45,36 @@ private struct QuietHomePokemon: PokeProviding {
 /// Optional PNG output is fixture data, isolated from the user's saves and credentials.
 @MainActor
 final class ZeroUsageHomeRenderingTests: XCTestCase {
+    /// The daily chart moved to the Stats page: there, with the history; on Home, never.
     func testQuietDayKeepsHistoricalGraphVisible() async throws {
         try await render(history: true)
+        try await render(history: true, stats: true)
     }
 
     func testEmptyHistoryStillShowsZeroPeriodSummaries() async throws {
         try await render(history: false)
+        try await render(history: false, stats: true)
     }
 
-    private func render(history: Bool) async throws {
+    func testRecapLabelKeepsPeriodCostsOnOneLine() async throws {
+        for language in [AppLanguage.en, .de] {
+            try await render(history: true, language: language, costs: .source)
+        }
+    }
+
+    func testUnavailablePeriodCostsKeepGermanHomeWithinPopover() async throws {
+        try await render(history: true, language: .de, costs: .unavailable)
+    }
+
+    private func render(history: Bool, language: AppLanguage = .ko, costs: CostCoverage? = nil,
+                        stats: Bool = false) async throws {
         let suite = "QuietHome-\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         let file = FileManager.default.temporaryDirectory.appendingPathComponent("\(suite).json")
         defer { try? FileManager.default.removeItem(at: file) }
         var state = CompanionState()
-        state.language = .ko
+        state.language = language
         state.active = MonState(baseID: 129, pathIDs: [129, 130], stageIndex: 1,
                                 usedAtStage: 170_100_000, rarity: .common, totalForms: 2, nature: .hardy)
         try JSONEncoder().encode(state).write(to: file)
@@ -79,10 +93,17 @@ final class ZeroUsageHomeRenderingTests: XCTestCase {
         }
         let weekKey = formatter.string(from: LocalUsageReader.startOfWeek(now))
         let enrichment = ProviderEnrichment(blocksOK: true,
-            weekTotal: PeriodUsage(period: weekKey, daily: series.filter { $0.date >= weekKey }),
-            monthTotal: PeriodUsage(period: LocalUsageReader.monthKey(now), daily: series),
+            weekTotal: costs != nil
+                ? PeriodUsage(period: weekKey, totalTokens: 4_800_000, totalCost: costs == .unavailable ? 0 : 31.64,
+                              costCoverage: costs ?? .source)
+                : PeriodUsage(period: weekKey, daily: series.filter { $0.date >= weekKey }),
+            monthTotal: costs != nil
+                ? PeriodUsage(period: LocalUsageReader.monthKey(now), totalTokens: 17_900_000,
+                              totalCost: costs == .unavailable ? 0 : 121.30,
+                              costCoverage: costs ?? .source)
+                : PeriodUsage(period: LocalUsageReader.monthKey(now), daily: series),
             monthDaily: series, periodsOK: true)
-        let store = UsageStore(providers: [QuietHomeProvider(enrichment: enrichment)],
+        let store = UsageStore(providers: [QuietHomeProvider(reportsCost: costs != nil, enrichment: enrichment)],
             claudeLimitsProvider: QuietHomeClaude(), discoverClaudeConfigDirs: { [] },
             readDefaultIdentity: { nil }, claudeUsageEntries: { _ in [] },
             codexLimitsProvider: QuietHomeCodex(), antigravityLimitsProvider: QuietHomeAntigravity(),
@@ -90,12 +111,13 @@ final class ZeroUsageHomeRenderingTests: XCTestCase {
             autoRefresh: false, defaults: defaults)
         await store.refresh(scheduleEmptyRetry: false)
         XCTAssertEqual(store.todayTotalTokens, 0)
-        XCTAssertEqual(store.monthTotalTokens, series.reduce(0) { $0 + $1.totalTokens })
+        XCTAssertEqual(store.monthTotalTokens, costs != nil ? 17_900_000 : series.reduce(0) { $0 + $1.totalTokens })
 
         let height = 604.0
         let host = NSHostingView(rootView: PopoverView()
             .environment(store).environment(companion).environment(UpdateChecker(defaults: defaults))
-            .environment(PopoverNavigation()).environment(\.colorScheme, .dark)
+            .environment({ let nav = PopoverNavigation(); nav.showingRecap = stats; return nav }())
+            .environment(\.colorScheme, .dark)
             .environment(\.controlActiveState, .active)
             .frame(width: PopoverMetrics.width, height: height)
             .background(Color(nsColor: NSColor(calibratedWhite: 0.07, alpha: 1))))
@@ -122,7 +144,11 @@ final class ZeroUsageHomeRenderingTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(CGFloat(bitmap.pixelsHigh) / bounds.height, 2)
         host.cacheDisplay(in: bounds, to: bitmap)
         let request = VNRecognizeTextRequest()
-        request.recognitionLanguages = ["ko-KR", "en-US"]
+        switch language {
+        case .en: request.recognitionLanguages = ["en-US"]
+        case .de: request.recognitionLanguages = ["de-DE", "en-US"]
+        default: request.recognitionLanguages = ["ko-KR", "en-US"]
+        }
         request.recognitionLevel = .accurate
         // CI runners have no GPU: Vision runs on the CPU there and reads small text differently ("미번 달" for
         // "이번 달"). Reading on the CPU everywhere makes a local run fail where CI would.
@@ -134,14 +160,16 @@ final class ZeroUsageHomeRenderingTests: XCTestCase {
         try VNImageRequestHandler(cgImage: XCTUnwrap(bitmap.cgImage)).perform([request])
         let text = request.results?.compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ") ?? ""
         /// CI ranks "일벌" before "일별", and "미번 주" before "이번 주", at the same confidence. Vision returns at most
-        /// 10 candidates: the exact text must be in one observation's most confident tie.
+        /// 10 candidates: the exact text must be in one observation's most confident tie. Case aside: the cards' titles
+        /// are drawn in capitals (`SectionTitle`), the period tiles in the label's own case.
         func visible(_ label: String) -> Bool {
-            let wanted = label.replacingOccurrences(of: " ", with: "")
+            let wanted = label.replacingOccurrences(of: " ", with: "").uppercased()
             return (request.results ?? []).contains { observation in
                 let alternatives = observation.topCandidates(10)
                 guard let maximumConfidence = alternatives.first?.confidence else { return false }
                 return alternatives.contains {
-                    $0.confidence == maximumConfidence && $0.string.replacingOccurrences(of: " ", with: "").contains(wanted)
+                    $0.confidence == maximumConfidence
+                        && $0.string.replacingOccurrences(of: " ", with: "").uppercased().contains(wanted)
                 }
             }
         }
@@ -153,20 +181,39 @@ final class ZeroUsageHomeRenderingTests: XCTestCase {
             return "observation \(index) bbox=\(NSStringFromRect(observation.boundingBox)): \(alternatives)"
         }.joined(separator: "\n")
         let diagnostics = "OCR revision=\(request.revision) pixels=\(bitmap.pixelsWide)x\(bitmap.pixelsHigh)\n\(candidates)"
-        for label in [companion.l.todayTokens, companion.l.thisWeek, companion.l.thisMonth] {
+        for label in [companion.l.todayTokens, companion.l.thisWeek, companion.l.thisMonth] where !stats {
             XCTAssertTrue(visible(label), "Missing visible \(label): \(text)\n\(diagnostics)")
         }
-        if history && day > 1 {
-            XCTAssertTrue(chartVisible,
-                          "Historical chart missing: \(text)\n\(diagnostics)")
-        } else {
-            XCTAssertFalse(chartVisible,
-                           "Empty history must not invent a chart\n\(diagnostics)")
+        if costs == .source {
+            // A split currency value creates separate OCR observations; do not join their digits.
+            for amount in ["$31.64", "$121.30"] {
+                XCTAssertTrue((request.results ?? []).contains {
+                    $0.topCandidates(1).first?.string.replacingOccurrences(of: " ", with: "").contains(amount) == true
+                }, "Split or missing period cost \(amount) in \(language.rawValue): \(text)\n\(diagnostics)")
+            }
+        }
+        if costs == .unavailable {
+            let unavailable = companion.l.costUnavailable.replacingOccurrences(of: " ", with: "")
+            XCTAssertEqual((request.results ?? []).filter {
+                $0.topCandidates(1).first?.string.replacingOccurrences(of: " ", with: "").contains(unavailable) == true
+            }.count, 2, "Both unavailable period costs must stay visible\n\(diagnostics)")
+        }
+        if costs == nil {
+            // The original quiet-day fixtures own chart coverage; cost fixtures target the period row. The chart
+            // is on the Stats page now, never on Home.
+            if stats && history && day > 1 {
+                XCTAssertTrue(chartVisible,
+                              "Historical chart missing: \(text)\n\(diagnostics)")
+            } else {
+                XCTAssertFalse(chartVisible, (stats ? "Empty history must not invent a chart"
+                                                    : "Home no longer shows the daily chart") + "\n\(diagnostics)")
+            }
         }
         if let output = ProcessInfo.processInfo.environment["PTB_ZERO_USAGE_SCREENSHOT_DIR"] {
             let directory = URL(fileURLWithPath: output)
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            let name = history ? "ko-zero-today-with-history.png" : "ko-zero-all-periods.png"
+            let name = costs != nil ? "\(language.rawValue)-period-costs-\(costs == .source ? "known" : "unavailable").png"
+                : (stats ? "stats-" : "") + (history ? "ko-zero-today-with-history.png" : "ko-zero-all-periods.png")
             try XCTUnwrap(bitmap.representation(using: .png, properties: [:])).write(to: directory.appendingPathComponent(name))
         }
     }

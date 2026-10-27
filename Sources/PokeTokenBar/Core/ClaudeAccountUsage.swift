@@ -71,24 +71,20 @@ enum ClaudeAccountUsageAttribution {
         entries: [LocalUsageReader.Entry], accounts: [Account], now: Date, todayKey: String, monthStartKey: String,
         fiveHourWindows: [String: FiveHourWindow] = [:]
     ) -> (byAccount: [String: ClaudeAccountUsage], unattributed: ClaudeAccountUsage,
-          activeBlocks: [String: BlockUsage], timelines: [String: TokenTimeline]) {
+          activeBlocks: [String: BlockUsage]) {
         // Account ids are never empty, so "" collects the unattributed turns.
         let unattributed = ""
         let blockStart = now.addingTimeInterval(-LocalUsageReader.blockWindow)
-        let weekStart = now.addingTimeInterval(-TokenTimeline.span)
         var today: [String: LocalUsageReader.Bucket] = [:]
         var month: [String: LocalUsageReader.Bucket] = [:]
         var recent: [String: [LocalUsageReader.Entry]] = [:]
-        var week: [String: [LocalUsageReader.Entry]] = [:]
         for entry in entries {
             let inMonth = entry.localDay >= monthStartKey && entry.localDay <= todayKey
-            // A block started before the month began still counts, and so does a week for the weekly limit.
+            // A block started before the month began still counts.
             let inBlock = entry.date >= blockStart
-            let inWeek = entry.date >= weekStart
-            guard inMonth || inBlock || inWeek else { continue }
+            guard inMonth || inBlock else { continue }
             let key = owner(sessions: entry.claudeSessionIDs, at: entry.date, accounts: accounts) ?? unattributed
             if inBlock, key != unattributed { recent[key, default: []].append(entry) }
-            if inWeek, key != unattributed { week[key, default: []].append(entry) }
             guard inMonth else { continue }
             month[key, default: LocalUsageReader.Bucket()].add(entry)
             if entry.localDay == todayKey {
@@ -120,8 +116,7 @@ enum ClaudeAccountUsageAttribution {
                 activeBlocks[id] = LocalUsageReader.activeBlock(entries: turns, now: now)
             }
         }
-        return (byAccount, usage(unattributed), activeBlocks,
-                week.mapValues { TokenTimeline(entries: $0, now: now) })
+        return (byAccount, usage(unattributed), activeBlocks)
     }
 }
 

@@ -279,6 +279,15 @@ struct LimitStatus: Decodable, Sendable {
         return base
     }
 
+    /// How many Pro plans this account's limits are worth, for its candies (`RareCandy.windowCandies`): the tier's
+    /// multiple ("default_claude_max_20x": 20), 5 for a Max plan whose tier names none (the smallest Max), else 1.
+    var planMultiplier: Int {
+        if let tier = rateLimitTier, let token = Self.tierMultiplier(from: tier), let n = Int(token.dropLast()), n > 0 {
+            return n
+        }
+        return subscriptionType?.lowercased() == "max" ? 5 : 1
+    }
+
     /// 계정 라벨 — "email · 조직명". 개인 플랜의 자동 생성 조직명("<email>'s Organization")은
     /// 이메일과 중복 정보라 생략한다(조직명에 이메일이 포함되는지로 판정). 이메일 없으면 nil —
     /// 조직명만으로는 어느 로그인인지 특정되지 않아 부분 라벨을 만들지 않는다.
@@ -677,23 +686,43 @@ struct ProviderSnapshot: Sendable, Identifiable {
 
 enum ISO8601Parser {
     /// resets_at 은 마이크로초("...034464+00:00") 또는 밀리초("....303Z") 형태 — 둘 다 처리.
-    /// ISO8601DateFormatter 는 non-Sendable 이라 호출마다 생성 (파싱 빈도 낮음).
     static func date(from string: String) -> Date? {
-        let fractional = ISO8601DateFormatter()
-        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let d = fractional.date(from: string) { return d }
-        // 소수점 자릿수가 3자리가 아니면 3자리로 절단 후 재시도
-        if let dotIndex = string.firstIndex(of: ".") {
-            let afterDot = string.index(after: dotIndex)
-            if let tzIndex = string[afterDot...].firstIndex(where: { $0 == "+" || $0 == "-" || $0 == "Z" }) {
-                let frac = String(string[afterDot..<tzIndex]).prefix(3)
-                let padded = String(frac).padding(toLength: 3, withPad: "0", startingAt: 0)
-                let rebuilt = String(string[..<dotIndex]) + "." + padded + String(string[tzIndex...])
-                if let d = fractional.date(from: rebuilt) { return d }
-            }
+        shared.date(from: string)
+    }
+
+    private static let shared = LockedParser()
+
+    /// This is also the per-line timestamp parser for every local session log, so it runs
+    /// millions of times on a large history. Allocating an `ISO8601DateFormatter` per call was
+    /// the dominant cost of a cold scan. The formatters are non-Sendable and callers (the
+    /// provider caches) run concurrently, so one shared pair is kept behind a lock.
+    private final class LockedParser: @unchecked Sendable {
+        private let lock = NSLock()
+        private let fractional: ISO8601DateFormatter
+        private let plain: ISO8601DateFormatter
+
+        init() {
+            fractional = ISO8601DateFormatter()
+            fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            plain = ISO8601DateFormatter()
+            plain.formatOptions = [.withInternetDateTime]
         }
-        let plain = ISO8601DateFormatter()
-        plain.formatOptions = [.withInternetDateTime]
-        return plain.date(from: string)
+
+        func date(from string: String) -> Date? {
+            lock.lock()
+            defer { lock.unlock() }
+            if let d = fractional.date(from: string) { return d }
+            // 소수점 자릿수가 3자리가 아니면 3자리로 절단 후 재시도
+            if let dotIndex = string.firstIndex(of: ".") {
+                let afterDot = string.index(after: dotIndex)
+                if let tzIndex = string[afterDot...].firstIndex(where: { $0 == "+" || $0 == "-" || $0 == "Z" }) {
+                    let frac = String(string[afterDot..<tzIndex]).prefix(3)
+                    let padded = String(frac).padding(toLength: 3, withPad: "0", startingAt: 0)
+                    let rebuilt = String(string[..<dotIndex]) + "." + padded + String(string[tzIndex...])
+                    if let d = fractional.date(from: rebuilt) { return d }
+                }
+            }
+            return plain.date(from: string)
+        }
     }
 }

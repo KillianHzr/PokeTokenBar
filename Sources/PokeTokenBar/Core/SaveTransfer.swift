@@ -155,7 +155,7 @@ enum SaveTransfer {
         // 알이 그 pre-roll 로 부화해, 아무도 사지 않은 프리미엄 결과가 나온다.
         if s.active != nil {
             s.eggTier = nil; s.eggTypeGuarantee = nil; s.pendingHatchID = nil; s.eggFromTypeNullEgg = false
-            s.eggFromLegendaryEgg = false; s.eggFromBirthdayEgg = false; s.pendingShiny = false
+            s.eggFromLegendaryEgg = false; s.eggFromBirthdayEgg = false; s.pendingShiny = false; s.eggEvent = nil; s.eggFromFossilEgg = false
         }
         s.migrateLegacyBadgeClaims()
         s.pendingForm = PokemonForm.resolved(baseID: s.pendingHatchID ?? 0, form: s.pendingForm)
@@ -220,6 +220,7 @@ enum SaveTransfer {
             imported.candyWindowEpoch, imported.candyGrantTier,
             current.candyWindowEpoch, current.candyGrantTier)
         state.candyFeatureSeeded = imported.candyFeatureSeeded || current.candyFeatureSeeded
+        state.candyGrantsAsYouGo = imported.candyGrantsAsYouGo || current.candyGrantsAsYouGo
         let hasCurrentProviderData = hasUsageData && !todayTokensByProvider.isEmpty
         if hasCurrentProviderData {
             // 신규 설치와 같은 규칙: 불러온 시점 이전의 이 기기 사용량은 소급 적립하지 않는다.

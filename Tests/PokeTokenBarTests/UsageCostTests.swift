@@ -226,6 +226,8 @@ final class UsageCostTests: XCTestCase {
         defaults.set(true, forKey: "disableKeychainAccess")
         defaults.set(false, forKey: "statusChecksEnabled")
         defaults.set(true, forKey: "showCostInMenu")
+        // Past the one-time switch to the companion's numbers: this player chose to see the cost.
+        defaults.set(true, forKey: UsageStore.companionMenuDefaultsKey)
         let providers = [CostTestProvider(id: "priced", entries: [entry()]), CostTestProvider(id: "unknown", entries: [entry("new-model")])]
         let store = UsageStore(providers: providers, autoRefresh: false, defaults: defaults)
         await store.refresh(scheduleEmptyRetry: false)

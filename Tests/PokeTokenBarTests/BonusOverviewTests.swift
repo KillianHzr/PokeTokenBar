@@ -23,7 +23,7 @@ final class BonusOverviewTests: XCTestCase {
         try JSONEncoder().encode(st).write(to: url)
         addTeardownBlock { try? FileManager.default.removeItem(at: url) }
         return CompanionStore(provider: BonusProvider(), clock: { Date(timeIntervalSince1970: 1_790_000_000) },
-                              fileURL: url, rng: SeededRNG(seed: 1))
+                              fileURL: url, rng: SeededRNG(seed: 1), difficulty: 1)
     }
 
     private var tauros: MonState {

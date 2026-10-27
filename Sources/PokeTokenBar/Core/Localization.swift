@@ -200,6 +200,7 @@ struct L {
 
     // MARK: Usage recap
     var recapOpen: String { t("사용량 돌아보기", "Usage recap", "使用量のふりかえり", "Resumen de uso", "Récap d'utilisation", "Resumo de uso", "Nutzungsrückblick", "Итоги расхода") }
+    var recapDetails: String { t("상세", "Details", "詳細", "Detalle", "Détails", "Detalhes", "Details", "Детали") }
     var recapTokensUnit: String { t("토큰", "tokens", "トークン", "tokens", "tokens", "tokens", "Tokens", "токенов") }
     func recapScopeName(_ scope: RecapScope) -> String {
         switch scope {
@@ -269,6 +270,16 @@ struct L {
     var todayTokensShort: String { t("오늘 토큰", "Today's tokens", "本日のトークン", "Tokens de hoy", "Tokens du jour", "Tokens de hoje", "Heutige Tokens", "Токены за сегодня") }
     var todayCost: String { t("오늘 비용 ($)", "Today's cost ($)", "本日のコスト ($)", "Coste de hoy ($)", "Coût du jour ($)", "Custo de hoje ($)", "Heutige Kosten ($)", "Стоимость за сегодня ($)") }
     var limitPercent: String { t("한도 %", "Limit %", "上限 %", "Límite %", "Limite %", "Limite %", "Limit %", "Лимит, %") }
+    /// Menu bar items: tokens to the next stage or the hatch (shown "↑12M"), and the Shop's tokens ("¤217M").
+    var menuEvolutionTokens: String {
+        t("↑ 진화·부화까지 토큰", "↑ Tokens to evolve or hatch", "↑ 進化・孵化までのトークン", "↑ Tokens hasta evolucionar o eclosionar",
+          "↑ Tokens avant évolution ou éclosion", "↑ Tokens até evoluir ou chocar", "↑ Tokens bis Entwicklung oder Schlüpfen",
+          "↑ Токены до эволюции или вылупления")
+    }
+    var menuShopTokens: String {
+        t("¤ 상점 토큰", "¤ Shop tokens", "¤ ショップのトークン", "¤ Tokens de la tienda", "¤ Tokens en boutique",
+          "¤ Tokens da loja", "¤ Shop-Tokens", "¤ Токены магазина")
+    }
     var menuLimitColor: String {
         t("퍼센트 색상", "Percent color", "パーセントの色", "Color del porcentaje", "Couleur du pourcentage",
           "Cor da porcentagem", "Prozentfarbe", "Цвет процентов")
@@ -337,26 +348,6 @@ struct L {
         t("대표로 설정", "Set as representative", "代表ポケモンに設定", "Establecer como representante", "Définir comme représentatif", "Definir como representante", "Als repräsentativ festlegen", "Сделать основным")
     }
     var representativeBadge: String { t("대표", "Representative", "代表", "Representante", "Représentatif", "Representante", "Repräsentativ", "Основной") }
-    // MARK: 난이도
-    var difficultySectionTitle: String { t("난이도", "Difficulty", "難易度", "Dificultad", "Difficulté", "Dificuldade", "Schwierigkeit", "Сложность") }
-    var difficultyGrowthLabel: String { t("성장", "Growth", "成長", "Crecimiento", "Croissance", "Crescimento", "Wachstum", "Рост") }
-    var difficultyShopLabel: String { t("상점 가격", "Shop prices", "ショップ価格", "Precios de la tienda", "Prix de la boutique", "Preços da loja", "Shop-Preise", "Цены в магазине") }
-    var difficultyGrowthLowLabel: String { t("쉬움", "Easy", "やさしい", "Fácil", "Facile", "Fácil", "Leicht", "Легко") }
-    var difficultyGrowthHighLabel: String { t("어려움", "Hard", "難しい", "Difícil", "Difficile", "Difícil", "Schwer", "Сложно") }
-    var difficultyShopLowLabel: String { t("저렴", "Cheap", "安い", "Barato", "Pas cher", "Barato", "Günstig", "Дёшево") }
-    var difficultyShopHighLabel: String { t("비쌈", "Expensive", "高い", "Caro", "Cher", "Caro", "Teuer", "Дорого") }
-    func difficultyScaleHint(low: String, high: String) -> String {
-        t("낮추면 \(low), 높이면 \(high)", "Lower: \(low), higher: \(high)", "下げると\(low)、上げると\(high)",
-          "Más bajo: \(low); más alto: \(high)", "Plus bas : \(low) ; plus haut : \(high)",
-          "Mais baixo: \(low); mais alto: \(high)", "Niedriger: \(low), höher: \(high)", "Ниже: \(low), выше: \(high)")
-    }
-    /// 슬라이더 옆 현재 배율 — 10%~200%, 1.0 = 100%.
-    func difficultyValue(_ value: Double) -> String {
-        let percent = value * 100
-        if percent >= 10 { return String(format: "%.0f%%", percent) }
-        if percent >= 1 { return String(format: "%.1f%%", percent) }
-        return String(format: "%.2f%%", percent)
-    }
     // MARK: 플로팅 펫
     var floatingPetSectionTitle: String { t("플로팅 펫", "Floating Pet", "フローティングペット", "Mascota flotante", "Compagnon flottant", "Mascote flutuante", "Schwebendes Pokémon", "Питомец на экране") }
     var floatingPetEnableLabel: String { t("플로팅 펫 표시", "Show floating pet", "フローティングペットを表示", "Mostrar mascota flotante", "Afficher le compagnon flottant", "Mostrar mascote flutuante", "Schwebendes Pokémon anzeigen", "Показывать питомца на экране") }
@@ -1222,6 +1213,43 @@ struct L {
     var dexReleased: String { t("놓아줌", "Released", "逃がした", "Liberado", "Relâché", "Solto", "Freigelassen", "Отпущен") }
     /// 포획 로그에서 이전에 이미 잡았던 진화 라인(또는 안농 폼)의 중복 포획 개체임을 나타내는 뱃지.
     var dexDuplicate: String { t("중복", "Duplicate", "重複", "Duplicado", "Doublon", "Duplicado", "Duplikat", "Дубликат") }
+    /// Home: the current Pokémon brings nothing new through its whole line (`CompanionStore.activeNews`).
+    var activeDuplicateBadge: String {
+        t("100% 중복", "100% duplicate", "100%ダブり", "100 % repetido", "100 % doublon", "100% repetido", "100 % doppelt",
+          "100% дубликат")
+    }
+    var activeDuplicateHint: String {
+        t("갈 수 있는 모든 종과 폼이 이미 졸업했어요. 놓아줘도 잃는 게 없어요.",
+          "Every species and form it can bring has already graduated: sending it off loses nothing.",
+          "たどり着けるすべての種とフォルムが卒業済みです。手放しても失うものはありません。",
+          "Todas las especies y formas que puede traer ya se graduaron: soltarlo no te hace perder nada.",
+          "Toutes les espèces et formes qu'il peut apporter sont déjà diplômées : le laisser partir ne fait rien perdre.",
+          "Todas as espécies e formas que ele pode trazer já se formaram: soltá-lo não faz perder nada.",
+          "Alle Arten und Formen, die es bringen kann, hatten schon ihren Abschied: Es abzugeben kostet nichts.",
+          "Все виды и формы, которые он может принести, уже выпущены: отпустив его, вы ничего не потеряете.")
+    }
+    var activeNewBadge: String { t("신규", "New", "新規", "Nuevo", "Nouveau", "Novo", "Neu", "Новое") }
+    /// What graduating the current Pokémon adds, for the hint of its New badge.
+    func activeNewHint(_ names: [String]) -> String {
+        let list = names.joined(separator: ", ")
+        return t("졸업하면 도감에 추가돼요: \(list)", "Graduating it adds to your Pokédex: \(list)",
+                 "卒業すると図鑑に加わります：\(list)", "Al graduarse añade a tu Pokédex: \(list)",
+                 "Diplômé, il ajoutera à ton Pokédex : \(list)", "Ao se formar, adiciona à sua Pokédex: \(list)",
+                 "Mit seinem Abschied kommt in deinen Pokédex: \(list)", "После выпуска в Покедекс добавится: \(list)")
+    }
+    var activeCostumeHint: String {
+        t("피카츄로 진화하면 아직 없는 코스튬을 가져와요.", "Becoming Pikachu, it brings a costume you don't have yet.",
+          "ピカチュウに進化すると、まだ持っていないコスチュームを持ってきます。",
+          "Al convertirse en Pikachu, trae un disfraz que aún no tienes.",
+          "En devenant Pikachu, il apporte un costume que tu n'as pas encore.",
+          "Ao virar Pikachu, ele traz uma fantasia que você ainda não tem.",
+          "Wird es zu Pikachu, bringt es ein Kostüm mit, das du noch nicht hast.",
+          "Став Пикачу, он принесёт костюм, которого у вас ещё нет.")
+    }
+    var activeFirstShiny: String {
+        t("첫 이로치", "its first shiny", "初めての色違い", "su primer variocolor", "son premier chromatique",
+          "seu primeiro shiny", "sein erstes schillerndes", "первый шайни")
+    }
     var rarityCommon: String { t("일반", "Common", "ノーマル", "Común", "Commun", "Comum", "Gewöhnlich", "Обычный") }
     var rarityUncommon: String { t("고급", "Uncommon", "アンコモン", "Poco común", "Peu commun", "Incomum", "Ungewöhnlich", "Необычный") }
     var rarityRare: String { t("희귀", "Rare", "レア", "Raro", "Rare", "Raro", "Selten", "Редкий") }
@@ -1673,6 +1701,36 @@ struct L {
         case .tealMask: return t("벽록의가면", "Teal Mask", "みどりのめん", "Máscara Turquesa", "Masque Turquoise", "Máscara Turquesa", "Türkisgrüne Maske", "Бирюзовая маска")
         case .teraOrb: return t("테라스탈오브", "Tera Orb", "テラスタルオーブ", "Orbe Teracristal", "Orbe Téracristal", "Orbe Terastal", "Terakristall-Orb", "Тера-сфера")
         case .relicStatue: return t("고대의석상", "Relic Statue", "こだいのせきぞう", "Efigie Antigua", "Vieux Santon", "Estátua Antiga", "Alte Statue", "Древняя статуя")
+        case .lunarWing: return t("초승달깃털", "Lunar Wing", "みかづきのはね", "Pluma Lunar", "Lun'Aile", "Asa Lunar", "Lunarfeder", "Лунное крыло")
+        case .meteorite: return t("운석", "Meteorite", "いんせき", "Meteorito", "Météorite", "Meteorito", "Meteorit", "Метеорит")
+        case .oaksLetter: return t("오박사의편지", "Oak's Letter", "オーキドのてがみ", "Carta Prof. Oak", "Lettre Chen", "Carta do Prof. Carvalho", "Eichs Brief", "Письмо Оука")
+        case .seaIncense: return t("바닷물향로", "Sea Incense", "うしおのおこう", "Incienso Marino", "Encens Mer", "Incenso Marinho", "Seerauch", "Морской фимиам")
+        case .shockDrive: return t("번개카세트", "Shock Drive", "イナズマカセット", "FulgoROM", "Module Choc", "Disco Choque", "Blitzmodul", "Шок-драйв")
+        case .zRing: return t("Z링", "Z-Ring", "Ｚリング", "Pulsera Z", "Bracelet Z", "Pulseira Z", "Z-Ring", "Z-кольцо")
+        case .scrollOfDarkness: return t("악의 족자", "Scroll of Darkness", "あくのかけじく", "Manuscrito Sombras", "Rouleau des Ténèbres", "Pergaminho das Trevas", "Unlicht-Schriftrolle", "Свиток тьмы")
+        case .relicVase: return t("고대의항아리", "Relic Vase", "こだいのツボ", "Ánfora", "Vieux Vase", "Vaso Antigo", "Alte Vase", "Древняя ваза")
+        case .legendPlate: return t("레전드플레이트", "Legend Plate", "レジェンドプレート", "Tabla Legendaria", "Plaque Légende", "Placa Lendária", "Legendentafel", "Легендарная плита")
+        case .rotomCatalog: return t("로토무카탈로그", "Rotom Catalog", "ロトムのカタログ", "Catálogo Rotom", "Moti-Catalogue", "Catálogo Rotom", "Rotom-Katalog", "Каталог Ротома")
+        case .cometShard: return t("혜성조각", "Comet Shard", "すいせいのかけら", "Fragmento Cometa", "Morceau Comète", "Fragmento de Cometa", "Kometstück", "Осколок кометы")
+        case .redNectar: return t("빨강꿀", "Red Nectar", "くれないのミツ", "Néctar Rojo", "Nectar Rouge", "Néctar Vermelho", "Roter Nektar", "Красный нектар")
+        case .smoothRock: return t("보송보송바위", "Smooth Rock", "さらさらいわ", "Roca Suave", "Roche Lisse", "Pedra Lisa", "Glattbrocken", "Гладкий камень")
+        case .sawsbuckSeasons: return t("바라철록의 사계절", "Sawsbuck's Four Seasons", "メブキジカの四季", "Las cuatro estaciones de Sawsbuck",
+                                        "Les quatre saisons de Haydaim", "As quatro estações de Sawsbuck", "Kronjuwilds vier Jahreszeiten", "Четыре сезона Сосбака")
+        case .fairyFeather: return t("요정의깃털", "Fairy Feather", "ようせいのハネ", "Pluma Feérica", "Plume Enchantée", "Pena de Fada", "Feenfeder", "Волшебное перо")
+        case .furfrouTrims: return t("트리미앙의 열 가지 커트", "Furfrou's Ten Trims", "トリミアンの10のカット", "Los diez cortes de Furfrou",
+                                     "Les dix coupes de Couafarel", "Os dez cortes de Furfrou", "Coiffwaffs zehn Schnitte", "Десять стрижек Фурфру")
+        case .vivillonPatterns: return t("비비용의 스무 가지 무늬", "Vivillon's Twenty Patterns", "ビビヨンの20のもよう", "Los veinte diseños de Vivillon",
+                                         "Les vingt motifs de Prismillon", "Os vinte padrões de Vivillon", "Vivillons zwanzig Muster", "Двадцать узоров Вивиллона")
+        case .whippedDream: return t("휘핑팝", "Whipped Dream", "ホイップポップ", "Dulce de Nata", "Chantibonbon", "Sonho Chantili", "Sahnehäubchen", "Взбитая мечта")
+        case .excavation: return t("발굴", "Excavation", "発掘", "Excavación", "Fouilles", "Escavação", "Ausgrabung", "Раскопки")
+        case .fossilEgg: return t("화석 알", "Fossil Egg", "化石のタマゴ", "Huevo Fósil", "Œuf fossile", "Ovo Fóssil", "Fossil-Ei",
+                                  "Яйцо-окаменелость")
+        case .unownLetters: return t("안농의 알파벳", "Unown's Alphabet", "アンノーンのアルファベット", "El alfabeto de Unown", "L'alphabet des Zarbi",
+                                     "O alfabeto de Unown", "Icognitos Alphabet", "Алфавит Аноуна")
+        case .uncommonEgg: return eggName(.uncommon)
+        case .rareEgg: return eggName(.rare)
+        case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg:
+            return EventEgg(item: kind).map(eventEggName) ?? kind.rawValue
         case .typeNullEgg: return t("타입:널의 알", "Type: Null Egg", "タイプ：ヌルのタマゴ", "Huevo de Código Cero", "Œuf de Type:0", "Ovo de Type: Null", "Typ:Null-Ei", "Яйцо Тип: Ноль")
         case .lightBall: return t("전기구슬", "Light Ball", "でんきだま", "Bola Luminosa", "Balle Lumière", "Bola de Luz", "Kugelblitz", "Световой шар")
         case .legendaryEgg: return t("전설의 알", "Legendary Egg", "伝説のタマゴ", "Huevo Legendario", "Œuf légendaire", "Ovo Lendário", "Legendäres Ei", "Легендарное яйцо")
@@ -1978,14 +2036,15 @@ struct L {
                      "Die Belohnung für alle 17 Disks von Amigento. Gib dein aktuelles Pokémon ab für ein Ei, aus dem ein Typ:Null schlüpft.",
                      "Награда за все 17 дисков Сильвалли. Отпустите текущего покемона ради яйца, из которого вылупится Тип: Ноль.")
         case .lightBall:
-            return t("보유하면 피츄, 피카츄, 라이츄가 50% 더 빨리 성장합니다.",
-                     "While owned, Pichu, Pikachu and Raichu grow 50% faster.",
-                     "持っているとピチュー、ピカチュウ、ライチュウが50%早く育ちます。",
-                     "Mientras la tengas, Pichu, Pikachu y Raichu crecen un 50% más rápido.",
-                     "Tant que tu la possèdes, Pichu, Pikachu et Raichu grandissent 50 % plus vite.",
-                     "Enquanto estiver na bolsa, Pichu, Pikachu e Raichu crescem 50% mais rápido.",
-                     "Lässt im Beutel Pichu, Pikachu und Raichu 50% schneller wachsen.",
-                     "Пока он у вас, Пичу, Пикачу и Райчу растут на 50% быстрее.")
+            let list = rewardsList(kind.achievementRewards)
+            return t("피카츄의 코스튬 15벌을 모두 모은 보상. 받으면 가방에 들어와요: \(list).",
+                     "The reward for all 15 of Pikachu's costumes. Claiming it puts in your Bag: \(list).",
+                     "ピカチュウのコスチューム15着すべてのごほうび。受け取るとバッグに入ります：\(list)。",
+                     "La recompensa por los 15 disfraces de Pikachu. Al reclamarla, recibes en tu bolsa: \(list).",
+                     "La récompense des 15 costumes de Pikachu. En la réclamant, tu reçois dans ton sac : \(list).",
+                     "A recompensa pelas 15 fantasias de Pikachu. Ao resgatá-la, você recebe na sua bolsa: \(list).",
+                     "Die Belohnung für alle 15 Kostüme von Pikachu. Holst du sie ab, kommt in deinen Beutel: \(list).",
+                     "Награда за все 15 костюмов Пикачу. Получив её, вы найдёте в сумке: \(list).")
         case .birthdayEgg:
             return t("생일 선물. 지금 포켓몬을 놓아주고 이 알을 받아요. 무엇이 태어날지는 비밀이에요.",
                      "Your birthday gift. Send off your current Pokémon for this egg. What hatches from it is a surprise.",
@@ -2013,6 +2072,134 @@ struct L {
                      "Enquanto estiver na bolsa, um Pokémon que não evolui cresce 25% mais rápido.",
                      "Lässt im Beutel Pokémon, die sich nicht entwickeln, 25% schneller wachsen.",
                      "Пока она у вас, покемон, который не эволюционирует, растёт на 25% быстрее.")
+        case .lunarWing:
+            let psychic = typeName(.psychic), dark = typeName(.dark)
+            return t("보유하면 \(psychic)·\(dark) 타입 포켓몬이 30% 더 빨리 성장합니다.",
+                     "While owned, \(psychic)- and \(dark)-type Pokémon grow 30% faster.",
+                     "持っていると\(psychic)・\(dark)タイプのポケモンが30%早く育ちます。",
+                     "Mientras la tengas, los Pokémon de tipo \(psychic) y \(dark) crecen un 30% más rápido.",
+                     "Tant que tu la possèdes, les Pokémon de type \(psychic) et \(dark) grandissent 30% plus vite.",
+                     "Enquanto estiver na bolsa, Pokémon dos tipos \(psychic) e \(dark) crescem 30% mais rápido.",
+                     "Lässt im Beutel \(psychic)- und \(dark)-Pokémon 30% schneller wachsen.",
+                     "Пока оно у вас, покемоны типов \(psychic) и \(dark) растут на 30% быстрее.")
+        case .meteorite:
+            return t("보유하면 토큰 한도를 다 채울 때마다 이상한 사탕을 1개 더 받습니다.",
+                     "While owned, every token limit you max out gives you one more Rare Candy.",
+                     "持っているとトークン上限を使い切るたびにふしぎなアメを1個多くもらえます。",
+                     "Mientras lo tengas, recibes un Caramelo Raro más cada vez que agotas un límite de tokens.",
+                     "Tant que tu la possèdes, chaque limite de tokens atteinte te donne un Super Bonbon de plus.",
+                     "Enquanto estiver na bolsa, você recebe um Doce Raro a mais sempre que esgota um limite de tokens.",
+                     "Gibt im Beutel für jedes ausgeschöpfte Token-Limit ein Sonderbonbon mehr.",
+                     "Пока он у вас, за каждый исчерпанный лимит токенов вы получаете на одну Редкую конфету больше.")
+        case .oaksLetter:
+            return t("보유하면 모든 지방의 스타팅 포켓몬이 어느 단계든 25% 더 빨리 성장합니다.",
+                     "While owned, the starter Pokémon of every region grow 25% faster, at every stage.",
+                     "持っているとすべての地方の御三家ポケモンがどの段階でも25%早く育ちます。",
+                     "Mientras la tengas, los Pokémon iniciales de todas las regiones crecen un 25% más rápido, en cualquier etapa.",
+                     "Tant que tu la possèdes, les Pokémon de départ de toutes les régions grandissent 25% plus vite, à chaque stade.",
+                     "Enquanto estiver na bolsa, os Pokémon iniciais de todas as regiões crescem 25% mais rápido, em qualquer estágio.",
+                     "Lässt im Beutel die Starter-Pokémon aller Regionen in jeder Stufe 25% schneller wachsen.",
+                     "Пока оно у вас, стартовые покемоны всех регионов растут на 25% быстрее на любой стадии.")
+        case .seaIncense:
+            let plate = itemName(.legendPlate)
+            return t("보유하면 등급이 확정된 알(상점에서 산 알, \(plate)의 알)이 2배 빨리 부화합니다.",
+                     "While owned, eggs of a guaranteed rarity (bought in the Shop or from the \(plate)) hatch twice as fast.",
+                     "持っているとレア度が確定したタマゴ（ショップで買ったタマゴ、\(plate)のタマゴ）が2倍早くかえります。",
+                     "Mientras lo tengas, los huevos de rareza garantizada (comprados en la tienda o de la \(plate)) eclosionan el doble de rápido.",
+                     "Tant que tu le possèdes, les œufs à rareté garantie (achetés en boutique ou offerts par la \(plate)) éclosent 2 fois plus vite.",
+                     "Enquanto estiver na bolsa, ovos de raridade garantida (comprados na loja ou da \(plate)) chocam 2 vezes mais rápido.",
+                     "Lässt im Beutel Eier mit garantierter Seltenheit (aus dem Laden oder von der \(plate)) doppelt so schnell schlüpfen.",
+                     "Пока он у вас, яйца гарантированной редкости (из магазина или за «\(plate)») вылупляются в 2 раза быстрее.")
+        case .shockDrive:
+            return t("보유하면 화석 포켓몬이 50% 더 빨리 성장합니다.",
+                     "While owned, fossil Pokémon grow 50% faster.",
+                     "持っていると化石ポケモンが50%早く育ちます。",
+                     "Mientras lo tengas, los Pokémon fósiles crecen un 50% más rápido.",
+                     "Tant que tu le possèdes, les Pokémon fossiles grandissent 50% plus vite.",
+                     "Enquanto estiver na bolsa, Pokémon fósseis crescem 50% mais rápido.",
+                     "Lässt im Beutel Fossil-Pokémon 50% schneller wachsen.",
+                     "Пока он у вас, ископаемые покемоны растут на 50% быстрее.")
+        case .zRing:
+            let steel = typeName(.steel), electric = typeName(.electric)
+            return t("보유하면 \(steel)·\(electric) 타입 포켓몬이 30% 더 빨리 성장합니다.",
+                     "While owned, \(steel)- and \(electric)-type Pokémon grow 30% faster.",
+                     "持っていると\(steel)・\(electric)タイプのポケモンが30%早く育ちます。",
+                     "Mientras la tengas, los Pokémon de tipo \(steel) y \(electric) crecen un 30% más rápido.",
+                     "Tant que tu le possèdes, les Pokémon de type \(steel) et \(electric) grandissent 30% plus vite.",
+                     "Enquanto estiver na bolsa, Pokémon dos tipos \(steel) e \(electric) crescem 30% mais rápido.",
+                     "Lässt im Beutel \(steel)- und \(electric)-Pokémon 30% schneller wachsen.",
+                     "Пока оно у вас, покемоны типов \(steel) и \(electric) растут на 30% быстрее.")
+        case .scrollOfDarkness:
+            let fighting = typeName(.fighting)
+            return t("보유하면 \(fighting)타입 포켓몬이 30% 더 빨리 성장합니다.",
+                     "While owned, \(fighting)-type Pokémon grow 30% faster.",
+                     "持っていると\(fighting)タイプのポケモンが30%早く育ちます。",
+                     "Mientras lo tengas, los Pokémon de tipo \(fighting) crecen un 30% más rápido.",
+                     "Tant que tu le possèdes, les Pokémon de type \(fighting) grandissent 30% plus vite.",
+                     "Enquanto estiver na bolsa, Pokémon do tipo \(fighting) crescem 30% mais rápido.",
+                     "Lässt im Beutel Pokémon vom Typ \(fighting) 30% schneller wachsen.",
+                     "Пока он у вас, покемоны типа \(fighting) растут на 30% быстрее.")
+        case .relicVase:
+            return t("보유하면 중간 진화 단계의 포켓몬이 25% 더 빨리 성장합니다.",
+                     "While owned, a Pokémon at its middle stage grows 25% faster.",
+                     "持っていると中間の進化段階のポケモンが25%早く育ちます。",
+                     "Mientras la tengas, un Pokémon en su etapa intermedia crece un 25% más rápido.",
+                     "Tant que tu le possèdes, un Pokémon à son stade intermédiaire grandit 25% plus vite.",
+                     "Enquanto estiver na bolsa, um Pokémon no estágio intermediário cresce 25% mais rápido.",
+                     "Lässt im Beutel Pokémon in ihrer mittleren Stufe 25% schneller wachsen.",
+                     "Пока она у вас, покемон на промежуточной стадии растёт на 25% быстрее.")
+        case .legendPlate:
+            let rare = eggName(.rare), uncommon = eggName(.uncommon)
+            return t("아르세우스의 보상. 받으면 가방에 \(rare)과 \(uncommon)이 하나씩 들어와요.",
+                     "Arceus's reward: claiming it puts a \(rare) and an \(uncommon) in your Bag.",
+                     "アルセウスのごほうび。受け取ると\(rare)と\(uncommon)が1個ずつバッグに入ります。",
+                     "La recompensa de Arceus: al reclamarla, recibes un \(rare) y un \(uncommon) en tu bolsa.",
+                     "La récompense d'Arceus : en la réclamant, tu reçois un \(rare) et un \(uncommon) dans ton sac.",
+                     "A recompensa de Arceus: ao resgatá-la, você recebe um \(rare) e um \(uncommon) na sua bolsa.",
+                     "Arceus' Belohnung: Holst du sie ab, kommen ein \(rare) und ein \(uncommon) in deinen Beutel.",
+                     "Награда Арсеуса: получив её, вы найдёте в сумке «\(rare)» и «\(uncommon)».")
+        case .excavation:
+            return t("바위 타입 포켓몬을 4마리 졸업시킬 때마다 화석 알을 하나 발굴해요. 화석 계열마다 하나씩 15번. 이미 도감에 있는 화석 계열은 받을 것 없이 발굴한 것으로 쳐요. 화석 포켓몬은 이 알에서만 태어나요.",
+                     "Every 4 Rock-type Pokémon graduated dig up a Fossil Egg: 15 digs, one per fossil line. A fossil line already in your Pokédex counts as dug, with nothing to claim. Fossil Pokémon hatch from these eggs only.",
+                     "いわタイプのポケモンを4匹卒業させるたびに化石のタマゴを1つ発掘します。化石の系統ごとに1つ、全15回。すでに図鑑にいる化石の系統は、もらうものなしで発掘済みになります。化石ポケモンはこのタマゴからしか生まれません。",
+                     "Cada 4 Pokémon de tipo Roca graduados desentierran un Huevo Fósil: 15 excavaciones, una por línea fósil. Una línea fósil que ya está en tu Pokédex cuenta como excavada, sin nada que reclamar. Los Pokémon fósiles solo nacen de estos huevos.",
+                     "Tous les 4 Pokémon de type Roche diplômés, tu déterres un Œuf fossile : 15 fouilles, une par lignée fossile. Une lignée fossile déjà dans ton Pokédex compte comme fouillée, sans rien à récupérer. Les Pokémon fossiles n'éclosent que de ces œufs.",
+                     "A cada 4 Pokémon do tipo Pedra formados, você desenterra um Ovo Fóssil: 15 escavações, uma por linha fóssil. Uma linha fóssil que já está na sua Pokédex conta como escavada, sem nada para resgatar. Pokémon fósseis só nascem desses ovos.",
+                     "Alle 4 verabschiedeten Gestein-Pokémon gräbst du ein Fossil-Ei aus: 15 Ausgrabungen, eine pro Fossil-Linie. Eine Fossil-Linie, die schon in deinem Pokédex ist, gilt als ausgegraben, ohne etwas abzuholen. Fossil-Pokémon schlüpfen nur aus diesen Eiern.",
+                     "Каждые 4 выпущенных покемона каменного типа приносят Яйцо-окаменелость: 15 раскопок, по одной на линию окаменелостей. Линия, которая уже есть в покедексе, считается раскопанной без награды. Покемоны-окаменелости вылупляются только из этих яиц.")
+        case .fossilEgg:
+            return t("지금 포켓몬을 놓아주고 이 알을 받아요. 아직 없는 화석 계열의 포켓몬이 무작위로 태어나요.",
+                     "Send off your current Pokémon for it: it hatches, at random, a fossil Pokémon whose line you don't have yet.",
+                     "いまのポケモンを手放してこのタマゴにします。まだいない化石の系統のポケモンがランダムに生まれます。",
+                     "Suelta a tu Pokémon actual por él: nace al azar un Pokémon fósil de una línea que aún no tienes.",
+                     "Laisse partir ton Pokémon actuel contre lui : il fait éclore au hasard un Pokémon fossile d'une lignée que tu n'as pas encore.",
+                     "Solte seu Pokémon atual por ele: nasce ao acaso um Pokémon fóssil de uma linha que você ainda não tem.",
+                     "Gib dein aktuelles Pokémon dafür ab: Daraus schlüpft zufällig ein Fossil-Pokémon einer Linie, die du noch nicht hast.",
+                     "Отпустите текущего покемона ради него: из него вылупится случайный покемон-окаменелость из линии, которой у вас ещё нет.")
+        case .rotomCatalog:
+            return t("보유하면 그 진화 라인에 없던 폼으로 태어난 포켓몬마다 이상한 사탕을 1개 받습니다.",
+                     "While owned, every Pokémon that hatches in a form its line never had gives you one Rare Candy.",
+                     "持っていると、その進化ラインになかったフォルムで生まれたポケモンごとにふしぎなアメを1個もらえます。",
+                     "Mientras lo tengas, cada Pokémon que nace en una forma que su línea nunca tuvo te da un Caramelo Raro.",
+                     "Tant que tu le possèdes, chaque Pokémon qui éclot dans une forme que sa lignée n'avait jamais eue te donne un Super Bonbon.",
+                     "Enquanto estiver na bolsa, cada Pokémon que nasce numa forma que sua linha nunca teve te dá um Doce Raro.",
+                     "Gibt im Beutel für jedes Pokémon, das in einer Form schlüpft, die seine Linie noch nie hatte, ein Sonderbonbon.",
+                     "Пока он у вас, за каждого покемона, вылупившегося в форме, которой у его линии ещё не было, вы получаете Редкую конфету.")
+        case .cometShard, .redNectar, .smoothRock, .sawsbuckSeasons, .fairyFeather, .furfrouTrims, .vivillonPatterns,
+             .whippedDream, .unownLetters:
+            let list = rewardsList(kind.achievementRewards)
+            return t("모든 폼이 졸업하면 받을 수 있어요. 받으면 가방에 들어와요: \(list).",
+                     "Every form graduated earns it. Claiming it puts in your Bag: \(list).",
+                     "すべてのフォルムが卒業すると受け取れます。受け取るとバッグに入ります：\(list)。",
+                     "Se gana con todas las formas graduadas. Al reclamarlo, recibes en tu bolsa: \(list).",
+                     "Toutes les formes diplômées le débloquent. En le réclamant, tu reçois dans ton sac : \(list).",
+                     "Todas as formas formadas o liberam. Ao resgatá-lo, você recebe na sua bolsa: \(list).",
+                     "Alle Formen verabschiedet schalten es frei. Holst du es ab, kommt in deinen Beutel: \(list).",
+                     "Открывается, когда все формы выпущены. Получив его, вы найдёте в сумке: \(list).")
+        case .uncommonEgg: return eggDescription(.uncommon)
+        case .rareEgg: return eggDescription(.rare)
+        case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg:
+            return EventEgg(item: kind).map(eventEggDescription) ?? ""
         case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,
              .soulBadge, .marshBadge, .volcanoBadge, .earthBadge,
              .zephyrBadge, .hiveBadge, .plainBadge, .fogBadge,
@@ -2150,6 +2337,37 @@ struct L {
           "«\(shown)» добавлен в ваш инвентарь.")
     }
 
+    /// The Legend Plate's claim: its two eggs, not the Plate.
+    /// What one claim puts in the Bag: "Rare Egg ×2, Rare Candy ×5".
+    func rewardsList(_ rewards: [(kind: ItemKind, count: Int)]) -> String {
+        rewards.map { $0.count > 1 ? "\(itemName($0.kind)) ×\($0.count)" : itemName($0.kind) }.joined(separator: ", ")
+    }
+
+    func notifRewardsBody(_ rewards: [(kind: ItemKind, count: Int)]) -> String {
+        let list = rewardsList(rewards)
+        return t("가방에 획득했어요: \(list)", "Obtained in your bag: \(list).", "バッグに獲得しました：\(list)",
+                 "¡Obtuviste en tu bolsa: \(list)!", "Ajouté à votre sac : \(list).", "Você obteve na sua bolsa: \(list).",
+                 "Deinem Beutel hinzugefügt: \(list).", "Добавлено в ваш инвентарь: \(list).")
+    }
+
+    /// The goal of a forms achievement.
+    var allFormsOfSpeciesGoal: String {
+        t("모든 폼 졸업", "Every form graduated", "すべてのフォルムが卒業", "Todas las formas graduadas", "Toutes les formes diplômées",
+          "Todas as formas formadas", "Alle Formen verabschiedet", "Все формы выпущены")
+    }
+
+    var notifLegendPlateBody: String {
+        let rare = eggName(.rare), uncommon = eggName(.uncommon)
+        return t("가방에 \(rare)과 \(uncommon)을 획득했어요.",
+                 "Obtained a \(rare) and an \(uncommon) in your bag.",
+                 "\(rare)と\(uncommon)をバッグに獲得しました。",
+                 "¡Obtuviste un \(rare) y un \(uncommon) en tu bolsa!",
+                 "Un \(rare) et un \(uncommon) ont été ajoutés à votre sac.",
+                 "Você obteve um \(rare) e um \(uncommon) na sua bolsa.",
+                 "Ein \(rare) und ein \(uncommon) wurden deinem Beutel hinzugefügt.",
+                 "«\(rare)» и «\(uncommon)» добавлены в ваш инвентарь.")
+    }
+
     /// Section titles of the Achievements tab. Kept to one word: the three segments and their counts
     /// must fit the 360 pt popover in every language (`testCategoryPickerFitsTheTabWidthInEveryLanguage`).
     func collectorGroupTitle(_ group: CollectorGroup) -> String {
@@ -2160,6 +2378,8 @@ struct L {
             return t("유물", "Artifacts", "どうぐ", "Objetos", "Artefacts", "Objetos", "Artefakte", "Реликвии")
         case .gymBadges:
             return t("배지", "Badges", "バッジ", "Medallas", "Badges", "Insígnias", "Orden", "Значки")
+        case .forms:
+            return t("폼", "Forms", "フォルム", "Formas", "Formes", "Formas", "Formen", "Формы")
         }
     }
     var lockedLabel: String { t("잠김", "Locked", "ロック中", "Bloqueado", "Verrouillé", "Bloqueado", "Gesperrt", "Закрыто") }
@@ -2205,10 +2425,6 @@ struct L {
     }
     var allFormsGoal: String {
         t("모든 폼", "Every form", "すべてのフォルム", "Todas las formas", "Toutes les formes", "Todas as formas", "Alle Formen", "Все формы")
-    }
-    var lightBallEffectHint: String {
-        t("피츄 계열 성장 +50% · 적용 중", "Pikachu's line +50% · active", "ピカチュウ系統 +50% · 適用中", "Línea de Pikachu +50% · activo",
-          "Lignée de Pikachu +50% · actif", "Linha do Pikachu +50% · ativo", "Pikachu-Reihe +50% · aktiv", "Линия Пикачу +50% · активен")
     }
     var allPikachuCostumesGoal: String {
         t("피카츄의 옷 전부", "Every one of Pikachu's costumes", "ピカチュウのいしょう すべて", "Todos los trajes de Pikachu",
@@ -2292,6 +2508,50 @@ struct L {
     }
     var teraOrbEffectHint: String { t("돌의 알 부화 ½ · 적용 중", "Stone egg threshold ½ · active", "石のタマゴ必要量½ · 適用中", "Huevo de piedra ½ · activo", "Œuf de pierre ½ · actif", "Ovo de pedra ½ · ativo", "Stein-Ei-Schwelle ½ · aktiv", "Яйцо из камня ½ · активна") }
     var relicStatueEffectHint: String { t("진화 없음 +25% · 적용 중", "No evolution +25% · active", "進化なし +25% · 適用中", "Sin evolución +25% · activo", "Sans évolution +25% · actif", "Sem evolução +25% · ativo", "Ohne Entwicklung +25% · aktiv", "Без эволюции +25% · активна") }
+    var lunarWingEffectHint: String {
+        let names = "\(typeName(.psychic))·\(typeName(.dark))"
+        return t("\(names) +30% · 적용 중", "\(names) +30% · active", "\(names) +30% · 適用中", "\(names) +30% · activo", "\(names) +30% · actif", "\(names) +30% · ativo", "\(names) +30% · aktiv", "\(names) +30% · активно")
+    }
+    var meteoriteEffectHint: String { t("한도마다 사탕 +1 · 적용 중", "+1 candy per limit · active", "上限ごとにアメ+1 · 適用中", "+1 caramelo por límite · activo", "+1 bonbon par limite · actif", "+1 doce por limite · ativo", "+1 Bonbon pro Limit · aktiv", "+1 конфета за лимит · активен") }
+    var oaksLetterEffectHint: String { t("스타팅 +25% · 적용 중", "Starters +25% · active", "御三家 +25% · 適用中", "Iniciales +25% · activo", "Pokémon de départ +25% · actif", "Iniciais +25% · ativo", "Starter +25% · aktiv", "Стартовые +25% · активно") }
+    var seaIncenseEffectHint: String { t("확정 알 부화 ½ · 적용 중", "Guaranteed egg threshold ½ · active", "確定タマゴ必要量½ · 適用中", "Huevo garantizado ½ · activo", "Œuf à rareté garantie ½ · actif", "Ovo garantido ½ · ativo", "Garantie-Ei-Schwelle ½ · aktiv", "Яйцо с гарантией ½ · активен") }
+    var shockDriveEffectHint: String { t("화석 +50% · 적용 중", "Fossils +50% · active", "化石 +50% · 適用中", "Fósiles +50% · activo", "Fossiles +50% · actif", "Fósseis +50% · ativo", "Fossilien +50% · aktiv", "Ископаемые +50% · активен") }
+    var zRingEffectHint: String {
+        let names = "\(typeName(.steel))·\(typeName(.electric))"
+        return t("\(names) +30% · 적용 중", "\(names) +30% · active", "\(names) +30% · 適用中", "\(names) +30% · activo", "\(names) +30% · actif", "\(names) +30% · ativo", "\(names) +30% · aktiv", "\(names) +30% · активно")
+    }
+    var scrollOfDarknessEffectHint: String {
+        let fighting = typeName(.fighting)
+        return t("\(fighting) 성장 +30% · 적용 중", "\(fighting) growth +30% · active", "\(fighting)育成 +30% · 適用中", "Crec. \(fighting) +30% · activo", "Croissance \(fighting) +30% · actif", "Cresc. \(fighting) +30% · ativo", "\(fighting) +30% · aktiv", "Рост: \(fighting) +30% · активен")
+    }
+    var relicVaseEffectHint: String { t("중간 단계 +25% · 적용 중", "Middle stage +25% · active", "中間段階 +25% · 適用中", "Etapa intermedia +25% · activo", "Stade intermédiaire +25% · actif", "Estágio intermediário +25% · ativo", "Mittlere Stufe +25% · aktiv", "Средняя стадия +25% · активна") }
+    /// The Legend Plate never sits in the Bag: its claim gives these two eggs.
+    var legendPlateHint: String { "\(eggName(.rare)) + \(eggName(.uncommon))" }
+    var fossilEggHint: String {
+        t("없는 화석 계열", "A fossil line you're missing", "まだいない化石の系統", "Una línea fósil que te falta",
+          "Une lignée fossile qui te manque", "Uma linha fóssil que falta", "Eine fehlende Fossil-Linie", "Недостающая линия окаменелостей")
+    }
+    /// Under the fossil lines: how many digs the lines already graduated settle.
+    func excavationWaivedCount(_ count: Int) -> String {
+        let one = count == 1
+        return t("화석 계열 \(count)개가 이미 도감에 있어 발굴한 것으로 쳐요.",
+                 one ? "1 fossil line already in your Pokédex counts as dug." : "\(count) fossil lines already in your Pokédex count as dug.",
+                 "化石の系統\(count)つがすでに図鑑にいるので、発掘済みになります。",
+                 one ? "1 línea fósil ya en tu Pokédex cuenta como excavada." : "\(count) líneas fósiles ya en tu Pokédex cuentan como excavadas.",
+                 one ? "1 lignée fossile déjà dans ton Pokédex compte comme fouillée." : "\(count) lignées fossiles déjà dans ton Pokédex comptent comme fouillées.",
+                 one ? "1 linha fóssil já na sua Pokédex conta como escavada." : "\(count) linhas fósseis já na sua Pokédex contam como escavadas.",
+                 one ? "1 Fossil-Linie schon in deinem Pokédex gilt als ausgegraben." : "\(count) Fossil-Linien schon in deinem Pokédex gelten als ausgegraben.",
+                 "Линий окаменелостей уже в покедексе: \(count), они считаются раскопанными.")
+    }
+    var excavationWaived: String {
+        t("이미 도감에 있는 화석 계열", "A fossil line already in your Pokédex", "すでに図鑑にいる化石の系統", "Una línea fósil ya en tu Pokédex",
+          "Une lignée fossile déjà dans ton Pokédex", "Uma linha fóssil já na sua Pokédex", "Eine Fossil-Linie schon in deinem Pokédex",
+          "Линия окаменелостей уже в покедексе")
+    }
+    var rotomCatalogEffectHint: String {
+        t("새 폼마다 사탕 +1 · 적용 중", "+1 candy per new form · active", "新フォルムごとにアメ+1 · 適用中", "+1 caramelo por forma nueva · activo",
+          "+1 bonbon par nouvelle forme · actif", "+1 doce por forma nova · ativo", "+1 Bonbon pro neuer Form · aktiv", "+1 конфета за новую форму · активен")
+    }
     // 알 (리롤) — tier = 보증 등급 하한(nil = 보증 없는 기본 알).
     // 이름은 `rarityLabel(r) + " 알"` 식 조합으로 만들지 않는다: 한국어·영어는 맞아떨어져도 일본어에서
     // 조사가 어긋난다(レアのタマゴ vs 자연스러운 レアなタマゴ). 세 언어를 명시 트리플로 적는다.
@@ -2386,14 +2646,15 @@ struct L {
           "🍬 Du hast \(count)× \(item) erhalten!",
           "🍬 Вы получили: \(item) ×\(count)!")
     }
+    /// Why candies came: the limit windows whose usage paid them, paid as they go (`RareCandy.candiesDue`).
     func notifCandyBody(window: String) -> String {
-        t("\(window) 토큰 한도를 다 채웠어요. 열심히 쓴 만큼 사탕을 드려요 — 포켓몬에게 써서 진화시켜 보세요!",
-          "You maxed out your \(window) token limit. A treat for the effort — use it to evolve your Pokémon!",
-          "\(window)のトークン上限を使い切りました。がんばったごほうびです — ポケモンに使って進化させよう！",
-          "Has agotado tu límite de tokens \(window). Un premio por el esfuerzo — ¡úsalo para evolucionar a tu Pokémon!",
-          "Tu as atteint ta limite de tokens \(window). Une récompense pour l'effort — utilise-la pour faire évoluer ton Pokémon !",
-          "Você esgotou seu limite de tokens — \(window). Você merece um agrado: use no seu Pokémon para evoluir!",
-          "Du hast das Token-Limit für \(window) ausgeschöpft. Eine Belohnung für deinen Einsatz – verwende sie, um dein Pokémon zu entwickeln!",
-          "Вы полностью исчерпали лимит токенов (\(window)). Это награда за старания — используйте её, чтобы эволюционировать покемона!")
+        t("\(window) 사용량으로 받은 사탕이에요. 포켓몬에게 써서 진화시켜 보세요!",
+          "Earned with your usage: \(window). Use them to evolve your Pokémon!",
+          "\(window)の使用量でもらったアメです。ポケモンに使って進化させよう！",
+          "Ganados con tu uso: \(window). ¡Úsalos para evolucionar a tu Pokémon!",
+          "Gagnés grâce à ton utilisation : \(window). Utilise-les pour faire évoluer ton Pokémon !",
+          "Ganhos com o seu uso: \(window). Use no seu Pokémon para evoluir!",
+          "Mit deiner Nutzung verdient: \(window). Verwende sie, um dein Pokémon zu entwickeln!",
+          "Получены за использование: \(window). Используйте их, чтобы эволюционировать покемона!")
     }
 }

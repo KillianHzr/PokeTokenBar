@@ -24,7 +24,7 @@ final class FreshEggTests: XCTestCase {
         let json = "{\"installBaselineSet\":true,\"usedSinceInstall\":\(used),\"spentTokens\":\(spent),"
             + "\"lastDate\":\"d\",\"active\":\(active ? mon : "null"),\"dex\":[\(dex)],\"collectedFinals\":[\"1:3\"]}"
         try? json.data(using: .utf8)!.write(to: url)
-        return CompanionStore(provider: FreshEggNoProvider(), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: 7))
+        return CompanionStore(provider: FreshEggNoProvider(), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
     }
 
     func testPriceIsOneBillion() { XCTAssertEqual(FreshEgg.price, 1_000_000_000) }

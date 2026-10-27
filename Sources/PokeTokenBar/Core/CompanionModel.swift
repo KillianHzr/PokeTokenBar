@@ -131,51 +131,17 @@ enum PokemonBalance {
         return max(1, Int((Double(standardThreshold) / Double(max(1, growthMultiplier))).rounded()))
     }
 
-    // MARK: 난이도 배율 (설정 슬라이더)
+    // MARK: Difficulty
 
-    /// 사용자 조절 배율의 허용 범위. 1 미만이면 기본보다 빠르고·싸며, 1 초과면 느리고·비싸다.
-    static let difficultyRange: ClosedRange<Double> = 0.1...2.0
-    /// 기본값 — 이 값에서 모든 밸런스가 위 상수표 그대로다(기존 동작과 동일).
-    static let defaultDifficulty: Double = 1.0
+    /// The balance every player has: thresholds and prices at a tenth of the tables above, Rare Candies at their full
+    /// EXP. It used to be two Settings sliders, from 10% to 200%; the players had all set both to the lowest, so it is
+    /// the one value now.
+    static let difficulty: Double = 0.1
 
-    /// 저장값을 허용 범위로 조인다. UserDefaults 는 `defaults write` 로 외부에서 쓸 수 있어
-    /// 0·음수·NaN 이 실제로 들어올 수 있고, 배율 0 은 임계 0(진행률 0 나눗셈·퇴화한 진화 루프)이 된다.
-    static func clampDifficulty(_ value: Double) -> Double {
-        guard value.isFinite else { return defaultDifficulty }
-        return min(max(value, difficultyRange.lowerBound), difficultyRange.upperBound)
-    }
-
-    /// 기본값 × 난이도 — 임계·가격 공통. **상수표 자체는 스케일하지 않는다**: 등급 알 가격이
-    /// `graduationTotal` 의 *비율*로 파생되므로(FreshEgg.price), 표를 건드리면 성장 배율이 상점
-    /// 가격까지 끌고 간다. 소비 지점에서만 곱해 두 배율을 서로 독립으로 유지한다.
-    static func scaled(_ base: Int, by difficulty: Double) -> Int {
-        Int((Double(base) * clampDifficulty(difficulty)).rounded())
-    }
-
-    // MARK: 슬라이더 위치 ↔ 배율 (로그 매핑)
-    // 같은 비율의 변화가 같은 거리를 차지한다. 기본값은 트랙의 ±1%에서 스냅한다.
-    private static let defaultSnapWidth = 0.01
-
-    /// 슬라이더 위치(0…1) → 배율.
-    static func difficulty(atPosition position: Double) -> Double {
-        let lo = difficultyRange.lowerBound, hi = difficultyRange.upperBound
-        let p = min(max(position, 0), 1)
-        if abs(p - difficultyPosition(defaultDifficulty)) < defaultSnapWidth { return defaultDifficulty }
-        return snapDifficulty(lo * pow(hi / lo, p))
-    }
-
-    /// 배율 → 슬라이더 위치(0…1).
-    static func difficultyPosition(_ value: Double) -> Double {
-        let lo = difficultyRange.lowerBound, hi = difficultyRange.upperBound
-        return log(clampDifficulty(value) / lo) / log(hi / lo)
-    }
-
-    /// 로그 슬라이더에서 나온 값을 유효숫자 2자리로 정리한다 — 없으면 1.0473 같은 값이 그대로 표시된다.
-    /// 기본값 되돌리기는 여기가 아니라 `difficulty(atPosition:)` 의 위치 스냅이 담당한다.
-    static func snapDifficulty(_ value: Double) -> Double {
-        guard value > 0 else { return difficultyRange.lowerBound }
-        let magnitude = pow(10, (log10(value)).rounded(.down) - 1)
-        return ((value / magnitude).rounded() * magnitude)
+    /// A table value at the difficulty, for thresholds and prices. **The tables themselves are not scaled**: the tier
+    /// eggs' prices derive from the ratios of `graduationTotal` (FreshEgg.price).
+    static func scaled(_ base: Int, by difficulty: Double = difficulty) -> Int {
+        Int((Double(base) * difficulty).rounded())
     }
 }
 
@@ -218,14 +184,40 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     case tealMask
     case teraOrb
     case relicStatue
+    case lunarWing
+    case meteorite
+    case oaksLetter
+    case seaIncense
+    case shockDrive
+    case zRing
+    case scrollOfDarkness
+    case relicVase
+    /// Arceus's achievement: claiming it puts a Rare Egg and an Uncommon Egg in the Bag, not the Plate itself.
+    case legendPlate
+    /// The forms achievements (`ItemUnlock.forms`): every form of one species graduated. The Rotom Catalog stays and
+    /// pays a Rare Candy for each Pokémon hatched in a form its line never had; the others put candies or eggs in
+    /// the Bag, as the Legend Plate does.
+    case rotomCatalog, cometShard, redNectar, smoothRock, sawsbuckSeasons, fairyFeather, furfrouTrims
+    case vivillonPatterns, whippedDream, unownLetters
+    /// The excavation (`FossilDig`): a Fossil Egg for every few Rock-type Pokémon graduated, one dig per fossil line.
+    case excavation
+    /// What a dig gives: it hatches a fossil line not graduated yet, at random.
+    case fossilEgg
     case typeNullEgg
     /// The reward for each region whose every species is in the Pokédex: an egg that hatches a legendary or mythical
     /// Pokémon.
     case legendaryEgg
-    /// The reward for every one of Pikachu's costumes: Pichu, Pikachu and Raichu grow faster.
+    /// The reward for every one of Pikachu's costumes: Rare Eggs and Rare Candies (it used to speed up Pikachu's line,
+    /// which a player holding every costume no longer raises).
     case lightBall
     /// The birthday gift (`BirthdayGift`): an egg whose hatch is a surprise, a mythical Pokémon not graduated yet.
     case birthdayEgg
+    /// The Legend Plate's eggs: like the Shop's eggs of these rarities, free.
+    case uncommonEgg
+    case rareEgg
+    /// The eggs of the year's events (`EventEgg`), claimed from a banner.
+    case newYearEgg, valentineEgg, pokemonDayEgg, easterEgg, halloweenEgg, christmasEgg, companionEgg
+    case springEgg, summerEgg, autumnEgg, winterEgg
     case ovalCharm
     case glimmeringCharm
     case boulderBadge
@@ -319,6 +311,22 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .tealMask: return "teal-mask"
         case .teraOrb: return "tera-orb"
         case .relicStatue: return "relic-statue"
+        case .lunarWing: return "lunar-wing"
+        case .meteorite: return "meteorite"
+        case .oaksLetter: return "oaks-letter"
+        case .seaIncense: return "sea-incense"
+        case .shockDrive: return "shock-drive"
+        case .zRing: return "z-ring"
+        case .scrollOfDarkness: return "scroll-of-darkness"
+        case .relicVase: return "relic-vase"
+        case .legendPlate: return "legend-plate"
+        case .rotomCatalog: return "rotom-catalog"
+        case .cometShard: return "comet-shard"
+        case .redNectar: return "red-nectar"
+        case .smoothRock: return "smooth-rock"
+        case .fairyFeather: return "fairy-feather"
+        case .whippedDream: return "whipped-dream"
+        case .excavation: return "helix-fossil"
         case .lightBall: return "light-ball"
         case .typeNullEgg: return "mystery-egg"
         case .ovalCharm: return "oval-charm"
@@ -366,7 +374,24 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .tealMask: return "🎭"
         case .teraOrb: return "💠"
         case .relicStatue: return "🗿"
-        case .typeNullEgg, .legendaryEgg, .birthdayEgg: return "🥚"
+        case .lunarWing: return "🌙"
+        case .meteorite: return "☄️"
+        case .oaksLetter: return "✉️"
+        case .seaIncense: return "🌊"
+        case .shockDrive: return "💿"
+        case .zRing: return "💍"
+        case .scrollOfDarkness: return "📜"
+        case .relicVase: return "⚱️"
+        case .legendPlate: return "🌌"
+        case .rotomCatalog: return "📖"
+        case .cometShard: return "☄️"
+        case .redNectar: return "🌺"
+        case .smoothRock: return "🪨"
+        case .fairyFeather: return "🪶"
+        case .whippedDream: return "🍰"
+        case .sawsbuckSeasons, .furfrouTrims, .vivillonPatterns, .unownLetters, .fossilEgg: return "🥚"
+        case .excavation: return "🦴"
+        case .typeNullEgg, .legendaryEgg, .birthdayEgg, .uncommonEgg, .rareEgg, .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return "🥚"
         case .lightBall: return "⚡"
         case .ovalCharm: return "🔶"
         case .glimmeringCharm: return "✨"
@@ -393,7 +418,10 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     var isPassive: Bool {
         switch self {
         case .rareCandy, .mint,
-             .typeNullEgg, .legendaryEgg, .birthdayEgg,
+             .typeNullEgg, .legendaryEgg, .birthdayEgg, .uncommonEgg, .rareEgg, .legendPlate, .lightBall,
+             .excavation, .fossilEgg,
+             .cometShard, .redNectar, .smoothRock, .sawsbuckSeasons, .fairyFeather, .furfrouTrims, .vivillonPatterns, .whippedDream, .unownLetters,
+             .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg,
              .leafStone, .fireStone, .waterStone, .thunderStone, .sunStone,
              .moonStone, .duskStone, .iceStone, .dawnStone, .shinyStone:
             return false
@@ -408,12 +436,44 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     /// How many of this item one claim of its achievement adds to the Bag.
     var achievementRewardCount: Int { stoneType != nil ? EvolutionStone.achievementReward : 1 }
 
+    /// What one claim of this achievement puts in the Bag: the item itself, or for Arceus's Legend Plate and most
+    /// forms achievements, candies and eggs.
+    var achievementRewards: [(kind: ItemKind, count: Int)] {
+        switch self {
+        case .legendPlate: return [(.rareEgg, 1), (.uncommonEgg, 1)]
+        case .cometShard: return [(.rareCandy, 5)]
+        case .redNectar, .smoothRock: return [(.rareCandy, 3)]
+        case .sawsbuckSeasons, .fairyFeather: return [(.uncommonEgg, 1)]
+        case .furfrouTrims: return [(.rareEgg, 1)]
+        case .vivillonPatterns, .unownLetters: return [(.rareEgg, 2)]
+        case .whippedDream, .lightBall: return [(.rareEgg, 2), (.rareCandy, 5)]
+        case .excavation: return [(.fossilEgg, 1)]   // per dig
+        default: return [(self, achievementRewardCount)]
+        }
+    }
+
+    /// Whether claiming this achievement gives other items than itself (the Legend Plate's eggs, a Comet Shard's
+    /// candies): the Bag never holds it.
+    var givesOtherItems: Bool { achievementRewards.contains { $0.kind != self } }
+
+    /// The rarity a free egg of the Bag guarantees, like the Shop's egg of that rarity. nil for any other item.
+    var bagEggTier: Rarity? {
+        switch self {
+        case .uncommonEgg: return .uncommon
+        case .rareEgg: return .rare
+        default: return nil
+        }
+    }
+
     /// Achievement group of an item that unlocks through the Pokédex. nil = sold in the shop.
     var collectorGroup: CollectorGroup? {
         if badgeType != nil { return .gymBadges }
         if stoneType != nil { return .evolutionStones }
         switch self {
-        case .rareCandy, .mint, .shinyCharm, .birthdayEgg: return nil
+        case .rareCandy, .mint, .shinyCharm, .birthdayEgg, .uncommonEgg, .rareEgg, .fossilEgg: return nil
+        case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return nil
+        case .rotomCatalog, .cometShard, .redNectar, .smoothRock, .sawsbuckSeasons, .fairyFeather, .furfrouTrims, .vivillonPatterns, .whippedDream, .unownLetters: return .forms
+        case .excavation: return .evolutionStones   // rocks and stones, side by side
         default: return .legendaryArtifacts
         }
     }
@@ -422,7 +482,8 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     /// Each item keeps the Pokémon of the achievement that used to award it.
     var unlock: ItemUnlock? {
         switch self {
-        case .rareCandy, .mint, .shinyCharm, .birthdayEgg: return nil
+        case .rareCandy, .mint, .shinyCharm, .birthdayEgg, .uncommonEgg, .rareEgg, .fossilEgg: return nil
+        case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return nil
         // The first nine stones follow the generations: each asks for one region's final starters.
         case .leafStone:   return .species([SpeciesGoal([3, 6, 9])])            // Kanto starters
         case .fireStone:   return .species([SpeciesGoal([154, 157, 160])])      // Johto starters
@@ -443,14 +504,15 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .rainbowWing: return .species([SpeciesGoal([249, 250])])           // Lugia, Ho-Oh
         case .magmaStone:  return .species([SpeciesGoal([377, 378, 379]),       // Legendary titans
                                             SpeciesGoal([894, 895]),            // Regieleki, Regidrago
-                                            SpeciesGoal(SpeciesGoal.fossils, needed: 4)])
+                                            SpeciesGoal(SpeciesGoal.fossils, needed: 4),
+                                            SpeciesGoal([485, 383])])           // Heatran, whose item it is, and Groudon
         case .soulDew:     return .species([SpeciesGoal([380, 381])])           // Latias, Latios
         case .jadeOrb:     return .species([SpeciesGoal([382, 383, 384])])      // Weather trio
         case .gracidea:    return .species([SpeciesGoal([480, 481, 482])])      // Lake guardians
         case .griseousOrb: return .species([SpeciesGoal([483, 484, 487])])      // Creation trio
-        case .libertyPass: return .species([SpeciesGoal([638, 639, 640])])      // Swords of Justice
+        case .libertyPass: return .species([SpeciesGoal([638, 639, 640, 647], needed: 3)]) // Swords of Justice, Keldeo
         case .revealGlass: return .species([SpeciesGoal([641, 642, 645, 905], needed: 3)]) // Forces of Nature
-        case .dnaSplicers: return .species([SpeciesGoal([643, 644])])           // Reshiram, Zekrom
+        case .dnaSplicers: return .species([SpeciesGoal([643, 644, 646])])      // Reshiram, Zekrom, Kyurem
         case .zygardeCube: return .species([SpeciesGoal([716, 717, 718])])      // Kalos legends
         case .prisonBottle: return .species([SpeciesGoal([719, 720, 721])])     // Diancie, Hoopa, Volcanion
         case .sparklingStone: return .species([SpeciesGoal([785, 786, 787, 788])]) // Island guardians
@@ -459,9 +521,30 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .rustedSword: return .species([SpeciesGoal([888, 889, 890])])      // Zacian, Zamazenta, Eternatus
         case .reinsOfUnity: return .species([SpeciesGoal([896, 897, 898])])     // Glastrier, Spectrier, Calyrex
         case .boosterEnergy: return .species([SpeciesGoal(SpeciesGoal.paradoxes, needed: 4)])
-        case .tealMask:    return .species([SpeciesGoal([1017, 1014, 1015, 1016])]) // Ogerpon, Loyal Three
+        case .tealMask:    return .species([SpeciesGoal([1017, 1014, 1015, 1016, 1025], needed: 4)]) // Ogerpon, Loyal Three, Pecharunt
         case .teraOrb:     return .species([SpeciesGoal([1007, 1008, 1024])])   // Koraidon, Miraidon, Terapagos
         case .relicStatue: return .species([SpeciesGoal([377, 378, 379, 486, 894, 895])]) // All six Regis
+        case .lunarWing:   return .species([SpeciesGoal([488, 491])])           // Cresselia, Darkrai
+        case .meteorite:   return .species([SpeciesGoal([385, 386])])           // Jirachi, Deoxys
+        case .oaksLetter:  return .species([SpeciesGoal([251, 492])])           // Celebi, Shaymin
+        case .seaIncense:  return .species([SpeciesGoal([490, 382])])           // Manaphy (Phione's line too), Kyogre
+        case .shockDrive:  return .species([SpeciesGoal([494, 648, 649])])      // Victini, Meloetta, Genesect
+        // Silvally, Magearna, Marshadow, Zeraora, Melmetal: the legends of Alola left.
+        case .zRing:       return .species([SpeciesGoal([773, 801, 802, 807, 809], needed: 4)])
+        case .scrollOfDarkness: return .species([SpeciesGoal([892, 893])])      // Urshifu, Zarude
+        case .relicVase:   return .species([SpeciesGoal([1001, 1002, 1003, 1004])]) // Treasures of Ruin
+        case .legendPlate: return .species([SpeciesGoal([493])])                // Arceus
+        case .excavation: return regionGoals.map { .species($0.map(\.goal)) }
+        case .rotomCatalog: return .forms(FormGoal(479))                        // Rotom's six appliances
+        case .cometShard: return .forms(FormGoal(774, excluding: ["meteor"]))   // Minior's seven cores
+        case .redNectar: return .forms(FormGoal(741))                           // Oricorio's four styles
+        case .smoothRock: return .forms(FormGoal(351))                          // Castform's four weathers
+        case .sawsbuckSeasons: return .forms(FormGoal(586))                     // Sawsbuck's four seasons
+        case .fairyFeather: return .forms(FormGoal(671))                        // Florges's five colors
+        case .furfrouTrims: return .forms(FormGoal(676))                        // Furfrou's ten trims
+        case .vivillonPatterns: return .forms(FormGoal(666))                    // Vivillon's twenty patterns
+        case .whippedDream: return .forms(FormGoal(869))                        // Alcremie's 63 sweets
+        case .unownLetters: return .forms(FormGoal(201))                        // Unown's 28 letters
         case .typeNullEgg: return .silvallyMemories
         case .legendaryEgg: return regionGoals.map { .species($0.map(\.goal)) }
         case .lightBall: return .allPikachuCostumes
@@ -478,7 +561,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     }
 
     /// Whether this item's achievement is claimed region by region: one tier per region in `regionGoals`.
-    var isRegional: Bool { badgeType != nil || self == .legendaryEgg }
+    var isRegional: Bool { badgeType != nil || self == .legendaryEgg || self == .excavation }
 
     /// The regions (generations, Kanto first) this item's achievement is claimed in, with the species each asks
     /// for: a gym badge's type in every region that has it, every species of the region for the Legendary Egg.
@@ -489,6 +572,10 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
                 ($0, SpeciesGoal(PokemonTypeData.badgeSpecies(for: type, generation: $0)))
             }
         }
+        if self == .excavation {
+            // Not regions but digs, numbered from 1: each asks `FossilDig.rockPerDig` more Rock-type species.
+            return (1...FossilDig.digs).map { ($0, SpeciesGoal(FossilDig.rockSpecies, needed: FossilDig.rockPerDig * $0)) }
+        }
         guard self == .legendaryEgg else { return nil }
         return PokemonTypeData.generations.enumerated().map { ($0.offset + 1, SpeciesGoal(Array($0.element))) }
     }
@@ -496,7 +583,19 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
 
 /// Groups of the items unlocked by the Pokédex, each a section of the Achievements tab.
 enum CollectorGroup: String, CaseIterable, Sendable {
-    case evolutionStones, legendaryArtifacts, gymBadges
+    case evolutionStones, legendaryArtifacts, gymBadges, forms
+}
+
+/// The forms of one species an achievement asks for, graduated: every catalogued one but those excluded (Minior's
+/// Meteor Form, its shell, beside its seven cores).
+struct FormGoal: Equatable, Sendable {
+    let speciesID: Int
+    let forms: [PokemonForm]
+
+    init(_ speciesID: Int, excluding excluded: [String] = []) {
+        self.speciesID = speciesID
+        forms = PokemonForm.forms(speciesID: speciesID).filter { !excluded.contains($0.rawValue) }
+    }
 }
 
 /// One way to unlock a collector item: `needed` of `species` registered in the Pokédex.
@@ -528,14 +627,14 @@ enum BonusTheme: CaseIterable, Sendable {
     static func of(_ kind: ItemKind) -> BonusTheme? {
         if kind.badgeType != nil { return .growth }
         switch kind {
-        case .oldSeaMap, .dnaSplicers, .zygardeCube, .clearBell, .griseousOrb, .prisonBottle, .sparklingStone, .lightBall,
+        case .oldSeaMap, .dnaSplicers, .zygardeCube, .clearBell, .griseousOrb, .prisonBottle, .sparklingStone,
              .sunFlute, .gracidea, .relicStatue, .beastBall, .rustedSword, .boosterEnergy, .tealMask,
-             .magmaStone, .libertyPass:
+             .magmaStone, .libertyPass, .lunarWing, .oaksLetter, .shockDrive, .zRing, .scrollOfDarkness, .relicVase:
             return .growth
-        case .silverWing, .teraOrb, .legendCharm, .ovalCharm: return .eggs
+        case .silverWing, .teraOrb, .seaIncense, .legendCharm, .ovalCharm: return .eggs
         case .shinyCharm, .revealGlass, .glimmeringCharm: return .shiny
         case .rainbowWing, .jadeOrb: return .shop
-        case .soulDew, .reinsOfUnity: return .candies
+        case .soulDew, .reinsOfUnity, .meteorite, .rotomCatalog: return .candies
         default: return nil
         }
     }
@@ -554,6 +653,8 @@ enum ItemUnlock: Equatable, Sendable {
     case allForms
     /// Every one of Pikachu's costumes (`PikachuCostume`).
     case allPikachuCostumes
+    /// Every form of one species graduated (`FormGoal`).
+    case forms(FormGoal)
 }
 
 /// Evolution stones are consumables: each one sends the current Pokémon off for an egg of the stone's type.
@@ -585,12 +686,27 @@ enum CollectorBonus {
     /// Ogerpon's four masks.
     static let tealMaskTypeList: [PokemonType] = [.grass, .water, .fire, .rock]
     static let clearBellRare = 1.25
-    /// The Light Ball: Pichu, Pikachu and Raichu grow 50% faster.
-    static let lightBallPikachuLine = 1.5
-    static let pikachuLine: Set<Int> = [172, 25, 26]
     static let griseousOrbGhostDragon = 1.3
     /// Rare Candies the Reins of Unity add to each graduation.
     static let reinsOfUnityCandies = 1
+    /// Lunar Wing: Cresselia's Psychic and Darkrai's Dark.
+    static let lunarWingPsychicDark = 1.3
+    /// Rare Candies the Meteorite adds to each usage window filled: Jirachi's wish.
+    static let meteoriteWindowCandies = 1
+    /// Rare Candies the Rotom Catalog gives for each Pokémon hatched in a form its line never had.
+    static let rotomCatalogNewFormCandies = 1
+    /// Oak's Letter: the starters of every region, at every stage.
+    static let oaksLetterStarter = 1.25
+    static let starterLines: Set<Int> = Set([1, 152, 252, 387, 495, 650, 722, 810, 906].flatMap { $0...($0 + 8) })
+    /// Shock Drive: the fossil Pokémon, as Genesect was revived from one.
+    static let shockDriveFossil = 1.5
+    /// Every species of the fossil lines whose finals are `SpeciesGoal.fossils`.
+    static let fossilLines: Set<Int> = [138, 139, 140, 141, 142, 345, 346, 347, 348, 408, 409, 410, 411, 564, 565, 566,
+                                        567, 696, 697, 698, 699, 880, 881, 882, 883]
+    static let zRingSteelElectric = 1.3
+    static let scrollOfDarknessFighting = 1.3
+    /// Relic Vase: the stage between the Gracidea's first and the Sun Flute's last.
+    static let relicVaseMiddleStage = 1.25
     /// Growth bonus of one regional tier of a gym badge, for Pokémon weak to its type: 2.5% per region, so
     /// 22.5% with the nine regions (20% for Dark, which has no Kanto tier).
     static let badgeRegionBonus = 0.025
@@ -609,22 +725,27 @@ enum RareCandy {
     /// 기본 난이도·첫 부화에서는 초과 이월(<100M)이 다음 임계(125M)보다 작아 최대 1단계만 올린다.
     /// 낮은 난이도나 반복 부화 보너스에서는 여러 단계를 진행할 수 있다.
     static let xp = 100_000_000
-    /// 주간 한도 100% 도달 시 지급 개수(세션급은 1개).
+    /// Candies a whole week of a Pro plan pays; a whole 5-hour session pays one.
     static let weeklyGrant = 5
     /// 상점 구매가(재화 = 사용한 토큰: usedSinceInstall − spentTokens). XP 값어치(100M)의 5배.
     /// 토큰이 "성장 미터 + 상점 지갑"으로 이중 사용되는 구조라, 가격을 XP 와 같게 두면 구매가 사실상
     /// 공짜 추가성장(150M 써서 250M 성장)이 된다. 500M 로 두면 그 값 모으는 500M 패시브 성장 + 사탕
     /// 100M = 실질 보너스 +20% 로 억제된다. 무료 획득(한도 100% 보상)이 항상 이득이도록 값어치보다 비싸게.
     static let price = 500_000_000
-    /// The share of a window's tokens a full window pays back in candies.
-    static let windowShare = 0.10
 
-    /// Candies for a window at 100% (#59): a tenth of the tokens it held, at least one, the same per token for every
-    /// plan and provider; a window that held 5B tokens pays 5, the old weekly grant. Divided by `xp`, not the Soul
-    /// Dew's candy value, so the Soul Dew keeps its +50% per candy. Without the window's tokens, the old fixed grant.
-    static func grantCount(windowTokens: Int?, kind: WindowClass) -> Int {
-        guard let windowTokens else { return kind == .weekly ? weeklyGrant : 1 }
-        return max(1, Int((windowShare * Double(windowTokens) / Double(xp)).rounded()))
+    /// Candies a whole window pays: one 5-hour session of a Pro plan is one candy, a Pro week `weeklyGrant`, and a
+    /// bigger plan as many times more as it holds Pro plans (Max 20x: 20 a session).
+    static func windowCandies(kind: WindowClass, planMultiplier: Int) -> Int {
+        (kind == .weekly ? weeklyGrant : 1) * max(1, planMultiplier)
+    }
+
+    /// Candies a window owes at `utilization`, paid as it goes rather than at 100%: a Max 5x session pays one every
+    /// fifth, the same usage as a whole Pro session, so every plan earns them at the same pace whether or not it
+    /// reaches its limit.
+    static func candiesDue(utilization: Double, kind: WindowClass, planMultiplier: Int) -> Int {
+        guard utilization.isFinite, utilization > 0 else { return 0 }
+        let whole = windowCandies(kind: kind, planMultiplier: planMultiplier)
+        return min(whole, Int((min(utilization, 100) / 100 * Double(whole) + 1e-9).rounded(.down)))
     }
 }
 
@@ -686,29 +807,28 @@ enum ShopEntry: Hashable, Sendable {
     }
 }
 
-/// 사탕 지급 대상 한도 창의 분류 — session=1개·weekly=weeklyGrant.
+/// The two kinds of limit windows: a session (5 hours) and a week.
 enum WindowClass: Sendable { case session, weekly }
 
 /// 사탕 지급 판정 입력 — 프로바이더 무관 한도 창 1개. (UsageStore.candyEligibleWindows 가 생성)
 struct CandyWindow: Sendable {
     let key: String          // 안정 식별자(tier 추적) — resets_at 등 휘발 필드는 key 에 넣지 않는다
     let name: String         // 표시용(알림 "왜 받는지")
-    let kind: WindowClass    // session=1개 · weekly=5개
+    let kind: WindowClass
     let utilization: Double  // 0~100+
     /// 창 epoch (`resets_at` / reset unix). key 는 안정, epoch 가 바뀌면 새 창 → 재무장(#326).
     let epoch: String?
-    /// The tokens this account burned in the window, from its start (reset minus length) to now; nil when the reset,
-    /// the length or the local usage is unknown (`RareCandy.grantCount`).
-    let windowTokens: Int?
+    /// How many Pro plans the account's limits are worth (`LimitStatus.planMultiplier`): 1 when unknown.
+    let planMultiplier: Int
 
     init(key: String, name: String, kind: WindowClass, utilization: Double, epoch: String? = nil,
-         windowTokens: Int? = nil) {
+         planMultiplier: Int = 1) {
         self.key = key
         self.name = name
         self.kind = kind
         self.utilization = utilization
         self.epoch = epoch
-        self.windowTokens = windowTokens
+        self.planMultiplier = max(1, planMultiplier)
     }
 }
 
@@ -717,6 +837,8 @@ struct CandyGrant: Equatable, Sendable {
     let windowKey: String
     let windowName: String   // 알림 "왜 받는지"
     let count: Int
+    /// The window reached its last candy with this grant: the Meteorite adds one.
+    var completesWindow = false
 }
 
 /// 현재 서비스가 제공하는 움직이는 포켓몬 스프라이트 범위.
@@ -1105,6 +1227,10 @@ struct CompanionState: Codable, Sendable {
     /// The egg came from the Birthday Egg: it hatches a mythical Pokémon not graduated yet (`BirthdayGift`), and is
     /// drawn as that egg. Consumed with the egg's other guarantees.
     var eggFromBirthdayEgg = false
+    /// The egg in incubation is a Fossil Egg (`FossilDig`).
+    var eggFromFossilEgg = false
+    /// Fossil Eggs hatched so far: the fossil lines graduated beyond them came some other way, and count as dug.
+    var fossilEggsHatched = 0
     /// The pre-rolled hatch is shiny whatever its roll: a Birthday Egg once every legendary and mythical graduated.
     var pendingShiny = false
     /// The line of the last Pokémon hatched: the next egg never brings it again while another line is left.
@@ -1113,6 +1239,17 @@ struct CompanionState: Codable, Sendable {
     var birthday: Birthday?
     /// The year of the last birthday whose gift was claimed; nil for a save that never got one.
     var lastBirthdayGiftYear: Int?
+    /// When that gift was claimed: a December birthday's gift claimed in January counts for the year before.
+    var lastBirthdayGiftClaimedAt: Date?
+    /// Set when the birthday changes after a gift: the calendar year that gift was claimed in. The next gift must be
+    /// for a later birthday year, so a new date never brings a second egg within a year of the last.
+    var birthdayChangedAfterGiftYear: Int?
+    /// The event eggs claimed (`EventEgg.key`, "christmas@2026"): one a year each, kept with the save.
+    var claimedEventEggs: Set<String> = []
+    /// The event eggs announced, so the notification comes once.
+    var eventEggsNotified: Set<String> = []
+    /// The egg came from an event egg: it hatches that event's Pokémon (`CompanionStore.chooseBase`).
+    var eggEvent: EventEgg?
     /// The year of the last birthday the gift was announced for, so the notification comes once.
     var birthdayNotifiedYear: Int?
     // 알 상태에서 미리 롤해둔 부화 종(프리패칭) — 부화 순간 네트워크 딜레이 제거. 재시작에도 유지.
@@ -1149,12 +1286,16 @@ struct CompanionState: Codable, Sendable {
     var pikachuCostumes: Set<PikachuCostume> = []
     /// The costume Pikachu wears, chosen on its Pokédex page; nil, its own look.
     var equippedPikachuCostume: PikachuCostume?
-    // 사탕 지급 엣지 상태(창 key → 지급한 tier). ★영속 — notifiedTier(인메모리)와 달리 재시작 무한지급 방지.
+    // Candies already paid by each limit window (key) in its current epoch. ★영속: 재시작 무한지급 방지.
+    // Before `candyGrantsAsYouGo`, 1 meant "paid at 100%".
     var candyGrantTier: [String: Int] = [:]
     // 창 key → 마지막으로 본 epoch(`resets_at`). util 이 계속 100%여도 epoch 교체로 재무장(#326).
     var candyWindowEpoch: [String: String] = [:]
     // 사탕 지급 첫 실행 시드 완료 — 업데이트 직후 이미 100%였던 창의 소급 지급 차단.
     var candyFeatureSeeded = false
+    /// Windows pay their candies as they go (`RareCandy.candiesDue`). A save from before has `false`: its windows'
+    /// ledger said only whether 100% was paid, and is carried over once by `CompanionStore.grantCandies`.
+    var candyGrantsAsYouGo = false
     /// The growth bonuses add up (they used to multiply). A save from before that has `false`, and its current
     /// stage is carried over once by `CompanionStore.migrateToAdditiveGrowthIfNeeded`.
     var additiveGrowthBonuses = true
@@ -1204,14 +1345,22 @@ struct CompanionState: Codable, Sendable {
         candyGrantTier     = c.lenient([String: Int].self, forKey: .candyGrantTier, default: [:])
         candyWindowEpoch   = c.lenient([String: String].self, forKey: .candyWindowEpoch, default: [:])
         candyFeatureSeeded = c.lenient(Bool.self, forKey: .candyFeatureSeeded, default: false)
+        candyGrantsAsYouGo = c.lenient(Bool.self, forKey: .candyGrantsAsYouGo, default: false)
         additiveGrowthBonuses = c.lenient(Bool.self, forKey: .additiveGrowthBonuses, default: false)
         eggFromTypeNullEgg = c.lenient(Bool.self, forKey: .eggFromTypeNullEgg, default: false)
         eggFromLegendaryEgg = c.lenient(Bool.self, forKey: .eggFromLegendaryEgg, default: false)
         eggFromBirthdayEgg = c.lenient(Bool.self, forKey: .eggFromBirthdayEgg, default: false)
+        eggFromFossilEgg = c.lenient(Bool.self, forKey: .eggFromFossilEgg, default: false)
+        fossilEggsHatched = c.lenient(Int.self, forKey: .fossilEggsHatched, default: 0)
         pendingShiny = c.lenient(Bool.self, forKey: .pendingShiny, default: false)
         lastHatchedBaseID = c.lenientOptional(Int.self, forKey: .lastHatchedBaseID)
         birthday = c.lenientOptional(Birthday.self, forKey: .birthday)
         lastBirthdayGiftYear = c.lenientOptional(Int.self, forKey: .lastBirthdayGiftYear)
+        lastBirthdayGiftClaimedAt = c.lenientOptional(Date.self, forKey: .lastBirthdayGiftClaimedAt)
+        birthdayChangedAfterGiftYear = c.lenientOptional(Int.self, forKey: .birthdayChangedAfterGiftYear)
+        claimedEventEggs = c.lenient(Set<String>.self, forKey: .claimedEventEggs, default: [])
+        eventEggsNotified = c.lenient(Set<String>.self, forKey: .eventEggsNotified, default: [])
+        eggEvent = c.lenientOptional(EventEgg.self, forKey: .eggEvent)
         birthdayNotifiedYear = c.lenientOptional(Int.self, forKey: .birthdayNotifiedYear)
     }
 
@@ -1366,16 +1515,26 @@ struct CompanionState: Codable, Sendable {
     /// Forms an egg of this line rolls. A stone egg only rolls the forms that hatch with its type (no Alolan
     /// Vulpix, Ice, from a Fire Stone), unless none does.
     static func eggForms(baseID: Int, type: PokemonType?) -> [PokemonForm] {
+        eggForms(baseID: baseID, types: type.map { [$0] } ?? [])
+    }
+
+    /// The forms an egg whose Pokémon must have one of `types` can roll (a stone's type, a season's): every form
+    /// when `types` is empty or no form has one.
+    static func eggForms(baseID: Int, types: [PokemonType]) -> [PokemonForm] {
         let forms = PokemonForm.rollableLineForms(baseID: baseID)
-        guard let type else { return forms }
-        let typed = forms.filter { PokemonTypeData.types(forSpeciesID: baseID, form: $0).contains(type) }
+        guard !types.isEmpty else { return forms }
+        let typed = forms.filter { form in PokemonTypeData.types(forSpeciesID: baseID, form: form).contains(where: types.contains) }
         return typed.isEmpty ? forms : typed
     }
 
     /// Whether this egg can still bring a form of the line missing from the Pokédex (the Oval Charm's target):
     /// only the forms it can roll count, so a Fire Stone egg does not pick Vulpix for its missing Alolan form.
     func lineMissesForms(baseID: Int, type: PokemonType? = nil) -> Bool {
-        let forms = Self.eggForms(baseID: baseID, type: type)
+        lineMissesForms(baseID: baseID, types: type.map { [$0] } ?? [])
+    }
+
+    func lineMissesForms(baseID: Int, types: [PokemonType]) -> Bool {
+        let forms = Self.eggForms(baseID: baseID, types: types)
         return !forms.isEmpty && !Set(forms).isSubset(of: collectedLineForms(baseID: baseID))
     }
 

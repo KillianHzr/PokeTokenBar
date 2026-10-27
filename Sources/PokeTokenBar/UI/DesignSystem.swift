@@ -1,4 +1,25 @@
+import AppKit
 import SwiftUI
+
+/// Green and orange for text and small symbols on the popover's surfaces: the system hues are light enough that
+/// green or orange text on a light card, or a dim one on a dark card, read poorly. These are a shade darker in light
+/// mode and a shade lighter in dark mode (`ReadableColorTests` checks their contrast on both).
+extension Color {
+    static let readableGreen = Color(nsColor: .readableGreen)
+    static let readableOrange = Color(nsColor: .readableOrange)
+}
+
+extension NSColor {
+    static let readableGreen = readable(light: (0.05, 0.45, 0.17), dark: (0.36, 0.86, 0.46))
+    static let readableOrange = readable(light: (0.66, 0.30, 0.0), dark: (1.0, 0.70, 0.28))
+
+    static func readable(light: (Double, Double, Double), dark: (Double, Double, Double)) -> NSColor {
+        NSColor(name: nil) { appearance in
+            let c = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
+            return NSColor(srgbRed: c.0, green: c.1, blue: c.2, alpha: 1)
+        }
+    }
+}
 
 /// The popover's look in one place: rounded cards, small section titles, rounded type for titles and figures, and
 /// the color of the Pokémon being raised, which tints the hero card and the selected tab.

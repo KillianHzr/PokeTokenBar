@@ -104,6 +104,23 @@ final class UsageStore {
     var showLimitInMenu: Bool {
         didSet { defaults.set(showLimitInMenu, forKey: "showLimitInMenu") }
     }
+    /// The companion's numbers (`companionMenu`): tokens to its next stage or its hatch, and the Shop's tokens. They
+    /// replaced today's tokens and cost as what the menu bar shows first.
+    var showEvolutionInMenu: Bool {
+        didSet { defaults.set(showEvolutionInMenu, forKey: "showEvolutionInMenu") }
+    }
+    var showShopInMenu: Bool {
+        didSet { defaults.set(showShopInMenu, forKey: "showShopInMenu") }
+    }
+    /// What the companion gives the menu bar, set by AppDelegate as it changes. Nil until the companion is known.
+    struct CompanionMenu: Equatable, Sendable {
+        /// Tokens to the next stage, or to the hatch while an egg incubates.
+        var toNext: Int
+        /// Tokens the Shop can spend.
+        var shop: Int
+    }
+    var companionMenu: CompanionMenu?
+    static let companionMenuDefaultsKey = "menuShowsCompanionItems"
     /// 한도 % 표시 방식 — 사용한 양(기본) 또는 남은 양. 숫자 표시에만 적용되고
     /// 경고/위험 판정·게이지 채움·알림은 사용률 원값 기준을 유지한다(경고 의미론 분리).
     enum LimitDisplayMode: String, CaseIterable {
@@ -328,25 +345,25 @@ final class UsageStore {
     /// 사용량 데이터(스냅샷)가 하나라도 있는가 — companion sleep 판정용
     var hasUsageData: Bool { !snapshots.isEmpty }
 
-    /// 메뉴바 표시 줄 규칙 (사용자 확정 — 조합표 전수 검증: `UsageStoreTests.testMenuLinesAllCombinations`):
-    /// - **활성 항목 2개 이하 → 각 항목을 개별 세로 줄로**(토큰/비용/한도 각 1줄).
-    /// - **3개(토큰+비용+한도) 모두 활성 → 토큰·비용을 한 줄로, 한도를 아랫줄로**(= 총 2줄).
+    /// 메뉴바 표시 줄 규칙 (조합표 검증: `UsageStoreTests.testMenuLinesAllCombinations`, `MenuCompanionTests`):
+    /// - **활성 항목 2개 이하 → 각 항목을 개별 세로 줄로.**
+    /// - 3개 이상 → 두 줄: the companion's numbers then today's usage, joined, above the limit line; without the limit,
+    ///   the companion's numbers above today's usage. Never more than two lines.
     /// 한도 줄은 오늘 사용한 프로바이더만(`menuLimitLine`). 빈 배열이면 아이콘만.
     var menuLines: [String] {
         guard lastUpdated != nil else { return ["—"] }
+        var companion: [String] = []
+        if showEvolutionInMenu, let next = companionMenu?.toNext { companion.append("↑" + TokenFormatter.compact(next)) }
+        if showShopInMenu, let shop = companionMenu?.shop { companion.append("¤" + TokenFormatter.compact(shop)) }
         var usage: [String] = []
         if showTokensInMenu { usage.append(TokenFormatter.compact(todayTotalTokens)) }
         if showCostInMenu, showsCost { usage.append(todayUsageCost.text(L(localizationLanguage), compact: true)) }
         let limit = menuLimitLine   // nil = 한도 미표시/미가용
 
-        if limit != nil && usage.count == 2 {
-            // 3개 다 활성 → 토큰·비용 한 줄 + 한도 아랫줄 (≤2줄 유지)
-            return [usage.joined(separator: " · "), limit!]
-        }
-        // 그 외(2개 이하) → 각 항목 개별 세로 줄
-        var lines = usage
-        if let limit { lines.append(limit) }
-        return lines
+        let items = companion + usage + (limit.map { [$0] } ?? [])
+        guard items.count > 2 else { return items }
+        if let limit { return [(companion + usage).joined(separator: " · "), limit] }
+        return [companion.joined(separator: " · "), usage.joined(separator: " · ")]
     }
 
     /// 메뉴바 한도 줄 — **오늘 실제 사용한 프로바이더만** 한 줄에 나란히(미사용/미가용이면 nil).
@@ -658,8 +675,7 @@ final class UsageStore {
             windows += claudeCandyWindows(account, named: accounts.count > 1, l)
                 .filter { account.isDefault || armedCandyWindows.contains($0.key) }
         }
-        // Each provider's windows are summed from its own local usage: the tokens behind them.
-        let codexTokens = recentTokensByProvider["codex"], antigravityTokens = recentTokensByProvider["antigravity"]
+        // Codex and Antigravity publish no ratio between their plans: their windows pay as a Pro plan's.
         for bucket in codexLimits?.visibleSnapshots ?? [] {
             let bucketKey = bucket.limitId ?? bucket.limitName ?? "codex"
             let bucketName = bucket.bucketDisplayName
@@ -669,8 +685,7 @@ final class UsageStore {
                     name: "\(bucketName) \(l.codexWindow(primary.windowDurationMins))",
                     kind: Self.windowClass(minutes: primary.windowDurationMins),
                     utilization: Double(primary.usedPercent),
-                    epoch: primary.resetsAt.map(String.init),
-                    windowTokens: codexTokens?.windowTokens(reset: primary.resetDate, span: primary.windowSpan)))
+                    epoch: primary.resetsAt.map(String.init)))
             }
             if let secondary = bucket.secondary {
                 windows.append(CandyWindow(
@@ -678,8 +693,7 @@ final class UsageStore {
                     name: "\(bucketName) \(l.codexWindow(secondary.windowDurationMins))",
                     kind: Self.windowClass(minutes: secondary.windowDurationMins),
                     utilization: Double(secondary.usedPercent),
-                    epoch: secondary.resetsAt.map(String.init),
-                    windowTokens: codexTokens?.windowTokens(reset: secondary.resetDate, span: secondary.windowSpan)))
+                    epoch: secondary.resetsAt.map(String.init)))
             }
         }
         for group in antigravityLimits?.groups ?? [] {
@@ -692,8 +706,7 @@ final class UsageStore {
                     name: "\(groupTitle) \(l.fiveHourSession)",
                     kind: .session,
                     utilization: fiveHour.usedPercent,
-                    epoch: epoch,
-                    windowTokens: antigravityTokens?.windowTokens(reset: fiveHour.resetDate, span: fiveHour.windowSpan)))
+                    epoch: epoch))
             }
             if let weekly = group.weeklyBucket {
                 let epoch = weekly.resetDate.map { ISO8601DateFormatter().string(from: $0) } ?? weekly.resetTime
@@ -702,8 +715,7 @@ final class UsageStore {
                     name: "\(groupTitle) \(l.weekly)",
                     kind: .weekly,
                     utilization: weekly.usedPercent,
-                    epoch: epoch,
-                    windowTokens: antigravityTokens?.windowTokens(reset: weekly.resetDate, span: weekly.windowSpan)))
+                    epoch: epoch))
             }
         }
         return windows
@@ -712,24 +724,20 @@ final class UsageStore {
     /// `named`: next to other accounts, the notification says whose limit it is.
     private func claudeCandyWindows(_ account: ClaudeAccountLimits, named: Bool, _ l: L) -> [CandyWindow] {
         let suffix = named ? " (\(account.title))" : ""
-        // With several accounts each one's own turns, like its 5h block (`claudeCurrentBlock`).
-        let tokens = claudeAccounts.count > 1 ? claudeAccountTimelines[account.id] : recentTokensByProvider["claude_code"]
+        // Each account's own plan: a Max 20x login pays twenty Pro sessions' candies as its session fills.
+        let plan = account.status.planMultiplier
         var windows: [CandyWindow] = []
         if let fiveHour = account.status.fiveHour, let u = fiveHour.utilization {
             let epoch = fiveHour.resetDate.map { ISO8601DateFormatter().string(from: $0) } ?? fiveHour.resetsAt
             windows.append(CandyWindow(key: "\(account.windowKeyPrefix).fiveHour",
                                        name: l.claudeFiveHour + suffix, kind: .session,
-                                       utilization: u, epoch: epoch,
-                                       windowTokens: tokens?.windowTokens(reset: fiveHour.resetDate,
-                                                                          span: LimitWindowSpan.fiveHour)))
+                                       utilization: u, epoch: epoch, planMultiplier: plan))
         }
         if let sevenDay = account.status.sevenDay, let u = sevenDay.utilization {
             let epoch = sevenDay.resetDate.map { ISO8601DateFormatter().string(from: $0) } ?? sevenDay.resetsAt
             windows.append(CandyWindow(key: "\(account.windowKeyPrefix).sevenDay",
                                        name: l.claudeWeekly + suffix, kind: .weekly,
-                                       utilization: u, epoch: epoch,
-                                       windowTokens: tokens?.windowTokens(reset: sevenDay.resetDate,
-                                                                          span: LimitWindowSpan.sevenDay)))
+                                       utilization: u, epoch: epoch, planMultiplier: plan))
         }
         return windows
     }
@@ -835,9 +843,19 @@ final class UsageStore {
         let storedCrit = d.object(forKey: "critThreshold") as? Double ?? 95
         critThreshold = storedCrit
         warnThreshold = min(d.object(forKey: "warnThreshold") as? Double ?? 80, storedCrit - Self.thresholdGap)
-        showTokensInMenu = d.object(forKey: "showTokensInMenu") as? Bool ?? true
+        // Once, for everyone: the companion's numbers take the place of today's tokens and cost, which stay in Settings.
+        if !d.bool(forKey: Self.companionMenuDefaultsKey) {
+            d.set(false, forKey: "showTokensInMenu")
+            d.set(false, forKey: "showCostInMenu")
+            d.set(true, forKey: "showEvolutionInMenu")
+            d.set(true, forKey: "showShopInMenu")
+            d.set(true, forKey: Self.companionMenuDefaultsKey)
+        }
+        showTokensInMenu = d.object(forKey: "showTokensInMenu") as? Bool ?? false
         showCostInMenu = d.object(forKey: "showCostInMenu") as? Bool ?? false
         showLimitInMenu = d.object(forKey: "showLimitInMenu") as? Bool ?? false
+        showEvolutionInMenu = d.object(forKey: "showEvolutionInMenu") as? Bool ?? true
+        showShopInMenu = d.object(forKey: "showShopInMenu") as? Bool ?? true
         limitDisplayMode = LimitDisplayMode(rawValue: d.string(forKey: "limitDisplayMode") ?? "") ?? .used
         menuLimitColorMode = MenuLimitColorMode(rawValue: d.string(forKey: "menuLimitColorMode") ?? "") ?? .gauge
         limitNotifications = d.object(forKey: "limitNotifications") as? Bool ?? true
@@ -1115,12 +1133,10 @@ final class UsageStore {
                             lastUsage: enrichment.periodsOK ? enrichment.lastUsage : nil)
                         if snapshot.hasDisplayableUsage { snapshots.append(snapshot) }
                     }
-                    if enrichment.periodsOK { recentTokensByProvider[id] = enrichment.recentTokens }
                     continue
                 }
                 if enrichment.blocksOK { snapshots[index].activeBlock = enrichment.activeBlock }
                 if enrichment.periodsOK {
-                    recentTokensByProvider[id] = enrichment.recentTokens
                     snapshots[index].weekTotal = enrichment.weekTotal
                     snapshots[index].monthTotal = enrichment.monthTotal
                     snapshots[index].monthDaily = enrichment.monthDaily
@@ -1261,10 +1277,6 @@ final class UsageStore {
     private(set) var unattributedClaudeUsage = ClaudeAccountUsage()
     /// Each account's own active 5h block, for its tab and forecast.
     private var claudeAccountBlocks: [String: BlockUsage] = [:]
-    /// Each account's last week of tokens, for its limits' candies, while several accounts are shown.
-    private var claudeAccountTimelines: [String: TokenTimeline] = [:]
-    /// Each provider's last week of tokens, for its limits' candies (`CandyWindow.windowTokens`).
-    private var recentTokensByProvider: [String: TokenTimeline] = [:]
 
     /// The account behind the menu bar percentage, warning state, companion mood, floating pet hover
     /// and 5h forecast. With a single account this is that account, whatever the mode.
@@ -1476,7 +1488,6 @@ final class UsageStore {
         claudeAccountActivity = [:]
         claudeAccountUsage = [:]
         claudeAccountBlocks = [:]
-        claudeAccountTimelines = [:]
         unattributedClaudeUsage = ClaudeAccountUsage()
     }
 
@@ -1518,14 +1529,12 @@ final class UsageStore {
         for (id, usage) in result.byAccount where !shown.contains(id) { unattributed.add(usage) }
         claudeAccountUsage = result.byAccount.filter { shown.contains($0.key) }
         claudeAccountBlocks = result.activeBlocks.filter { shown.contains($0.key) }
-        claudeAccountTimelines = result.timelines.filter { shown.contains($0.key) }
         unattributedClaudeUsage = unattributed
     }
 
-    /// The month, the whole 5h block when it started last month, and the last week for the weekly limit's candies.
+    /// The month, and the whole 5h block when it started last month.
     nonisolated static func claudeUsageScanStart(now: Date) -> Date {
-        min(LocalUsageReader.startOfMonth(now), now.addingTimeInterval(-LocalUsageReader.blockWindow),
-            now.addingTimeInterval(-TokenTimeline.span))
+        min(LocalUsageReader.startOfMonth(now), now.addingTimeInterval(-LocalUsageReader.blockWindow))
     }
 
     /// Local usage for the running app only, like `ClaudeAccountRoots.installedDiscovery`.

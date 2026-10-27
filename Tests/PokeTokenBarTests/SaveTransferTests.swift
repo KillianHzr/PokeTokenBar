@@ -561,11 +561,16 @@ final class SaveTransferTests: XCTestCase {
                                      // The Birthday Egg in incubation, and the gift's yearly record: moving the save
                                      // to another Mac never brings a second gift the same year.
                                      "eggFromBirthdayEgg", "pendingShiny", "birthday", "lastBirthdayGiftYear",
-                                     "birthdayNotifiedYear",
+                                     "lastBirthdayGiftClaimedAt", "birthdayChangedAfterGiftYear", "birthdayNotifiedYear",
+                                     // The event egg in incubation, and the events' eggs already taken or announced:
+                                     // moving the save never brings an event's egg twice the same year.
+                                     "eggEvent", "claimedEventEggs", "eventEggsNotified",
+                                     // The Fossil Egg in incubation, and how many hatched: the digs follow them.
+                                     "eggFromFossilEgg", "fossilEggsHatched",
                                      // The next egg's roll leaves it out: it follows the save's last hatch.
                                      "lastHatchedBaseID"]
         let deviceLedger: Set<String> = ["installBaselineSet", "claimedTodayTokensByProvider", "lastDate"]
-        let accountLedger: Set<String> = ["candyGrantTier", "candyWindowEpoch", "candyFeatureSeeded"]
+        let accountLedger: Set<String> = ["candyGrantTier", "candyWindowEpoch", "candyFeatureSeeded", "candyGrantsAsYouGo"]
         let devicePreference: Set<String> = ["language"]
 
         let classified = progress.union(deviceLedger).union(accountLedger).union(devicePreference)

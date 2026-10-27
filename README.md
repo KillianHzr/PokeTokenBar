@@ -40,7 +40,7 @@ PokeTokenBar turns the AI coding tokens you're already burning — Claude Code, 
 2. 🐣 **Hatch.** Eggs hatch into Pokémon with real evolution lines from [PokéAPI](https://pokeapi.co/) — any Gen 1 to 9 line (541 possible starts), weighted by the official capture rate: commons hatch often, a legendary is about a 1-in-220 event. It appears in your **Pokédex** immediately while you raise it. Every hatch rolls one of 25 natures — and once in a rare while, the egg hatches **✨ Shiny**.
 3. ⚡ **Evolve.** Keep coding and it grows through its actual evolution tree (1/2/3 stages, branching), with a little flash celebration at each step.
 4. 🎓 **Graduate & collect.** Final form + threshold permanently archives it in your **Pokédex** — rarer takes longer (≈3 days common → ≈24 days legendary at heavy use) — and a fresh egg arrives.
-5. 🍬 **Max out, get a candy.** Fill a 5-hour or weekly usage limit and you earn **Rare Candy** — spend it from the **Bag** to grow your current Pokémon.
+5. 🍬 **Use your plan, get candies.** Your 5-hour and weekly usage limits pay **Rare Candy** as they fill, at the same pace on every plan; spend it from the **Bag** to grow your current Pokémon.
 6. 🛒 **Spend at the Shop.** Every token you've used is spendable currency — buy **Rare Candy**, a **Mint** that re-rolls your Pokémon's nature, a **Shiny Charm** that permanently raises your shiny odds, or an egg to send off your current companion and start over. Eggs come in three grades: a plain **Pokémon Egg**, an **Uncommon Egg** guaranteed to hatch Uncommon or better, and a **Rare Egg** guaranteed to hatch Rare or better. Once your Pokédex holds the Pokémon they ask for, **evolution stones**, **legendary artifacts** and **gym badges** can be claimed for free from the **Achievements** tab.
 
 ## Tour
@@ -90,8 +90,8 @@ Menu-bar items, refresh interval (1–15 min or manual), launch at login, a Keyc
 </tr>
 <tr>
 <td width="55%" valign="middle">
-<h3>🍬 Fill a limit, earn a Rare Candy</h3>
-Max out a 5-hour or weekly usage limit and you're handed <b>Rare Candy</b>, a tenth of the tokens that window held and at least one: a weekly limit that held 5B tokens pays 5. Spend it from the new <b>Bag</b> tab to grow your current Pokémon: the moment you're rate-limited becomes the moment you level up.
+<h3>🍬 Use your plan, earn Rare Candy</h3>
+Your usage limits pay <b>Rare Candy</b> as they fill, without waiting for the limit: a whole 5-hour session of a Pro plan is one candy, a whole Pro week five, and a bigger plan pays as many Pro plans as it holds (a Max 20x session pays one every 5%, its week one every 1%). Every plan earns them at the same pace for the same use. Spend them from the <b>Bag</b> tab to grow your current Pokémon.
 </td>
 <td width="45%" align="center"><img src="assets/screenshot-bag.png" width="300" alt="Rare Candy and Mint in the Bag"></td>
 </tr>
@@ -140,8 +140,8 @@ Open a species in the <b>Pokédex</b> to inspect each individual: level, gender,
 <tr>
 <td width="45%" align="center"><img src="assets/screenshot-difficulty.png" width="300" alt="Choose your growth pace"></td>
 <td width="55%" valign="middle">
-<h3>Choose your growth pace</h3>
-Set growth thresholds and shop prices independently from <b>10% to 200%</b>, with Easy/Hard and Cheap/Expensive labels at the slider ends. Dragging only edits a draft; press <b>Save</b> to apply it. Changing growth difficulty preserves your current stage progress instead of triggering an evolution. A hatch from an evolution line you have already graduated grows <b>2× faster</b>. Growth bonuses from items and badges add up (+25% and +25% make +50%), and the repeat boost multiplies their total; the <b>Bonuses</b> page on Home shows each one. Hover the hatch or growth bar on Home to see used tokens, the target, and progress as a percentage.
+<h3>One growth pace for everyone</h3>
+Growth thresholds and shop prices are a tenth of the base tables, for every player: the sliders that set them are gone, since every player had set both to the lowest. A save made at another value keeps its current stage progress when it moves to it. A hatch from an evolution line you have already graduated grows <b>2× faster</b>. Growth bonuses from items and badges add up (+25% and +25% make +50%), and the repeat boost multiplies their total; the <b>Bonuses</b> page on Home shows each one. Hover the hatch or growth bar on Home to see used tokens, the target, and progress as a percentage.
 </td>
 </tr>
 <tr>
@@ -194,14 +194,14 @@ Claimed once from the **Achievements** tab, active for as long as they sit in th
 | **Old Sea Map** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/old-sea-map.png" width="28" height="28" alt="Old Sea Map"> | Mewtwo, Mew | +20% growth from token usage |
 | **Clear Bell** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/clear-bell.png" width="28" height="28" alt="Clear Bell"> | Raikou, Entei, Suicune | Rare-tier Pokémon grow 25% faster |
 | **Rainbow Wing** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rainbow-wing.png" width="28" height="28" alt="Rainbow Wing"> | Lugia, Ho-Oh | 25% off every shop purchase |
-| **Magma Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/magma-stone.png" width="28" height="28" alt="Magma Stone"> | Regirock, Regice, Registeel **or** Regieleki, Regidrago **or** any 4 fossil Pokémon¹ | Lines you already graduated need 25% less growth |
+| **Magma Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/magma-stone.png" width="28" height="28" alt="Magma Stone"> | Regirock, Regice, Registeel **or** Regieleki, Regidrago **or** any 4 fossil Pokémon¹ **or** Heatran and Groudon | Lines you already graduated need 25% less growth |
 | **Soul Dew** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/soul-dew.png" width="28" height="28" alt="Soul Dew"> | Latias, Latios | Rare Candy gives 50% more EXP |
 | **Jade Orb** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/jade-orb.png" width="28" height="28" alt="Jade Orb"> | Kyogre, Groudon, Rayquaza | An extra 20% off eggs |
 | **Gracidea** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/gracidea.png" width="28" height="28" alt="Gracidea"> | Uxie, Mesprit, Azelf | A Pokémon that will evolve grows 25% faster at its first stage |
 | **Griseous Orb** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/griseous-orb.png" width="28" height="28" alt="Griseous Orb"> | Dialga, Palkia, Giratina | Ghost- and Dragon-type Pokémon grow 30% faster |
-| **Liberty Pass** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/liberty-pass.png" width="28" height="28" alt="Liberty Pass"> | Cobalion, Terrakion, Virizion | Lines you never graduated need 25% less growth |
+| **Liberty Pass** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/liberty-pass.png" width="28" height="28" alt="Liberty Pass"> | Any 3 of Cobalion, Terrakion, Virizion, Keldeo | Lines you never graduated need 25% less growth |
 | **Reveal Glass** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/reveal-glass.png" width="28" height="28" alt="Reveal Glass"> | Any 3 of Tornadus, Thundurus, Landorus, Enamorus | Doubles the shiny odds (stacks with the Shiny Charm) |
-| **DNA Splicers** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dna-splicers.png" width="28" height="28" alt="DNA Splicers"> | Reshiram, Zekrom | +50% growth from token usage |
+| **DNA Splicers** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dna-splicers.png" width="28" height="28" alt="DNA Splicers"> | Reshiram, Zekrom, Kyurem | +50% growth from token usage |
 | **Zygarde Cube** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/zygarde-cube.png" width="28" height="28" alt="Zygarde Cube"> | Xerneas, Yveltal, Zygarde | +1% growth from token usage per 25 species in your Pokédex (up to +40%) |
 | **Prison Bottle** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/prison-bottle.png" width="28" height="28" alt="Prison Bottle"> | Diancie, Hoopa, Volcanion | A Pokémon that hatched in a form new to your Pokédex grows 50% faster |
 | **Sparkling Stone** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sparkling-stone.png" width="28" height="28" alt="Sparkling Stone"> | Tapu Koko, Tapu Lele, Tapu Bulu, Tapu Fini | Fairy-type Pokémon grow 30% faster |
@@ -210,11 +210,20 @@ Claimed once from the **Achievements** tab, active for as long as they sit in th
 | **Rusted Sword** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rusted-sword.png" width="28" height="28" alt="Rusted Sword"> | Zacian, Zamazenta, Eternatus | Legendary Pokémon grow 25% faster |
 | **Reins of Unity** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/reins-of-unity.png" width="28" height="28" alt="Reins of Unity"> | Glastrier, Spectrier, Calyrex | +1 Rare Candy for every Pokémon that graduates |
 | **Booster Energy** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/booster-energy.png" width="28" height="28" alt="Booster Energy"> | Any 4 Paradox Pokémon³ | Paradox Pokémon grow 50% faster |
-| **Teal Mask** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/teal-mask.png" width="28" height="28" alt="Teal Mask"> | Ogerpon, Okidogi, Munkidori, Fezandipiti | Grass-, Water-, Fire- and Rock-type Pokémon grow 20% faster |
+| **Teal Mask** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/teal-mask.png" width="28" height="28" alt="Teal Mask"> | Any 4 of Ogerpon, Okidogi, Munkidori, Fezandipiti, Pecharunt | Grass-, Water-, Fire- and Rock-type Pokémon grow 20% faster |
 | **Tera Orb** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/tera-orb.png" width="28" height="28" alt="Tera Orb"> | Koraidon, Miraidon, Terapagos | Eggs from an evolution stone hatch twice as fast |
 | **Relic Statue** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-statue.png" width="28" height="28" alt="Relic Statue"> | Regirock, Regice, Registeel, Regigigas, Regieleki, Regidrago | A Pokémon that does not evolve grows 25% faster |
+| **Lunar Wing** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/lunar-wing.png" width="28" height="28" alt="Lunar Wing"> | Cresselia, Darkrai | Psychic- and Dark-type Pokémon grow 30% faster |
+| **Meteorite** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/meteorite.png" width="28" height="28" alt="Meteorite"> | Jirachi, Deoxys | Each token limit you max out gives one more Rare Candy |
+| **Oak's Letter** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/oaks-letter.png" width="28" height="28" alt="Oak's Letter"> | Celebi, Shaymin | The starters of every region grow 25% faster, at every stage |
+| **Sea Incense** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sea-incense.png" width="28" height="28" alt="Sea Incense"> | Manaphy (Phione evolves into it) and Kyogre | Eggs of a guaranteed rarity, from the Shop or the Legend Plate, hatch twice as fast |
+| **Shock Drive** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/shock-drive.png" width="28" height="28" alt="Shock Drive"> | Victini, Meloetta, Genesect | Fossil Pokémon¹ grow 50% faster, at every stage |
+| **Z-Ring** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/z-ring.png" width="28" height="28" alt="Z-Ring"> | Any 4 of Silvally, Magearna, Marshadow, Zeraora, Melmetal | Steel- and Electric-type Pokémon grow 30% faster |
+| **Scroll of Darkness** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/scroll-of-darkness.png" width="28" height="28" alt="Scroll of Darkness"> | Urshifu, Zarude | Fighting-type Pokémon grow 30% faster |
+| **Relic Vase** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-vase.png" width="28" height="28" alt="Relic Vase"> | Wo-Chien, Chien-Pao, Ting-Lu, Chi-Yu | A Pokémon at its middle stage grows 25% faster |
+| **Legend Plate** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/legend-plate.png" width="28" height="28" alt="Legend Plate"> | Arceus | A Rare Egg and an Uncommon Egg in your Bag: send off your Pokémon for an egg of that rarity or better, as in the Shop |
 | **Type: Null Egg** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/mystery-egg.png" width="28" height="28" alt="Type: Null Egg"> | All 17 of Silvally's Memories⁴ | Send off your Pokémon for an egg that hatches a Type: Null |
-| **Light Ball** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/light-ball.png" width="28" height="28" alt="Light Ball"> | All 15 of Pikachu's costumes | Pichu, Pikachu and Raichu grow 50% faster |
+| **Light Ball** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/light-ball.png" width="28" height="28" alt="Light Ball"> | All 15 of Pikachu's costumes | 2 Rare Eggs and 5 Rare Candies in your Bag |
 | **Oval Charm** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/oval-charm.png" width="28" height="28" alt="Oval Charm"> | Every species (1,025) | Eggs only hatch Pokémon with a form you are missing, in a form you don't have, while some are left |
 | **Glimmering Charm** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/glimmering-charm.png" width="28" height="28" alt="Glimmering Charm"> | Every form (1,350) | Every Pokémon that hatches is shiny |
 
@@ -224,6 +233,23 @@ Only the Azure Flute and the Oval Charm change which Pokémon hatch, and the Ova
 ² Nihilego, Buzzwole, Pheromosa, Xurkitree, Celesteela, Kartana, Guzzlord, Poipole, Naganadel, Stakataka, Blacephalon.
 ³ Great Tusk, Scream Tail, Brute Bonnet, Flutter Mane, Slither Wing, Sandy Shocks, Iron Treads, Iron Bundle, Iron Hands, Iron Jugulis, Iron Moth, Iron Thorns, Roaring Moon, Iron Valiant, Walking Wake, Iron Leaves, Gouging Fire, Raging Bolt, Iron Boulder, Iron Crown.
 ⁴ Silvally hatches as Type: Null and evolves in its Normal form. Each legendary or mythical Pokémon in your Pokédex, released ones included, gives the Memory of its form's types (Moltres: Fire and Flying; Galarian Moltres: Dark and Flying); the only Bug one is Genesect. Once Silvally is in your Pokédex, each Memory unlocks its form, shown under each form in its Pokédex page, and all 17 earn the Type: Null Egg.
+
+**Excavation** (Stones tab): every 4 Rock-type species graduated (74 are Rock in their usual form, a few more through a form) dig up a Fossil Egg, 15 in all, one per fossil line. A Fossil Egg hatches a fossil line you are missing, at random; a fossil line you already have counts as dug, with nothing to claim. Fossil Pokémon hatch from Fossil Eggs only.
+
+**Forms** (a tab of its own in Achievements): every form of one species graduated.
+
+| Achievement | Item | Goal | Reward |
+|---|---|---|---|
+| **Rotom Catalog** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rotom-catalog.png" width="28" height="28" alt="Rotom Catalog"> | Rotom's 6 forms | While owned, each Pokémon hatched in a form its line never had gives a Rare Candy |
+| **Comet Shard** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/comet-shard.png" width="28" height="28" alt="Comet Shard"> | Minior's 7 cores | 5 Rare Candies |
+| **Red Nectar** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/red-nectar.png" width="28" height="28" alt="Red Nectar"> | Oricorio's 4 styles | 3 Rare Candies |
+| **Smooth Rock** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/smooth-rock.png" width="28" height="28" alt="Smooth Rock"> | Castform's 4 forms | 3 Rare Candies |
+| **Sawsbuck's Four Seasons** |  | Sawsbuck's 4 seasons | An Uncommon Egg |
+| **Fairy Feather** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/fairy-feather.png" width="28" height="28" alt="Fairy Feather"> | Florges's 5 colors | An Uncommon Egg |
+| **Furfrou's Ten Trims** |  | Furfrou's 10 trims | A Rare Egg |
+| **Vivillon's Twenty Patterns** |  | Vivillon's 20 patterns | 2 Rare Eggs |
+| **Whipped Dream** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/whipped-dream.png" width="28" height="28" alt="Whipped Dream"> | Alcremie's 63 forms | 2 Rare Eggs and 5 Rare Candies |
+| **Unown's Alphabet** |  | Unown's 28 letters | 2 Rare Eggs |
 
 ### Gym Badges
 
@@ -265,15 +291,19 @@ Every badge has a **region per generation**: register every Pokémon of its type
 - **Burn-rate forecast** — projects when the current 5h window hits 100%.
 - **In-app updates** — one-click update check; current version shown in Settings.
 - **Usage recap** — a Pokédex-style recap of any week, month, or year (total, meters, comparison, best day, best streak, graduations). Hover a meter for its date and full token count, and jump back to This week / This month / This year in one click. History is kept locally for this year and the last.
+- **Stats page**: Home's chart button gathers every number in one place: this month day by day, the usage recap above with a table of its days (tokens and Pokémon graduated), and your collection in numbers.
 
 - **Local save backups** — automatic snapshots and corruption recovery, with a restore screen in Settings. Backup history starts collapsed; expand it to browse snapshots. **Create snapshot** stays available outside the list.
 - **Pokémon forms** — collect alternate forms from every generation, regional forms included, inspect form-specific individuals, and pin an owned form to the menu bar and floating pet. An individual's form follows evolution and stays in saves and exports; existing Unown letter saves remain readable. See the [form catalog](docs/reference/pokemon-forms.md).
+- **Whole Pokédex**: every species region by region, as TokenDex shows it: the completion and shinies, each region's progress and rarities, caught species tinted by rarity, seen ones faded and missing ones by their number. Switch between All, Caught (the page-by-page grid) and Missing.
 - **Bulk Rare Candy** — use several candies at once and preview the growth before spending.
 - **Menu bar Pokémon**: keep the menu bar Pokémon animated, still (one frame, no redraws), or hidden to show the usage text alone (Settings → General). With every text line off, a hidden Pokémon comes back still so there is always something to click.
 - **New form badge**: a Pokémon that hatched in a form its line never had says so on Home while it grows, and in the catch log once it graduates.
 - **Pikachu's costumes**: each Pikachu that arrives brings a costume or cap you don't have yet and wears it while it grows; pick the one every other Pikachu wears on its Pokédex page. All fifteen earn the Light Ball.
-- **Birthday gift**: enter your birthday in Settings and a banner offers you a gift egg on the day (and for the week after), once a year. What hatches from it is a surprise.
-- **What's new**: the sparkles button lists every change day by day; after an update, a banner says what changed since your last visit.
+- **Birthday gift**: enter your birthday in Settings and a banner offers you a gift egg from the day on, the first time you open the app within three months, once a year. What hatches from it is a surprise.
+- **Event eggs**: Christmas, New Year, Valentine's Day, Pokémon Day, Easter, Halloween, the start of each season and the anniversary of your first catch each bring an egg drawn for the occasion. A banner offers it during the event and for two weeks after, once a year. What hatches belongs to the event, most often shiny.
+- **What's new**: the newspaper button lists every change update by update, grouped as new, improved and fixed; after an update, a banner says what changed since your last visit.
+- **Ideas**: the light bulb button sends an idea or a bug as an issue of this repository: posted by the app when the GitHub CLI (`gh`) is signed in, else opened prefilled in the browser. The app holds no token.
 - **Quota pace** — gauge markers show the elapsed share of a limit window; six color tiers indicate usage pace, and menu-bar limit percentages use the same colors.
 
 <img src="assets/screenshot-usage-recap.png" width="360" alt="Usage recap for a selected period">
@@ -291,13 +321,15 @@ Every badge has a **region per generation**: register every Pokémon of its type
 | **OpenCode** | today · 5h block · week · month | — |
 | **Hermes Agent** | today · 5h block · week · month | — |
 | **Cursor** | today · 5h block · week · month | — |
-| **Grok CLI** | today · 5h block · week · month | — |
+| **Grok Build CLI** | today · 5h block · week · month | — |
 | **Copilot CLI** | today · 5h block · week · month | — |
 | **Kiro CLI** | today · 5h block · week · month | — (estimated) |
 | **Pi Agent** | today · 5h block · week · month | — |
 | **omp** (oh-my-pi) | today · 5h block · week · month | — |
 | **Aside** | today · 5h block · week · month | — |
 | **Kimi Code** | today · 5h block · week · month | — |
+
+Grok support reads Grok Build CLI's local session logs. Grok Bot cloud usage and subscription limits are not integrated.
 
 All read locally — no external usage CLI required. Adding a tool is a provider implementation and registration (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
@@ -349,7 +381,7 @@ swift test                   # unit tests
 | `~/Library/Application Support/Cursor/User/globalStorage/state.vscdb` | Cursor daily/blocks/weekly/monthly | SQLite read-only fallback (`cursorDiskKV` bubble `tokenCount`); when signed in, primary source is `cursor.com` dashboard API (see Privacy) |
 | `cursor.com` (dashboard API) | Cursor daily/blocks/weekly/monthly | unofficial JSON endpoint (`get-filtered-usage-events`); session from `cursorAuth/accessToken` in `state.vscdb` or `CURSOR_SESSION_TOKEN`; refetches when the provider reloads; on network error falls back to an account-scoped disk cache up to 6 h old; disable with `CURSOR_USAGE_API=0` |
 | `api2.cursor.sh` (dashboard limits API) | Cursor official monthly included usage | Connect RPC `GetCurrentPeriodUsage`; Bearer JWT from `state.vscdb` or `CURSOR_SESSION_TOKEN`; same disable switch as usage events |
-| `~/.grok/sessions/**/updates.jsonl` | Grok CLI daily/blocks/weekly/monthly | `turn_completed` records (per-turn `usage`, server-reported cost); honours `$GROK_HOME`; subagent sessions are skipped because their tokens are already folded into the parent turn |
+| `~/.grok/sessions/**/updates.jsonl` | Grok Build CLI daily/blocks/weekly/monthly | `turn_completed` records (per-turn `usage`, server-reported cost); honours `$GROK_HOME`; subagent sessions are skipped because their tokens are already folded into the parent turn |
 | `~/.copilot/session-store.db` | Copilot CLI daily/blocks/weekly/monthly | SQLite read-only; one `assistant_usage_events` row per API call; honours `$COPILOT_HOME`; `input_tokens` already contains the cached prompt, so cache reads/writes are subtracted; premium-request billing, so no cost is estimated |
 | `~/Library/Application Support/kiro-cli/data.sqlite3`<br>`~/.kiro/sessions/cli/*.jsonl`<br>`~/.kiro/sessions/<ws>/<session>/messages.jsonl` | Kiro CLI daily/blocks/weekly/monthly | Pre-2.20 SQLite plus 2.20+ / `--v3` JSONL; neither store records real token counts, so input is a bytes÷4 **estimate** of accumulated conversation text resent on every turn; `usage_summary` credits are not converted to USD; a `/clear`d SQLite conversation's already-counted tokens stay counted until the app restarts; honours `$KIRO_CLI_HOME` and `$KIRO_HOME` |
 | `~/.pi/agent/sessions/**/*.jsonl` | Pi Agent daily/blocks/weekly/monthly | Direct persisted usage from all projects; `$PI_CODING_AGENT_DIR` and `$PI_CODING_AGENT_SESSION_DIR` overrides supported; output already includes reasoning (not counted twice); forked history deduplicated by entry ID; source-recorded costs are retained |

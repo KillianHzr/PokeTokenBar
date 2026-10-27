@@ -44,16 +44,8 @@ final class CollectorItemsTests: XCTestCase {
         st.claimedAchievements = claimed
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("collector-\(UUID().uuidString).json")
         try? JSONEncoder().encode(st).write(to: url)
-        guard let growthDifficulty else {
-            return CompanionStore(provider: CollectorStubProvider(), clock: { self.now }, fileURL: url,
-                                  rng: SeededRNG(seed: 1))
-        }
-        let suite = "collector-\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suite)!
-        defaults.set(growthDifficulty, forKey: "growthDifficulty")
-        addTeardownBlock { UserDefaults.standard.removePersistentDomain(forName: suite) }
         return CompanionStore(provider: CollectorStubProvider(), clock: { self.now }, fileURL: url,
-                              rng: SeededRNG(seed: 1), defaults: defaults)
+                              rng: SeededRNG(seed: 1), difficulty: growthDifficulty ?? PokemonBalance.difficulty)
     }
 
     private func entry(_ chain: [Int], rarity: Rarity = .common, released: Bool = false) -> DexEntry {
@@ -69,12 +61,13 @@ final class CollectorItemsTests: XCTestCase {
 
     func testCollectorItemsAndAchievements() {
         let s = store()
-        XCTAssertEqual(s.collectorItems(in: .evolutionStones).count, 10)
-        XCTAssertEqual(s.collectorItems(in: .legendaryArtifacts).count, 29)
+        XCTAssertEqual(s.collectorItems(in: .evolutionStones).count, 11, "10 stones and the excavation")
+        XCTAssertEqual(s.collectorItems(in: .legendaryArtifacts).count, 38)
         XCTAssertEqual(s.collectorItems(in: .gymBadges).count, 18)
+        XCTAssertEqual(s.collectorItems(in: .forms).count, 10)
         XCTAssertEqual(Set(CompanionStore.achievementItems), Set(ItemKind.allCases.filter { $0.collectorGroup != nil }))
-        XCTAssertEqual(s.totalAchievementsCount, 208,
-                       "10 stones, 28 artifacts and the Legendary Egg's 9 regions, 161 badge regions")
+        XCTAssertEqual(s.totalAchievementsCount, 242,
+                       "10 stones, 37 artifacts and the Legendary Egg's 9 regions, 161 badge regions, 10 forms, 15 digs")
         XCTAssertEqual(s.purchasableItems, [.mint, .rareCandy, .shinyCharm], "the Shop sells what main sells")
 
         // An unlocked stone is an achievement to claim, never a Shop item.
@@ -87,8 +80,8 @@ final class CollectorItemsTests: XCTestCase {
 
     func testItemsHaveAppropriatePricesAndUnlockConditions() {
         for kind in ItemKind.allCases {
-            if kind == .birthdayEgg {
-                // The birthday gift: neither sold nor earned through the Pokédex (`BirthdayGift`).
+            if kind == .birthdayEgg || EventEgg(item: kind) != nil || kind.bagEggTier != nil || kind == .fossilEgg {
+                // The birthday and event gifts and the Legend Plate's eggs: neither sold nor an achievement of their own.
                 XCTAssertNil(kind.unlock)
                 XCTAssertNil(kind.shopPrice)
                 XCTAssertFalse(kind.isAchievement)
@@ -100,8 +93,10 @@ final class CollectorItemsTests: XCTestCase {
                 XCTAssertNil(kind.shopPrice, "\(kind) achievement is free to claim, not bought")
                 XCTAssertTrue(kind.isAchievement)
                 XCTAssertEqual(kind.achievementRewardCount, kind.stoneType != nil ? 5 : 1)
-                XCTAssertEqual(kind.isPassive, kind.stoneType == nil && kind != .typeNullEgg && kind != .legendaryEgg,
-                               "stones and the Type: Null and Legendary Eggs are the only consumable rewards")
+                // An achievement that gives other items (eggs, candies) is never kept in the Bag itself.
+                XCTAssertEqual(kind.isPassive,
+                               kind.stoneType == nil && !kind.givesOtherItems && ![.typeNullEgg, .legendaryEgg].contains(kind),
+                               "stones, eggs and what gives eggs or candies are the only consumable rewards")
             }
         }
     }
@@ -335,7 +330,7 @@ final class CollectorItemsTests: XCTestCase {
         let artifacts = s.collectorItems(in: .legendaryArtifacts)
         XCTAssertEqual(artifacts.first, .clearBell, "unlocked and not owned comes first")
         XCTAssertEqual(artifacts.last, .soulDew, "owned passives sink to the bottom")
-        XCTAssertEqual(artifacts.count, 29)
+        XCTAssertEqual(artifacts.count, 38)
     }
 
     // MARK: Effects
@@ -412,7 +407,15 @@ final class CollectorItemsTests: XCTestCase {
             (.boosterEnergy, mon(984, rarity: .rare), mon(147, rarity: .rare), CollectorBonus.boosterEnergyParadox),
             (.tealMask, mon(74), mon(19), CollectorBonus.tealMaskTypes),                      // Geodude (Rock)
             (.relicStatue, mon(128, forms: 1), mon(19), CollectorBonus.relicStatueNoEvolution), // Tauros vs Rattata
-            (.lightBall, mon(25), mon(19), CollectorBonus.lightBallPikachuLine),
+            (.lunarWing, mon(63), mon(19), CollectorBonus.lunarWingPsychicDark),             // Abra
+            (.lunarWing, mon(261), mon(19), CollectorBonus.lunarWingPsychicDark),            // Poochyena
+            (.oaksLetter, mon(5, stage: 1), mon(19), CollectorBonus.oaksLetterStarter),       // Charmeleon
+            (.shockDrive, mon(138), mon(19), CollectorBonus.shockDriveFossil),                // Omanyte
+            (.zRing, mon(81), mon(19), CollectorBonus.zRingSteelElectric),                    // Magnemite
+            (.zRing, mon(25), mon(19), CollectorBonus.zRingSteelElectric),                    // Pikachu
+            (.scrollOfDarkness, mon(66), mon(19), CollectorBonus.scrollOfDarknessFighting),   // Machop
+            // Pidgeotto, between Pidgey and Pidgeot, against Pidgeot.
+            (.relicVase, mon(17, stage: 1, forms: 3), mon(18, stage: 2, forms: 3), CollectorBonus.relicVaseMiddleStage),
         ]
         let plain = store()
         for (item, boosted, other, bonus) in cases {
@@ -475,12 +478,28 @@ final class CollectorItemsTests: XCTestCase {
             (.tealMask, [1014, 1015, 1016, 1017]), (.teraOrb, [1007, 1008, 1024]),
             (.beastBall, [793, 798, 803, 806]), (.boosterEnergy, [984, 990, 1009, 1023]),
             (.revealGlass, [641, 642, 905]), (.relicStatue, [377, 378, 379, 486, 894, 895]),
+            (.lunarWing, [488, 491]), (.meteorite, [385, 386]), (.oaksLetter, [251, 492]), (.seaIncense, [490, 382]),
+            (.shockDrive, [494, 648, 649]), (.zRing, [773, 801, 802, 807]), (.scrollOfDarkness, [892, 893]),
+            (.relicVase, [1001, 1002, 1003, 1004]), (.legendPlate, [493]),
+            // Kyurem is needed with Reshiram and Zekrom; Keldeo and Pecharunt can stand in for one of the others.
+            (.dnaSplicers, [643, 644, 646]), (.libertyPass, [638, 639, 647]), (.tealMask, [1014, 1015, 1016, 1025]),
+            // Heatran with Groudon, never alone: no achievement but Arceus's asks for one Pokémon.
+            (.magmaStone, [485, 383]),
         ]
         for (item, ids) in goals {
             XCTAssertTrue(store(dex: entries(ids, rarity: .legendary)).isUnlocked(item), "\(item)")
             XCTAssertFalse(store(dex: entries(Array(ids.dropLast()), rarity: .legendary)).isUnlocked(item), "\(item)")
         }
         XCTAssertTrue(store(dex: entries([697, 699, 880, 883])).isUnlocked(.magmaStone), "later fossils count")
+    }
+
+    /// No achievement but Arceus's can be earned with a single Pokémon: every goal asks for two at least (the
+    /// player's rule; Manaphy alone and Heatran alone broke it).
+    func testNoAchievementAsksForASinglePokemonButArceus() {
+        for kind in ItemKind.allCases where kind != .legendPlate && !kind.isRegional {
+            guard case .species(let goals) = kind.unlock else { continue }
+            for goal in goals { XCTAssertGreaterThanOrEqual(goal.needed, 2, "\(kind): \(goal.species)") }
+        }
     }
 
     func testRainbowWingAndJadeOrbDiscounts() throws {
@@ -519,8 +538,8 @@ final class CollectorItemsTests: XCTestCase {
         }
     }
 
-    /// The Silver Wing and the Tera Orb halve the egg at every difficulty. A 1M floor used to make the egg slower
-    /// with them below difficulty 0.4 (500k without, 1M with at 0.1).
+    /// The Silver Wing and the Tera Orb halve the egg at any difficulty. A 1M floor used to make the egg slower
+    /// with them below difficulty 0.4 (500k without, 1M with at 0.1, the players' difficulty).
     func testEggItemsHalveTheThresholdAtEveryDifficulty() {
         for difficulty in [0.1, 0.2, 0.3, 0.4, 1.0, 2.0] {
             let plain = store(growthDifficulty: difficulty).eggHatchThreshold

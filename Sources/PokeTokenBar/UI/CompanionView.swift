@@ -23,13 +23,19 @@ struct ItemIconView: View {
     init(kind: ItemKind, size: CGFloat = 30) {
         self.kind = kind
         self.size = size
-        // 캐시에 있으면 즉시(동기) 표시 — 재렌더 플래시 방지. The Type: Null and Legendary Eggs are the eggs the app draws
-        // for them.
+        // 캐시에 있으면 즉시(동기) 표시: 재렌더 플래시 방지. The egg items are the eggs the app draws for them: the
+        // Legend Plate's eggs look like the Shop's eggs of their rarity.
         let drawnEgg: EggKind? = switch kind {
         case .typeNullEgg: .typeNull
         case .legendaryEgg: .tier(.legendary)
         case .birthdayEgg: .birthday
-        default: nil
+        case .uncommonEgg: .tier(.uncommon)
+        case .rareEgg: .tier(.rare)
+        // Forms achievements with no item of their own: the egg they give.
+        case .sawsbuckSeasons: .tier(.uncommon)
+        case .furfrouTrims, .vivillonPatterns, .unownLetters: .tier(.rare)
+        case .fossilEgg: .fossil
+        default: EventEgg(item: kind).map { .event($0) }
         }
         _img = State(initialValue: drawnEgg.map(EggRenderer.still)
                      ?? kind.spriteName.flatMap { SpriteLoader.cachedItemImage(name: $0) })
@@ -974,6 +980,30 @@ struct CompanionHeader: View {
         }
     }
 
+    /// The badges after the rarity: a form its line never had, fixed at hatch and kept through evolution, then
+    /// whether sending it off loses anything (`CompanionStore.activeNews`): nothing new through its whole line, or new.
+    @ViewBuilder
+    private var activeBadges: some View {
+        let l = store.l
+        let isNewForm = store.state.active?.hasNewForm == true
+        if isNewForm {
+            Badge(l.newFormBadge.uppercased(), tint: .blue, style: .tinted)
+                .lineLimit(1).fixedSize()
+                .help(store.activeNewsHint)
+        }
+        if let news = store.activeNews {
+            if news.isDuplicate {
+                Badge(l.activeDuplicateBadge.uppercased(), tint: .secondary, style: .tinted)
+                    .lineLimit(1).fixedSize()
+                    .help(l.activeDuplicateHint)
+            } else if !isNewForm {
+                Badge(l.activeNewBadge.uppercased(), tint: .green, style: .tinted)
+                    .lineLimit(1).fixedSize()
+                    .help(store.activeNewsHint)
+            }
+        }
+    }
+
     var body: some View {
         // Computed once per render and shared by the big sprite and the evolution line.
         let dexLinks = onOpenDexEntry == nil ? [:] : store.dexLinkTargets
@@ -1007,7 +1037,7 @@ struct CompanionHeader: View {
                     .overlay(alignment: .top) {
                         if candyXPShown {
                             Text("+\(TokenFormatter.compact(candyXPAmount)) XP")
-                                .font(.caption.weight(.bold)).foregroundStyle(.orange)
+                                .font(.caption.weight(.bold)).foregroundStyle(Color.readableOrange)
                                 .padding(.horizontal, 6).padding(.vertical, 2)
                                 .background(.regularMaterial, in: Capsule())
                                 .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -1034,17 +1064,14 @@ struct CompanionHeader: View {
                     // The rarity above the name, so a long name ("Alolan Ninetales") wraps whole instead of being cut
                     // short beside the badge.
                     if let r = store.rarity {
-                        HStack(spacing: 4) {
+                        // Wraps rather than run off the card in a long language.
+                        WrappingHStack(spacing: 4, lineSpacing: 4) {
                             if r == .legendary {
                                 LegendaryBadge(text: store.l.rarityLabel(r).uppercased()).lineLimit(1).fixedSize()
                             } else {
                                 Badge(store.l.rarityLabel(r).uppercased(), tint: .rarity(r)).lineLimit(1).fixedSize()
                             }
-                            // A form its line had never registered, fixed at hatch and kept through evolution.
-                            if store.state.active?.hasNewForm == true {
-                                Badge(store.l.newFormBadge.uppercased(), tint: .blue, style: .tinted)
-                                    .lineLimit(1).fixedSize()
-                            }
+                            activeBadges
                         }
                     }
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -1097,7 +1124,7 @@ struct CompanionHeader: View {
                         if store.isEgg, store.isHatchRetryDelayed {
                             Text(store.l.eggHatchDelayed)
                                 .font(.caption2)
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(Color.readableOrange)
                                 .fixedSize(horizontal: false, vertical: true)
                         } else {
                             Text(store.l.eggToHatch(TokenFormatter.compact(store.eggTokensToHatch)))
@@ -1124,7 +1151,7 @@ struct CompanionHeader: View {
             }
             if let g = store.justGraduated {
                 Text(store.l.graduated(g))
-                    .font(.caption2).foregroundStyle(.orange)
+                    .font(.caption2).foregroundStyle(Color.readableOrange)
             }
         }
         .heroCard(colors: store.themeColors, legendary: store.rarity == .legendary)
@@ -1425,7 +1452,12 @@ struct CollectionView: View {
 
                 if nav.showingCollectionLog {
                     catchLog
+                } else if nav.dexScope != .caught {
+                    FullDexView(store: store, searchText: searchText, missingOnly: nav.dexScope == .missing,
+                                scope: $nav.dexScope,
+                                onSelectSpecies: { sp in nav.dexDetailCollectionID = sp.collectionID })
                 } else {
+                    dexScopePicker
                     DexGridView(
                         store: store,
                         searchText: searchText,
@@ -1445,6 +1477,16 @@ struct CollectionView: View {
             // Switching segment drops the open detail page — `PopoverNavigation.showingCollectionLog`.
         }
     }
+
+    /// Every species, the caught ones, or the missing ones.
+    private var dexScopePicker: some View {
+        @Bindable var nav = navigation
+        return PillPicker(selection: $nav.dexScope,
+                          options: PopoverNavigation.DexScope.allCases.map { ($0, store.l.dexScope($0)) })
+    }
+
+    /// The shiny, family and sort buttons sort and filter caught individuals: the whole Pokédex keeps the search alone.
+    private var filtersCaughtOnly: Bool { navigation.showingCollectionLog || navigation.dexScope == .caught }
 
     private var filterToolbar: some View {
         HStack(spacing: 6) {
@@ -1476,6 +1518,7 @@ struct CollectionView: View {
                     .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 0.5)
             )
 
+            if filtersCaughtOnly {
             Button {
                 withAnimation(.easeInOut(duration: 0.15)) {
                     shinyOnly.toggle()
@@ -1565,6 +1608,7 @@ struct CollectionView: View {
             .fixedSize()
             .help(store.l.sortTitle)
             .accessibilityLabel(store.l.sortTitle)
+            }
         }
     }
 
@@ -1807,6 +1851,172 @@ private struct ScrollWheelPager: NSViewRepresentable {
                 if step != 0 { self.onStep?(step) }
                 return nil
             }
+        }
+    }
+}
+
+/// The whole Pokédex region by region, as TokenDex shows it: the completion and the shinies, then each region with
+/// its progress and rarities and every one of its species, caught (its sprite, in its rarity's color), only seen
+/// (faded) or missing (its number alone, no sprite to download). A region folds on its header.
+@MainActor
+struct FullDexView: View {
+    let store: CompanionStore
+    let searchText: String
+    let missingOnly: Bool
+    @Binding var scope: PopoverNavigation.DexScope
+    let onSelectSpecies: (CompanionStore.DexSpecies) -> Void
+    @State private var folded: Set<Int> = []
+
+    /// Five to a row, so a sprite stays big enough to tell apart.
+    private static let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 5)
+
+    var body: some View {
+        let species = Dictionary(store.dexSpecies.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let graduated = store.graduatedSpeciesIDs
+        let names = species.mapValues(\.name)
+        func shows(_ id: Int) -> Bool { Self.shows(id, names: names, missingOnly: missingOnly, query: searchText) }
+        return VStack(alignment: .leading, spacing: 6) {
+            PillPicker(selection: $scope, options: PopoverNavigation.DexScope.allCases.map { ($0, store.l.dexScope($0)) })
+            summary(registered: species.count, graduated: graduated)
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 8) {
+                    ForEach(Array(PokemonTypeData.generations.enumerated()), id: \.offset) { index, range in
+                        let ids = range.filter(shows)
+                        if !ids.isEmpty {
+                            region(index + 1, range: range, ids: ids, species: species, graduated: graduated)
+                        }
+                    }
+                }
+                .reservesScrollerLane()
+            }
+            .frame(maxHeight: .infinity)
+        }
+        .task { await store.backfillMissingDexNames() }
+    }
+
+    /// Whether a species shows: the missing ones only when asked, and those the search finds, by number (with or
+    /// without "#" and leading zeros) or by the name of a species in the Pokédex.
+    static func shows(_ id: Int, names: [Int: String], missingOnly: Bool, query: String) -> Bool {
+        if missingOnly, names[id] != nil { return false }
+        let query = query.trimmingCharacters(in: .whitespaces).lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+        guard !query.isEmpty else { return true }
+        if let number = Int(query) { return id == number || String(id).hasPrefix(String(number)) }
+        return names[id]?.lowercased().contains(query) == true
+    }
+
+    /// The whole Pokédex: species graduated, their share, the ones only seen, the forms and the shinies.
+    private func summary(registered: Int, graduated: Set<Int>) -> some View {
+        let owned = store.graduatedCollectionProgress
+        let total = max(1, owned.speciesTotal)
+        let shinies = Set(store.dexSpecies.filter(\.isShiny).map(\.id)).count
+        return VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 6) {
+                Text(store.l.dexSpeciesProgress(owned.species, of: owned.speciesTotal)).font(.callout.weight(.semibold))
+                Text(store.l.dexPercent(owned.species * 100 / total)).foregroundStyle(.secondary)
+                Spacer(minLength: 4)
+                if registered > owned.species {
+                    Label(store.l.dexSeenOnly(registered - owned.species), systemImage: "eye").labelStyle(.titleAndIcon)
+                        .foregroundStyle(.secondary).help(store.l.dexSeenNotGraduated)
+                }
+            }
+            HStack(spacing: 8) {
+                Text(store.l.formsCollected(owned.forms, of: owned.formsTotal))
+                Text("✨ \(store.l.dexShinySpecies(shinies))")
+            }
+            .foregroundStyle(.secondary)
+            ProgressView(value: Double(owned.species), total: Double(total)).controlSize(.small)
+        }
+        .font(.caption.monospacedDigit())
+        .lineLimit(1).minimumScaleFactor(0.8)
+    }
+
+    private func region(_ generation: Int, range: ClosedRange<Int>, ids: [Int],
+                        species: [Int: CompanionStore.DexSpecies], graduated: Set<Int>) -> some View {
+        let caught = range.filter { graduated.contains($0) }.count
+        let isFolded = folded.contains(generation)
+        return VStack(alignment: .leading, spacing: 6) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    if isFolded { folded.remove(generation) } else { folded.insert(generation) }
+                }
+            } label: {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Image(systemName: isFolded ? "chevron.right" : "chevron.down")
+                            .font(.caption2.weight(.bold)).foregroundStyle(.secondary).frame(width: 10)
+                        Text(store.l.regionName(generation: generation)).font(.callout.weight(.semibold))
+                        Spacer(minLength: 4)
+                        Text("\(caught) / \(range.count)").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                        Text("\(caught * 100 / range.count) %").font(.caption.monospacedDigit().weight(.semibold))
+                    }
+                    ProgressView(value: Double(caught), total: Double(range.count)).controlSize(.mini)
+                    HStack(spacing: 8) {
+                        ForEach(rarityDisplayOrder, id: \.self) { rarity in
+                            let count = range.filter { species[$0]?.rarity == rarity }.count
+                            if count > 0 {
+                                HStack(spacing: 3) {
+                                    Circle().fill(rarityColor(rarity)).frame(width: 6, height: 6)
+                                    Text("\(count)").font(.caption2.monospacedDigit())
+                                }
+                                .help(store.l.rarityLabel(rarity))
+                            }
+                        }
+                    }
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(isFolded ? [] : .isSelected)
+            if !isFolded {
+                LazyVGrid(columns: Self.columns, spacing: 4) {
+                    ForEach(ids, id: \.self) { id in
+                        cell(id, species: species[id], isGraduated: graduated.contains(id))
+                    }
+                }
+            }
+        }
+        .padding(8)
+        .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    @ViewBuilder
+    private func cell(_ id: Int, species: CompanionStore.DexSpecies?, isGraduated: Bool) -> some View {
+        let number = String(format: "%03d", id)
+        if let species {
+            Button { onSelectSpecies(species) } label: {
+                VStack(spacing: 2) {
+                    SpriteView(speciesID: id, size: 42,
+                               shiny: species.isShiny && !PokemonForm.hasForms(speciesID: id), form: species.form)
+                        .frame(width: 44, height: 44)
+                        // A shiny one says so, as on the caught grid.
+                        .overlay(alignment: .topTrailing) {
+                            if species.isShiny { Text("✨").font(.system(size: 10)).accessibilityLabel(store.l.dexShinyLabel) }
+                        }
+                    // Its rarity in a dot before its number.
+                    HStack(spacing: 3) {
+                        Circle().fill(rarityColor(species.rarity)).frame(width: 7, height: 7)
+                        Text(number).font(.system(size: 10, weight: .semibold).monospacedDigit())
+                    }
+                }
+                .frame(maxWidth: .infinity).padding(.vertical, 4)
+                .background(rarityColor(species.rarity).opacity(0.14), in: RoundedRectangle(cornerRadius: 8))
+                .opacity(isGraduated ? 1 : 0.5)
+            }
+            .buttonStyle(.plain)
+            .help("#\(id) \(species.name) · \(store.l.rarityLabel(species.rarity))"
+                  + (isGraduated ? "" : " · \(store.l.dexSeenNotGraduated)"))
+            .accessibilityLabel("#\(id) \(species.name)")
+        } else {
+            VStack(spacing: 2) {
+                Text("?").font(.system(size: 18, weight: .bold, design: .rounded)).foregroundStyle(.secondary)
+                    .frame(width: 44, height: 44)
+                Text(number).font(.system(size: 10, weight: .semibold).monospacedDigit()).foregroundStyle(.secondary)
+            }
+            .opacity(0.75)
+            .frame(maxWidth: .infinity).padding(.vertical, 4)
+            .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+            .help(store.l.dexMissingHint(id))
+            .accessibilityLabel(store.l.dexMissingHint(id))
         }
     }
 }
@@ -2149,16 +2359,19 @@ struct PokemonDetailView: View {
         }
     }
 
-    /// Unown's 28 letters fill seven columns; named forms get wider cells for their labels.
-    static func formPickerColumns(formCount: Int) -> Int {
-        formCount > 8 ? (formCount > 20 ? 7 : 6) : min(formCount, 4)
+    /// Unown's 28 letters fill seven columns and short labels six (Arceus's types), one line each. Longer names
+    /// ("Motif Continental", Alcremie's sweets) take four columns and two lines: in six, they were cut short.
+    static func formPickerColumns(formCount: Int, longestLabel: Int) -> Int {
+        guard formCount > 8, longestLabel <= 8 else { return min(formCount, 4) }
+        return longestLabel <= 2 ? 7 : 6
     }
 
     private var formPicker: some View {
         let forms = formSpecies
         let allForms = PokemonForm.forms(speciesID: species.id)
         let selected = displayedSpecies.form
-        let columns = Self.formPickerColumns(formCount: allForms.count)
+        let labels = allForms.map { PokemonForm.label(speciesID: species.id, form: $0, language: store.language) ?? "" }
+        let columns = Self.formPickerColumns(formCount: allForms.count, longestLabel: labels.map(\.count).max() ?? 0)
         let source = PokemonForm.unlockSource(speciesID: species.id)
         let unlockedTypes = source == .legendaryType ? store.state.silvallyMemoryTypes : store.state.plateTypes
         return VStack(alignment: .leading, spacing: 6) {
@@ -2186,14 +2399,16 @@ struct PokemonDetailView: View {
                                     .overlay(alignment: .topTrailing) {
                                         if owned?.isShiny == true { Text("✨").font(.system(size: 11)) }
                                     }
-                                // Wide grids hold short labels (letters, types); longer names wrap on two lines.
+                                // Wide grids hold short labels (letters, types); longer names wrap on two lines,
+                                // three for Alcremie's longest sweets.
                                 Text(label).font(.system(size: 11, weight: .semibold))
                                     .multilineTextAlignment(.center)
-                                    .lineLimit(columns > 4 ? 1 : 2, reservesSpace: columns <= 4)
-                                    .minimumScaleFactor(0.6)
+                                    .lineLimit(columns > 4 ? 1...1 : 2...3)
+                                    .minimumScaleFactor(columns > 4 ? 0.6 : 0.8)
                                     .padding(.horizontal, 2)
                             }
-                            .opacity(owned == nil ? 0.25 : 1)
+                            // Faded until caught, the name still readable on a light card.
+                            .opacity(owned == nil ? 0.4 : 1)
                             // What unlocks the form, faded until won: the badge that gives Arceus's Plate (one region
                             // claimed), or the type of the legendary that gives Silvally's Memory.
                             if let plate {
@@ -2295,16 +2510,16 @@ struct PokemonDetailView: View {
                         Ellipse().fill(Color.black.opacity(0.18)).frame(width: 60, height: 10).blur(radius: 2)
                     }
                 VStack(alignment: .leading, spacing: 5) {
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(species.name).font(.system(size: 18, weight: .bold, design: .rounded))
-                            .lineLimit(1).minimumScaleFactor(0.75)
-                        if species.rarity == .legendary {
-                            LegendaryBadge(text: store.l.rarityLabel(species.rarity).uppercased()).fixedSize()
-                        } else {
-                            Badge(store.l.rarityLabel(species.rarity).uppercased(), tint: .rarity(species.rarity))
-                                .lineLimit(1).fixedSize()
-                        }
+                    // The rarity above the name, as on Home: a long form name ("Vivillon [Continental Pattern]")
+                    // wraps whole instead of being cut beside the badge.
+                    if species.rarity == .legendary {
+                        LegendaryBadge(text: store.l.rarityLabel(species.rarity).uppercased()).fixedSize()
+                    } else {
+                        Badge(store.l.rarityLabel(species.rarity).uppercased(), tint: .rarity(species.rarity))
+                            .lineLimit(1).fixedSize()
                     }
+                    Text(species.name).font(.system(size: 18, weight: .bold, design: .rounded))
+                        .lineLimit(2).minimumScaleFactor(0.85).fixedSize(horizontal: false, vertical: true)
                     let types = PokemonTypeData.typeNames(speciesID: species.id, form: species.form,
                                                           fallback: store.pokemonDetails(speciesID: species.id, form: species.form)?.types)
                     if !types.isEmpty {
@@ -2684,35 +2899,40 @@ private struct DexEntryRow: View {
         // 저장분 우선(즉시·언어대응), 없으면 async 로 채운 resolved 사용.
         let names = store.dexStoredChainNames(entry) ?? (resolved.isEmpty ? nil : resolved)
         VStack(alignment: .leading, spacing: 3) {
-            HStack {
-                Badge(store.l.rarityLabel(entry.rarity).uppercased(), tint: .rarity(entry.rarity), size: 10)
-                if store.isActiveDexEntry(entry) {
-                    Badge(store.l.dexRaising.uppercased(), tint: .accent, style: .tinted, size: 10)
-                } else if entry.isReleased {
-                    // 놓아준 개체 — 종은 도감에 남지만 이 개체는 끝까지 키우지 않았다.
-                    // 중립색(secondary)으로 둔다: 실패가 아니라 다른 종류의 기록이라 경고색은 과하다.
-                    Badge(store.l.dexReleased.uppercased(), tint: .secondary, style: .tinted, size: 10)
+            HStack(alignment: .top, spacing: 6) {
+                // The badges go to a second line rather than squeeze one: in one row, French broke "NOUVELLE FORME"
+                // inside its capsule.
+                WrappingHStack(spacing: 6, lineSpacing: 4) {
+                    Badge(store.l.rarityLabel(entry.rarity).uppercased(), tint: .rarity(entry.rarity), size: 10)
+                    if store.isActiveDexEntry(entry) {
+                        Badge(store.l.dexRaising.uppercased(), tint: .accent, style: .tinted, size: 10)
+                    } else if entry.isReleased {
+                        // 놓아준 개체 — 종은 도감에 남지만 이 개체는 끝까지 키우지 않았다.
+                        // 중립색(secondary)으로 둔다: 실패가 아니라 다른 종류의 기록이라 경고색은 과하다.
+                        Badge(store.l.dexReleased.uppercased(), tint: .secondary, style: .tinted, size: 10)
+                    }
+                    if entry.hasNewForm {
+                        Badge(store.l.newFormBadge.uppercased(), tint: .blue, style: .tinted, size: 10)
+                    }
+                    if store.isDuplicateCatch(entry) {
+                        Text(store.l.dexDuplicate.uppercased())
+                            .font(.system(size: 10, weight: .bold))
+                            .padding(.horizontal, 5).padding(.vertical, 1)
+                            .background(Color.secondary.opacity(0.14))
+                            .foregroundStyle(Color.secondary)
+                            .clipShape(Capsule())
+                    }
+                    if entry.isShiny {
+                        // 이모지는 스크린리더가 일관되게 읽지 못해 명사 라벨을 붙인다(도감 칸과 동일 규칙).
+                        Text("✨").font(.system(size: 10))
+                            .accessibilityLabel(store.l.dexShinyLabel)
+                    }
                 }
-                if entry.hasNewForm {
-                    Badge(store.l.newFormBadge.uppercased(), tint: .blue, style: .tinted, size: 10)
-                }
-                if store.isDuplicateCatch(entry) {
-                    Text(store.l.dexDuplicate.uppercased())
-                        .font(.system(size: 10, weight: .bold))
-                        .padding(.horizontal, 5).padding(.vertical, 1)
-                        .background(Color.secondary.opacity(0.14))
-                        .foregroundStyle(Color.secondary)
-                        .clipShape(Capsule())
-                }
-                if entry.isShiny {
-                    // 이모지는 스크린리더가 일관되게 읽지 못해 명사 라벨을 붙인다(도감 칸과 동일 규칙).
-                    Text("✨").font(.system(size: 10))
-                        .accessibilityLabel(store.l.dexShinyLabel)
-                }
-                Spacer()
+                .frame(maxWidth: .infinity, alignment: .leading)
                 if let nature = entry.nature {
                     Text(nature.name(store.language))
                         .font(.system(size: 11)).foregroundStyle(.secondary)
+                        .fixedSize()
                 }
             }
             EvoLineView(nodes: entry.chainOrder.map { EvoLineItem(.species($0), .done) },

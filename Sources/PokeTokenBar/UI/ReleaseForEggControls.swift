@@ -61,7 +61,7 @@ struct ReleaseForEggControls: View {
         case .preciousConfirm:
             HStack(spacing: 8) {
                 Text(store.rarity == .legendary ? l.freshEggLegendaryWarning : l.freshEggShinyWarning)
-                    .font(.caption2.weight(.semibold)).foregroundStyle(.orange).lineLimit(2)
+                    .font(.caption2.weight(.semibold)).foregroundStyle(Color.readableOrange).lineLimit(2)
                 Spacer()
                 Button(store.currentIsShiny && store.rarity != .legendary ? l.freshEggDiscardShiny : l.freshEggDiscardValuable) { commit() }
                     .buttonStyle(PillButtonStyle(prominent: true, tint: .orange))

@@ -59,7 +59,9 @@ final class SpriteSameScaleTests: XCTestCase {
         try JSONEncoder().encode(state).write(to: file)
         defer { try? FileManager.default.removeItem(at: file) }
         let store = CompanionStore(provider: SameScaleProvider(), fileURL: file)
-        let host = NSHostingView(rootView: CollectionView(store: store, navigation: PopoverNavigation())
+        let caught = PopoverNavigation()
+        caught.dexScope = .caught   // the caught species page by page
+        let host = NSHostingView(rootView: CollectionView(store: store, navigation: caught)
             .frame(width: PopoverMetrics.contentWidth, height: 400).background(Color.white))
         host.frame = NSRect(x: 0, y: 0, width: PopoverMetrics.contentWidth, height: 400)
         let heights = try spriteHeights(host)

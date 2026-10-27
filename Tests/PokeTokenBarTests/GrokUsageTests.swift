@@ -488,6 +488,9 @@ final class GrokUsageTests: XCTestCase {
         let suite = "GrokUsageTests.parity.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }
+        // The menu bar shows the companion's numbers by default: this player keeps today's tokens there.
+        defaults.set(true, forKey: UsageStore.companionMenuDefaultsKey)
+        defaults.set(true, forKey: "showTokensInMenu")
         let today = LocalUsageReader.todayKey()
         // burnTier 임계는 1,000 tokens/min 초과 — 그 위 값으로 "관측됐다"를 검증한다.
         let block = BlockUsage(id: "b", startTime: "", endTime: "", isActive: true,

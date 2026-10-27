@@ -11,12 +11,14 @@ struct AchievementsView: View {
         case evolutionStones
         case gymBadges
         case legendaryArtifacts
+        case forms
 
         var collectorGroup: CollectorGroup {
             switch self {
             case .evolutionStones: return .evolutionStones
             case .gymBadges: return .gymBadges
             case .legendaryArtifacts: return .legendaryArtifacts
+            case .forms: return .forms
             }
         }
     }
@@ -233,10 +235,10 @@ private struct AchievementCard: View {
             HStack(spacing: 4) {
                 Image(systemName: "checkmark.seal.fill")
                     .font(.caption2)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Color.readableGreen)
                 Text(l.claimed)
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Color.readableGreen)
             }
         } else if canClaim {
             Button(readyTiers > 1 ? "\(l.claim) (\(readyTiers))" : l.claim) {
@@ -246,7 +248,7 @@ private struct AchievementCard: View {
         } else if kind.isRegional {
             // A regional achievement is never locked as a whole: show how many of its regions are claimed.
             let tiers = store.regionTiers(kind)
-            Label("\(tiers.filter(\.isClaimed).count)/\(tiers.count)", systemImage: "map")
+            Label("\(tiers.filter(\.isDone).count)/\(tiers.count)", systemImage: "map")
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
@@ -267,10 +269,41 @@ private struct RegionGrid: View {
 
     var body: some View {
         let l = store.l
+        // The digs are numbered, the regions named.
+        let isDig = kind == .excavation
+        let tiers = store.regionTiers(kind)
+        VStack(alignment: .leading, spacing: 6) {
+            if isDig { fossilLines(waived: tiers.filter(\.isWaived).count, l) }
+            grid(isDig ? tiers.filter { !$0.isWaived } : tiers, isDig: isDig, l)
+        }
+    }
+
+    /// The fossil lines: those graduated in color, the missing ones faded. The digs their lines already make
+    /// unnecessary are said in a line, not shown as digs done.
+    private func fossilLines(waived: Int, _ l: L) -> some View {
+        let graduated = store.graduatedSpeciesIDs
+        return VStack(alignment: .leading, spacing: 4) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 8), spacing: 2) {
+                ForEach(FossilDig.lines, id: \.self) { line in
+                    let owned = graduated.contains(line)
+                    SpriteView(speciesID: line, size: 26)
+                        .frame(width: 28, height: 28)
+                        .grayscale(owned ? 0 : 1).opacity(owned ? 1 : 0.35)
+                        .speciesNameTooltip(line, language: store.language)
+                }
+            }
+            if waived > 0 {
+                Text(l.excavationWaivedCount(waived)).font(.caption2).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func grid(_ tiers: [CompanionStore.RegionTier], isDig: Bool, _ l: L) -> some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 3), alignment: .leading, spacing: 4) {
-            ForEach(store.regionTiers(kind), id: \.generation) { tier in
+            ForEach(tiers, id: \.generation) { tier in
                 HStack(spacing: 3) {
-                    Text(l.regionName(generation: tier.generation))
+                    Text(isDig ? "#\(tier.generation)" : l.regionName(generation: tier.generation))
                         .font(.caption2.weight(.semibold))
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
@@ -280,15 +313,17 @@ private struct RegionGrid: View {
                 .padding(.horizontal, 6)
                 .padding(.vertical, 4)
                 .background(RoundedRectangle(cornerRadius: 6).fill(background(tier)))
-                .help("\(tier.progress.registered.count)/\(tier.progress.goal.needed)")
+                .help(tier.isWaived ? l.excavationWaived : "\(tier.progress.registered.count)/\(tier.progress.goal.needed)")
             }
         }
     }
 
     @ViewBuilder
     private func status(_ tier: CompanionStore.RegionTier) -> some View {
-        if tier.isClaimed {
-            Image(systemName: "checkmark").font(.caption2.weight(.bold)).foregroundStyle(.green)
+        if tier.isWaived {
+            Image(systemName: "checkmark").font(.caption2.weight(.bold)).foregroundStyle(.secondary)
+        } else if tier.isClaimed {
+            Image(systemName: "checkmark").font(.caption2.weight(.bold)).foregroundStyle(Color.readableGreen)
         } else if tier.isReady {
             Image(systemName: "gift.fill").font(.caption2).foregroundStyle(Color.accentColor)
         } else {
@@ -298,6 +333,7 @@ private struct RegionGrid: View {
     }
 
     private func background(_ tier: CompanionStore.RegionTier) -> Color {
+        if tier.isWaived { return .secondary.opacity(0.14) }
         if tier.isClaimed { return .green.opacity(0.14) }
         if tier.isReady { return Color.accentColor.opacity(0.22) }
         return .secondary.opacity(0.08)

@@ -625,6 +625,55 @@ final class UsageStoreTests: XCTestCase {
     /// 3개 다 켜면 → 각각 세로 3줄(토큰 / 비용 / 한도).
     /// 확정 규칙 전수 검증(사용자 요청 "전부 다 테스트"): 8개 토글 조합 각각의 menuLines.
     /// - 2개 이하 활성 → 각 항목 개별 세로 줄. - 3개 다 활성 → 토큰·비용 한 줄 + 한도 아랫줄(2줄).
+    /// The companion's numbers: tokens to the next stage or hatch ("↑"), and the Shop's ("¤"). Up to two items one per
+    /// line; more, the companion's and today's usage on one line above the limit, or above today's usage without it.
+    func testMenuLinesWithTheCompanionsNumbers() async {
+        let claude = FakeUsageProvider(id: "claude_code", displayName: "Claude Code",
+                                       daily: todayDaily(1_200_000, cost: 3.45))
+        let store = makeStore(providers: [claude],
+                              claude: claudeLimits(fiveHourUtil: 40, resetsAt: "2099-01-01T00:00:00Z"))
+        await store.refresh(scheduleEmptyRetry: false)
+        XCTAssertTrue(store.showEvolutionInMenu)
+        XCTAssertTrue(store.showShopInMenu)
+        XCTAssertFalse(store.showTokensInMenu, "the companion's numbers came instead of today's tokens")
+        XCTAssertFalse(store.showCostInMenu)
+        XCTAssertEqual(store.menuLines, [], "nothing until the companion gives its numbers")
+        store.companionMenu = UsageStore.CompanionMenu(toNext: 12_000_000, shop: 217_000_000)
+        XCTAssertEqual(store.menuLines, ["↑12M", "¤217M"])
+        store.showLimitInMenu = true
+        XCTAssertEqual(store.menuLines.count, 2)
+        XCTAssertEqual(store.menuLines[0], "↑12M · ¤217M")
+        XCTAssertTrue(store.menuLines[1].contains("40%"))
+        store.showTokensInMenu = true
+        XCTAssertEqual(store.menuLines[0], "↑12M · ¤217M · 1.2M")
+        store.showLimitInMenu = false
+        store.showCostInMenu = true
+        XCTAssertEqual(store.menuLines.count, 2)
+        XCTAssertEqual(store.menuLines[0], "↑12M · ¤217M")
+        XCTAssertTrue(store.menuLines[1].hasPrefix("1.2M · $"))
+        store.showShopInMenu = false
+        store.showTokensInMenu = false
+        store.showCostInMenu = false
+        XCTAssertEqual(store.menuLines, ["↑12M"])
+    }
+
+    /// Once for everyone, the companion's numbers take the place of today's tokens and cost; a choice made after
+    /// that stays.
+    func testTheCompanionsNumbersReplaceTodaysUsageOnce() {
+        testDefaults.set(true, forKey: "showTokensInMenu")
+        testDefaults.set(true, forKey: "showCostInMenu")
+        var store = makeStore(providers: [])
+        XCTAssertFalse(store.showTokensInMenu)
+        XCTAssertFalse(store.showCostInMenu)
+        XCTAssertTrue(store.showEvolutionInMenu)
+        XCTAssertTrue(store.showShopInMenu)
+        store.showTokensInMenu = true
+        store.showShopInMenu = false
+        store = makeStore(providers: [])
+        XCTAssertTrue(store.showTokensInMenu)
+        XCTAssertFalse(store.showShopInMenu)
+    }
+
     func testMenuLinesAllCombinations() async {
         let claude = FakeUsageProvider(id: "claude_code", displayName: "Claude Code",
                                        daily: todayDaily(1_200_000, cost: 3.45))

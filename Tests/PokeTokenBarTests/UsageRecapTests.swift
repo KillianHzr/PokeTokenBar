@@ -435,4 +435,27 @@ final class UsageRecapRenderingTests: XCTestCase {
         XCTAssertEqual(cloaked.entry.form, PokemonForm("sandy"))
         XCTAssertEqual(cloaked.name, "Wormadam", "a form name does not fit a quarter-row chip")
     }
+
+    /// The Stats page's table: each day counts the Pokémon graduated on it; the year view, each month.
+    func testTheStatsTableCountsGraduationsPerDayAndPerMonth() throws {
+        let entries = [(17, "a"), (17, "b"), (16, "c")].map { day, id in
+            DexEntry(id: id, baseID: 1, finalID: 1, chainOrder: [1], rarity: .common, caughtAt: date(2026, 9, day))
+        }
+        let dexJSON = String(decoding: try JSONEncoder().encode(entries), as: UTF8.self)
+        try Data(#"{"installBaselineSet":true,"usedSinceInstall":1000,"lastDate":"d","language":"en","dex":\#(dexJSON)}"#.utf8)
+            .write(to: url)
+        let defaults = UserDefaults(suiteName: "recap-stats-\(UUID().uuidString)")!
+        ledger(since: key(2026, 9, 1), [(key(2026, 9, 17), 5_000)]).save(to: defaults)
+        let usage = UsageStore(providers: [], autoRefresh: false, defaults: defaults)
+        let companion = CompanionStore(fileURL: url, defaults: defaults)
+        let week = RecapContent(store: usage, companion: companion, scope: .week, offset: 0, now: now, calendar: calendar())
+        let counts = Dictionary(uniqueKeysWithValues: week.recap.buckets.map { ($0.key, week.graduatedCount(in: $0)) })
+        XCTAssertEqual(counts[key(2026, 9, 17)], 2)
+        XCTAssertEqual(counts[key(2026, 9, 16)], 1)
+        XCTAssertEqual(counts.values.reduce(0, +), 3)
+        let year = RecapContent(store: usage, companion: companion, scope: .year, offset: 0, now: now, calendar: calendar())
+        let september = try XCTUnwrap(year.recap.buckets.first { $0.key.hasPrefix("2026-09") })
+        XCTAssertEqual(year.graduatedCount(in: september), 3)
+        XCTAssertTrue(year.bucketName(september).contains("September"))
+    }
 }

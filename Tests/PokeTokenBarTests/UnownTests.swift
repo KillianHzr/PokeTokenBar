@@ -102,12 +102,10 @@ final class UnownTests: XCTestCase {
         let date = now
         let suite = "unown-tests-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
-        defaults.set(1.0, forKey: "growthDifficulty")
-        defaults.set(1.0, forKey: "shopDifficulty")
         addTeardownBlock { UserDefaults.standard.removePersistentDomain(forName: suite) }
         return CompanionStore(provider: provider, clock: { date },
                               fileURL: url, rng: SeededRNG(seed: seed),
-                              dittoDisguiseRollingEnabled: false, defaults: defaults)
+                              dittoDisguiseRollingEnabled: false, defaults: defaults, difficulty: 1)
     }
 
     func testAllLettersAndPunctuationAreSelectable() {
@@ -477,10 +475,9 @@ final class UnownTests: XCTestCase {
 
     /// The repeat growth boost follows the form: a letter never graduated is new to the Pokédex, so it grows
     /// at the normal speed even after another letter graduated; the same letter again is a repeat.
-    func testOnlyALetterAlreadyGraduatedGetsRepeatGrowthAtEveryDifficulty() async throws {
-        for difficulty in [0.1, 1.0, 2.0] {
+    func testOnlyALetterAlreadyGraduatedGetsRepeatGrowth() async throws {
+        do {
             let s = try store(seed: 17)
-            s.setGrowthDifficulty(difficulty)
             await s.hatch(baseID: 201)
             XCTAssertFalse(try XCTUnwrap(s.state.active).hasGrowthBoost)
             let firstForm = try XCTUnwrap(s.currentForm)
@@ -493,7 +490,6 @@ final class UnownTests: XCTestCase {
             nextEgg.pendingForm = firstForm == .a ? .b : .a
             nextEgg.eggUsage = PokemonBalance.eggHatchThreshold
             let repeated = try store(nextEgg)
-            repeated.setGrowthDifficulty(difficulty)
             await repeated.hatchIfNeeded()
             XCTAssertEqual(repeated.currentForm, nextEgg.pendingForm)
             XCTAssertNotEqual(repeated.currentForm, firstForm)
@@ -509,7 +505,6 @@ final class UnownTests: XCTestCase {
             sameLetter.pendingForm = firstForm
             sameLetter.eggUsage = PokemonBalance.eggHatchThreshold
             let again = try store(sameLetter)
-            again.setGrowthDifficulty(difficulty)
             await again.hatchIfNeeded()
             XCTAssertEqual(again.currentForm, firstForm)
             XCTAssertTrue(try XCTUnwrap(again.state.active).hasGrowthBoost, "the same letter again is a repeat")

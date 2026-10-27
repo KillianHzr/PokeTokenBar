@@ -60,7 +60,7 @@ final class AchievementsRenderingTests: XCTestCase {
 
     /// Three segments with their counts used to be wider than the popover: SwiftUI centered the wider stack,
     /// so the whole tab slid off both edges. Checked in every language with the widest labels: every reward
-    /// ready, so the segments carry counts up to three digits (10, 161, 36).
+    /// ready, so the four segments carry counts up to three digits (10, 161, 45, 10).
     func testCategoryPickerFitsTheTabWidthInEveryLanguage() async throws {
         let categories = AchievementsView.AchievementCategory.allCases
         let labelWidth = PillPicker<AchievementsView.AchievementCategory>.labelWidth(count: categories.count,
@@ -79,7 +79,7 @@ final class AchievementsRenderingTests: XCTestCase {
             state.dex = Self.everySpeciesTwiceMewtwo
             try JSONEncoder().encode(state).write(to: file)
             let store = CompanionStore(provider: AchievementsStubProvider(), fileURL: file, defaults: defaults)
-            XCTAssertEqual(categories.map { AchievementsView.readyCount($0, store) }, [10, 161, 36])
+            XCTAssertEqual(categories.map { AchievementsView.readyCount($0, store) }, [10, 161, 45, 10])
             for category in categories {
                 let title = AchievementsView.tabTitle(category, store)
                 let width = (title as NSString).size(withAttributes: [.font: font]).width
@@ -140,7 +140,7 @@ final class AchievementsRenderingTests: XCTestCase {
 
         let none = try store(registering: [])
         XCTAssertNil(A.firstCategoryWithRewards(none))
-        XCTAssertEqual(A.AchievementCategory.allCases.map { A.tabTitle($0, none) }, ["Stones", "Badges", "Artifacts"])
+        XCTAssertEqual(A.AchievementCategory.allCases.map { A.tabTitle($0, none) }, ["Stones", "Badges", "Artifacts", "Forms"])
     }
 
     /// The Achievements tab made the popover's segmented tab bar five labels wide. With a two-digit count it was

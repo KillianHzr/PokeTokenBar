@@ -41,7 +41,7 @@ PokeTokenBar는 당신이 이미 태우고 있는 AI 코딩 토큰(Claude Code �
 2. 🐣 **부화.** [PokéAPI](https://pokeapi.co/)의 **1~9세대 모든 진화 계보(시작점 541종)**에서 공식 capture rate 가중으로 태어납니다 — 흔한 포켓몬은 자주, 전설은 부화 약 220번에 1번. 부화한 포켓몬은 키우는 동안에도 **도감**에 바로 나타납니다. 부화마다 25종 성격 중 하나가 정해지고 — **아주 특별한 우연으론 ✨ 이로치가 태어납니다**.
 3. ⚡ **진화.** 계속 코딩하면 실제 진화 트리(1/2/3단, 분기)를 따라 자라고, 단계마다 작은 연출이 반겨줍니다.
 4. 🎓 **졸업 & 수집.** 최종 진화 + 임계 도달 시 **도감**에 영구 보존됩니다 — 희귀할수록 오래 걸리고(헤비 유저 기준 common ≈3일 → legendary ≈24일) — 새 알이 도착합니다.
-5. 🍬 **한도 채우고 사탕 받기.** 5시간 또는 주간 사용량 한도를 다 채우면 **이상한 사탕**을 받아요 — 새 **가방** 탭에서 써서 현재 포켓몬을 키우세요.
+5. 🍬 **쓰는 만큼 사탕 받기.** 5시간·주간 사용량 한도가 차는 만큼 **이상한 사탕**을 받아요. 어떤 요금제든 같은 속도예요. **가방** 탭에서 써서 현재 포켓몬을 키우세요.
 6. 🛒 **상점에서 쓰기.** 그동안 사용한 토큰이 곧 재화입니다 — 새 **상점** 탭에서 **이상한 사탕**, 포켓몬 성격을 랜덤으로 다시 굴리는 **민트**, 이로치 확률을 영구히 올리는 **이로치 부적**, 또는 지금 포켓몬을 놓아주고 다시 시작하는 알을 살 수 있어요. 알은 세 종류입니다 — 일반 **포켓몬 알**, 고급 이상이 확정으로 나오는 **고급 알**, 희귀 이상이 확정으로 나오는 **희귀 알**. 필요한 포켓몬을 도감에 등록하면 **진화의 돌**, **전설의 유물**, **체육관 배지**를 **업적** 탭에서 무료로 받을 수 있어요.
 
 ## 둘러보기
@@ -91,8 +91,8 @@ PokeTokenBar는 당신이 이미 태우고 있는 AI 코딩 토큰(Claude Code �
 </tr>
 <tr>
 <td width="55%" valign="middle">
-<h3>🍬 한도를 채우면 이상한 사탕</h3>
-5시간 또는 주간 사용량 한도를 다 채우면 <b>이상한 사탕</b>을 받습니다. 그 창에 쓴 토큰의 10분의 1만큼, 최소 1개예요(50억 토큰을 쓴 주간 한도는 5개). 새 <b>가방</b> 탭에서 현재 포켓몬에게 써서 키우세요: 막히는 순간이 곧 성장하는 순간이 됩니다.
+<h3>🍬 쓰는 만큼 이상한 사탕</h3>
+사용량 한도는 다 채우지 않아도 차는 만큼 <b>이상한 사탕</b>을 줍니다. Pro 요금제의 5시간 세션 하나가 1개, 한 주가 5개이고, 더 큰 요금제는 Pro 몇 개 분인지만큼 줍니다(Max 20x 세션은 5%마다, 한 주는 1%마다 1개). 같은 사용량이면 어떤 요금제든 같은 속도로 받습니다. <b>가방</b> 탭에서 현재 포켓몬에게 써서 키우세요.
 </td>
 <td width="45%" align="center"><img src="assets/screenshot-bag-ko.png" width="300" alt="가방 속 이상한 사탕과 민트"></td>
 </tr>
@@ -141,8 +141,8 @@ Pi는 모델 여러 개를 세션 로그 하나로 흘려보낼 수 있습니다
 <tr>
 <td width="45%" align="center"><img src="assets/screenshot-difficulty-ko.png" width="300" alt="내 페이스에 맞춰 키우기"></td>
 <td width="55%" valign="middle">
-<h3>내 페이스에 맞춰 키우기</h3>
-성장 임계값과 상점 가격을 각각 <b>10%~200%</b>로 조절하며, 슬라이더 양끝의 쉬움/어려움·저렴/비쌈 표시로 방향을 확인합니다. 슬라이더는 임시 변경이며 <b>저장</b>을 눌러야 적용됩니다. 성장 난이도를 바꿔도 현재 단계의 진행률을 유지해 즉시 진화하지 않습니다. 이미 졸업시킨 진화 계보에서 다시 부화하면 <b>2배 빠르게</b> 자랍니다. 아이템·배지의 성장 보너스는 더해지고(+25%와 +25%는 +50%), 중복 보너스가 그 합계에 곱해집니다. 홈의 <b>보너스</b> 화면에서 하나씩 볼 수 있습니다. 홈의 부화·성장 막대에 마우스를 올리면 사용량·목표와 진행률을 볼 수 있습니다.
+<h3>모두 같은 성장 속도</h3>
+성장 임계값과 상점 가격은 모든 플레이어가 기본표의 10분의 1입니다. 모두 가장 낮게 두고 있던 슬라이더는 없어졌고, 다른 값으로 만든 저장은 넘어올 때 현재 단계의 진행률을 그대로 유지합니다. 이미 졸업시킨 진화 계보에서 다시 부화하면 <b>2배 빠르게</b> 자랍니다. 아이템·배지의 성장 보너스는 더해지고(+25%와 +25%는 +50%), 중복 보너스가 그 합계에 곱해집니다. 홈의 <b>보너스</b> 화면에서 하나씩 볼 수 있습니다. 홈의 부화·성장 막대에 마우스를 올리면 사용량·목표와 진행률을 볼 수 있습니다.
 </td>
 </tr>
 <tr>
@@ -195,14 +195,14 @@ Pi는 모델 여러 개를 세션 로그 하나로 흘려보낼 수 있습니다
 | **오래된해도** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/old-sea-map.png" width="28" height="28" alt="오래된해도"> | 뮤츠, 뮤 | 토큰 사용으로 얻는 성장 +20% |
 | **투명한방울** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/clear-bell.png" width="28" height="28" alt="투명한방울"> | 라이코, 앤테이, 스이쿤 | 희귀 등급 포켓몬이 25% 더 빨리 성장해요 |
 | **무지갯빛날개** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rainbow-wing.png" width="28" height="28" alt="무지갯빛날개"> | 루기아, 칠색조 | 상점의 모든 구매 25% 할인 |
-| **화산의돌** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/magma-stone.png" width="28" height="28" alt="화산의돌"> | 레지락, 레지아이스, 레지스틸 **또는** 레지에레키, 레지드래고 **또는** 화석 포켓몬 아무거나 4마리¹ | 이미 졸업시킨 라인의 성장 요구량 25% 감소 |
+| **화산의돌** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/magma-stone.png" width="28" height="28" alt="화산의돌"> | 레지락, 레지아이스, 레지스틸 **또는** 레지에레키, 레지드래고 **또는** 화석 포켓몬 아무거나 4마리¹ **또는** 히드런, 그란돈 | 이미 졸업시킨 라인의 성장 요구량 25% 감소 |
 | **마음의물방울** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/soul-dew.png" width="28" height="28" alt="마음의물방울"> | 라티아스, 라티오스 | 이상한 사탕 경험치 +50% |
 | **초록구슬** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/jade-orb.png" width="28" height="28" alt="초록구슬"> | 가이오가, 그란돈, 레쿠쟈 | 알 추가 20% 할인 |
 | **그라시데아꽃** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/gracidea.png" width="28" height="28" alt="그라시데아꽃"> | 유크시, 엠라이트, 아그놈 | 진화할 포켓몬이 첫 단계에서 25% 빨리 자라요 |
 | **백금옥** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/griseous-orb.png" width="28" height="28" alt="백금옥"> | 디아루가, 펄기아, 기라티나 | 고스트·드래곤타입 포켓몬이 30% 더 빨리 성장해요 |
-| **리버티티켓** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/liberty-pass.png" width="28" height="28" alt="리버티티켓"> | 코바르온, 테라키온, 비리디온 | 아직 졸업시킨 적 없는 라인의 성장 요구량 25% 감소 |
+| **리버티티켓** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/liberty-pass.png" width="28" height="28" alt="리버티티켓"> | 코바르온, 테라키온, 비리디온, 케르디오 중 3마리 | 아직 졸업시킨 적 없는 라인의 성장 요구량 25% 감소 |
 | **비추는거울** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/reveal-glass.png" width="28" height="28" alt="비추는거울"> | 토네로스, 볼트로스, 랜드로스, 러브로스 중 3마리 | 이로치 확률 2배 (이로치 부적과 중첩) |
-| **유전자쐐기** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dna-splicers.png" width="28" height="28" alt="유전자쐐기"> | 레시라무, 제크로무 | 토큰 사용으로 얻는 성장 +50% |
+| **유전자쐐기** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/dna-splicers.png" width="28" height="28" alt="유전자쐐기"> | 레시라무, 제크로무, 큐레무 | 토큰 사용으로 얻는 성장 +50% |
 | **지가르데큐브** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/zygarde-cube.png" width="28" height="28" alt="지가르데큐브"> | 제르네아스, 이벨타르, 지가르데 | 도감 25종마다 토큰 사용으로 얻는 성장 +1% (최대 +40%) |
 | **굴레의항아리** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/prison-bottle.png" width="28" height="28" alt="굴레의항아리"> | 디안시, 후파, 볼케니온 | 도감에 없던 모습으로 태어난 포켓몬이 50% 더 빨리 성장해요 |
 | **빛나는돌** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sparkling-stone.png" width="28" height="28" alt="빛나는돌"> | 카푸꼬꼬꼭, 카푸나비나, 카푸브루루, 카푸느지느 | 페어리타입 포켓몬이 30% 더 빨리 성장해요 |
@@ -211,10 +211,19 @@ Pi는 모델 여러 개를 세션 로그 하나로 흘려보낼 수 있습니다
 | **녹슨검** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rusted-sword.png" width="28" height="28" alt="녹슨검"> | 자시안, 자마젠타, 무한다이노 | 전설의 포켓몬이 25% 더 빨리 성장해요 |
 | **유대의고삐** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/reins-of-unity.png" width="28" height="28" alt="유대의고삐"> | 블리자포스, 레이스포스, 버드렉스 | 포켓몬이 졸업할 때마다 이상한 사탕 +1 |
 | **부스트에너지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/booster-energy.png" width="28" height="28" alt="부스트에너지"> | 패러독스 포켓몬 아무거나 4마리³ | 패러독스 포켓몬이 50% 더 빨리 성장해요 |
-| **벽록의가면** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/teal-mask.png" width="28" height="28" alt="벽록의가면"> | 오거폰, 조타구, 이야후, 기로치 | 풀·물·불꽃·바위타입 포켓몬이 20% 더 빨리 성장해요 |
+| **벽록의가면** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/teal-mask.png" width="28" height="28" alt="벽록의가면"> | 오거폰, 조타구, 이야후, 기로치, 복숭악동 중 4마리 | 풀·물·불꽃·바위타입 포켓몬이 20% 더 빨리 성장해요 |
 | **테라스탈오브** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/tera-orb.png" width="28" height="28" alt="테라스탈오브"> | 코라이돈, 미라이돈, 테라파고스 | 진화의 돌로 받은 알이 2배 빨리 부화해요 |
 | **고대의석상** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-statue.png" width="28" height="28" alt="고대의석상"> | 레지락, 레지아이스, 레지스틸, 레지기가스, 레지에레키, 레지드래고 | 진화하지 않는 포켓몬이 25% 빨리 자라요 |
-| **전기구슬** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/light-ball.png" width="28" height="28" alt="전기구슬"> | 피카츄의 옷 15개 모두 | 피츄, 피카츄, 라이츄가 50% 빨리 자라요 |
+| **초승달깃털** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/lunar-wing.png" width="28" height="28" alt="초승달깃털"> | 크레세리아, 다크라이 | 에스퍼·악타입 포켓몬이 30% 더 빨리 성장해요 |
+| **운석** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/meteorite.png" width="28" height="28" alt="운석"> | 지라치, 테오키스 | 토큰 한도를 다 채울 때마다 이상한 사탕 1개 더 |
+| **오박사의편지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/oaks-letter.png" width="28" height="28" alt="오박사의편지"> | 세레비, 쉐이미 | 모든 지방의 스타팅 포켓몬이 어느 단계든 25% 빨리 자라요 |
+| **바닷물향로** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sea-incense.png" width="28" height="28" alt="바닷물향로"> | 마나피 (피오네가 진화해요), 가이오가 | 등급이 확정된 알(상점, 레전드플레이트)이 2배 빨리 부화해요 |
+| **번개카세트** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/shock-drive.png" width="28" height="28" alt="번개카세트"> | 비크티니, 메로엣타, 게노세크트 | 화석 포켓몬¹이 어느 단계든 50% 빨리 자라요 |
+| **Z링** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/z-ring.png" width="28" height="28" alt="Z링"> | 실버디, 마기아나, 마샤도, 제라오라, 멜메탈 중 4마리 | 강철·전기타입 포켓몬이 30% 더 빨리 성장해요 |
+| **악의 족자** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/scroll-of-darkness.png" width="28" height="28" alt="악의 족자"> | 우라오스, 자루도 | 격투타입 포켓몬이 30% 더 빨리 성장해요 |
+| **고대의항아리** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-vase.png" width="28" height="28" alt="고대의항아리"> | 총지엔, 파오젠, 딩루, 위유이 | 중간 진화 단계의 포켓몬이 25% 빨리 자라요 |
+| **레전드플레이트** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/legend-plate.png" width="28" height="28" alt="레전드플레이트"> | 아르세우스 | 가방에 희귀 알과 고급 알 하나씩: 상점처럼 포켓몬을 놓아주고 그 등급 이상의 알을 받아요 |
+| **전기구슬** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/light-ball.png" width="28" height="28" alt="전기구슬"> | 피카츄의 옷 15개 모두 | 가방에 희귀 알 2개와 이상한 사탕 5개 |
 | **타입:널의 알** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/mystery-egg.png" width="28" height="28" alt="타입:널의 알"> | 실버디의 메모리 17개 모두⁴ | 지금 포켓몬을 놓아주고 타입:널이 태어나는 알을 받아요 |
 | **둥근부적** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/oval-charm.png" width="28" height="28" alt="둥근부적"> | 모든 종 (1,025) | 남은 폼이 있는 동안, 아직 모으지 못한 폼이 있는 포켓몬만 그 폼으로 태어나요 |
 | **반짝이는부적** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/glimmering-charm.png" width="28" height="28" alt="반짝이는부적"> | 모든 폼 (1,350) | 태어나는 포켓몬이 모두 이로치예요 |
@@ -225,6 +234,23 @@ Pi는 모델 여러 개를 세션 로그 하나로 흘려보낼 수 있습니다
 ² 텅비드, 매시붕, 페로코체, 전수목, 철화구야, 종이신도, 악식킹, 베베놈, 아고용, 차곡차곡, 두파팡.
 ³ 위대한엄니, 우렁찬꼬리, 사나운버섯, 날개치는머리, 땅을기는날개, 모래털가죽, 무쇠바퀴, 무쇠보따리, 무쇠손, 무쇠머리, 무쇠독나방, 무쇠가시, 고동치는달, 무쇠무인, 굽이치는물결, 무쇠잎새, 꿰뚫는화염, 날뛰는우레, 무쇠암석, 무쇠감투.
 ⁴ 실버디는 타입:널로 태어나 노말폼으로 진화해요. 도감에 있는 전설·환상의 포켓몬마다(놓아준 개체 포함) 그 폼의 타입 메모리를 줘요(파이어: 불꽃·비행, 가라르 파이어: 악·비행). 벌레타입 전설은 게노세크트뿐이에요. 실버디가 도감에 있으면 메모리마다 그 폼이 해금되고(도감의 폼 목록에 표시), 17개를 모두 모으면 타입:널의 알을 받아요.
+
+**발굴** (돌 탭): 바위 타입 포켓몬을 4종 졸업시킬 때마다(평소 바위 타입 74종, 폼으로 몇 종 더) 화석 알을 하나 발굴해요. 화석 계열마다 하나씩 모두 15개. 화석 알에서는 아직 없는 화석 계열이 무작위로 태어나고, 이미 있는 화석 계열은 받을 것 없이 발굴한 것으로 쳐요. 화석 포켓몬은 화석 알에서만 태어나요.
+
+**폼** (업적의 새 탭): 한 종의 모든 폼을 졸업시키면 받아요.
+
+| 업적 | 도구 | 조건 | 보상 |
+|---|---|---|---|
+| **로토무카탈로그** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rotom-catalog.png" width="28" height="28" alt="로토무카탈로그"> | 로토무의 폼 6개 | 가지고 있으면 그 라인에 없던 폼으로 태어난 포켓몬마다 이상한 사탕 1개 |
+| **혜성조각** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/comet-shard.png" width="28" height="28" alt="혜성조각"> | 메테노의 코어 7개 | 이상한 사탕 5개 |
+| **빨강꿀** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/red-nectar.png" width="28" height="28" alt="빨강꿀"> | 춤추새의 스타일 4개 | 이상한 사탕 3개 |
+| **보송보송바위** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/smooth-rock.png" width="28" height="28" alt="보송보송바위"> | 캐스퐁의 폼 4개 | 이상한 사탕 3개 |
+| **바라철록의 사계절** |  | 바라철록의 계절 4개 | 고급 알 1개 |
+| **요정의깃털** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/fairy-feather.png" width="28" height="28" alt="요정의깃털"> | 플라엣테의 색 5개 | 고급 알 1개 |
+| **트리미앙의 열 가지 커트** |  | 트리미앙의 커트 10개 | 희귀 알 1개 |
+| **비비용의 스무 가지 무늬** |  | 비비용의 무늬 20개 | 희귀 알 2개 |
+| **휘핑팝** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/whipped-dream.png" width="28" height="28" alt="휘핑팝"> | 마휘핑의 폼 63개 | 희귀 알 2개와 이상한 사탕 5개 |
+| **안농의 알파벳** |  | 안농의 글자 28개 | 희귀 알 2개 |
 
 ### 체육관 배지
 
@@ -266,15 +292,19 @@ Pi는 모델 여러 개를 세션 로그 하나로 흘려보낼 수 있습니다
 - **소진 예측** — 현재 5시간 창이 100%에 도달할 시각 예측.
 - **인앱 업데이트** — 원클릭 업데이트 확인, 설정에 현재 버전 표시.
 - **사용량 돌아보기** — 주·월·연 단위의 포켓몬 도감 스타일 요약(합계·게이지·이전 기간 비교·최고의 날·최장 연속·졸업). 게이지에 마우스를 올리면 날짜와 축약하지 않은 토큰 수를 보고, 이번 주/이번 달/올해 버튼으로 현재 기간에 바로 돌아옵니다. 기록은 올해와 작년분을 로컬에 보관합니다.
+- **통계 페이지**: 홈의 차트 버튼으로 모든 숫자를 한곳에서 봐요. 이번 달 일별 그래프, 위의 사용량 돌아보기와 그 날짜별 표(토큰, 졸업한 포켓몬), 컬렉션 숫자.
 
 - **로컬 저장 백업** — 자동 스냅샷과 손상 복구를 지원하며 설정에서 이전 저장 상태를 복원할 수 있습니다. 백업 기록은 접힌 상태로 시작하며 펼쳐서 확인합니다. **스냅샷 만들기**는 목록 밖에서 바로 사용할 수 있습니다.
 - **포켓몬 폼 수집** — 리전폼을 포함해 모든 세대의 다른 폼을 수집하고 폼별 개체를 확인하며, 보유한 폼을 메뉴바·플로팅 펫의 대표로 고릅니다. 모습은 진화와 저장·내보내기에도 이어지고 기존 안농 문자 저장도 읽습니다. [폼 목록](docs/reference/pokemon-forms.md)을 참고하세요.
+- **전체 도감**: TokenDex처럼 모든 종을 지방별로 보여 줘요. 완성률과 이로치, 지방마다 진행률과 희귀도, 잡은 종은 희귀도 색으로, 본 종은 흐리게, 없는 종은 번호로. 전체·보유(페이지별 격자)·미보유로 바꿔 봐요.
 - **이상한 사탕 일괄 사용** — 여러 사탕을 한 번에 사용하고, 사용 전 성장 결과를 미리 볼 수 있습니다.
 - **메뉴바 포켓몬**: 메뉴바 포켓몬을 움직이게, 정지(한 프레임, 다시 그리지 않음), 또는 숨겨서 사용량 글자만 보이게 고릅니다(설정 → 일반). 글자 줄을 모두 끄면 숨긴 포켓몬이 정지 상태로 돌아와 늘 누를 곳이 남습니다.
 - **새 폼 배지**: 그 라인에 없던 폼으로 태어난 포켓몬은 자라는 동안 홈에, 졸업 뒤에는 포획 기록에 표시됩니다.
 - **피카츄의 옷**: 피카츄가 올 때마다 아직 없는 옷이나 모자를 하나 가져와 자라는 동안 입어요. 도감의 피카츄 페이지에서 다른 피카츄가 입을 옷을 고릅니다. 15개를 모두 모으면 전기구슬을 받아요.
-- **생일 선물**: 설정에 생일을 넣으면 그날(그리고 그 뒤 일주일) 배너가 선물 알을 건네요. 1년에 한 번. 무엇이 태어날지는 비밀이에요.
-- **새 소식**: 반짝이 버튼에서 모든 변경을 날짜별로 볼 수 있고, 업데이트 뒤에는 지난번 이후 바뀐 점을 배너가 알려 줘요.
+- **생일 선물**: 설정에 생일을 넣으면 그날부터 3개월 안에 앱을 열면 배너가 선물 알을 건네요. 1년에 한 번. 무엇이 태어날지는 비밀이에요.
+- **이벤트 알**: 크리스마스, 새해, 밸런타인데이, 포켓몬 데이, 부활절, 핼러윈, 계절이 시작될 때, 그리고 첫 포획 기념일마다 그날을 위해 그린 알이 와요. 이벤트 동안과 그 뒤 2주 동안 배너가 알을 건네요. 1년에 한 번. 그 이벤트의 포켓몬이 태어나고, 이로치일 때가 많아요.
+- **새 소식**: 신문 버튼에서 모든 변경을 업데이트별로 새 기능, 개선, 수정으로 나눠 볼 수 있고, 업데이트 뒤에는 지난번 이후 바뀐 점을 배너가 알려 줘요.
+- **아이디어**: 전구 버튼으로 아이디어나 버그를 이 저장소의 이슈로 보내요. GitHub CLI(`gh`)로 로그인돼 있으면 앱이 직접 올리고, 아니면 브라우저에 미리 채워 열어요. 앱은 토큰을 갖고 있지 않아요.
 - **한도 사용 페이스** — 게이지의 경과 시간 표식과 6단계 색상으로 사용 속도를 확인합니다. 메뉴바 한도 비율도 같은 색상을 사용합니다.
 
 <img src="assets/screenshot-usage-recap-ko.png" width="360" alt="선택한 기간의 사용량 돌아보기">
@@ -292,13 +322,15 @@ Pi는 모델 여러 개를 세션 로그 하나로 흘려보낼 수 있습니다
 | **OpenCode** | 오늘 · 5시간 블록 · 주 · 월 | — |
 | **Hermes Agent** | 오늘 · 5시간 블록 · 주 · 월 | — |
 | **Cursor** | 오늘 · 5시간 블록 · 주 · 월 | — |
-| **Grok CLI** | 오늘 · 5시간 블록 · 주 · 월 | — |
+| **Grok Build CLI** | 오늘 · 5시간 블록 · 주 · 월 | — |
 | **Copilot CLI** | 오늘 · 5시간 블록 · 주 · 월 | — |
 | **Kiro CLI** | 오늘 · 5시간 블록 · 주 · 월 | — (추정치) |
 | **Pi Agent** | 오늘 · 5시간 블록 · 주 · 월 | — |
 | **omp** (oh-my-pi) | 오늘 · 5시간 블록 · 주 · 월 | — |
 | **Aside** | 오늘 · 5시간 블록 · 주 · 월 | — |
 | **Kimi Code** | 오늘 · 5시간 블록 · 주 · 월 | — |
+
+Grok 지원은 Grok Build CLI의 로컬 세션 로그를 읽습니다. Grok Bot의 클라우드 사용량과 구독 한도는 연동되어 있지 않습니다.
 
 모두 로컬에서 읽습니다 — 외부 사용량 CLI 불필요. 도구는 프로바이더 구현과 등록으로 추가합니다([CONTRIBUTING.ko.md](CONTRIBUTING.ko.md) 참고).
 
@@ -350,7 +382,7 @@ swift test                   # 단위 테스트
 | `~/Library/Application Support/Cursor/User/globalStorage/state.vscdb` | Cursor daily/blocks/weekly/monthly | SQLite 읽기 전용 폴백(`cursorDiskKV` 버블 엔트리의 `tokenCount`); 로그인 상태면 `cursor.com` 대시보드 API 가 기본 소스(개인정보 항목 참고) |
 | `cursor.com`(대시보드 API) | Cursor daily/blocks/weekly/monthly | 비공식 JSON endpoint(`get-filtered-usage-events`); 세션은 `state.vscdb` 의 `cursorAuth/accessToken` 또는 `CURSOR_SESSION_TOKEN`; 프로바이더가 새로고침될 때마다 다시 가져옴; 네트워크 실패 시 계정별로 분리된 최대 6시간 이내의 디스크 캐시로 대체; `CURSOR_USAGE_API=0` 으로 비활성화 |
 | `api2.cursor.sh`(대시보드 한도 API) | Cursor 공식 월간 included usage | Connect RPC `GetCurrentPeriodUsage`; `state.vscdb` 또는 `CURSOR_SESSION_TOKEN` 의 Bearer JWT; usage events 와 같은 비활성화 스위치 |
-| `~/.grok/sessions/**/updates.jsonl` | Grok CLI daily/blocks/weekly/monthly | `turn_completed` 레코드(턴 단위 `usage`, 서버 보고 비용); `$GROK_HOME` 설정 시 그 경로; 서브에이전트 세션은 토큰이 부모 턴에 이미 포함돼 제외 |
+| `~/.grok/sessions/**/updates.jsonl` | Grok Build CLI daily/blocks/weekly/monthly | `turn_completed` 레코드(턴 단위 `usage`, 서버 보고 비용); `$GROK_HOME` 설정 시 그 경로; 서브에이전트 세션은 토큰이 부모 턴에 이미 포함돼 제외 |
 | `~/.copilot/session-store.db` | Copilot CLI daily/blocks/weekly/monthly | SQLite 읽기 전용; `assistant_usage_events` 1행 = API 호출 1건; `$COPILOT_HOME` 설정 시 그 경로; `input_tokens` 에 캐시 프롬프트가 이미 포함돼 캐시 read/write 를 빼고 집계; premium request 과금이라 비용은 추정하지 않음 |
 | `~/Library/Application Support/kiro-cli/data.sqlite3`<br>`~/.kiro/sessions/cli/*.jsonl`<br>`~/.kiro/sessions/<ws>/<session>/messages.jsonl` | Kiro CLI daily/blocks/weekly/monthly | 2.20 이전 SQLite + 2.20+/`--v3` JSONL; 어느 쪽도 실제 토큰 수를 저장하지 않아 input 은 매 턴 재전송되는 누적 대화 텍스트를 바이트÷4 로 **추정**; `usage_summary` 크레딧은 USD 로 바꾸지 않음; `/clear`·압축으로 지워진 SQLite 대화의 이미 집계된 토큰은 앱을 재시작하기 전까지 계속 집계; `$KIRO_CLI_HOME`·`$KIRO_HOME` 지원 |
 | `~/.pi/agent/sessions/**/*.jsonl` | Pi Agent daily/blocks/weekly/monthly | 모든 프로젝트의 저장된 usage를 직접 집계; `$PI_CODING_AGENT_DIR`·`$PI_CODING_AGENT_SESSION_DIR` override 지원; output에는 reasoning이 이미 포함되어 별도 합산하지 않음; fork 복사본은 entry ID로 중복 제거; 기록된 비용 사용 |
