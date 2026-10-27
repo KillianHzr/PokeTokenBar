@@ -1468,6 +1468,7 @@ struct CollectionView: View {
                     catchLog
                 } else if nav.dexScope != .caught {
                     FullDexView(store: store, searchText: searchText, missingOnly: nav.dexScope == .missing,
+                                shinyOnly: shinyOnly && nav.dexScope != .missing, evolutionFamily: evolutionFamily,
                                 scope: $nav.dexScope,
                                 onSelectSpecies: { sp in nav.dexDetailCollectionID = sp.collectionID })
                 } else {
@@ -1499,8 +1500,10 @@ struct CollectionView: View {
                           options: PopoverNavigation.DexScope.allCases.map { ($0, store.l.dexScope($0)) })
     }
 
-    /// The shiny, family and sort buttons sort and filter caught individuals: the whole Pokédex keeps the search alone.
-    private var filtersCaughtOnly: Bool { navigation.showingCollectionLog || navigation.dexScope == .caught }
+    /// The sort orders individuals and the caught grid; the whole Pokédex keeps its regions' order.
+    private var sortsCaught: Bool { navigation.showingCollectionLog || navigation.dexScope == .caught }
+    /// Shiny only: individuals, caught species, the whole Pokédex's; the missing species have no shiny.
+    private var filtersShiny: Bool { navigation.showingCollectionLog || navigation.dexScope != .missing }
 
     private var filterToolbar: some View {
         HStack(spacing: 6) {
@@ -1532,7 +1535,7 @@ struct CollectionView: View {
                     .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 0.5)
             )
 
-            if filtersCaughtOnly {
+            if filtersShiny {
             Button {
                 withAnimation(.easeInOut(duration: 0.15)) {
                     shinyOnly.toggle()
@@ -1554,6 +1557,7 @@ struct CollectionView: View {
             .buttonStyle(.plain)
             .help(store.l.filterShinyOnly)
             .accessibilityLabel(store.l.filterShinyOnly)
+            }
 
             Button {
                 withAnimation(.easeInOut(duration: 0.15)) {
@@ -1577,6 +1581,7 @@ struct CollectionView: View {
             .help(store.l.filterEvolutionFamily)
             .accessibilityLabel(store.l.filterEvolutionFamily)
 
+            if sortsCaught {
             Menu {
                 if navigation.showingCollectionLog {
                     ForEach(CompanionStore.CatchLogSortOption.allCases) { option in
@@ -1877,6 +1882,10 @@ struct FullDexView: View {
     let store: CompanionStore
     let searchText: String
     let missingOnly: Bool
+    /// Only the species caught shiny.
+    var shinyOnly = false
+    /// The search finds whole evolution families, their missing members included.
+    var evolutionFamily = false
     @Binding var scope: PopoverNavigation.DexScope
     let onSelectSpecies: (CompanionStore.DexSpecies) -> Void
     @State private var folded: Set<Int> = []
@@ -1888,7 +1897,10 @@ struct FullDexView: View {
         let species = Dictionary(store.dexSpecies.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let graduated = store.graduatedSpeciesIDs
         let names = species.mapValues(\.name)
-        func shows(_ id: Int) -> Bool { Self.shows(id, names: names, missingOnly: missingOnly, query: searchText) }
+        let visible = Self.visibleIDs(names: names, missingOnly: missingOnly, query: searchText,
+                                      shinies: shinyOnly ? Set(store.dexSpecies.filter(\.isShiny).map(\.id)) : nil,
+                                      family: evolutionFamily)
+        func shows(_ id: Int) -> Bool { visible.contains(id) }
         return VStack(alignment: .leading, spacing: 6) {
             PillPicker(selection: $scope, options: PopoverNavigation.DexScope.allCases.map { ($0, store.l.dexScope($0)) })
             summary(registered: species.count, graduated: graduated)
@@ -1912,7 +1924,39 @@ struct FullDexView: View {
     /// without "#" and leading zeros) or by the name of a species in the Pokédex.
     static func shows(_ id: Int, names: [Int: String], missingOnly: Bool, query: String) -> Bool {
         if missingOnly, names[id] != nil { return false }
-        let query = query.trimmingCharacters(in: .whitespaces).lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+        return found(id, names: names, query: query)
+    }
+
+    /// The species shown: those `shows` keeps, with the whole family of each one the search finds when `family` is
+    /// on (missing members too: a search for a caught Charmander brings Charizard still missing), and only the
+    /// `shinies` when given.
+    static func visibleIDs(names: [Int: String], missingOnly: Bool, query: String, shinies: Set<Int>? = nil,
+                           family: Bool = false) -> Set<Int> {
+        let every = PokemonTypeData.generations.flatMap { Array($0) }
+        var ids = Set(every.filter { found($0, names: names, query: query) })
+        if family, !normalized(query).isEmpty { ids = Set(ids.flatMap(Self.family)) }
+        return ids.filter { id in
+            (!missingOnly || names[id] == nil) && (shinies.map { $0.contains(id) } ?? true)
+        }
+    }
+
+    /// Every species of the line `id` is in, from its first one down every branch.
+    static func family(of id: Int) -> [Int] {
+        var line: [Int] = []
+        var queue = [PokemonEvolutionData.root(of: id)]
+        while let next = queue.popLast() {
+            line.append(next)
+            queue += PokemonEvolutionData.children[next] ?? []
+        }
+        return line
+    }
+
+    private static func normalized(_ query: String) -> String {
+        query.trimmingCharacters(in: .whitespaces).lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+    }
+
+    private static func found(_ id: Int, names: [Int: String], query: String) -> Bool {
+        let query = normalized(query)
         guard !query.isEmpty else { return true }
         if let number = Int(query) { return id == number || String(id).hasPrefix(String(number)) }
         return names[id]?.lowercased().contains(query) == true
@@ -2024,11 +2068,11 @@ struct FullDexView: View {
             .accessibilityLabel("#\(id) \(species.name)")
         } else {
             VStack(spacing: 2) {
-                Text("?").font(.system(size: 18, weight: .bold, design: .rounded)).foregroundStyle(.secondary)
+                // Who's that Pokémon: its shape in black, at the grid's one scale, its name still hidden.
+                SpriteView(speciesID: id, size: 42, isSilhouette: true, sameScale: true)
                     .frame(width: 44, height: 44)
                 Text(number).font(.system(size: 10, weight: .semibold).monospacedDigit()).foregroundStyle(.secondary)
             }
-            .opacity(0.75)
             .frame(maxWidth: .infinity).padding(.vertical, 4)
             .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
             .help(store.l.dexMissingHint(id))

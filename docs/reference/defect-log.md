@@ -1469,12 +1469,15 @@ read_when:
   (load and import), and never moves; `testHatchingAFossilEggFreesNoDig` hatches an egg from the real flow and fails
   on the old count. Sweep: no other achievement subtracts a consumption counter; event and birthday eggs record keys.
 
-- **Keep store fixtures small in hatch tests (cause not found yet).** `testHatchingAFossilEggFreesNoDig` first hatched
-  an egg in a store holding 60 graduated species: alone and beside the sprite cache suites it passed, but in the whole
-  suite `SpriteImageCacheTests` and `UnownSpriteCacheTests` then failed 60 times ("a warm lookup must reuse the
-  image object"), their shared `NSCache` evicting fresh entries. Skipping that test, or shrinking its dex to 30, made
-  the whole run green again; what the larger store leaves behind is not identified. Use the smallest dex that still
-  reaches the condition, and run the full suite before calling a fixture done.
+- **A view rendered in a test keeps loading sprites after it: keep it from fetching what it does not test.**
+  `SpriteImageCacheTests` and `UnownSpriteCacheTests` failed 60 times in the whole suite only ("a warm lookup must
+  reuse the image object"): their entries were evicted from the shared 64-entry `SpriteLoader.imageCache`. Missing
+  species became silhouettes, and `CollectionReadabilityRenderingTests`, opening the collection on its default
+  scope, now showed the whole Pokédex: each missing cell fetched its sprite, and those loads finished during the
+  cache suites. That test reads the caught grid and now opens it (`dexScope = .caught`); the whole-Pokédex scale test
+  searches its two species so that no missing cell shows. A first occurrence came from a hatch test holding 60
+  graduated species; shrinking its dex cleared it, by what path is not traced. Run the full suite, not only the
+  suites touched, before calling a change done.
 
 - **A guard pinned to one screen misses the screen added beside it.** The same-scale test opened the caught grid
   (`dexScope = .caught`); the whole Pokédex, added as the default, drew each cell filled again and a Charmander stood

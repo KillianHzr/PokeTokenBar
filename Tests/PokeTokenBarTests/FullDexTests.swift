@@ -26,4 +26,24 @@ final class FullDexTests: XCTestCase {
         XCTAssertEqual(found("EEV"), [133])
         XCTAssertEqual(found("bulbasaur"), [], "a name is known once the species is caught")
     }
+
+    /// Shiny only, in All: the species caught shiny and no other.
+    func testTheShinyFilterKeepsTheSpeciesCaughtShiny() {
+        XCTAssertEqual(FullDexView.visibleIDs(names: names, missingOnly: false, query: "", shinies: [133]), [133])
+        XCTAssertEqual(FullDexView.visibleIDs(names: names, missingOnly: false, query: "pika", shinies: [133]), [],
+                       "the search and the filter both apply")
+    }
+
+    /// The family filter brings the whole line of what the search finds, its missing members too; Missing keeps those.
+    func testTheFamilyFilterBringsTheWholeLineMissingMembersIncluded() {
+        let caught = [4: "Charmander", 133: "Eevee"]
+        XCTAssertEqual(FullDexView.visibleIDs(names: caught, missingOnly: false, query: "charm"), [4])
+        XCTAssertEqual(FullDexView.visibleIDs(names: caught, missingOnly: false, query: "charm", family: true), [4, 5, 6])
+        XCTAssertEqual(FullDexView.visibleIDs(names: caught, missingOnly: true, query: "charm", family: true), [5, 6],
+                       "Missing: Charmeleon and Charizard")
+        XCTAssertEqual(Set(FullDexView.family(of: 134)), [133, 134, 135, 136, 196, 197, 470, 471, 700],
+                       "a branching line, from any of its members")
+        XCTAssertEqual(FullDexView.visibleIDs(names: caught, missingOnly: false, query: "", family: true).count, 1025,
+                       "no search: nothing to widen")
+    }
 }
