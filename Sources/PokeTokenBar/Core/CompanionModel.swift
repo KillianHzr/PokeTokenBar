@@ -1159,6 +1159,11 @@ struct CompanionState: Codable, Sendable {
     var birthday: Birthday?
     /// The year of the last birthday whose gift was claimed; nil for a save that never got one.
     var lastBirthdayGiftYear: Int?
+    /// When that gift was claimed: a December birthday's gift claimed in January counts for the year before.
+    var lastBirthdayGiftClaimedAt: Date?
+    /// Set when the birthday changes after a gift: the calendar year that gift was claimed in. The next gift must be
+    /// for a later birthday year, so a new date never brings a second egg within a year of the last.
+    var birthdayChangedAfterGiftYear: Int?
     /// The year of the last birthday the gift was announced for, so the notification comes once.
     var birthdayNotifiedYear: Int?
     // 알 상태에서 미리 롤해둔 부화 종(프리패칭) — 부화 순간 네트워크 딜레이 제거. 재시작에도 유지.
@@ -1263,6 +1268,8 @@ struct CompanionState: Codable, Sendable {
         lastHatchedBaseID = c.lenientOptional(Int.self, forKey: .lastHatchedBaseID)
         birthday = c.lenientOptional(Birthday.self, forKey: .birthday)
         lastBirthdayGiftYear = c.lenientOptional(Int.self, forKey: .lastBirthdayGiftYear)
+        lastBirthdayGiftClaimedAt = c.lenientOptional(Date.self, forKey: .lastBirthdayGiftClaimedAt)
+        birthdayChangedAfterGiftYear = c.lenientOptional(Int.self, forKey: .birthdayChangedAfterGiftYear)
         birthdayNotifiedYear = c.lenientOptional(Int.self, forKey: .birthdayNotifiedYear)
     }
 

@@ -63,13 +63,16 @@ enum BirthdayGift {
 
     /// The gift claimable at `now`: its birthday's year and the occasion. Nil when no birthday is set, its gift was
     /// claimed, or its time has passed. A birthday in the last days of December claimed in January counts for the
-    /// year before, so the next one still brings a gift.
-    static func claimable(birthday: Birthday?, lastGiftYear: Int?, now: Date,
+    /// year before, so the next one still brings a gift. `changedAfterGiftYear`: the birthday changed after a gift
+    /// claimed that calendar year, so only a later birthday year brings one (a December gift claimed in January, then a
+    /// February date, would otherwise bring two eggs within weeks).
+    static func claimable(birthday: Birthday?, lastGiftYear: Int?, changedAfterGiftYear: Int? = nil, now: Date,
                           calendar: Calendar) -> (year: Int, occasion: Occasion)? {
         guard let birthday else { return nil }
         let last = birthday.last(atOrBefore: now, calendar: calendar)
         let year = calendar.component(.year, from: last)
         if let lastGiftYear, lastGiftYear >= year { return nil }
+        if let changedAfterGiftYear, changedAfterGiftYear >= year { return nil }
         if let week = calendar.date(byAdding: .day, value: claimDays, to: last), now < week { return (year, .birthday) }
         guard lastGiftYear == nil, let catchUp = calendar.date(byAdding: .month, value: catchUpMonths, to: last),
               now < catchUp else { return nil }

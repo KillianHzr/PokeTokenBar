@@ -67,6 +67,17 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-27", entries: [
+            .fixed("2026-10-27-birthday-once-a-year") { l in
+                let egg = l.itemName(.birthdayEgg)
+                return l.t("\(egg)을 받은 뒤 생일을 바꿔도 1년 안에 하나 더 받을 수 없어요.",
+                           "Changing your birthday after its \(egg) no longer brings a second one within a year.",
+                           "\(egg)を受け取ったあとに誕生日を変えても、1年以内にもう1つもらうことはできません。",
+                           "Cambiar tu cumpleaños después de recibir su \(egg) ya no da un segundo en el mismo año.",
+                           "Changer ta date d'anniversaire après avoir reçu son \(egg) ne t'en donne plus un deuxième dans l'année.",
+                           "Mudar seu aniversário depois de receber o \(egg) não dá mais um segundo no mesmo ano.",
+                           "Wer seinen Geburtstag nach dem \(egg) ändert, bekommt im selben Jahr kein zweites mehr.",
+                           "Смена дня рождения после получения «\(egg)» больше не даёт второе в течение года.")
+            },
             .improved("2026-10-27-candies-as-you-go") { l in
                 let candy = l.itemName(.rareCandy)
                 return l.t("사용량 한도가 100%가 될 때까지 기다리지 않고, 차는 만큼 \(candy)을 받아요. Pro 5시간 세션 하나가 1개이고, 더 큰 요금제는 그만큼 더 받아요(Max 20x 세션은 5%마다 1개).",

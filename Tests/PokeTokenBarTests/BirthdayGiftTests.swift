@@ -133,6 +133,35 @@ final class BirthdayGiftTests: XCTestCase {
         XCTAssertEqual(BagView.Section.of(.birthdayEgg), .items)
     }
 
+    /// A new date after a gift never brings a second egg within a year. A December 30 gift claimed on January 2
+    /// counts for the year before; moved to February 1, the birthday would bring another in February.
+    func testANewDateAfterAGiftWaitsForALaterYear() throws {
+        let february = try XCTUnwrap(Birthday(month: 2, day: 1))
+        let gift = { (changed: Int?, now: Date) in
+            BirthdayGift.claimable(birthday: february, lastGiftYear: 2026, changedAfterGiftYear: changed, now: now,
+                                   calendar: self.utc)?.year
+        }
+        XCTAssertEqual(gift(nil, at(2027, 2, 3)), 2027, "a player who kept February 1 gets it")
+        XCTAssertNil(gift(2027, at(2027, 2, 3)), "changed after a gift claimed in January 2027")
+        XCTAssertEqual(gift(2027, at(2028, 2, 3)), 2028)
+
+        // In the app: the claim's calendar year is kept, and a change after it waits for a later birthday year.
+        let s = try store { _ in }
+        s.setBirthday(todaysBirthday)
+        XCTAssertTrue(s.claimBirthdayGift())
+        let year = Calendar.current.component(.year, from: now)
+        XCTAssertEqual(s.state.lastBirthdayGiftClaimedAt, now)
+        XCTAssertNil(s.state.birthdayChangedAfterGiftYear, "no change yet")
+        let earlier = Calendar.current.date(byAdding: .day, value: -2, to: now)!
+        let parts = Calendar.current.dateComponents([.month, .day], from: earlier)
+        s.setBirthday(Birthday(month: parts.month!, day: parts.day!))
+        XCTAssertEqual(s.state.birthdayChangedAfterGiftYear, year)
+        XCTAssertNil(s.birthdayGift)
+        let kept = try JSONDecoder().decode(CompanionState.self, from: JSONEncoder().encode(s.state))
+        XCTAssertEqual(kept.birthdayChangedAfterGiftYear, year)
+        XCTAssertEqual(kept.lastBirthdayGiftClaimedAt, now)
+    }
+
     /// Used, it sends off the Pokémon for the Birthday Egg, which hatches a mythical while one is missing.
     private func hatch(seed: UInt64, graduated ids: [Int], also: [DexEntry] = []) async throws -> MonState {
         let s = try store(seed: seed) {

@@ -2300,13 +2300,19 @@ final class CompanionStore {
 
     /// The birthday gift claimable now, and whether it is the birthday's week or a catch-up (`BirthdayGift`).
     var birthdayGift: (year: Int, occasion: BirthdayGift.Occasion)? {
-        BirthdayGift.claimable(birthday: state.birthday, lastGiftYear: state.lastBirthdayGiftYear, now: clock(),
-                               calendar: .current)
+        BirthdayGift.claimable(birthday: state.birthday, lastGiftYear: state.lastBirthdayGiftYear,
+                               changedAfterGiftYear: state.birthdayChangedAfterGiftYear, now: clock(), calendar: .current)
     }
 
-    /// Sets the player's birthday, or clears it with nil. Changing it never brings a second gift the same year.
+    /// Sets the player's birthday, or clears it with nil. Changing it never brings a second gift within a year: after
+    /// a gift, the next one must be for a birthday year later than the calendar year it was claimed in.
     func setBirthday(_ birthday: Birthday?) {
         guard state.birthday != birthday else { return }
+        if let lastGift = state.lastBirthdayGiftYear {
+            // A save that claimed before the claim date was kept: its gift's birthday year, at least.
+            let claimedIn = state.lastBirthdayGiftClaimedAt.map { Calendar.current.component(.year, from: $0) } ?? lastGift
+            state.birthdayChangedAfterGiftYear = max(state.birthdayChangedAfterGiftYear ?? claimedIn, claimedIn)
+        }
         state.birthday = birthday
         announceBirthdayGiftIfNeeded()
         save()
@@ -2318,6 +2324,7 @@ final class CompanionStore {
         guard let gift = birthdayGift else { return false }
         state.inventory[ItemKind.birthdayEgg.rawValue] = itemCount(.birthdayEgg) + 1
         state.lastBirthdayGiftYear = gift.year
+        state.lastBirthdayGiftClaimedAt = clock()
         save()
         AppLog.write("birthday gift claimed for \(gift.year) (\(gift.occasion))")
         return true
