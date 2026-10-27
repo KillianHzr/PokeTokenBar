@@ -31,20 +31,21 @@ final class BirthdayGiftTests: XCTestCase {
     }
 
     /// A week from the birthday for a player who already got gifts; three months for a first one.
-    func testTheGiftWaitsAWeekOrThreeMonthsTheFirstTime() throws {
+    func testTheGiftWaitsThreeMonths() throws {
         let march10 = try XCTUnwrap(Birthday(month: 3, day: 10))
         XCTAssertNil(claimable(nil, lastGift: nil, at(2027, 3, 10)), "no birthday, no gift")
         XCTAssertNil(claimable(march10, lastGift: 2026, at(2027, 3, 9)), "not yet")
         XCTAssertEqual(claimable(march10, lastGift: 2026, at(2027, 3, 10, hour: 0))?.0, 2027)
         XCTAssertEqual(claimable(march10, lastGift: 2026, at(2027, 3, 16, hour: 23))?.1, .birthday)
-        XCTAssertNil(claimable(march10, lastGift: 2026, at(2027, 3, 17, hour: 0)), "a week has passed")
+        XCTAssertEqual(claimable(march10, lastGift: 2026, at(2027, 3, 17, hour: 0))?.1, .belated, "after its week")
+        XCTAssertEqual(claimable(march10, lastGift: 2026, at(2027, 6, 9))?.0, 2027, "three months, every year")
+        XCTAssertNil(claimable(march10, lastGift: 2026, at(2027, 6, 10, hour: 1)), "three months have passed")
         XCTAssertNil(claimable(march10, lastGift: 2027, at(2027, 3, 10)), "once a year")
 
         XCTAssertEqual(claimable(march10, lastGift: nil, at(2027, 3, 12))?.1, .birthday)
         XCTAssertEqual(claimable(march10, lastGift: nil, at(2027, 6, 9))?.1, .belated, "never got one: three months")
         XCTAssertEqual(claimable(march10, lastGift: nil, at(2027, 6, 9))?.0, 2027)
         XCTAssertNil(claimable(march10, lastGift: nil, at(2027, 6, 10, hour: 1)), "three months have passed")
-        XCTAssertNil(claimable(march10, lastGift: 2026, at(2027, 5, 1)), "the catch-up is for a first gift only")
     }
 
     /// February 29 comes on February 28 in other years; a birthday in late December claimed in January counts for

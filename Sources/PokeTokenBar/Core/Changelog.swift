@@ -67,6 +67,17 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-27", entries: [
+            .improved("2026-10-27-birthday-three-months") { l in
+                let egg = l.itemName(.birthdayEgg)
+                return l.t("\(egg)은 생일부터 3개월 안에 앱을 열면 언제든 받을 수 있어요. 휴가 중이어도 놓치지 않아요.",
+                           "The \(egg) waits for you from your birthday until three months later, so a holiday never makes you miss it.",
+                           "\(egg)は誕生日から3か月以内にアプリを開けばいつでも受け取れます。休暇中でも逃しません。",
+                           "El \(egg) te espera desde tu cumpleaños hasta tres meses después: unas vacaciones no te lo hacen perder.",
+                           "L'\(egg) t'attend de ton anniversaire jusqu'à trois mois après : des vacances ne te le font plus rater.",
+                           "O \(egg) espera por você do aniversário até três meses depois: férias não fazem você perdê-lo.",
+                           "Das \(egg) wartet ab deinem Geburtstag drei Monate auf dich, ein Urlaub kostet es dich nicht mehr.",
+                           "«\(egg)» ждёт вас с дня рождения три месяца, так что отпуск больше не помешает его получить.")
+            },
             .improved("2026-10-27-menu-bar-companion") { $0.t("메뉴 막대에 오늘 토큰과 비용 대신 진화·부화까지 남은 토큰(↑)과 상점 토큰(¤)을 보여 줘요. 설정에서 바꿀 수 있어요.",
                           "The menu bar shows the tokens left to evolve or hatch (↑) and your Shop tokens (¤) instead of today's tokens and cost. Choose in Settings.",
                           "メニューバーに今日のトークンとコストの代わりに、進化・孵化までの残りトークン(↑)とショップのトークン(¤)を表示します。設定で選べます。",

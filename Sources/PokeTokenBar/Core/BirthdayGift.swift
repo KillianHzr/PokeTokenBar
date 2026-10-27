@@ -47,9 +47,8 @@ struct Birthday: Codable, Hashable, Sendable {
     }
 }
 
-/// The birthday gift: a Birthday Egg, once a year per save. It waits a week after the birthday, in case the Mac stays
-/// off that day; a save that never got one can still claim the last birthday's for three months, so that a birthday
-/// just before the player entered it, or before the gift existed, is not lost.
+/// The birthday gift: a Birthday Egg, once a year per save. From the birthday on, the player claims it the first time they
+/// open the app, up to three months later: on holiday, with the Mac off, or before they entered the date.
 enum BirthdayGift {
     static let claimDays = 7
     static let catchUpMonths = 3
@@ -57,7 +56,7 @@ enum BirthdayGift {
     enum Occasion: Equatable, Sendable {
         /// The birthday's week.
         case birthday
-        /// A first gift, for a birthday a little while ago.
+        /// After the birthday's week, within three months.
         case belated
     }
 
@@ -74,8 +73,7 @@ enum BirthdayGift {
         if let lastGiftYear, lastGiftYear >= year { return nil }
         if let changedAfterGiftYear, changedAfterGiftYear >= year { return nil }
         if let week = calendar.date(byAdding: .day, value: claimDays, to: last), now < week { return (year, .birthday) }
-        guard lastGiftYear == nil, let catchUp = calendar.date(byAdding: .month, value: catchUpMonths, to: last),
-              now < catchUp else { return nil }
+        guard let catchUp = calendar.date(byAdding: .month, value: catchUpMonths, to: last), now < catchUp else { return nil }
         return (year, .belated)
     }
 

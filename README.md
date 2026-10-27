@@ -281,7 +281,7 @@ Every badge has a **region per generation**: register every Pokémon of its type
 - **Menu bar Pokémon**: keep the menu bar Pokémon animated, still (one frame, no redraws), or hidden to show the usage text alone (Settings → General). With every text line off, a hidden Pokémon comes back still so there is always something to click.
 - **New form badge**: a Pokémon that hatched in a form its line never had says so on Home while it grows, and in the catch log once it graduates.
 - **Pikachu's costumes**: each Pikachu that arrives brings a costume or cap you don't have yet and wears it while it grows; pick the one every other Pikachu wears on its Pokédex page. All fifteen earn the Light Ball.
-- **Birthday gift**: enter your birthday in Settings and a banner offers you a gift egg on the day (and for the week after), once a year. What hatches from it is a surprise.
+- **Birthday gift**: enter your birthday in Settings and a banner offers you a gift egg from the day on, the first time you open the app within three months, once a year. What hatches from it is a surprise.
 - **What's new**: the sparkles button lists every change day by day; after an update, a banner says what changed since your last visit.
 - **Quota pace** — gauge markers show the elapsed share of a limit window; six color tiers indicate usage pace, and menu-bar limit percentages use the same colors.
 
