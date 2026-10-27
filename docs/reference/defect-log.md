@@ -1098,6 +1098,25 @@ read_when:
 
 ## 표시·UI
 
+- **Green and orange text needs its readable shade; tinted badges adapt to the appearance.** A player reported colors
+  "light on light or dark on dark". The system green and orange are about 2:1 on a light card (`· active` in the Bag,
+  the New badge, the orange warnings), and a tinted badge's accent text was dim on a dark one. **Why it was missed:**
+  every render test used dark mode, and nothing measured contrast. Text now uses `Color.readableGreen` and
+  `Color.readableOrange` (darker in light mode, lighter in dark mode), and `Badge`'s tinted style darkens or lightens
+  its text with the appearance. Sweep: every `.foregroundStyle(.green/.orange)` of `UI/` moved to them. Guard:
+  `ReadableColorTests` requires 4.5:1 on light and dark cards, with the system green under 3:1 as its control.
+
+- **A row of capsules wraps; it never squeezes one.** In the catch log, the badges sat in an `HStack` with a
+  `Spacer` and the nature: in French, "NOUVELLE FORME" broke on two lines inside its capsule (player screenshot).
+  Badges now lay out in a `WrappingHStack` (catch log, Home's rarity row), each at its natural width. Guard: none
+  automated (a render shows it); for any new row of badges, use the wrapping layout.
+
+- **A long label gets the room to show whole.** The Pokédex page's form grid used six or seven one-line columns as
+  soon as a species had more than eight forms, so "Motif Continental" read "Motif Conti..."; the page's title, beside
+  its rarity, was cut too. Named forms now take four columns and up to three lines (Unown's letters and Arceus's types
+  keep their compact grids), and the rarity moved above the name, as on Home. Guard:
+  `PokemonFormTests.testFormPickerKeepsSevenColumnsForUnownAndWidensNamedForms` pins the columns by label length.
+
 - **A name beside a badge that keeps its size is the one cut short.** Home's card put the rarity badge after the
   name, `.fixedSize()`, and the name on one line (`minimumScaleFactor(0.8)`): a long name or form ("Galarian
   Darmanitan Zen Mode") read "Galarian Darm…". The badge now sits above the name, which wraps on two lines. Guard:
