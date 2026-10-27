@@ -289,7 +289,7 @@ private struct RegionGrid: View {
                     SpriteView(speciesID: line, size: 26)
                         .frame(width: 28, height: 28)
                         .grayscale(owned ? 0 : 1).opacity(owned ? 1 : 0.35)
-                        .help(owned ? l.excavationWaived : l.fossilEggHint)
+                        .speciesNameTooltip(line, language: store.language)
                 }
             }
             if waived > 0 {

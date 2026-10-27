@@ -99,7 +99,7 @@ struct UnlockRequirementView: View {
                         let has = progress.registered.contains(id)
                         SpriteView(speciesID: id, size: spriteSize(count: goal.species.count))
                             .grayscale(has ? 0 : 1).opacity(has ? 1 : 0.35)
-                            .help("#\(id)")
+                            .speciesNameTooltip(id, language: store.language)
                     }
                     Spacer(minLength: 4)
                     counter(progress.count, needed: goal.needed)
@@ -131,7 +131,7 @@ struct UnlockRequirementView: View {
                     let has = progress.graduated.contains(form)
                     SpriteView(speciesID: goal.speciesID, size: spriteSize(count: needed), form: form)
                         .grayscale(has ? 0 : 1).opacity(has ? 1 : 0.35)
-                        .help(store.formDisplayName("#\(goal.speciesID)", speciesID: goal.speciesID, form: form))
+                        .speciesNameTooltip(goal.speciesID, form: form, language: store.language)
                 }
                 Spacer(minLength: 4)
                 counter(progress.count, needed: needed)

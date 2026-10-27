@@ -1867,7 +1867,8 @@ struct FullDexView: View {
     let onSelectSpecies: (CompanionStore.DexSpecies) -> Void
     @State private var folded: Set<Int> = []
 
-    private static let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 6)
+    /// Five to a row, so a sprite stays big enough to tell apart.
+    private static let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 5)
 
     var body: some View {
         let species = Dictionary(store.dexSpecies.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
@@ -1983,14 +1984,22 @@ struct FullDexView: View {
         let number = String(format: "%03d", id)
         if let species {
             Button { onSelectSpecies(species) } label: {
-                VStack(spacing: 1) {
-                    SpriteView(speciesID: id, size: 30,
+                VStack(spacing: 2) {
+                    SpriteView(speciesID: id, size: 42,
                                shiny: species.isShiny && !PokemonForm.hasForms(speciesID: id), form: species.form)
-                        .frame(width: 32, height: 32)
-                    Text(number).font(.system(size: 9, weight: .semibold).monospacedDigit())
+                        .frame(width: 44, height: 44)
+                        // A shiny one says so, as on the caught grid.
+                        .overlay(alignment: .topTrailing) {
+                            if species.isShiny { Text("✨").font(.system(size: 10)).accessibilityLabel(store.l.dexShinyLabel) }
+                        }
+                    // Its rarity in a dot before its number.
+                    HStack(spacing: 3) {
+                        Circle().fill(rarityColor(species.rarity)).frame(width: 7, height: 7)
+                        Text(number).font(.system(size: 10, weight: .semibold).monospacedDigit())
+                    }
                 }
-                .frame(maxWidth: .infinity).padding(.vertical, 3)
-                .background(rarityColor(species.rarity).opacity(0.16), in: RoundedRectangle(cornerRadius: 6))
+                .frame(maxWidth: .infinity).padding(.vertical, 4)
+                .background(rarityColor(species.rarity).opacity(0.14), in: RoundedRectangle(cornerRadius: 8))
                 .opacity(isGraduated ? 1 : 0.5)
             }
             .buttonStyle(.plain)
@@ -1998,14 +2007,14 @@ struct FullDexView: View {
                   + (isGraduated ? "" : " · \(store.l.dexSeenNotGraduated)"))
             .accessibilityLabel("#\(id) \(species.name)")
         } else {
-            VStack(spacing: 1) {
-                Text("?").font(.system(size: 15, weight: .bold, design: .rounded)).foregroundStyle(.secondary)
-                    .frame(width: 32, height: 32)
-                Text(number).font(.system(size: 9, weight: .semibold).monospacedDigit()).foregroundStyle(.secondary)
+            VStack(spacing: 2) {
+                Text("?").font(.system(size: 18, weight: .bold, design: .rounded)).foregroundStyle(.secondary)
+                    .frame(width: 44, height: 44)
+                Text(number).font(.system(size: 10, weight: .semibold).monospacedDigit()).foregroundStyle(.secondary)
             }
             .opacity(0.75)
-            .frame(maxWidth: .infinity).padding(.vertical, 3)
-            .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 6))
+            .frame(maxWidth: .infinity).padding(.vertical, 4)
+            .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
             .help(store.l.dexMissingHint(id))
             .accessibilityLabel(store.l.dexMissingHint(id))
         }
