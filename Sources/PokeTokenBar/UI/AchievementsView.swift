@@ -11,12 +11,14 @@ struct AchievementsView: View {
         case evolutionStones
         case gymBadges
         case legendaryArtifacts
+        case forms
 
         var collectorGroup: CollectorGroup {
             switch self {
             case .evolutionStones: return .evolutionStones
             case .gymBadges: return .gymBadges
             case .legendaryArtifacts: return .legendaryArtifacts
+            case .forms: return .forms
             }
         }
     }

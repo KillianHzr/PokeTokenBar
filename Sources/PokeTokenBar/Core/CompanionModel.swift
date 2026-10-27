@@ -194,6 +194,11 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     case relicVase
     /// Arceus's achievement: claiming it puts a Rare Egg and an Uncommon Egg in the Bag, not the Plate itself.
     case legendPlate
+    /// The forms achievements (`ItemUnlock.forms`): every form of one species graduated. The Rotom Catalog stays and
+    /// pays a Rare Candy for each Pokémon hatched in a form its line never had; the others put candies or eggs in
+    /// the Bag, as the Legend Plate does.
+    case rotomCatalog, cometShard, redNectar, smoothRock, sawsbuckSeasons, fairyFeather, furfrouTrims
+    case vivillonPatterns, whippedDream, unownLetters
     case typeNullEgg
     /// The reward for each region whose every species is in the Pokédex: an egg that hatches a legendary or mythical
     /// Pokémon.
@@ -310,6 +315,12 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .scrollOfDarkness: return "scroll-of-darkness"
         case .relicVase: return "relic-vase"
         case .legendPlate: return "legend-plate"
+        case .rotomCatalog: return "rotom-catalog"
+        case .cometShard: return "comet-shard"
+        case .redNectar: return "red-nectar"
+        case .smoothRock: return "smooth-rock"
+        case .fairyFeather: return "fairy-feather"
+        case .whippedDream: return "whipped-dream"
         case .lightBall: return "light-ball"
         case .typeNullEgg: return "mystery-egg"
         case .ovalCharm: return "oval-charm"
@@ -366,6 +377,13 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .scrollOfDarkness: return "📜"
         case .relicVase: return "⚱️"
         case .legendPlate: return "🌌"
+        case .rotomCatalog: return "📖"
+        case .cometShard: return "☄️"
+        case .redNectar: return "🌺"
+        case .smoothRock: return "🪨"
+        case .fairyFeather: return "🪶"
+        case .whippedDream: return "🍰"
+        case .sawsbuckSeasons, .furfrouTrims, .vivillonPatterns, .unownLetters: return "🥚"
         case .typeNullEgg, .legendaryEgg, .birthdayEgg, .uncommonEgg, .rareEgg, .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return "🥚"
         case .lightBall: return "⚡"
         case .ovalCharm: return "🔶"
@@ -394,6 +412,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         switch self {
         case .rareCandy, .mint,
              .typeNullEgg, .legendaryEgg, .birthdayEgg, .uncommonEgg, .rareEgg, .legendPlate,
+             .cometShard, .redNectar, .smoothRock, .sawsbuckSeasons, .fairyFeather, .furfrouTrims, .vivillonPatterns, .whippedDream, .unownLetters,
              .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg,
              .leafStone, .fireStone, .waterStone, .thunderStone, .sunStone,
              .moonStone, .duskStone, .iceStone, .dawnStone, .shinyStone:
@@ -409,12 +428,24 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     /// How many of this item one claim of its achievement adds to the Bag.
     var achievementRewardCount: Int { stoneType != nil ? EvolutionStone.achievementReward : 1 }
 
-    /// What one claim of this achievement puts in the Bag: the item itself, or for Arceus's Legend Plate, one egg
-    /// of each of its rarities.
+    /// What one claim of this achievement puts in the Bag: the item itself, or for Arceus's Legend Plate and most
+    /// forms achievements, candies and eggs.
     var achievementRewards: [(kind: ItemKind, count: Int)] {
-        guard self == .legendPlate else { return [(self, achievementRewardCount)] }
-        return [(.rareEgg, 1), (.uncommonEgg, 1)]
+        switch self {
+        case .legendPlate: return [(.rareEgg, 1), (.uncommonEgg, 1)]
+        case .cometShard: return [(.rareCandy, 5)]
+        case .redNectar, .smoothRock: return [(.rareCandy, 3)]
+        case .sawsbuckSeasons, .fairyFeather: return [(.uncommonEgg, 1)]
+        case .furfrouTrims: return [(.rareEgg, 1)]
+        case .vivillonPatterns, .unownLetters: return [(.rareEgg, 2)]
+        case .whippedDream: return [(.rareEgg, 2), (.rareCandy, 5)]
+        default: return [(self, achievementRewardCount)]
+        }
     }
+
+    /// Whether claiming this achievement gives other items than itself (the Legend Plate's eggs, a Comet Shard's
+    /// candies): the Bag never holds it.
+    var givesOtherItems: Bool { achievementRewards.contains { $0.kind != self } }
 
     /// The rarity a free egg of the Bag guarantees, like the Shop's egg of that rarity. nil for any other item.
     var bagEggTier: Rarity? {
@@ -432,6 +463,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         switch self {
         case .rareCandy, .mint, .shinyCharm, .birthdayEgg, .uncommonEgg, .rareEgg: return nil
         case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return nil
+        case .rotomCatalog, .cometShard, .redNectar, .smoothRock, .sawsbuckSeasons, .fairyFeather, .furfrouTrims, .vivillonPatterns, .whippedDream, .unownLetters: return .forms
         default: return .legendaryArtifacts
         }
     }
@@ -492,6 +524,16 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .scrollOfDarkness: return .species([SpeciesGoal([892, 893])])      // Urshifu, Zarude
         case .relicVase:   return .species([SpeciesGoal([1001, 1002, 1003, 1004])]) // Treasures of Ruin
         case .legendPlate: return .species([SpeciesGoal([493])])                // Arceus
+        case .rotomCatalog: return .forms(FormGoal(479))                        // Rotom's six appliances
+        case .cometShard: return .forms(FormGoal(774, excluding: ["meteor"]))   // Minior's seven cores
+        case .redNectar: return .forms(FormGoal(741))                           // Oricorio's four styles
+        case .smoothRock: return .forms(FormGoal(351))                          // Castform's four weathers
+        case .sawsbuckSeasons: return .forms(FormGoal(586))                     // Sawsbuck's four seasons
+        case .fairyFeather: return .forms(FormGoal(671))                        // Florges's five colors
+        case .furfrouTrims: return .forms(FormGoal(676))                        // Furfrou's ten trims
+        case .vivillonPatterns: return .forms(FormGoal(666))                    // Vivillon's twenty patterns
+        case .whippedDream: return .forms(FormGoal(869))                        // Alcremie's 63 sweets
+        case .unownLetters: return .forms(FormGoal(201))                        // Unown's 28 letters
         case .typeNullEgg: return .silvallyMemories
         case .legendaryEgg: return regionGoals.map { .species($0.map(\.goal)) }
         case .lightBall: return .allPikachuCostumes
@@ -526,7 +568,19 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
 
 /// Groups of the items unlocked by the Pokédex, each a section of the Achievements tab.
 enum CollectorGroup: String, CaseIterable, Sendable {
-    case evolutionStones, legendaryArtifacts, gymBadges
+    case evolutionStones, legendaryArtifacts, gymBadges, forms
+}
+
+/// The forms of one species an achievement asks for, graduated: every catalogued one but those excluded (Minior's
+/// Meteor Form, its shell, beside its seven cores).
+struct FormGoal: Equatable, Sendable {
+    let speciesID: Int
+    let forms: [PokemonForm]
+
+    init(_ speciesID: Int, excluding excluded: [String] = []) {
+        self.speciesID = speciesID
+        forms = PokemonForm.forms(speciesID: speciesID).filter { !excluded.contains($0.rawValue) }
+    }
 }
 
 /// One way to unlock a collector item: `needed` of `species` registered in the Pokédex.
@@ -565,7 +619,7 @@ enum BonusTheme: CaseIterable, Sendable {
         case .silverWing, .teraOrb, .seaIncense, .legendCharm, .ovalCharm: return .eggs
         case .shinyCharm, .revealGlass, .glimmeringCharm: return .shiny
         case .rainbowWing, .jadeOrb: return .shop
-        case .soulDew, .reinsOfUnity, .meteorite: return .candies
+        case .soulDew, .reinsOfUnity, .meteorite, .rotomCatalog: return .candies
         default: return nil
         }
     }
@@ -584,6 +638,8 @@ enum ItemUnlock: Equatable, Sendable {
     case allForms
     /// Every one of Pikachu's costumes (`PikachuCostume`).
     case allPikachuCostumes
+    /// Every form of one species graduated (`FormGoal`).
+    case forms(FormGoal)
 }
 
 /// Evolution stones are consumables: each one sends the current Pokémon off for an egg of the stone's type.
@@ -625,6 +681,8 @@ enum CollectorBonus {
     static let lunarWingPsychicDark = 1.3
     /// Rare Candies the Meteorite adds to each usage window filled: Jirachi's wish.
     static let meteoriteWindowCandies = 1
+    /// Rare Candies the Rotom Catalog gives for each Pokémon hatched in a form its line never had.
+    static let rotomCatalogNewFormCandies = 1
     /// Oak's Letter: the starters of every region, at every stage.
     static let oaksLetterStarter = 1.25
     static let starterLines: Set<Int> = Set([1, 152, 252, 387, 495, 650, 722, 810, 906].flatMap { $0...($0 + 8) })

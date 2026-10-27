@@ -235,6 +235,21 @@ Pi는 모델 여러 개를 세션 로그 하나로 흘려보낼 수 있습니다
 ³ 위대한엄니, 우렁찬꼬리, 사나운버섯, 날개치는머리, 땅을기는날개, 모래털가죽, 무쇠바퀴, 무쇠보따리, 무쇠손, 무쇠머리, 무쇠독나방, 무쇠가시, 고동치는달, 무쇠무인, 굽이치는물결, 무쇠잎새, 꿰뚫는화염, 날뛰는우레, 무쇠암석, 무쇠감투.
 ⁴ 실버디는 타입:널로 태어나 노말폼으로 진화해요. 도감에 있는 전설·환상의 포켓몬마다(놓아준 개체 포함) 그 폼의 타입 메모리를 줘요(파이어: 불꽃·비행, 가라르 파이어: 악·비행). 벌레타입 전설은 게노세크트뿐이에요. 실버디가 도감에 있으면 메모리마다 그 폼이 해금되고(도감의 폼 목록에 표시), 17개를 모두 모으면 타입:널의 알을 받아요.
 
+**폼** (업적의 새 탭): 한 종의 모든 폼을 졸업시키면 받아요.
+
+| 업적 | 도구 | 조건 | 보상 |
+|---|---|---|---|
+| **로토무카탈로그** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rotom-catalog.png" width="28" height="28" alt="로토무카탈로그"> | 로토무의 폼 6개 | 가지고 있으면 그 라인에 없던 폼으로 태어난 포켓몬마다 이상한 사탕 1개 |
+| **혜성조각** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/comet-shard.png" width="28" height="28" alt="혜성조각"> | 메테노의 코어 7개 | 이상한 사탕 5개 |
+| **빨강꿀** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/red-nectar.png" width="28" height="28" alt="빨강꿀"> | 춤추새의 스타일 4개 | 이상한 사탕 3개 |
+| **보송보송바위** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/smooth-rock.png" width="28" height="28" alt="보송보송바위"> | 캐스퐁의 폼 4개 | 이상한 사탕 3개 |
+| **바라철록의 사계절** |  | 바라철록의 계절 4개 | 고급 알 1개 |
+| **요정의깃털** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/fairy-feather.png" width="28" height="28" alt="요정의깃털"> | 플라엣테의 색 5개 | 고급 알 1개 |
+| **트리미앙의 열 가지 커트** |  | 트리미앙의 커트 10개 | 희귀 알 1개 |
+| **비비용의 스무 가지 무늬** |  | 비비용의 무늬 20개 | 희귀 알 2개 |
+| **휘핑팝** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/whipped-dream.png" width="28" height="28" alt="휘핑팝"> | 마휘핑의 폼 63개 | 희귀 알 2개와 이상한 사탕 5개 |
+| **안농의 알파벳** |  | 안농의 글자 28개 | 희귀 알 2개 |
+
 ### 체육관 배지
 
 모든 배지에는 **세대마다 하나의 지방**이 있어요. 그 지방의 해당 타입 포켓몬을 모두 도감에 등록하면 완성되고, **업적** 탭에서 받을 수 있어요(배지 카드마다 9개 지방이 받음·받기 가능·진행 중으로 표시돼요). 받은 지방마다 그 타입에 약한 포켓몬이 2.5% 빨리 자라서, 9개 지방을 모두 받으면 22.5%예요. 관동에는 악타입 포켓몬이 없어서 악 배지는 8개 지방(20%)이에요. 여러 배지에 약한 포켓몬은 효과가 누적돼요. 지방이 생기기 전에 받은 배지는 관동 지방(악은 성도)으로 인정돼요. 배지는 아르세우스에게 그 타입의 플레이트도 줘요. 아르세우스는 노말폼으로 태어나고, 도감에 등록되면 지방을 하나라도 받은 배지마다 그 타입의 폼이 해금돼요(진홍배지로 불꽃 아르세우스). 도감의 폼 목록에서 폼마다 필요한 배지를 보여줘요.

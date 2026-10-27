@@ -64,9 +64,10 @@ final class CollectorItemsTests: XCTestCase {
         XCTAssertEqual(s.collectorItems(in: .evolutionStones).count, 10)
         XCTAssertEqual(s.collectorItems(in: .legendaryArtifacts).count, 38)
         XCTAssertEqual(s.collectorItems(in: .gymBadges).count, 18)
+        XCTAssertEqual(s.collectorItems(in: .forms).count, 10)
         XCTAssertEqual(Set(CompanionStore.achievementItems), Set(ItemKind.allCases.filter { $0.collectorGroup != nil }))
-        XCTAssertEqual(s.totalAchievementsCount, 217,
-                       "10 stones, 37 artifacts and the Legendary Egg's 9 regions, 161 badge regions")
+        XCTAssertEqual(s.totalAchievementsCount, 227,
+                       "10 stones, 37 artifacts and the Legendary Egg's 9 regions, 161 badge regions, 10 forms")
         XCTAssertEqual(s.purchasableItems, [.mint, .rareCandy, .shinyCharm], "the Shop sells what main sells")
 
         // An unlocked stone is an achievement to claim, never a Shop item.
@@ -92,9 +93,10 @@ final class CollectorItemsTests: XCTestCase {
                 XCTAssertNil(kind.shopPrice, "\(kind) achievement is free to claim, not bought")
                 XCTAssertTrue(kind.isAchievement)
                 XCTAssertEqual(kind.achievementRewardCount, kind.stoneType != nil ? 5 : 1)
+                // An achievement that gives other items (eggs, candies) is never kept in the Bag itself.
                 XCTAssertEqual(kind.isPassive,
-                               kind.stoneType == nil && ![.typeNullEgg, .legendaryEgg, .legendPlate].contains(kind),
-                               "stones and eggs are the only consumable rewards")
+                               kind.stoneType == nil && !kind.givesOtherItems && ![.typeNullEgg, .legendaryEgg].contains(kind),
+                               "stones, eggs and what gives eggs or candies are the only consumable rewards")
             }
         }
     }

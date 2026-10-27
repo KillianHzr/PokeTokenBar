@@ -49,6 +49,8 @@ struct UnlockRequirementView: View {
                         }
                     }
                 }
+            case .forms(let goal):
+                formsGoalView(store.formProgress(goal), l)
             case .species:
                 let goals = store.unlockProgress(of: kind)
                 // Compact: only the goal that unlocked the item (all of them if none is met, e.g. an owned
@@ -102,6 +104,37 @@ struct UnlockRequirementView: View {
                     Spacer(minLength: 4)
                     counter(progress.count, needed: goal.needed)
                 }
+            }
+        }
+    }
+
+    /// A forms achievement: each form's sprite, faded until it graduated, or a bar for the long collections
+    /// (Furfrou's trims, Vivillon's patterns, Unown's letters, Alcremie's sweets).
+    @ViewBuilder
+    private func formsGoalView(_ progress: CompanionStore.FormProgress, _ l: L) -> some View {
+        let goal = progress.goal
+        let needed = goal.forms.count
+        if needed > Self.spriteRowLimit {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 4) {
+                    SpriteView(speciesID: goal.speciesID, size: compact ? 18 : 24, form: goal.forms.first)
+                    counterRow(l.allFormsOfSpeciesGoal, count: progress.count, needed: needed, met: progress.isMet)
+                }
+                if !compact {
+                    ProgressView(value: Double(progress.count), total: Double(max(1, needed))).controlSize(.small)
+                }
+            }
+        } else {
+            HStack(spacing: compact ? 2 : 3) {
+                if compact && progress.isMet { checkmark }
+                ForEach(goal.forms, id: \.self) { form in
+                    let has = progress.graduated.contains(form)
+                    SpriteView(speciesID: goal.speciesID, size: spriteSize(count: needed), form: form)
+                        .grayscale(has ? 0 : 1).opacity(has ? 1 : 0.35)
+                        .help(store.formDisplayName("#\(goal.speciesID)", speciesID: goal.speciesID, form: form))
+                }
+                Spacer(minLength: 4)
+                counter(progress.count, needed: needed)
             }
         }
     }

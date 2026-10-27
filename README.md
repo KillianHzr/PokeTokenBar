@@ -234,6 +234,21 @@ Only the Azure Flute and the Oval Charm change which Pokémon hatch, and the Ova
 ³ Great Tusk, Scream Tail, Brute Bonnet, Flutter Mane, Slither Wing, Sandy Shocks, Iron Treads, Iron Bundle, Iron Hands, Iron Jugulis, Iron Moth, Iron Thorns, Roaring Moon, Iron Valiant, Walking Wake, Iron Leaves, Gouging Fire, Raging Bolt, Iron Boulder, Iron Crown.
 ⁴ Silvally hatches as Type: Null and evolves in its Normal form. Each legendary or mythical Pokémon in your Pokédex, released ones included, gives the Memory of its form's types (Moltres: Fire and Flying; Galarian Moltres: Dark and Flying); the only Bug one is Genesect. Once Silvally is in your Pokédex, each Memory unlocks its form, shown under each form in its Pokédex page, and all 17 earn the Type: Null Egg.
 
+**Forms** (a tab of its own in Achievements): every form of one species graduated.
+
+| Achievement | Item | Goal | Reward |
+|---|---|---|---|
+| **Rotom Catalog** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/rotom-catalog.png" width="28" height="28" alt="Rotom Catalog"> | Rotom's 6 forms | While owned, each Pokémon hatched in a form its line never had gives a Rare Candy |
+| **Comet Shard** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/comet-shard.png" width="28" height="28" alt="Comet Shard"> | Minior's 7 cores | 5 Rare Candies |
+| **Red Nectar** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/red-nectar.png" width="28" height="28" alt="Red Nectar"> | Oricorio's 4 styles | 3 Rare Candies |
+| **Smooth Rock** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/smooth-rock.png" width="28" height="28" alt="Smooth Rock"> | Castform's 4 forms | 3 Rare Candies |
+| **Sawsbuck's Four Seasons** |  | Sawsbuck's 4 seasons | An Uncommon Egg |
+| **Fairy Feather** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/fairy-feather.png" width="28" height="28" alt="Fairy Feather"> | Florges's 5 colors | An Uncommon Egg |
+| **Furfrou's Ten Trims** |  | Furfrou's 10 trims | A Rare Egg |
+| **Vivillon's Twenty Patterns** |  | Vivillon's 20 patterns | 2 Rare Eggs |
+| **Whipped Dream** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/whipped-dream.png" width="28" height="28" alt="Whipped Dream"> | Alcremie's 63 forms | 2 Rare Eggs and 5 Rare Candies |
+| **Unown's Alphabet** |  | Unown's 28 letters | 2 Rare Eggs |
+
 ### Gym Badges
 
 Every badge has a **region per generation**: register every Pokémon of its type from that region to complete it, then claim it from the **Achievements** tab (each badge card shows its nine regions: claimed, ready or in progress). Each claimed region makes the Pokémon weak to the badge's type grow 2.5% faster, so a badge with all nine regions gives 22.5%; Dark has no Kanto Pokémon, so its badge has eight regions (20%). Bonuses stack when a Pokémon is weak to several badges. Badges claimed before regions existed count as their Kanto region (Johto for Dark). Each badge also gives Arceus the Plate of its type: Arceus hatches in its Normal form, and once it is in your Pokédex every badge with a claimed region unlocks the matching form (Fire Arceus with the Volcano Badge), shown under each form in its Pokédex page.

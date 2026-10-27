@@ -67,6 +67,14 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-27", entries: [
+            .new("2026-10-27-forms-achievements") { $0.t("업적에 폼 탭이 생겼어요. 로토무, 메테노, 마휘핑, 비비용, 안농 등 10종의 모든 폼을 졸업시키면 이상한 사탕, 알, 또는 새 폼으로 태어난 포켓몬마다 사탕을 주는 로토무카탈로그를 받아요.",
+                                                           "A Forms tab in Achievements: graduate every form of Rotom, Minior, Alcremie, Vivillon, Unown and five more species to earn Rare Candies, eggs, or the Rotom Catalog, which gives a candy for each Pokémon hatched in a new form.",
+                                                           "実績にフォルムのタブができました。ロトム、メテノ、マホイップ、ビビヨン、アンノーンなど10種のすべてのフォルムを卒業させると、ふしぎなアメやタマゴ、新しいフォルムで生まれたポケモンごとにアメをくれるロトムのカタログがもらえます。",
+                                                           "Una pestaña Formas en Logros: gradúa todas las formas de Rotom, Minior, Alcremie, Vivillon, Unown y otras cinco especies para ganar Caramelos Raros, huevos o el Catálogo Rotom, que da un caramelo por cada Pokémon que nace en una forma nueva.",
+                                                           "Un onglet Formes dans les Succès : diplôme toutes les formes de Motisma, Météno, Charmilly, Prismillon, Zarbi et cinq autres espèces pour gagner des Super Bonbons, des œufs ou le Moti-Catalogue, qui donne un bonbon pour chaque Pokémon éclos dans une nouvelle forme.",
+                                                           "Uma aba Formas em Conquistas: forme todas as formas de Rotom, Minior, Alcremie, Vivillon, Unown e mais cinco espécies para ganhar Doces Raros, ovos ou o Catálogo Rotom, que dá um doce por cada Pokémon que nasce numa forma nova.",
+                                                           "Ein Formen-Tab bei den Erfolgen: Verabschiede jede Form von Rotom, Meteno, Pokusan, Vivillon, Icognito und fünf weiteren Arten für Sonderbonbons, Eier oder den Rotom-Katalog, der für jedes in einer neuen Form geschlüpfte Pokémon ein Bonbon gibt.",
+                                                           "Вкладка «Формы» в достижениях: выпустите все формы Ротома, Минёра, Алкреми, Вивиллона, Аноуна и ещё пяти видов, чтобы получить Редкие конфеты, яйца или Каталог Ротома, который дарит конфету за каждого покемона, вылупившегося в новой форме.") },
             .fixed("2026-10-27-badges-wrap") { $0.t("포획 로그와 홈의 배지가 길면 캡슐 안에서 깨지지 않고 다음 줄로 넘어가요.",
                                                       "Badges in the catch log and on Home go to a second line when they are long, instead of breaking inside their capsule.",
                                                       "捕獲ログとホームのバッジが長いときは、カプセルの中で折れずに次の行へ回ります。",

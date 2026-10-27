@@ -1710,6 +1710,20 @@ struct L {
         case .scrollOfDarkness: return t("악의 족자", "Scroll of Darkness", "あくのかけじく", "Manuscrito Sombras", "Rouleau des Ténèbres", "Pergaminho das Trevas", "Unlicht-Schriftrolle", "Свиток тьмы")
         case .relicVase: return t("고대의항아리", "Relic Vase", "こだいのツボ", "Ánfora", "Vieux Vase", "Vaso Antigo", "Alte Vase", "Древняя ваза")
         case .legendPlate: return t("레전드플레이트", "Legend Plate", "レジェンドプレート", "Tabla Legendaria", "Plaque Légende", "Placa Lendária", "Legendentafel", "Легендарная плита")
+        case .rotomCatalog: return t("로토무카탈로그", "Rotom Catalog", "ロトムのカタログ", "Catálogo Rotom", "Moti-Catalogue", "Catálogo Rotom", "Rotom-Katalog", "Каталог Ротома")
+        case .cometShard: return t("혜성조각", "Comet Shard", "すいせいのかけら", "Fragmento Cometa", "Morceau Comète", "Fragmento de Cometa", "Kometstück", "Осколок кометы")
+        case .redNectar: return t("빨강꿀", "Red Nectar", "くれないのミツ", "Néctar Rojo", "Nectar Rouge", "Néctar Vermelho", "Roter Nektar", "Красный нектар")
+        case .smoothRock: return t("보송보송바위", "Smooth Rock", "さらさらいわ", "Roca Suave", "Roche Lisse", "Pedra Lisa", "Glattbrocken", "Гладкий камень")
+        case .sawsbuckSeasons: return t("바라철록의 사계절", "Sawsbuck's Four Seasons", "メブキジカの四季", "Las cuatro estaciones de Sawsbuck",
+                                        "Les quatre saisons de Haydaim", "As quatro estações de Sawsbuck", "Kronjuwilds vier Jahreszeiten", "Четыре сезона Сосбака")
+        case .fairyFeather: return t("요정의깃털", "Fairy Feather", "ようせいのハネ", "Pluma Feérica", "Plume Enchantée", "Pena de Fada", "Feenfeder", "Волшебное перо")
+        case .furfrouTrims: return t("트리미앙의 열 가지 커트", "Furfrou's Ten Trims", "トリミアンの10のカット", "Los diez cortes de Furfrou",
+                                     "Les dix coupes de Couafarel", "Os dez cortes de Furfrou", "Coiffwaffs zehn Schnitte", "Десять стрижек Фурфру")
+        case .vivillonPatterns: return t("비비용의 스무 가지 무늬", "Vivillon's Twenty Patterns", "ビビヨンの20のもよう", "Los veinte diseños de Vivillon",
+                                         "Les vingt motifs de Prismillon", "Os vinte padrões de Vivillon", "Vivillons zwanzig Muster", "Двадцать узоров Вивиллона")
+        case .whippedDream: return t("휘핑팝", "Whipped Dream", "ホイップポップ", "Dulce de Nata", "Chantibonbon", "Sonho Chantili", "Sahnehäubchen", "Взбитая мечта")
+        case .unownLetters: return t("안농의 알파벳", "Unown's Alphabet", "アンノーンのアルファベット", "El alfabeto de Unown", "L'alphabet des Zarbi",
+                                     "O alfabeto de Unown", "Icognitos Alphabet", "Алфавит Аноуна")
         case .uncommonEgg: return eggName(.uncommon)
         case .rareEgg: return eggName(.rare)
         case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg:
@@ -2140,6 +2154,26 @@ struct L {
                      "A recompensa de Arceus: ao resgatá-la, você recebe um \(rare) e um \(uncommon) na sua bolsa.",
                      "Arceus' Belohnung: Holst du sie ab, kommen ein \(rare) und ein \(uncommon) in deinen Beutel.",
                      "Награда Арсеуса: получив её, вы найдёте в сумке «\(rare)» и «\(uncommon)».")
+        case .rotomCatalog:
+            return t("보유하면 그 진화 라인에 없던 폼으로 태어난 포켓몬마다 이상한 사탕을 1개 받습니다.",
+                     "While owned, every Pokémon that hatches in a form its line never had gives you one Rare Candy.",
+                     "持っていると、その進化ラインになかったフォルムで生まれたポケモンごとにふしぎなアメを1個もらえます。",
+                     "Mientras lo tengas, cada Pokémon que nace en una forma que su línea nunca tuvo te da un Caramelo Raro.",
+                     "Tant que tu le possèdes, chaque Pokémon qui éclot dans une forme que sa lignée n'avait jamais eue te donne un Super Bonbon.",
+                     "Enquanto estiver na bolsa, cada Pokémon que nasce numa forma que sua linha nunca teve te dá um Doce Raro.",
+                     "Gibt im Beutel für jedes Pokémon, das in einer Form schlüpft, die seine Linie noch nie hatte, ein Sonderbonbon.",
+                     "Пока он у вас, за каждого покемона, вылупившегося в форме, которой у его линии ещё не было, вы получаете Редкую конфету.")
+        case .cometShard, .redNectar, .smoothRock, .sawsbuckSeasons, .fairyFeather, .furfrouTrims, .vivillonPatterns,
+             .whippedDream, .unownLetters:
+            let list = rewardsList(kind.achievementRewards)
+            return t("모든 폼이 졸업하면 받을 수 있어요. 받으면 가방에 들어와요: \(list).",
+                     "Every form graduated earns it. Claiming it puts in your Bag: \(list).",
+                     "すべてのフォルムが卒業すると受け取れます。受け取るとバッグに入ります：\(list)。",
+                     "Se gana con todas las formas graduadas. Al reclamarlo, recibes en tu bolsa: \(list).",
+                     "Toutes les formes diplômées le débloquent. En le réclamant, tu reçois dans ton sac : \(list).",
+                     "Todas as formas formadas o liberam. Ao resgatá-lo, você recebe na sua bolsa: \(list).",
+                     "Alle Formen verabschiedet schalten es frei. Holst du es ab, kommt in deinen Beutel: \(list).",
+                     "Открывается, когда все формы выпущены. Получив его, вы найдёте в сумке: \(list).")
         case .uncommonEgg: return eggDescription(.uncommon)
         case .rareEgg: return eggDescription(.rare)
         case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg:
@@ -2282,6 +2316,24 @@ struct L {
     }
 
     /// The Legend Plate's claim: its two eggs, not the Plate.
+    /// What one claim puts in the Bag: "Rare Egg ×2, Rare Candy ×5".
+    func rewardsList(_ rewards: [(kind: ItemKind, count: Int)]) -> String {
+        rewards.map { $0.count > 1 ? "\(itemName($0.kind)) ×\($0.count)" : itemName($0.kind) }.joined(separator: ", ")
+    }
+
+    func notifRewardsBody(_ rewards: [(kind: ItemKind, count: Int)]) -> String {
+        let list = rewardsList(rewards)
+        return t("가방에 획득했어요: \(list)", "Obtained in your bag: \(list).", "バッグに獲得しました：\(list)",
+                 "¡Obtuviste en tu bolsa: \(list)!", "Ajouté à votre sac : \(list).", "Você obteve na sua bolsa: \(list).",
+                 "Deinem Beutel hinzugefügt: \(list).", "Добавлено в ваш инвентарь: \(list).")
+    }
+
+    /// The goal of a forms achievement.
+    var allFormsOfSpeciesGoal: String {
+        t("모든 폼 졸업", "Every form graduated", "すべてのフォルムが卒業", "Todas las formas graduadas", "Toutes les formes diplômées",
+          "Todas as formas formadas", "Alle Formen verabschiedet", "Все формы выпущены")
+    }
+
     var notifLegendPlateBody: String {
         let rare = eggName(.rare), uncommon = eggName(.uncommon)
         return t("가방에 \(rare)과 \(uncommon)을 획득했어요.",
@@ -2304,6 +2356,8 @@ struct L {
             return t("유물", "Artifacts", "どうぐ", "Objetos", "Artefacts", "Objetos", "Artefakte", "Реликвии")
         case .gymBadges:
             return t("배지", "Badges", "バッジ", "Medallas", "Badges", "Insígnias", "Orden", "Значки")
+        case .forms:
+            return t("폼", "Forms", "フォルム", "Formas", "Formes", "Formas", "Formen", "Формы")
         }
     }
     var lockedLabel: String { t("잠김", "Locked", "ロック中", "Bloqueado", "Verrouillé", "Bloqueado", "Gesperrt", "Закрыто") }
@@ -2455,6 +2509,10 @@ struct L {
     var relicVaseEffectHint: String { t("중간 단계 +25% · 적용 중", "Middle stage +25% · active", "中間段階 +25% · 適用中", "Etapa intermedia +25% · activo", "Stade intermédiaire +25% · actif", "Estágio intermediário +25% · ativo", "Mittlere Stufe +25% · aktiv", "Средняя стадия +25% · активна") }
     /// The Legend Plate never sits in the Bag: its claim gives these two eggs.
     var legendPlateHint: String { "\(eggName(.rare)) + \(eggName(.uncommon))" }
+    var rotomCatalogEffectHint: String {
+        t("새 폼마다 사탕 +1 · 적용 중", "+1 candy per new form · active", "新フォルムごとにアメ+1 · 適用中", "+1 caramelo por forma nueva · activo",
+          "+1 bonbon par nouvelle forme · actif", "+1 doce por forma nova · ativo", "+1 Bonbon pro neuer Form · aktiv", "+1 конфета за новую форму · активен")
+    }
     // 알 (리롤) — tier = 보증 등급 하한(nil = 보증 없는 기본 알).
     // 이름은 `rarityLabel(r) + " 알"` 식 조합으로 만들지 않는다: 한국어·영어는 맞아떨어져도 일본어에서
     // 조사가 어긋난다(レアのタマゴ vs 자연스러운 レアなタマゴ). 세 언어를 명시 트리플로 적는다.

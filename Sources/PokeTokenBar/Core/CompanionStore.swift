@@ -2024,8 +2024,22 @@ final class CompanionStore {
             let progress = graduatedCollectionProgress
             return progress.forms >= progress.formsTotal
         case .allPikachuCostumes: return state.pikachuCostumes.count >= PikachuCostume.allCases.count
+        case .forms(let goal): return formProgress(goal).isMet
         case .species: return unlockProgress(of: kind, registered: registered).contains(where: \.isMet)
         }
+    }
+
+    /// The forms of a forms achievement graduated, in the goal's order.
+    struct FormProgress: Equatable, Sendable {
+        let goal: FormGoal
+        let graduated: [PokemonForm]
+        var count: Int { graduated.count }
+        var isMet: Bool { count >= goal.forms.count }
+    }
+
+    func formProgress(_ goal: FormGoal) -> FormProgress {
+        let graduated = state.collectedForms(speciesID: goal.speciesID, graduatedOnly: true)
+        return FormProgress(goal: goal, graduated: goal.forms.filter(graduated.contains))
     }
 
     // MARK: 업적 (진화의 돌, 체육관 배지, 전설의 유물)
@@ -2084,7 +2098,9 @@ final class CompanionStore {
         guard kind.isAchievement, isUnlocked(kind), !isClaimed(kind) else { return false }
         let count = grantAchievement(kind)
         save()
-        let body = kind == .legendPlate ? l.notifLegendPlateBody : l.notifAchievementClaimedBody(l.itemName(kind), count: count)
+        let body = kind == .legendPlate ? l.notifLegendPlateBody
+            : kind.givesOtherItems ? l.notifRewardsBody(kind.achievementRewards)
+            : l.notifAchievementClaimedBody(l.itemName(kind), count: count)
         notifyCompanionEvent(l.notifAchievementClaimedTitle, body)
         return true
     }
@@ -2946,6 +2962,11 @@ final class CompanionStore {
                                 isShiny: isShiny, nature: nature, profile: profile, hasGrowthBoost: hasGrowthBoost,
                                 dittoDisguise: dittoDisguise, form: form)
         state.active?.hasNewForm = hasNewForm
+        // The Rotom Catalog pays for a form the line never had; a disguised Ditto's form is not its own.
+        if hasNewForm, dittoDisguise == nil, itemCount(.rotomCatalog) > 0 {
+            state.inventory[ItemKind.rareCandy.rawValue, default: 0] += CollectorBonus.rotomCatalogNewFormCandies
+            AppLog.write("rotom catalog: +\(CollectorBonus.rotomCatalogNewFormCandies) candy for a new form")
+        }
         state.lastHatchedBaseID = line.baseID
         // A disguised Ditto is not the species it shows: nothing unlocks until it is revealed.
         if dittoDisguise == nil { announceFormUnlocks(since: unlockedForms) }

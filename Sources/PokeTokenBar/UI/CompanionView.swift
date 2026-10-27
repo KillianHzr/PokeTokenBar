@@ -31,6 +31,9 @@ struct ItemIconView: View {
         case .birthdayEgg: .birthday
         case .uncommonEgg: .tier(.uncommon)
         case .rareEgg: .tier(.rare)
+        // Forms achievements with no item of their own: the egg they give.
+        case .sawsbuckSeasons: .tier(.uncommon)
+        case .furfrouTrims, .vivillonPatterns, .unownLetters: .tier(.rare)
         default: EventEgg(item: kind).map { .event($0) }
         }
         _img = State(initialValue: drawnEgg.map(EggRenderer.still)

@@ -15,7 +15,7 @@ struct BagView: View {
         static func of(_ kind: ItemKind) -> Section {
             switch kind.collectorGroup {
             case .gymBadges?: return .badges
-            case .legendaryArtifacts?: return .artifacts
+            case .legendaryArtifacts?, .forms?: return .artifacts
             case .evolutionStones?, nil: return .items
             }
         }
@@ -334,6 +334,10 @@ extension CompanionStore {
         case .scrollOfDarkness: return l.scrollOfDarknessEffectHint
         case .relicVase: return l.relicVaseEffectHint
         case .legendPlate: return l.legendPlateHint
+        case .rotomCatalog: return l.rotomCatalogEffectHint
+        case .cometShard, .redNectar, .smoothRock, .sawsbuckSeasons, .fairyFeather, .furfrouTrims, .vivillonPatterns,
+             .whippedDream, .unownLetters:
+            return l.rewardsList(kind.achievementRewards)
         case .uncommonEgg: return l.eggGuaranteeHint(.uncommon)
         case .rareEgg: return l.eggGuaranteeHint(.rare)
         case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return l.birthdayEggHint
