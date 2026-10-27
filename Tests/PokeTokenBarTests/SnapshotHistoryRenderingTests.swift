@@ -299,6 +299,13 @@ final class SnapshotHistoryRenderingTests: XCTestCase {
             let words = try recognize(try XCTUnwrap(image.cropping(to: crop)), crop: crop)
             strips.append(["cropPixels": NSStringFromRect(crop), "words": words.map(\.diagnostic)])
             for word in words {
+                // A label that touches an inner crop edge is cut there (a "yet" read "vet" when the strip's edge clipped
+                // the y), and at equal confidence the merge would keep that reading; the overlap shows it whole in the
+                // neighboring strip.
+                let margin = 8.0
+                let clippedTop = crop.minY > 0 && word.bounds.minY < crop.minY + margin
+                let clippedBottom = crop.maxY < CGFloat(image.height) && word.bounds.maxY > crop.maxY - margin
+                if clippedTop || clippedBottom { continue }
                 if let index = result.firstIndex(where: { $0.duplicates(word) }) {
                     if (word.confidences.first ?? 0) > (result[index].confidences.first ?? 0) { result[index] = word }
                 } else { result.append(word) }
