@@ -17,6 +17,11 @@ private actor NameServer {
     }
 }
 
+private actor URLRecorder {
+    private(set) var urls: [URL] = []
+    func record(_ url: URL) { urls.append(url) }
+}
+
 private actor DelayedNameProvider: PokemonNameProviding {
     private var continuation: CheckedContinuation<[String: String], Never>?
     private var result: [String: String]?
@@ -85,6 +90,24 @@ final class PokemonNameLocalizationTests: XCTestCase {
         XCTAssertEqual(PokemonNameLocalization.resolve(disk, preferredCodes: ["it"]), "Azione")
         let calls = await server.calls
         XCTAssertEqual(calls, 1)
+    }
+
+    /// An achievement's Pokémon shows its name on hover: species names come from PokéAPI's `pokemon-species` by
+    /// number, in every language.
+    func testSpeciesNamesComeFromPokemonSpeciesByNumber() async throws {
+        let directory = try tempDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let asked = URLRecorder()
+        let body = try response(["en": "Kyogre", "fr": "Kyogre", "ja-Hrkt": "カイオーガ", "ko": "가이오가"])
+        let client = PokemonNameClient(directory: directory, fetch: { url in
+            await asked.record(url)
+            return body
+        })
+        let names = try await client.names(for: PokemonNameResource(kind: .pokemonSpecies, name: "382"))
+        let url = await asked.urls.first
+        XCTAssertEqual(url?.absoluteString, "https://pokeapi.co/api/v2/pokemon-species/382/")
+        XCTAssertEqual(AppLanguage.ko.resolveName(names), "가이오가")
+        XCTAssertEqual(AppLanguage.ja.resolveName(names), "カイオーガ")
     }
 
     func testDuplicateVisibleRowsShareOneRequest() async throws {

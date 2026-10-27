@@ -67,6 +67,14 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-27", entries: [
+            .improved("2026-10-27-achievement-names") { $0.t("업적에서 필요한 포켓몬에 마우스를 올리면 그 이름이 보여요.",
+                                                           "In Achievements, hovering a Pokémon a goal asks for shows its name.",
+                                                           "実績で、条件のポケモンにポインタを重ねると名前が表示されます。",
+                                                           "En Logros, al pasar el cursor por un Pokémon de un objetivo se ve su nombre.",
+                                                           "Dans les Succès, survoler un Pokémon demandé affiche son nom.",
+                                                           "Em Conquistas, passar o cursor sobre um Pokémon de um objetivo mostra o nome dele.",
+                                                           "Bei den Erfolgen zeigt ein Pokémon, das ein Ziel verlangt, beim Darüberfahren seinen Namen.",
+                                                           "В достижениях при наведении на нужного покемона показывается его имя.") },
             .new("2026-10-27-excavation") { $0.t("발굴: 바위 타입 포켓몬을 4마리 졸업시킬 때마다 화석 알을 하나 받아요(돌 탭, 15번). 화석 알에서는 아직 없는 화석 계열이 무작위로 태어나고, 이미 있는 계열은 발굴한 것으로 쳐요. 화석 포켓몬은 이제 화석 알에서만 태어나요.",
                                                   "Excavation: every 4 Rock-type Pokémon graduated give a Fossil Egg (Stones tab, 15 digs). It hatches a fossil line you're missing at random; lines you already have count as dug. Fossil Pokémon now hatch from Fossil Eggs only.",
                                                   "発掘：いわタイプのポケモンを4匹卒業させるたびに化石のタマゴがもらえます(いしタブ、全15回)。まだいない化石の系統がランダムに生まれ、すでにいる系統は発掘済みになります。化石ポケモンは化石のタマゴからしか生まれなくなりました。",
