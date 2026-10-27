@@ -194,6 +194,8 @@ struct PopoverView: View {
     @State private var showingClaudeKeychainHelp = false
     /// The birthday gift was just opened: the banner says where the egg went until it is dismissed.
     @State private var birthdayGiftOpened = false
+    /// The event egg just taken: the banner says where it went until it is dismissed.
+    @State private var eventEggTaken: EventEgg?
 
     var body: some View {
         // NOTE: 설정을 .sheet 로 띄우면 transient 팝오버가 닫힐 때 시트가 고아로 남아
@@ -309,6 +311,50 @@ struct PopoverView: View {
         }
     }
 
+    /// The event egg waiting, the earliest event's first, above the tabs whatever the tab: the event's wish while it
+    /// is on, then that it still waits, two weeks more. Then where it went. It never tells what hatches.
+    @ViewBuilder
+    private var eventEggBanner: some View {
+        if let pending = companion.eventEggs.first {
+            let egg = pending.egg
+            let colors = egg.bannerColors
+            HStack(spacing: 10) {
+                SpriteView(speciesID: nil, size: 40, animated: true, egg: .event(egg))
+                    .frame(width: 40, height: 40)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(companion.isEventOn(egg, year: pending.year) ? l.eventEggWish(egg) : l.eventEggStillWaiting(egg))
+                        .font(.callout.weight(.bold))
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(l.eventEggBody(egg)).font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 4)
+                Button(l.eventEggClaim) {
+                    guard companion.claimEventEgg(egg) else { return }
+                    eventEggTaken = egg
+                    nav.tab = .bag
+                }
+                .buttonStyle(.borderedProminent).controlSize(.small).tint(colors.0)
+            }
+            .padding(8)
+            .background(LinearGradient(colors: [colors.0.opacity(0.22), colors.1.opacity(0.14)],
+                                       startPoint: .leading, endPoint: .trailing))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        } else if let egg = eventEggTaken {
+            HStack(spacing: 8) {
+                Text("🥚").font(.callout)
+                Text(l.eventEggClaimed(egg)).font(.caption).fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 4)
+                Button { eventEggTaken = nil } label: { Image(systemName: "xmark") }
+                    .buttonStyle(.borderless).controlSize(.small).foregroundStyle(.secondary)
+                    .accessibilityLabel(l.close)
+            }
+            .padding(8)
+            .background(egg.bannerColors.0.opacity(0.14))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+    }
+
     /// Opens the changelog, the days not seen yet marked new on it, and counts them seen.
     private func openChangelog() {
         nav.changelogSeenBefore = store.changelogSeen
@@ -345,6 +391,7 @@ struct PopoverView: View {
         return VStack(alignment: .leading, spacing: 12) {
             updateBanner
             birthdayBanner
+            eventEggBanner
             changelogBanner
             PopoverTabPicker(tab: $nav.tab, l: l, unclaimedAchievements: companion.unclaimedAchievementsCount)
 
@@ -1999,6 +2046,25 @@ struct Line: Shape {
         Path { path in
             path.move(to: CGPoint(x: rect.minX, y: rect.midY))
             path.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
+        }
+    }
+}
+
+private extension EventEgg {
+    /// The banner's two colors: the button's, then the gradient's end.
+    var bannerColors: (Color, Color) {
+        switch self {
+        case .newYear: return (.indigo, .yellow)
+        case .valentine: return (.pink, .red)
+        case .pokemonDay: return (.red, .blue)
+        case .easter: return (.green, .yellow)
+        case .halloween: return (.orange, .purple)
+        case .christmas: return (.red, .green)
+        case .companion: return (.teal, .pink)
+        case .spring: return (.pink, .green)
+        case .summer: return (.orange, .yellow)
+        case .autumn: return (.brown, .orange)
+        case .winter: return (.blue, .cyan)
         }
     }
 }

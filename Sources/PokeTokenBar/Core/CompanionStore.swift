@@ -1418,6 +1418,7 @@ final class CompanionStore {
         displayState = computeState(burnTier: burnTier, limitWarning: limitWarning,
                                     hasUsageData: hasUsageData, today: todayTokens)
         announceBirthdayGiftIfNeeded()
+        announceEventEggsIfNeeded()
         save()
         autoSnapshotIfNeeded()
     }
@@ -2333,6 +2334,70 @@ final class CompanionStore {
         return true
     }
 
+    // MARK: Event eggs
+
+    /// The player's very first catch, its time and line: the companion's anniversary egg follows it.
+    var firstCatch: (date: Date, baseID: Int)? {
+        state.dex.compactMap { e in e.caughtAt.map { (date: $0, baseID: e.baseID) } }.min { $0.date < $1.date }
+    }
+
+    /// The event eggs waiting now, earliest event first (`EventEgg.claimable`).
+    var eventEggs: [(egg: EventEgg, year: Int)] {
+        EventEgg.claimable(now: clock(), claimed: state.claimedEventEggs, firstCatch: firstCatch?.date, calendar: .current)
+    }
+
+    /// Whether this waiting egg's event is on, rather than in the two weeks after it.
+    func isEventOn(_ egg: EventEgg, year: Int) -> Bool {
+        egg.isOn(year: year, now: clock(), firstCatch: firstCatch?.date, calendar: .current)
+    }
+
+    /// Puts a waiting event egg in the Bag, once for its year.
+    @discardableResult
+    func claimEventEgg(_ egg: EventEgg) -> Bool {
+        guard let pending = eventEggs.first(where: { $0.egg == egg }) else { return false }
+        state.inventory[egg.item.rawValue, default: 0] += 1
+        state.claimedEventEggs.insert(egg.key(year: pending.year))
+        save()
+        AppLog.write("event egg claimed: \(egg.key(year: pending.year))")
+        return true
+    }
+
+    func canUseEventEgg(_ egg: EventEgg) -> Bool { hasActive && itemCount(egg.item) > 0 }
+
+    /// Uses an event egg: like a stone, the current Pokémon is sent off for an egg, which hatches the event's Pokémon.
+    @discardableResult
+    func useEventEgg(_ egg: EventEgg) -> Bool {
+        guard canUseEventEgg(egg) else { return false }
+        state.inventory[egg.item.rawValue] = itemCount(egg.item) - 1
+        replaceActiveWithEgg(price: 0, tier: egg.tier, type: egg.type)
+        state.eggEvent = egg
+        save()
+        AppLog.write("event egg used: \(egg.rawValue), discarded active")
+        return true
+    }
+
+    /// The notification, once per waiting event egg.
+    private func announceEventEggsIfNeeded() {
+        for pending in eventEggs {
+            let key = pending.egg.key(year: pending.year)
+            guard !state.eventEggsNotified.contains(key) else { continue }
+            state.eventEggsNotified.insert(key)
+            let title = isEventOn(pending.egg, year: pending.year) ? l.eventEggWish(pending.egg) : l.eventEggStillWaiting(pending.egg)
+            notifyCompanionEvent(title, l.eventEggBody(pending.egg))
+        }
+    }
+
+    /// The types the egg's Pokémon must have, which its form roll keeps to: a stone's, else a season's.
+    private var eggFormTypes: [PokemonType] {
+        state.eggTypeGuarantee.map { [$0] } ?? state.eggEvent?.seasonTypes ?? []
+    }
+
+    /// The form an event egg fixes: Deerling in its season's.
+    private func eventForm(baseID: Int) -> PokemonForm? {
+        guard baseID == EventEgg.deerlingID, let form = state.eggEvent?.seasonForm else { return nil }
+        return PokemonForm.resolved(baseID: baseID, form: form)
+    }
+
     // MARK: Birthday gift
 
     /// The birthday gift claimable now, and whether it is the birthday's week or a catch-up (`BirthdayGift`).
@@ -2394,6 +2459,7 @@ final class CompanionStore {
         state.eggFromTypeNullEgg = false
         state.eggFromLegendaryEgg = false
         state.eggFromBirthdayEgg = false
+        state.eggEvent = nil
         state.pendingHatchID = nil    // 새 보증으로 처음부터 롤(활성 포켓몬이 있는 동안엔 원래 비어 있다)
         state.pendingForm = nil
         state.pendingShiny = false
@@ -2593,7 +2659,7 @@ final class CompanionStore {
             isHatchRetryDelayed = true
             return
         }
-        let pendingForm = state.pendingHatchID == base ? state.pendingForm : nil
+        let pendingForm = state.pendingHatchID == base ? state.pendingForm : eventForm(baseID: base)
         await hatchCore(baseID: base, generation: generation, form: pendingForm, forceShiny: forceShiny)
     }
 
@@ -2652,7 +2718,7 @@ final class CompanionStore {
             let id = pick.id
             state.pendingHatchID = id
             state.pendingShiny = pick.shiny
-            state.pendingForm = rollLineForm(baseID: id, type: state.eggTypeGuarantee)
+            state.pendingForm = eventForm(baseID: id) ?? rollLineForm(baseID: id, types: eggFormTypes)
             save()
         }
         guard let id = state.pendingHatchID else { return }
@@ -2688,9 +2754,9 @@ final class CompanionStore {
     }
 
     /// Draws only for lines with forms, so other species keep their random sequence.
-    private func rollLineForm(baseID: Int, type: PokemonType? = nil) -> PokemonForm? {
+    private func rollLineForm(baseID: Int, types: [PokemonType] = []) -> PokemonForm? {
         // The same forms the Oval Charm's species filter reads (`CompanionState.lineMissesForms`).
-        var forms = CompanionState.eggForms(baseID: baseID, type: type)
+        var forms = CompanionState.eggForms(baseID: baseID, types: types)
         guard !forms.isEmpty else { return nil }
         let collected = state.collectedLineForms(baseID: baseID)
         // The Oval Charm hatches a form still missing when the line has one.
@@ -2809,11 +2875,15 @@ final class CompanionStore {
         let overflow = max(0, state.eggUsage - eggHatchThreshold)
         state.eggUsage = 0
         state.eggTier = nil   // 보증은 이 부화로 소비된다(다음 알은 다시 무보증)
-        let typeGuarantee = state.eggTypeGuarantee   // still restricts the form rolled below
+        let typeGuarantee = state.eggTypeGuarantee
+        // Still restrict the form rolled below: a stone's type, a season's types.
+        let formTypes = eggFormTypes
+        let event = state.eggEvent
         state.eggTypeGuarantee = nil
         state.eggFromTypeNullEgg = false
         state.eggFromLegendaryEgg = false
         state.eggFromBirthdayEgg = false
+        state.eggEvent = nil
         state.pendingShiny = false
         // 개체 롤: shiny(1/64, 부적 1/48, Reveal Glass halves it)·성격(25종)은 부화 순간 확정, 진화해도 유지.
         // 알림 문구는 이 판정과 같은 분모를 보여준다.
@@ -2827,10 +2897,10 @@ final class CompanionStore {
         // 메타몽 위장 롤 — common·≥2형태에 한해 1/128. .app 게이트(&& 단락 → 비앱에선 rng 미소비로
         // 기존 테스트 RNG 시퀀스 무영향). 위장/리빌 로직은 상태 기반으로 별도 테스트한다.
         var dittoDisguise: Int?
-        // An egg that promises a type (a Stone's) or a form still missing (the Oval Charm) never hides a Ditto, which
-        // has neither. The roll is still drawn, so the rolls after it stay the same.
-        let keepsAPromise = typeGuarantee != nil
-            || (ownsOvalCharm && state.lineMissesForms(baseID: line.baseID, type: typeGuarantee))
+        // An egg that promises a type (a Stone's), an event's Pokémon or a form still missing (the Oval Charm) never
+        // hides a Ditto, which has none of them. The roll is still drawn, so the rolls after it stay the same.
+        let keepsAPromise = typeGuarantee != nil || event != nil
+            || (ownsOvalCharm && state.lineMissesForms(baseID: line.baseID, types: formTypes))
         if dittoDisguiseRollingEnabled,
            Self.dittoDisguiseHit(rarity: line.rarity, totalForms: line.totalForms, roll: rng.next()),
            !keepsAPromise {
@@ -2838,7 +2908,7 @@ final class CompanionStore {
         }
         var evolutionPlan = makeEvolutionPlan(from: line.tree, baseID: line.baseID, form: pendingForm)
         var profile = PokemonProfile.generate(seed: rng.next())
-        let form = pendingForm ?? rollLineForm(baseID: line.baseID, type: typeGuarantee)
+        let form = pendingForm ?? rollLineForm(baseID: line.baseID, types: formTypes)
         // After the form roll: an Alolan Vulpix gets an Alolan Vulpix's ability. Enriching draws nothing from `rng`.
         if let details = pokemonDetails(speciesID: line.baseID, form: form) { profile.enrich(with: details) }
         // The form is rolled last so owning forms never shifts the other rolls; a plan it cannot take (a
@@ -2995,6 +3065,13 @@ final class CompanionStore {
         let typeGuarantee = state.eggTypeGuarantee
         if let full = try? await provider.baseSpeciesIndex(), !full.isEmpty {
             if state.eggFromBirthdayEgg { return chooseBirthdayBase(full) }
+            let event = state.eggEvent
+            // A season's egg hatches Deerling in the season's form one time in three.
+            if let event, event.seasonForm != nil, full.contains(where: { $0.id == EventEgg.deerlingID }),
+               rng.next() % EventEgg.deerlingOdds == 0 {
+                AppLog.write("hatch roll: \(event.rawValue) egg base=\(EventEgg.deerlingID)")
+                return (EventEgg.deerlingID, event.alwaysShiny)
+            }
             // 등급 보증 알은 후보를 먼저 좁힌다 — capture_rate 상한이 곧 등급 하한이고, 전설은 플래그로
             // 늘 들어간다(`Rarity.admits`: capture_rate 255 인 Necrozma·Eternatus·Terapagos 도 "희귀 이상").
             // 좁힌 결과가 비면 보증을 못 지키므로 전체 풀로 폴백하지 말고 알을 유지한다(다음 틱 재시도).
@@ -3004,6 +3081,11 @@ final class CompanionStore {
             if let targetType = typeGuarantee {
                 index = index.filter { PokemonTypeData.canHatch(baseID: $0.id, as: targetType) }
             }
+            // An event egg hatches the event's Pokémon (`EventEgg.admits`).
+            if let event {
+                let companionLine = firstCatch?.baseID
+                index = index.filter { event.admits($0, companionLine: companionLine) }
+            }
             guard !index.isEmpty else {
                 AppLog.write("hatch: no candidate for guaranteed tier=\(tier?.rawValue ?? "none") type=\(typeGuarantee?.rawValue ?? "none") legendary=\(state.eggFromLegendaryEgg), egg kept; retry next tick")
                 return nil
@@ -3011,7 +3093,7 @@ final class CompanionStore {
             // The Oval Charm, reward for every species: eggs only bring lines with a form still missing, while
             // some are left within the egg's guarantees.
             if ownsOvalCharm {
-                let missing = index.filter { state.lineMissesForms(baseID: $0.id, type: typeGuarantee) }
+                let missing = index.filter { state.lineMissesForms(baseID: $0.id, types: eggFormTypes) }
                 if !missing.isEmpty { index = missing }
             }
             index = Self.withoutLastHatched(index, last: state.lastHatchedBaseID)
@@ -3022,15 +3104,16 @@ final class CompanionStore {
                 r -= w
                 if r < 0 {
                     // Enough to check a streak later: the species' weight against the egg's whole pool.
-                    AppLog.write("hatch roll: base=\(index[i].id) weight=\(w) of \(total) candidates=\(index.count) tier=\(tier?.rawValue ?? "none") type=\(typeGuarantee?.rawValue ?? "none") legendaryEgg=\(state.eggFromLegendaryEgg)")
-                    return (index[i].id, false)
+                    AppLog.write("hatch roll: base=\(index[i].id) weight=\(w) of \(total) candidates=\(index.count) tier=\(tier?.rawValue ?? "none") type=\(typeGuarantee?.rawValue ?? "none") legendaryEgg=\(state.eggFromLegendaryEgg) event=\(event?.rawValue ?? "none")")
+                    return (index[i].id, event?.alwaysShiny ?? false)
                 }
             }
-            return index.last.map { ($0.id, false) }   // 도달 불가(방어)
+            return index.last.map { ($0.id, event?.alwaysShiny ?? false) }   // 도달 불가(방어)
         }
         // GraphQL base 인덱스 엔드포인트 장애 → REST 폴백. 부화가 한 엔드포인트에 묶이지 않게.
         AppLog.write("hatch: base index unavailable — REST fallback")
-        return await chooseBaseViaREST().map { ($0, false) }
+        // An event's egg keeps its shiny promise there too.
+        return await chooseBaseViaREST().map { ($0, state.eggEvent?.alwaysShiny ?? false) }
     }
 
     /// The candidates without the line hatched last, so no egg brings the same line twice in a row; all of them
@@ -3084,10 +3167,11 @@ final class CompanionStore {
                     if let tier, !tier.admits(bs) { continue }
                     if state.eggFromLegendaryEgg || state.eggFromBirthdayEgg, !bs.isLegendary { continue }
                     if let typeGuarantee, !PokemonTypeData.canHatch(baseID: bs.id, as: typeGuarantee) { continue }
+                    if let event = state.eggEvent, !event.admits(bs, companionLine: firstCatch?.baseID) { continue }
                     // Not the line hatched last again; the index path keeps it when it is the only one, this one
                     // retries.
                     if bs.id == state.lastHatchedBaseID { continue }
-                    if ownsOvalCharm, !state.lineMissesForms(baseID: bs.id, type: typeGuarantee) {
+                    if ownsOvalCharm, !state.lineMissesForms(baseID: bs.id, types: eggFormTypes) {
                         withoutTheCharm = withoutTheCharm ?? id
                         continue
                     }

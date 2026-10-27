@@ -1703,6 +1703,8 @@ struct L {
         case .legendPlate: return t("레전드플레이트", "Legend Plate", "レジェンドプレート", "Tabla Legendaria", "Plaque Légende", "Placa Lendária", "Legendentafel", "Легендарная плита")
         case .uncommonEgg: return eggName(.uncommon)
         case .rareEgg: return eggName(.rare)
+        case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg:
+            return EventEgg(item: kind).map(eventEggName) ?? kind.rawValue
         case .typeNullEgg: return t("타입:널의 알", "Type: Null Egg", "タイプ：ヌルのタマゴ", "Huevo de Código Cero", "Œuf de Type:0", "Ovo de Type: Null", "Typ:Null-Ei", "Яйцо Тип: Ноль")
         case .lightBall: return t("전기구슬", "Light Ball", "でんきだま", "Bola Luminosa", "Balle Lumière", "Bola de Luz", "Kugelblitz", "Световой шар")
         case .legendaryEgg: return t("전설의 알", "Legendary Egg", "伝説のタマゴ", "Huevo Legendario", "Œuf légendaire", "Ovo Lendário", "Legendäres Ei", "Легендарное яйцо")
@@ -2131,6 +2133,8 @@ struct L {
                      "Награда Арсеуса: получив её, вы найдёте в сумке «\(rare)» и «\(uncommon)».")
         case .uncommonEgg: return eggDescription(.uncommon)
         case .rareEgg: return eggDescription(.rare)
+        case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg:
+            return EventEgg(item: kind).map(eventEggDescription) ?? ""
         case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,
              .soulBadge, .marshBadge, .volcanoBadge, .earthBadge,
              .zephyrBadge, .hiveBadge, .plainBadge, .fogBadge,

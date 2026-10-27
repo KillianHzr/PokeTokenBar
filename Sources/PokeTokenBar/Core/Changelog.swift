@@ -67,6 +67,14 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-27", entries: [
+            .new("2026-10-27-event-eggs") { $0.t("이벤트 알: 크리스마스, 새해, 밸런타인데이, 포켓몬 데이, 부활절, 핼러윈, 계절의 시작, 첫 포획 기념일마다 그날의 알이 와요. 이벤트 동안이나 그 뒤 2주 안에 받으면 그 이벤트의 포켓몬이 태어나요. 대부분 이로치예요.",
+                                                 "Event eggs: Christmas, New Year, Valentine's Day, Pokémon Day, Easter, Halloween, each season's start and the anniversary of your first catch bring an egg of their own. Take it during the event or the two weeks after; it hatches the event's Pokémon, most of them shiny.",
+                                                 "イベントのタマゴ：クリスマス、お正月、バレンタイン、ポケモンデー、イースター、ハロウィン、季節の始まり、最初の捕獲の記念日に専用のタマゴが届きます。イベント中かその後2週間に受け取ると、イベントのポケモンが生まれます。ほとんどが色違いです。",
+                                                 "Huevos de evento: Navidad, Año Nuevo, San Valentín, el Día de Pokémon, Pascua, Halloween, el inicio de cada estación y el aniversario de tu primera captura traen su propio huevo. Recógelo durante el evento o las dos semanas siguientes; nace un Pokémon del evento, casi siempre variocolor.",
+                                                 "Œufs d'événement : Noël, le Nouvel An, la Saint-Valentin, la Journée Pokémon, Pâques, Halloween, le début de chaque saison et l'anniversaire de ta première capture apportent chacun leur œuf. Récupère-le pendant l'événement ou les deux semaines suivantes : il fait éclore un Pokémon de l'événement, chromatique la plupart du temps.",
+                                                 "Ovos de evento: Natal, Ano Novo, Dia dos Namorados, Dia Pokémon, Páscoa, Halloween, o início de cada estação e o aniversário da sua primeira captura trazem um ovo próprio. Pegue durante o evento ou nas duas semanas seguintes; dele nasce um Pokémon do evento, quase sempre brilhante.",
+                                                 "Event-Eier: Weihnachten, Neujahr, Valentinstag, Pokémon-Tag, Ostern, Halloween, jeder Jahreszeitbeginn und der Jahrestag deines ersten Fangs bringen ihr eigenes Ei. Hol es während des Events oder in den zwei Wochen danach; daraus schlüpft ein Pokémon des Events, meist schillernd.",
+                                                 "Яйца событий: Рождество, Новый год, День святого Валентина, День покемонов, Пасха, Хэллоуин, начало каждого сезона и годовщина вашей первой поимки приносят своё яйцо. Заберите его во время события или в две недели после; из него вылупится покемон события, чаще всего сияющий.") },
             .fixed("2026-10-27-cursor-login") { $0.t("Cursor가 로그인을 갱신한 뒤에도 Cursor 사용량이 예전 숫자에 멈추지 않고 계속 업데이트돼요.",
                                                      "Cursor usage keeps updating after Cursor renews its login, instead of freezing on old numbers.",
                                                      "Cursorがログインを更新したあとも、Cursorの使用量が古い数字で止まらずに更新されます。",

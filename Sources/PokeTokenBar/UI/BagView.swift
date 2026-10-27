@@ -211,6 +211,12 @@ private struct ItemCard: View {
                                   confirmText: l.stoneConfirm(store.displayName, l.itemName(kind))) {
                 store.useBirthdayEgg()
             }
+        } else if let event = EventEgg(item: kind) {
+            ReleaseForEggControls(store: store, nav: nav, detail: effectHint(l), actionTitle: l.useItem,
+                                  isAvailable: store.canUseEventEgg(event), unavailableText: l.useNeedsPokemon,
+                                  confirmText: l.stoneConfirm(store.displayName, l.itemName(kind))) {
+                store.useEventEgg(event)
+            }
         } else if kind.bagEggTier != nil {
             ReleaseForEggControls(store: store, nav: nav, detail: effectHint(l), actionTitle: l.useItem,
                                   isAvailable: store.canUseBagEgg(kind), unavailableText: l.useNeedsPokemon,
@@ -330,6 +336,7 @@ extension CompanionStore {
         case .legendPlate: return l.legendPlateHint
         case .uncommonEgg: return l.eggGuaranteeHint(.uncommon)
         case .rareEgg: return l.eggGuaranteeHint(.rare)
+        case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return l.birthdayEggHint
         case .typeNullEgg: return l.typeNullEggHint
         case .legendaryEgg: return l.legendaryEggHint
         case .birthdayEgg: return l.birthdayEggHint

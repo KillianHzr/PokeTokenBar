@@ -75,6 +75,16 @@ read_when:
   egg disguising. Every roll path applies the same filters: add a filter to `chooseBase` and to `chooseBaseViaREST`
   together (`testTheOvalCharmAlsoGuidesTheRestFallback`).
 
+- **An event egg's promise holds on every path.** Found while building the event eggs, before they shipped: a winter
+  egg admitted Vulpix through its Alolan (Ice) form, but the form roll only knew a stone's type, so it could hatch a
+  Fire Vulpix; the REST fallback returned every egg as not shiny, breaking the Christmas egg's 100% shiny there; and
+  the Ditto disguise could hide an event's Pokémon. The form roll now keeps to `eggFormTypes` (a stone's type, else
+  a season's types), the REST fallback carries `EventEgg.alwaysShiny`, and `keepsAPromise` counts an event egg.
+  Guards: `EventEggTests` (`testASeasonEggHatchesDeerlingOrTheSeasonsTypes`,
+  `testTheRestFallbackKeepsTheShinyPromise`) and `DittoPromiseTests.testAnEventEggNeverHidesADitto`; reverting each
+  fix fails its test. For the next kind of egg: a pool filter goes to `chooseBase` and `chooseBaseViaREST` together,
+  a type promise to the form roll too, and any promise to `keepsAPromise`.
+
 - **A text states what the code does, from the value it uses (#58).** The Rare Candy's description read the
   constant (100M) under the Bag's "+150M XP" with the Soul Dew; the Magma Stone and Liberty Pass decide by form, the
   Prison Bottle by the line's forms, badges by claimed regions, and a charmed shiny is certain. Texts now say so, the

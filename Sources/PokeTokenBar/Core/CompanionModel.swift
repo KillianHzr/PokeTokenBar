@@ -205,6 +205,9 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     /// The Legend Plate's eggs: like the Shop's eggs of these rarities, free.
     case uncommonEgg
     case rareEgg
+    /// The eggs of the year's events (`EventEgg`), claimed from a banner.
+    case newYearEgg, valentineEgg, pokemonDayEgg, easterEgg, halloweenEgg, christmasEgg, companionEgg
+    case springEgg, summerEgg, autumnEgg, winterEgg
     case ovalCharm
     case glimmeringCharm
     case boulderBadge
@@ -363,7 +366,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .scrollOfDarkness: return "📜"
         case .relicVase: return "⚱️"
         case .legendPlate: return "🌌"
-        case .typeNullEgg, .legendaryEgg, .birthdayEgg, .uncommonEgg, .rareEgg: return "🥚"
+        case .typeNullEgg, .legendaryEgg, .birthdayEgg, .uncommonEgg, .rareEgg, .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return "🥚"
         case .lightBall: return "⚡"
         case .ovalCharm: return "🔶"
         case .glimmeringCharm: return "✨"
@@ -391,6 +394,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         switch self {
         case .rareCandy, .mint,
              .typeNullEgg, .legendaryEgg, .birthdayEgg, .uncommonEgg, .rareEgg, .legendPlate,
+             .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg,
              .leafStone, .fireStone, .waterStone, .thunderStone, .sunStone,
              .moonStone, .duskStone, .iceStone, .dawnStone, .shinyStone:
             return false
@@ -427,6 +431,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         if stoneType != nil { return .evolutionStones }
         switch self {
         case .rareCandy, .mint, .shinyCharm, .birthdayEgg, .uncommonEgg, .rareEgg: return nil
+        case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return nil
         default: return .legendaryArtifacts
         }
     }
@@ -436,6 +441,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     var unlock: ItemUnlock? {
         switch self {
         case .rareCandy, .mint, .shinyCharm, .birthdayEgg, .uncommonEgg, .rareEgg: return nil
+        case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return nil
         // The first nine stones follow the generations: each asks for one region's final starters.
         case .leafStone:   return .species([SpeciesGoal([3, 6, 9])])            // Kanto starters
         case .fireStone:   return .species([SpeciesGoal([154, 157, 160])])      // Johto starters
@@ -1164,6 +1170,12 @@ struct CompanionState: Codable, Sendable {
     /// Set when the birthday changes after a gift: the calendar year that gift was claimed in. The next gift must be
     /// for a later birthday year, so a new date never brings a second egg within a year of the last.
     var birthdayChangedAfterGiftYear: Int?
+    /// The event eggs claimed (`EventEgg.key`, "christmas@2026"): one a year each, kept with the save.
+    var claimedEventEggs: Set<String> = []
+    /// The event eggs announced, so the notification comes once.
+    var eventEggsNotified: Set<String> = []
+    /// The egg came from an event egg: it hatches that event's Pokémon (`CompanionStore.chooseBase`).
+    var eggEvent: EventEgg?
     /// The year of the last birthday the gift was announced for, so the notification comes once.
     var birthdayNotifiedYear: Int?
     // 알 상태에서 미리 롤해둔 부화 종(프리패칭) — 부화 순간 네트워크 딜레이 제거. 재시작에도 유지.
@@ -1270,6 +1282,9 @@ struct CompanionState: Codable, Sendable {
         lastBirthdayGiftYear = c.lenientOptional(Int.self, forKey: .lastBirthdayGiftYear)
         lastBirthdayGiftClaimedAt = c.lenientOptional(Date.self, forKey: .lastBirthdayGiftClaimedAt)
         birthdayChangedAfterGiftYear = c.lenientOptional(Int.self, forKey: .birthdayChangedAfterGiftYear)
+        claimedEventEggs = c.lenient(Set<String>.self, forKey: .claimedEventEggs, default: [])
+        eventEggsNotified = c.lenient(Set<String>.self, forKey: .eventEggsNotified, default: [])
+        eggEvent = c.lenientOptional(EventEgg.self, forKey: .eggEvent)
         birthdayNotifiedYear = c.lenientOptional(Int.self, forKey: .birthdayNotifiedYear)
     }
 
@@ -1424,16 +1439,26 @@ struct CompanionState: Codable, Sendable {
     /// Forms an egg of this line rolls. A stone egg only rolls the forms that hatch with its type (no Alolan
     /// Vulpix, Ice, from a Fire Stone), unless none does.
     static func eggForms(baseID: Int, type: PokemonType?) -> [PokemonForm] {
+        eggForms(baseID: baseID, types: type.map { [$0] } ?? [])
+    }
+
+    /// The forms an egg whose Pokémon must have one of `types` can roll (a stone's type, a season's): every form
+    /// when `types` is empty or no form has one.
+    static func eggForms(baseID: Int, types: [PokemonType]) -> [PokemonForm] {
         let forms = PokemonForm.rollableLineForms(baseID: baseID)
-        guard let type else { return forms }
-        let typed = forms.filter { PokemonTypeData.types(forSpeciesID: baseID, form: $0).contains(type) }
+        guard !types.isEmpty else { return forms }
+        let typed = forms.filter { form in PokemonTypeData.types(forSpeciesID: baseID, form: form).contains(where: types.contains) }
         return typed.isEmpty ? forms : typed
     }
 
     /// Whether this egg can still bring a form of the line missing from the Pokédex (the Oval Charm's target):
     /// only the forms it can roll count, so a Fire Stone egg does not pick Vulpix for its missing Alolan form.
     func lineMissesForms(baseID: Int, type: PokemonType? = nil) -> Bool {
-        let forms = Self.eggForms(baseID: baseID, type: type)
+        lineMissesForms(baseID: baseID, types: type.map { [$0] } ?? [])
+    }
+
+    func lineMissesForms(baseID: Int, types: [PokemonType]) -> Bool {
+        let forms = Self.eggForms(baseID: baseID, types: types)
         return !forms.isEmpty && !Set(forms).isSubset(of: collectedLineForms(baseID: baseID))
     }
 

@@ -562,6 +562,9 @@ final class SaveTransferTests: XCTestCase {
                                      // to another Mac never brings a second gift the same year.
                                      "eggFromBirthdayEgg", "pendingShiny", "birthday", "lastBirthdayGiftYear",
                                      "lastBirthdayGiftClaimedAt", "birthdayChangedAfterGiftYear", "birthdayNotifiedYear",
+                                     // The event egg in incubation, and the events' eggs already taken or announced:
+                                     // moving the save never brings an event's egg twice the same year.
+                                     "eggEvent", "claimedEventEggs", "eventEggsNotified",
                                      // The next egg's roll leaves it out: it follows the save's last hatch.
                                      "lastHatchedBaseID"]
         let deviceLedger: Set<String> = ["installBaselineSet", "claimedTodayTokensByProvider", "lastDate"]

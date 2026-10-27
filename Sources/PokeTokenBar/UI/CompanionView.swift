@@ -31,7 +31,7 @@ struct ItemIconView: View {
         case .birthdayEgg: .birthday
         case .uncommonEgg: .tier(.uncommon)
         case .rareEgg: .tier(.rare)
-        default: nil
+        default: EventEgg(item: kind).map { .event($0) }
         }
         _img = State(initialValue: drawnEgg.map(EggRenderer.still)
                      ?? kind.spriteName.flatMap { SpriteLoader.cachedItemImage(name: $0) })

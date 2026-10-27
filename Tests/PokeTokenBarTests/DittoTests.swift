@@ -122,6 +122,17 @@ final class DittoPromiseTests: XCTestCase {
         await plain.hatch(baseID: 37)
         XCTAssertNotNil(plain.state.active?.dittoDisguise, "without the charm the same roll hides a Ditto")
     }
+
+    /// An event's egg promises the event's Pokémon, a season's its types: never a Ditto either.
+    func testAnEventEggNeverHidesADitto() async throws {
+        let seed = try disguiseSeed()
+        for event in [EventEgg.pokemonDay, .spring] {
+            let egg = try store(",\"dex\":[],\"eggEvent\":\"\(event.rawValue)\"", provider: DittoTestProvider(), seed: seed)
+            await egg.hatch(baseID: 1)
+            XCTAssertNotNil(egg.state.active)
+            XCTAssertNil(egg.state.active?.dittoDisguise, "\(event) keeps its Bulbasaur")
+        }
+    }
 }
 
 // MARK: 위장 롤 판정(순수) — 부화 롤은 .app 게이트라 실앱에서만 발동, 판정 로직은 순수 함수로 검증
