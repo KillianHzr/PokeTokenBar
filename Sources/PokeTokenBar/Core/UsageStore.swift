@@ -551,6 +551,8 @@ final class UsageStore {
     /// Day-by-day history behind the usage recap. Providers only report the current month, so the
     /// numbers are copied into a rolling ledger at every refresh — see `UsageLedger`.
     private(set) var dailyLedger = UsageLedger()
+    /// Each day's cost beside it, so the Stats page can price a past period (`CostLedger`).
+    private(set) var dailyCostLedger = CostLedger()
 
     private func recordDailyLedger() {
         var ledger = dailyLedger
@@ -560,7 +562,15 @@ final class UsageStore {
         let calendar = RecapPeriod.calendar()
         let lastYear = RecapPeriod(scope: .year, containing: Date(), calendar: calendar)
             .shifted(by: -1, calendar: calendar)
-        ledger.prune(before: LocalUsageReader.localDayFormatter().string(from: lastYear.start))
+        let cutoff = LocalUsageReader.localDayFormatter().string(from: lastYear.start)
+        ledger.prune(before: cutoff)
+        var costs = dailyCostLedger
+        costs.merge(monthDailyTotals)
+        costs.prune(before: cutoff)
+        if costs != dailyCostLedger {
+            dailyCostLedger = costs
+            costs.save(to: defaults)
+        }
         guard ledger != dailyLedger else { return }
         dailyLedger = ledger
         ledger.save(to: defaults)
@@ -883,6 +893,7 @@ final class UsageStore {
         claudeTrackedAccountMode = ClaudeTrackedAccountMode(storedValue: d.string(forKey: ClaudeTrackedAccountMode.defaultsKey))
         armedCandyWindows = Set(d.stringArray(forKey: Self.armedCandyWindowsKey) ?? [])
         dailyLedger = UsageLedger.load(from: d)
+        dailyCostLedger = CostLedger.load(from: d)
 
         if let credential = sessionKeys.credential() {
             sessionKeyConfigured = true
