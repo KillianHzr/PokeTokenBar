@@ -158,7 +158,7 @@ struct UnlockRequirementView: View {
 
     /// Only on a met goal: an item can be owned without its goal (bought before the goal existed).
     private var checkmark: some View {
-        Image(systemName: "checkmark.circle.fill").font(.caption2).foregroundStyle(.green)
+        Image(systemName: "checkmark.circle.fill").font(.caption2).foregroundStyle(Color.readableGreen)
     }
 
     private func counter(_ count: Int, needed: Int) -> some View {

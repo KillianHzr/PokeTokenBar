@@ -91,7 +91,7 @@ struct IdeasScreen: View {
 
     private func sentView(_ url: URL) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label(l.ideasSent, systemImage: "checkmark.circle.fill").foregroundStyle(.green).font(.callout.weight(.semibold))
+            Label(l.ideasSent, systemImage: "checkmark.circle.fill").foregroundStyle(Color.readableGreen).font(.callout.weight(.semibold))
             Button(l.ideasSeeIssue) { NSWorkspace.shared.open(url) }
         }
     }

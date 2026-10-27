@@ -466,7 +466,7 @@ struct PopoverView: View {
                 if store.showsCost {
                     UsageCostText(cost: store.todayUsageCost, l: l)
                         .font(.system(.callout, design: .rounded).weight(.semibold))
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Color.readableGreen)
                         .padding(.horizontal, 8).padding(.vertical, 3)
                         .background(Capsule().fill(Color.green.opacity(0.14)))
                 }
@@ -752,7 +752,7 @@ struct PopoverView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Color.readableOrange)
                 Text(l.cursorAuthExpiredTitle)
                     .font(.caption).fontWeight(.medium)
             }
@@ -804,7 +804,7 @@ struct PopoverView: View {
                     .font(.caption).foregroundStyle(.secondary)
             } else {
                 (Text(l.staleLimits) + Text(" · ") + Text(store.antigravityLimitsUpdatedAt ?? Date(), style: .relative))
-                    .font(.caption).foregroundStyle(.orange)
+                    .font(.caption).foregroundStyle(Color.readableOrange)
             }
             Spacer()
             Button {
@@ -826,7 +826,7 @@ struct PopoverView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Color.readableOrange)
                 Text(l.antigravityAuthExpiredTitle)
                     .font(.caption).fontWeight(.medium)
             }
@@ -981,7 +981,7 @@ struct PopoverView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Image(systemName: "key.slash.fill")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Color.readableOrange)
                 Text(l.sessionKeyExpiredTitle)
                     .font(.caption).fontWeight(.semibold)
                 Spacer()
@@ -1006,7 +1006,7 @@ struct PopoverView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Color.readableOrange)
                 Text(l.claudeAuthExpiredTitle)
                     .font(.caption).fontWeight(.semibold)
                 Spacer()
@@ -1174,7 +1174,7 @@ struct PopoverView: View {
                 // stale when the default account's own values are.
                 if store.limits != nil, store.claudeLimitsStale {
                     (Text(l.staleLimits) + Text(" · ") + Text(store.limitsUpdatedAt ?? Date(), style: .relative))
-                        .font(.caption).foregroundStyle(.orange)
+                        .font(.caption).foregroundStyle(Color.readableOrange)
                 } else {
                     Text(l.limitsTapToLoad)
                         .font(.caption).foregroundStyle(.secondary)
@@ -1196,7 +1196,7 @@ struct PopoverView: View {
             // the reason was only shown in Settings.
             if let error = store.limitTokenRefreshMessage, !store.isRefreshingLimitToken {
                 Text(error)
-                    .font(.caption2).foregroundStyle(.orange)
+                    .font(.caption2).foregroundStyle(Color.readableOrange)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -1208,7 +1208,7 @@ struct PopoverView: View {
         if let updatedAt {
             (Text(l.staleLimits) + Text(" · ") + Text(updatedAt, style: .relative))
                 .font(.caption)
-                .foregroundStyle(.orange)
+                .foregroundStyle(Color.readableOrange)
         }
     }
 
@@ -1272,7 +1272,7 @@ struct PopoverView: View {
                 }
                 if store.lastErrorDescription != nil {
                     Image(systemName: "exclamationmark.triangle")
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Color.readableOrange)
                         .help(store.lastErrorMessage(l) ?? "")
                 }
             }

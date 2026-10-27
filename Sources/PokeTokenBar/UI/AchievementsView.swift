@@ -235,10 +235,10 @@ private struct AchievementCard: View {
             HStack(spacing: 4) {
                 Image(systemName: "checkmark.seal.fill")
                     .font(.caption2)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Color.readableGreen)
                 Text(l.claimed)
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Color.readableGreen)
             }
         } else if canClaim {
             Button(readyTiers > 1 ? "\(l.claim) (\(readyTiers))" : l.claim) {
@@ -290,7 +290,7 @@ private struct RegionGrid: View {
     @ViewBuilder
     private func status(_ tier: CompanionStore.RegionTier) -> some View {
         if tier.isClaimed {
-            Image(systemName: "checkmark").font(.caption2.weight(.bold)).foregroundStyle(.green)
+            Image(systemName: "checkmark").font(.caption2.weight(.bold)).foregroundStyle(Color.readableGreen)
         } else if tier.isReady {
             Image(systemName: "gift.fill").font(.caption2).foregroundStyle(Color.accentColor)
         } else {

@@ -461,14 +461,14 @@ struct SettingsView: View {
                         }
                         Spacer()
                     } else if case .offer(let version) = updater.settingsNotice {
-                        Text(l.updateFound(version)).font(.caption).foregroundStyle(.orange)
+                        Text(l.updateFound(version)).font(.caption).foregroundStyle(Color.readableOrange)
                         Spacer()
                         Button(l.updateButton) { updater.applyUpdate() }.controlSize(.small)
                     } else if case .skipped(let version) = updater.settingsNotice {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(l.skippedVersion(version))
                                 .font(.caption)
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(Color.readableOrange)
                                 .fixedSize(horizontal: false, vertical: true)
                             HStack(spacing: 8) {
                                 Button(l.showSkippedAgain) { updater.showSkippedAgain() }.controlSize(.small)
@@ -614,10 +614,10 @@ struct SettingsView: View {
                         // 키는 아직 저장돼 있지만 서버가 거부한 상태 — 여기서 '설정됨' 을 그대로
                         // 두면 만료 안내를 보고 들어온 사용자가 할 일을 못 찾는다.
                         Text(l.sessionKeyExpiredBadge)
-                            .font(.caption2).foregroundStyle(.orange)
+                            .font(.caption2).foregroundStyle(Color.readableOrange)
                     } else if store.sessionKeyConfigured {
                         Text(l.sessionKeySaved)
-                            .font(.caption2).foregroundStyle(.green)
+                            .font(.caption2).foregroundStyle(Color.readableGreen)
                     }
                 }
                 // The key only replaces the default login's Keychain read; other accounts have their own below.
@@ -670,7 +670,7 @@ struct SettingsView: View {
         }
         if let sessionKeyError = store.sessionKeyError {
             Text(sessionKeyError)
-                .font(.caption2).foregroundStyle(.orange)
+                .font(.caption2).foregroundStyle(Color.readableOrange)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 12).padding(.bottom, 6)
         } else if store.sessionKeyConfigured {
@@ -714,10 +714,10 @@ struct SettingsView: View {
                     Text(l.accountSessionKeyLabel(title))
                     if account?.sessionKeyExpired == true {
                         Text(l.sessionKeyExpiredBadge)
-                            .font(.caption2).foregroundStyle(.orange)
+                            .font(.caption2).foregroundStyle(Color.readableOrange)
                     } else if configured {
                         Text(l.sessionKeySaved)
-                            .font(.caption2).foregroundStyle(.green)
+                            .font(.caption2).foregroundStyle(Color.readableGreen)
                     }
                 }
                 // The email names the browser login to copy the key from; the folder tells two logins apart.
@@ -752,7 +752,7 @@ struct SettingsView: View {
         }
         if let error = store.accountSessionKeyError(for: rootPath) {
             Text(error)
-                .font(.caption2).foregroundStyle(.orange)
+                .font(.caption2).foregroundStyle(Color.readableOrange)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 12).padding(.bottom, 6)
         }
@@ -837,7 +837,7 @@ struct SettingsView: View {
                 }
                 if let message = store.limitTokenRefreshMessage {
                     Text(message)
-                        .font(.caption2).foregroundStyle(.orange)
+                        .font(.caption2).foregroundStyle(Color.readableOrange)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 12).padding(.bottom, 6)
                 }
@@ -982,7 +982,7 @@ struct SettingsView: View {
             }
             if reportFailed {
                 Text(l.reportMailFallback(SupportMail.address))
-                    .font(.caption2).foregroundStyle(.orange).textSelection(.enabled)
+                    .font(.caption2).foregroundStyle(Color.readableOrange).textSelection(.enabled)
                     .padding(.horizontal, 12).padding(.bottom, 6)
             }
         }

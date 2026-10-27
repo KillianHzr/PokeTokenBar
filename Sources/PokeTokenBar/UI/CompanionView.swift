@@ -1036,7 +1036,7 @@ struct CompanionHeader: View {
                     .overlay(alignment: .top) {
                         if candyXPShown {
                             Text("+\(TokenFormatter.compact(candyXPAmount)) XP")
-                                .font(.caption.weight(.bold)).foregroundStyle(.orange)
+                                .font(.caption.weight(.bold)).foregroundStyle(Color.readableOrange)
                                 .padding(.horizontal, 6).padding(.vertical, 2)
                                 .background(.regularMaterial, in: Capsule())
                                 .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -1123,7 +1123,7 @@ struct CompanionHeader: View {
                         if store.isEgg, store.isHatchRetryDelayed {
                             Text(store.l.eggHatchDelayed)
                                 .font(.caption2)
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(Color.readableOrange)
                                 .fixedSize(horizontal: false, vertical: true)
                         } else {
                             Text(store.l.eggToHatch(TokenFormatter.compact(store.eggTokensToHatch)))
@@ -1150,7 +1150,7 @@ struct CompanionHeader: View {
             }
             if let g = store.justGraduated {
                 Text(store.l.graduated(g))
-                    .font(.caption2).foregroundStyle(.orange)
+                    .font(.caption2).foregroundStyle(Color.readableOrange)
             }
         }
         .heroCard(colors: store.themeColors, legendary: store.rarity == .legendary)
@@ -1998,12 +1998,13 @@ struct FullDexView: View {
             .accessibilityLabel("#\(id) \(species.name)")
         } else {
             VStack(spacing: 1) {
-                Text("?").font(.system(size: 15, weight: .bold, design: .rounded)).foregroundStyle(.tertiary)
+                Text("?").font(.system(size: 15, weight: .bold, design: .rounded)).foregroundStyle(.secondary)
                     .frame(width: 32, height: 32)
-                Text(number).font(.system(size: 9, weight: .semibold).monospacedDigit()).foregroundStyle(.tertiary)
+                Text(number).font(.system(size: 9, weight: .semibold).monospacedDigit()).foregroundStyle(.secondary)
             }
+            .opacity(0.75)
             .frame(maxWidth: .infinity).padding(.vertical, 3)
-            .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 6))
+            .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 6))
             .help(store.l.dexMissingHint(id))
             .accessibilityLabel(store.l.dexMissingHint(id))
         }
@@ -2396,7 +2397,8 @@ struct PokemonDetailView: View {
                                     .minimumScaleFactor(columns > 4 ? 0.6 : 0.8)
                                     .padding(.horizontal, 2)
                             }
-                            .opacity(owned == nil ? 0.25 : 1)
+                            // Faded until caught, the name still readable on a light card.
+                            .opacity(owned == nil ? 0.4 : 1)
                             // What unlocks the form, faded until won: the badge that gives Arceus's Plate (one region
                             // claimed), or the type of the legendary that gives Silvally's Memory.
                             if let plate {

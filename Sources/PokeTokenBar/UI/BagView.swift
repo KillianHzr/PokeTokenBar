@@ -147,7 +147,7 @@ private struct ItemCard: View {
                 }
                 if preview.discardedXP > 0 {
                     Text(l.candyDiscardedXP(TokenFormatter.compact(preview.discardedXP)))
-                        .font(.caption2).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
+                        .font(.caption2).foregroundStyle(Color.readableOrange).fixedSize(horizontal: false, vertical: true)
                 } else if preview.evolves && !preview.graduates {
                     Text(l.candyCarryoverXP(TokenFormatter.compact(preview.carryoverXP)))
                         .font(.caption2).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
@@ -226,8 +226,8 @@ private struct ItemCard: View {
         } else if kind.isPassive {
             // 보유형(패시브 아이템): 사용 버튼 대신 상시 효과 표시.
             HStack(spacing: 6) {
-                Image(systemName: "checkmark.seal.fill").font(.caption2).foregroundStyle(.green)
-                Text(effectHint(l)).font(.caption2.weight(.semibold)).foregroundStyle(.green)
+                Image(systemName: "checkmark.seal.fill").font(.caption2).foregroundStyle(Color.readableGreen)
+                Text(effectHint(l)).font(.caption2.weight(.semibold)).foregroundStyle(Color.readableGreen)
                 Spacer()
             }
         } else if canUse {

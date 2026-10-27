@@ -67,6 +67,14 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-27", entries: [
+            .fixed("2026-10-27-contrast") { $0.t("밝은 테마와 어두운 테마 모두에서 초록·주황 글자와 배지, 아직 없는 폼과 도감 칸이 더 잘 보여요.",
+                                                  "Green and orange text and badges, forms not caught yet and the Pokédex's missing species read better in both light and dark mode.",
+                                                  "ライトとダークの両方で、緑やオレンジの文字とバッジ、まだいないフォルムや図鑑のマスが見やすくなりました。",
+                                                  "Los textos e insignias verdes y naranjas, las formas aún no obtenidas y las especies que faltan en la Pokédex se leen mejor en modo claro y oscuro.",
+                                                  "Les textes et badges verts et orange, les formes pas encore obtenues et les espèces manquantes du Pokédex se lisent mieux en thème clair comme en sombre.",
+                                                  "Textos e selos verdes e laranja, formas ainda não obtidas e espécies que faltam na Pokédex ficam mais legíveis nos modos claro e escuro.",
+                                                  "Grüne und orange Texte und Abzeichen, noch fehlende Formen und die fehlenden Arten im Pokédex sind im hellen und dunklen Modus besser lesbar.",
+                                                  "Зелёный и оранжевый текст и значки, ещё не полученные формы и недостающие виды в покедексе лучше читаются в светлой и тёмной теме.") },
             .new("2026-10-27-whole-pokedex") { $0.t("도감이 모든 포켓몬을 지방별로 보여 줘요(TokenDex처럼). 지방마다 진행률과 희귀도, 아직 없는 종은 번호로. 전체·보유·미보유로 골라 볼 수 있어요.",
                                                      "The Pokédex shows every Pokémon region by region, as TokenDex does: each region's progress and rarities, the species you're missing by their number. Switch between All, Caught and Missing.",
                                                      "図鑑がすべてのポケモンを地方ごとに表示します(TokenDexのように)。地方ごとの進み具合とレア度、まだいない種は番号で。すべて・入手済み・未入手を切り替えられます。",
