@@ -592,6 +592,43 @@ final class CompanionStore {
         duplicateCatchEntryIDs.contains(entry.id)
     }
 
+    /// What graduating the current Pokémon would add to the graduated Pokédex: the species of its line it reached, or
+    /// can still reach in its form, that no graduated Pokémon holds in that form, and whether it would be the first
+    /// shiny of its species. Every branch counts, as on the evolution track, so the hidden route is not given away.
+    struct ActiveNews: Equatable, Sendable {
+        var newSpecies: [Int]
+        var firstShiny: Bool
+        /// Nothing new: sending it off loses nothing the Pokédex does not already hold.
+        var isDuplicate: Bool { newSpecies.isEmpty && !firstShiny }
+    }
+
+    /// Nil for an egg.
+    var activeNews: ActiveNews? {
+        guard let a = state.active else { return nil }
+        let graduated = state.dex.filter { !$0.isReleased }
+        let held = Set(graduated.flatMap { e in e.chainOrder.map { DexSpeciesKey(speciesID: $0, form: e.form) } })
+        var line = Array(a.pathIDs.prefix(a.stageIndex + 1))
+        var next = [a.currentID]
+        while let id = next.popLast() {
+            for child in PokemonEvolutionData.children(of: id, form: a.form) where !line.contains(child) {
+                line.append(child)
+                next.append(child)
+            }
+        }
+        let newSpecies = line.filter { !held.contains(DexSpeciesKey(speciesID: $0, form: a.form)) }
+        let firstShiny = a.isShiny && !graduated.contains { $0.isShiny && $0.chainOrder.contains(a.currentID) }
+        return ActiveNews(newSpecies: newSpecies, firstShiny: firstShiny)
+    }
+
+    /// The new species of `activeNews`, named in their form, for the badge's hint.
+    var activeNewsNames: [String] {
+        guard let a = state.active, let news = activeNews else { return [] }
+        let names = news.newSpecies.map { id in
+            formDisplayName(currentLine?.localizedName(id, state.language) ?? "#\(id)", speciesID: id, form: a.form)
+        }
+        return names + (news.firstShiny ? [l.activeFirstShiny] : [])
+    }
+
     /// 시간순(과거 졸업분부터 현재 키우는 개체까지)으로 중복 포획된 개체들의 ID 집합.
     var duplicateCatchEntryIDs: Set<String> {
         var seenGraduatedSpecies = Set<DexSpeciesKey>()

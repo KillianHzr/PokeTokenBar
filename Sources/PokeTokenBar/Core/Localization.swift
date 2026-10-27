@@ -1202,6 +1202,34 @@ struct L {
     var dexReleased: String { t("놓아줌", "Released", "逃がした", "Liberado", "Relâché", "Solto", "Freigelassen", "Отпущен") }
     /// 포획 로그에서 이전에 이미 잡았던 진화 라인(또는 안농 폼)의 중복 포획 개체임을 나타내는 뱃지.
     var dexDuplicate: String { t("중복", "Duplicate", "重複", "Duplicado", "Doublon", "Duplicado", "Duplikat", "Дубликат") }
+    /// Home: the current Pokémon brings nothing new through its whole line (`CompanionStore.activeNews`).
+    var activeDuplicateBadge: String {
+        t("100% 중복", "100% duplicate", "100%ダブり", "100 % repetido", "100 % doublon", "100% repetido", "100 % doppelt",
+          "100% дубликат")
+    }
+    var activeDuplicateHint: String {
+        t("갈 수 있는 모든 종과 폼이 이미 졸업했어요. 놓아줘도 잃는 게 없어요.",
+          "Every species and form it can bring has already graduated: sending it off loses nothing.",
+          "たどり着けるすべての種とフォルムが卒業済みです。手放しても失うものはありません。",
+          "Todas las especies y formas que puede traer ya se graduaron: soltarlo no te hace perder nada.",
+          "Toutes les espèces et formes qu'il peut apporter sont déjà diplômées : le laisser partir ne fait rien perdre.",
+          "Todas as espécies e formas que ele pode trazer já se formaram: soltá-lo não faz perder nada.",
+          "Alle Arten und Formen, die es bringen kann, hatten schon ihren Abschied: Es abzugeben kostet nichts.",
+          "Все виды и формы, которые он может принести, уже выпущены: отпустив его, вы ничего не потеряете.")
+    }
+    var activeNewBadge: String { t("신규", "New", "新規", "Nuevo", "Nouveau", "Novo", "Neu", "Новое") }
+    /// What graduating the current Pokémon adds, for the hint of its New badge.
+    func activeNewHint(_ names: [String]) -> String {
+        let list = names.joined(separator: ", ")
+        return t("졸업하면 도감에 추가돼요: \(list)", "Graduating it adds to your Pokédex: \(list)",
+                 "卒業すると図鑑に加わります：\(list)", "Al graduarse añade a tu Pokédex: \(list)",
+                 "Diplômé, il ajoutera à ton Pokédex : \(list)", "Ao se formar, adiciona à sua Pokédex: \(list)",
+                 "Mit seinem Abschied kommt in deinen Pokédex: \(list)", "После выпуска в Покедекс добавится: \(list)")
+    }
+    var activeFirstShiny: String {
+        t("첫 이로치", "its first shiny", "初めての色違い", "su primer variocolor", "son premier chromatique",
+          "seu primeiro shiny", "sein erstes schillerndes", "первый шайни")
+    }
     var rarityCommon: String { t("일반", "Common", "ノーマル", "Común", "Commun", "Comum", "Gewöhnlich", "Обычный") }
     var rarityUncommon: String { t("고급", "Uncommon", "アンコモン", "Poco común", "Peu commun", "Incomum", "Ungewöhnlich", "Необычный") }
     var rarityRare: String { t("희귀", "Rare", "レア", "Raro", "Rare", "Raro", "Selten", "Редкий") }

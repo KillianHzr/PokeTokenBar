@@ -67,6 +67,14 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-27", entries: [
+            .new("2026-10-27-duplicate-badge") { $0.t("홈에서 지금 포켓몬이 100% 중복인지 보여 줘요. 갈 수 있는 모든 종과 폼이 이미 졸업했다면 놓아줘도 잃는 게 없어요. 아니면 \"신규\" 배지에 마우스를 올려 무엇이 추가되는지 볼 수 있어요.",
+                          "Home shows when your Pokémon is a 100% duplicate: every species and form it can bring has graduated, so sending it off loses nothing. Otherwise hover its New badge to see what it adds.",
+                          "いまのポケモンが100%ダブりかホームに表示します。たどり着ける種とフォルムがすべて卒業済みなら、手放しても失うものはありません。そうでなければ「新規」バッジにポインタを重ねると何が増えるか分かります。",
+                          "Inicio muestra si tu Pokémon es 100 % repetido: todas las especies y formas que puede traer ya se graduaron, así que soltarlo no te hace perder nada. Si no, pasa el cursor por su insignia Nuevo para ver qué añade.",
+                          "L'accueil indique quand ton Pokémon est 100 % doublon : toutes les espèces et formes qu'il peut apporter sont diplômées, le laisser partir ne fait rien perdre. Sinon, survole son badge Nouveau pour voir ce qu'il ajoute.",
+                          "O Início mostra quando seu Pokémon é 100% repetido: todas as espécies e formas que ele pode trazer já se formaram, então soltá-lo não faz perder nada. Se não, passe o cursor no selo Novo para ver o que ele adiciona.",
+                          "Die Startseite zeigt, wenn dein Pokémon zu 100 % doppelt ist: Alle Arten und Formen, die es bringen kann, hatten ihren Abschied, es abzugeben kostet nichts. Sonst zeigt das Neu-Abzeichen beim Darüberfahren, was es bringt.",
+                          "Главная показывает, если покемон на 100% дубликат: все виды и формы, которые он может принести, уже выпущены, и отпустить его ничего не стоит. Иначе наведите на значок «Новое», чтобы увидеть, что он добавит.") },
             .fixed("2026-10-27-birthday-once-a-year") { l in
                 let egg = l.itemName(.birthdayEgg)
                 return l.t("\(egg)을 받은 뒤 생일을 바꿔도 1년 안에 하나 더 받을 수 없어요.",

@@ -976,6 +976,30 @@ struct CompanionHeader: View {
         }
     }
 
+    /// The badges after the rarity: a form its line never had, fixed at hatch and kept through evolution, then
+    /// whether sending it off loses anything (`CompanionStore.activeNews`): nothing new through its whole line, or new.
+    @ViewBuilder
+    private var activeBadges: some View {
+        let l = store.l
+        let isNewForm = store.state.active?.hasNewForm == true
+        if isNewForm {
+            Badge(l.newFormBadge.uppercased(), tint: .blue, style: .tinted)
+                .lineLimit(1).fixedSize()
+                .help(l.activeNewHint(store.activeNewsNames))
+        }
+        if let news = store.activeNews {
+            if news.isDuplicate {
+                Badge(l.activeDuplicateBadge.uppercased(), tint: .secondary, style: .tinted)
+                    .lineLimit(1).fixedSize()
+                    .help(l.activeDuplicateHint)
+            } else if !isNewForm {
+                Badge(l.activeNewBadge.uppercased(), tint: .green, style: .tinted)
+                    .lineLimit(1).fixedSize()
+                    .help(l.activeNewHint(store.activeNewsNames))
+            }
+        }
+    }
+
     var body: some View {
         // Computed once per render and shared by the big sprite and the evolution line.
         let dexLinks = onOpenDexEntry == nil ? [:] : store.dexLinkTargets
@@ -1042,11 +1066,7 @@ struct CompanionHeader: View {
                             } else {
                                 Badge(store.l.rarityLabel(r).uppercased(), tint: .rarity(r)).lineLimit(1).fixedSize()
                             }
-                            // A form its line had never registered, fixed at hatch and kept through evolution.
-                            if store.state.active?.hasNewForm == true {
-                                Badge(store.l.newFormBadge.uppercased(), tint: .blue, style: .tinted)
-                                    .lineLimit(1).fixedSize()
-                            }
+                            activeBadges
                         }
                     }
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
