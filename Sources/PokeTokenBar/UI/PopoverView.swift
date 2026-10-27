@@ -107,6 +107,10 @@ final class PopoverNavigation {
     var showingBonuses = false { didSet { if showingBonuses { dexDetailCollectionID = nil } } }
     /// The changelog takes over the popover the same way.
     var showingChangelog = false { didSet { if showingChangelog { dexDetailCollectionID = nil } } }
+    /// The Pokédex's view: every species region by region (TokenDex's), the caught ones page by page, or the
+    /// missing ones. Kept across openings, like the segment.
+    enum DexScope: Hashable, CaseIterable { case all, caught, missing }
+    var dexScope: DexScope = .all
     /// The ideas page (`IdeasScreen`) too.
     var showingIdeas = false { didSet { if showingIdeas { dexDetailCollectionID = nil } } }
     /// The changelog entries seen before it was opened: the others are marked new on it.

@@ -1451,7 +1451,12 @@ struct CollectionView: View {
 
                 if nav.showingCollectionLog {
                     catchLog
+                } else if nav.dexScope != .caught {
+                    FullDexView(store: store, searchText: searchText, missingOnly: nav.dexScope == .missing,
+                                scope: $nav.dexScope,
+                                onSelectSpecies: { sp in nav.dexDetailCollectionID = sp.collectionID })
                 } else {
+                    dexScopePicker
                     DexGridView(
                         store: store,
                         searchText: searchText,
@@ -1471,6 +1476,16 @@ struct CollectionView: View {
             // Switching segment drops the open detail page — `PopoverNavigation.showingCollectionLog`.
         }
     }
+
+    /// Every species, the caught ones, or the missing ones.
+    private var dexScopePicker: some View {
+        @Bindable var nav = navigation
+        return PillPicker(selection: $nav.dexScope,
+                          options: PopoverNavigation.DexScope.allCases.map { ($0, store.l.dexScope($0)) })
+    }
+
+    /// The shiny, family and sort buttons sort and filter caught individuals: the whole Pokédex keeps the search alone.
+    private var filtersCaughtOnly: Bool { navigation.showingCollectionLog || navigation.dexScope == .caught }
 
     private var filterToolbar: some View {
         HStack(spacing: 6) {
@@ -1502,6 +1517,7 @@ struct CollectionView: View {
                     .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 0.5)
             )
 
+            if filtersCaughtOnly {
             Button {
                 withAnimation(.easeInOut(duration: 0.15)) {
                     shinyOnly.toggle()
@@ -1591,6 +1607,7 @@ struct CollectionView: View {
             .fixedSize()
             .help(store.l.sortTitle)
             .accessibilityLabel(store.l.sortTitle)
+            }
         }
     }
 
@@ -1833,6 +1850,162 @@ private struct ScrollWheelPager: NSViewRepresentable {
                 if step != 0 { self.onStep?(step) }
                 return nil
             }
+        }
+    }
+}
+
+/// The whole Pokédex region by region, as TokenDex shows it: the completion and the shinies, then each region with
+/// its progress and rarities and every one of its species, caught (its sprite, in its rarity's color), only seen
+/// (faded) or missing (its number alone, no sprite to download). A region folds on its header.
+@MainActor
+struct FullDexView: View {
+    let store: CompanionStore
+    let searchText: String
+    let missingOnly: Bool
+    @Binding var scope: PopoverNavigation.DexScope
+    let onSelectSpecies: (CompanionStore.DexSpecies) -> Void
+    @State private var folded: Set<Int> = []
+
+    private static let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 6)
+
+    var body: some View {
+        let species = Dictionary(store.dexSpecies.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let graduated = store.graduatedSpeciesIDs
+        let names = species.mapValues(\.name)
+        func shows(_ id: Int) -> Bool { Self.shows(id, names: names, missingOnly: missingOnly, query: searchText) }
+        return VStack(alignment: .leading, spacing: 6) {
+            PillPicker(selection: $scope, options: PopoverNavigation.DexScope.allCases.map { ($0, store.l.dexScope($0)) })
+            summary(registered: species.count, graduated: graduated)
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 8) {
+                    ForEach(Array(PokemonTypeData.generations.enumerated()), id: \.offset) { index, range in
+                        let ids = range.filter(shows)
+                        if !ids.isEmpty {
+                            region(index + 1, range: range, ids: ids, species: species, graduated: graduated)
+                        }
+                    }
+                }
+                .reservesScrollerLane()
+            }
+            .frame(maxHeight: .infinity)
+        }
+        .task { await store.backfillMissingDexNames() }
+    }
+
+    /// Whether a species shows: the missing ones only when asked, and those the search finds, by number (with or
+    /// without "#" and leading zeros) or by the name of a species in the Pokédex.
+    static func shows(_ id: Int, names: [Int: String], missingOnly: Bool, query: String) -> Bool {
+        if missingOnly, names[id] != nil { return false }
+        let query = query.trimmingCharacters(in: .whitespaces).lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+        guard !query.isEmpty else { return true }
+        if let number = Int(query) { return id == number || String(id).hasPrefix(String(number)) }
+        return names[id]?.lowercased().contains(query) == true
+    }
+
+    /// The whole Pokédex: species graduated, their share, the ones only seen, the forms and the shinies.
+    private func summary(registered: Int, graduated: Set<Int>) -> some View {
+        let owned = store.graduatedCollectionProgress
+        let total = max(1, owned.speciesTotal)
+        let shinies = Set(store.dexSpecies.filter(\.isShiny).map(\.id)).count
+        return VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 6) {
+                Text(store.l.dexSpeciesProgress(owned.species, of: owned.speciesTotal)).font(.callout.weight(.semibold))
+                Text(store.l.dexPercent(owned.species * 100 / total)).foregroundStyle(.secondary)
+                Spacer(minLength: 4)
+                if registered > owned.species {
+                    Label(store.l.dexSeenOnly(registered - owned.species), systemImage: "eye").labelStyle(.titleAndIcon)
+                        .foregroundStyle(.secondary).help(store.l.dexSeenNotGraduated)
+                }
+            }
+            HStack(spacing: 8) {
+                Text(store.l.formsCollected(owned.forms, of: owned.formsTotal))
+                Text("✨ \(store.l.dexShinySpecies(shinies))")
+            }
+            .foregroundStyle(.secondary)
+            ProgressView(value: Double(owned.species), total: Double(total)).controlSize(.small)
+        }
+        .font(.caption.monospacedDigit())
+        .lineLimit(1).minimumScaleFactor(0.8)
+    }
+
+    private func region(_ generation: Int, range: ClosedRange<Int>, ids: [Int],
+                        species: [Int: CompanionStore.DexSpecies], graduated: Set<Int>) -> some View {
+        let caught = range.filter { graduated.contains($0) }.count
+        let isFolded = folded.contains(generation)
+        return VStack(alignment: .leading, spacing: 6) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    if isFolded { folded.remove(generation) } else { folded.insert(generation) }
+                }
+            } label: {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Image(systemName: isFolded ? "chevron.right" : "chevron.down")
+                            .font(.caption2.weight(.bold)).foregroundStyle(.secondary).frame(width: 10)
+                        Text(store.l.regionName(generation: generation)).font(.callout.weight(.semibold))
+                        Spacer(minLength: 4)
+                        Text("\(caught) / \(range.count)").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                        Text("\(caught * 100 / range.count) %").font(.caption.monospacedDigit().weight(.semibold))
+                    }
+                    ProgressView(value: Double(caught), total: Double(range.count)).controlSize(.mini)
+                    HStack(spacing: 8) {
+                        ForEach(rarityDisplayOrder, id: \.self) { rarity in
+                            let count = range.filter { species[$0]?.rarity == rarity }.count
+                            if count > 0 {
+                                HStack(spacing: 3) {
+                                    Circle().fill(rarityColor(rarity)).frame(width: 6, height: 6)
+                                    Text("\(count)").font(.caption2.monospacedDigit())
+                                }
+                                .help(store.l.rarityLabel(rarity))
+                            }
+                        }
+                    }
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(isFolded ? [] : .isSelected)
+            if !isFolded {
+                LazyVGrid(columns: Self.columns, spacing: 4) {
+                    ForEach(ids, id: \.self) { id in
+                        cell(id, species: species[id], isGraduated: graduated.contains(id))
+                    }
+                }
+            }
+        }
+        .padding(8)
+        .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    @ViewBuilder
+    private func cell(_ id: Int, species: CompanionStore.DexSpecies?, isGraduated: Bool) -> some View {
+        let number = String(format: "%03d", id)
+        if let species {
+            Button { onSelectSpecies(species) } label: {
+                VStack(spacing: 1) {
+                    SpriteView(speciesID: id, size: 30,
+                               shiny: species.isShiny && !PokemonForm.hasForms(speciesID: id), form: species.form)
+                        .frame(width: 32, height: 32)
+                    Text(number).font(.system(size: 9, weight: .semibold).monospacedDigit())
+                }
+                .frame(maxWidth: .infinity).padding(.vertical, 3)
+                .background(rarityColor(species.rarity).opacity(0.16), in: RoundedRectangle(cornerRadius: 6))
+                .opacity(isGraduated ? 1 : 0.5)
+            }
+            .buttonStyle(.plain)
+            .help("#\(id) \(species.name) · \(store.l.rarityLabel(species.rarity))"
+                  + (isGraduated ? "" : " · \(store.l.dexSeenNotGraduated)"))
+            .accessibilityLabel("#\(id) \(species.name)")
+        } else {
+            VStack(spacing: 1) {
+                Text("?").font(.system(size: 15, weight: .bold, design: .rounded)).foregroundStyle(.tertiary)
+                    .frame(width: 32, height: 32)
+                Text(number).font(.system(size: 9, weight: .semibold).monospacedDigit()).foregroundStyle(.tertiary)
+            }
+            .frame(maxWidth: .infinity).padding(.vertical, 3)
+            .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 6))
+            .help(store.l.dexMissingHint(id))
+            .accessibilityLabel(store.l.dexMissingHint(id))
         }
     }
 }

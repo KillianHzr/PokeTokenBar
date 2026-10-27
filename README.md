@@ -293,6 +293,7 @@ Every badge has a **region per generation**: register every Pokémon of its type
 
 - **Local save backups** — automatic snapshots and corruption recovery, with a restore screen in Settings. Backup history starts collapsed; expand it to browse snapshots. **Create snapshot** stays available outside the list.
 - **Pokémon forms** — collect alternate forms from every generation, regional forms included, inspect form-specific individuals, and pin an owned form to the menu bar and floating pet. An individual's form follows evolution and stays in saves and exports; existing Unown letter saves remain readable. See the [form catalog](docs/reference/pokemon-forms.md).
+- **Whole Pokédex**: every species region by region, as TokenDex shows it: the completion and shinies, each region's progress and rarities, caught species tinted by rarity, seen ones faded and missing ones by their number. Switch between All, Caught (the page-by-page grid) and Missing.
 - **Bulk Rare Candy** — use several candies at once and preview the growth before spending.
 - **Menu bar Pokémon**: keep the menu bar Pokémon animated, still (one frame, no redraws), or hidden to show the usage text alone (Settings → General). With every text line off, a hidden Pokémon comes back still so there is always something to click.
 - **New form badge**: a Pokémon that hatched in a form its line never had says so on Home while it grows, and in the catch log once it graduates.

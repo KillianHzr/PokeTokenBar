@@ -67,6 +67,14 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-27", entries: [
+            .new("2026-10-27-whole-pokedex") { $0.t("도감이 모든 포켓몬을 지방별로 보여 줘요(TokenDex처럼). 지방마다 진행률과 희귀도, 아직 없는 종은 번호로. 전체·보유·미보유로 골라 볼 수 있어요.",
+                                                     "The Pokédex shows every Pokémon region by region, as TokenDex does: each region's progress and rarities, the species you're missing by their number. Switch between All, Caught and Missing.",
+                                                     "図鑑がすべてのポケモンを地方ごとに表示します(TokenDexのように)。地方ごとの進み具合とレア度、まだいない種は番号で。すべて・入手済み・未入手を切り替えられます。",
+                                                     "La Pokédex muestra todos los Pokémon región por región, como TokenDex: el progreso y las rarezas de cada región, y las especies que te faltan por su número. Cambia entre Todos, Obtenidos y Faltan.",
+                                                     "Le Pokédex montre tous les Pokémon région par région, comme TokenDex : la progression et les raretés de chaque région, et les espèces qui te manquent par leur numéro. Passe de Tous à Obtenus ou Manquants.",
+                                                     "A Pokédex mostra todos os Pokémon região por região, como o TokenDex: o progresso e as raridades de cada região, e as espécies que faltam pelo número. Alterne entre Todos, Obtidos e Faltando.",
+                                                     "Der Pokédex zeigt alle Pokémon Region für Region, wie TokenDex: Fortschritt und Seltenheiten jeder Region, fehlende Arten mit ihrer Nummer. Wechsle zwischen Alle, Gefangen und Fehlend.",
+                                                     "Покедекс показывает всех покемонов по регионам, как TokenDex: прогресс и редкость каждого региона, а недостающие виды по номеру. Переключайтесь между «Все», «Пойманы» и «Не хватает».") },
             .new("2026-10-27-stats-page") { $0.t("통계 페이지: 홈의 차트 버튼으로 이번 달 일별 그래프, 주·월·년 요약과 그 날짜별 표(토큰, 졸업한 포켓몬), 컬렉션 숫자를 한곳에서 봐요.",
                                                   "A Stats page: Home's chart button gathers this month day by day, the recap of a week, a month or a year with a table of its days (tokens, Pokémon graduated), and your collection in numbers.",
                                                   "統計ページ：ホームのグラフボタンで、今月の日ごとのグラフ、週・月・年のまとめと日ごとの表(トークン、卒業したポケモン)、コレクションの数字をまとめて見られます。",

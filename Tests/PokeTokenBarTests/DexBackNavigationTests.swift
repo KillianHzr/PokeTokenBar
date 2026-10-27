@@ -179,6 +179,7 @@ final class DexBackNavigationTests: XCTestCase {
     func testBackFromDetailReturnsToThePageOfThatSpecies() async throws {
         let store = try makeStore()
         let navigation = PopoverNavigation()
+        navigation.dexScope = .caught   // the caught species page by page
         navigation.tab = .collection
         let root = host(store, navigation)
         try await waitForText("Mon5", in: root)
@@ -194,6 +195,7 @@ final class DexBackNavigationTests: XCTestCase {
     func testReturnPageIsUsedOnlyOnce() async throws {
         let store = try makeStore()
         let navigation = PopoverNavigation()
+        navigation.dexScope = .caught   // the caught species page by page
         navigation.tab = .collection
         let root = host(store, navigation)
         try await openPageTwoSpeciesAndGoBack(store, navigation, root)
@@ -210,6 +212,7 @@ final class DexBackNavigationTests: XCTestCase {
     func testBackToTheLogLeavesTheGridOnItsFirstPage() async throws {
         let store = try makeStore()
         let navigation = PopoverNavigation()
+        navigation.dexScope = .caught   // the caught species page by page
         navigation.tab = .collection
         navigation.showingCollectionLog = true
         let root = host(store, navigation)
@@ -228,6 +231,7 @@ final class DexBackNavigationTests: XCTestCase {
     func testFamilyLineOpensItsPagesAndBackWalksBackThroughThem() async throws {
         let store = try makeStore()
         let navigation = PopoverNavigation()
+        navigation.dexScope = .caught   // the caught species page by page
         navigation.tab = .collection
         let root = host(store, navigation)
         navigation.dexDetailCollectionID = "2"
@@ -271,6 +275,7 @@ final class DexBackNavigationTests: XCTestCase {
     func testBackFromDetailReturnsTheLogToWhereItWas() async throws {
         let store = try makeStore()
         let navigation = PopoverNavigation()
+        navigation.dexScope = .caught   // the caught species page by page
         navigation.tab = .collection
         navigation.showingCollectionLog = true
         let root = host(store, navigation)
