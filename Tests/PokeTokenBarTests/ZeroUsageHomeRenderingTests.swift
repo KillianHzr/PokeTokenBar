@@ -45,12 +45,15 @@ private struct QuietHomePokemon: PokeProviding {
 /// Optional PNG output is fixture data, isolated from the user's saves and credentials.
 @MainActor
 final class ZeroUsageHomeRenderingTests: XCTestCase {
+    /// The daily chart moved to the Stats page: there, with the history; on Home, never.
     func testQuietDayKeepsHistoricalGraphVisible() async throws {
         try await render(history: true)
+        try await render(history: true, stats: true)
     }
 
     func testEmptyHistoryStillShowsZeroPeriodSummaries() async throws {
         try await render(history: false)
+        try await render(history: false, stats: true)
     }
 
     func testRecapLabelKeepsPeriodCostsOnOneLine() async throws {
@@ -63,7 +66,8 @@ final class ZeroUsageHomeRenderingTests: XCTestCase {
         try await render(history: true, language: .de, costs: .unavailable)
     }
 
-    private func render(history: Bool, language: AppLanguage = .ko, costs: CostCoverage? = nil) async throws {
+    private func render(history: Bool, language: AppLanguage = .ko, costs: CostCoverage? = nil,
+                        stats: Bool = false) async throws {
         let suite = "QuietHome-\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
@@ -112,7 +116,8 @@ final class ZeroUsageHomeRenderingTests: XCTestCase {
         let height = 604.0
         let host = NSHostingView(rootView: PopoverView()
             .environment(store).environment(companion).environment(UpdateChecker(defaults: defaults))
-            .environment(PopoverNavigation()).environment(\.colorScheme, .dark)
+            .environment({ let nav = PopoverNavigation(); nav.showingRecap = stats; return nav }())
+            .environment(\.colorScheme, .dark)
             .environment(\.controlActiveState, .active)
             .frame(width: PopoverMetrics.width, height: height)
             .background(Color(nsColor: NSColor(calibratedWhite: 0.07, alpha: 1))))
@@ -176,7 +181,7 @@ final class ZeroUsageHomeRenderingTests: XCTestCase {
             return "observation \(index) bbox=\(NSStringFromRect(observation.boundingBox)): \(alternatives)"
         }.joined(separator: "\n")
         let diagnostics = "OCR revision=\(request.revision) pixels=\(bitmap.pixelsWide)x\(bitmap.pixelsHigh)\n\(candidates)"
-        for label in [companion.l.todayTokens, companion.l.thisWeek, companion.l.thisMonth] {
+        for label in [companion.l.todayTokens, companion.l.thisWeek, companion.l.thisMonth] where !stats {
             XCTAssertTrue(visible(label), "Missing visible \(label): \(text)\n\(diagnostics)")
         }
         if costs == .source {
@@ -194,20 +199,21 @@ final class ZeroUsageHomeRenderingTests: XCTestCase {
             }.count, 2, "Both unavailable period costs must stay visible\n\(diagnostics)")
         }
         if costs == nil {
-            // The original quiet-day fixtures own chart coverage; cost fixtures target the period row.
-            if history && day > 1 {
+            // The original quiet-day fixtures own chart coverage; cost fixtures target the period row. The chart
+            // is on the Stats page now, never on Home.
+            if stats && history && day > 1 {
                 XCTAssertTrue(chartVisible,
                               "Historical chart missing: \(text)\n\(diagnostics)")
             } else {
-                XCTAssertFalse(chartVisible,
-                               "Empty history must not invent a chart\n\(diagnostics)")
+                XCTAssertFalse(chartVisible, (stats ? "Empty history must not invent a chart"
+                                                    : "Home no longer shows the daily chart") + "\n\(diagnostics)")
             }
         }
         if let output = ProcessInfo.processInfo.environment["PTB_ZERO_USAGE_SCREENSHOT_DIR"] {
             let directory = URL(fileURLWithPath: output)
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             let name = costs != nil ? "\(language.rawValue)-period-costs-\(costs == .source ? "known" : "unavailable").png"
-                : (history ? "ko-zero-today-with-history.png" : "ko-zero-all-periods.png")
+                : (stats ? "stats-" : "") + (history ? "ko-zero-today-with-history.png" : "ko-zero-all-periods.png")
             try XCTUnwrap(bitmap.representation(using: .png, properties: [:])).write(to: directory.appendingPathComponent(name))
         }
     }

@@ -67,6 +67,14 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-27", entries: [
+            .new("2026-10-27-stats-page") { $0.t("통계 페이지: 홈의 차트 버튼으로 이번 달 일별 그래프, 주·월·년 요약과 그 날짜별 표(토큰, 졸업한 포켓몬), 컬렉션 숫자를 한곳에서 봐요.",
+                                                  "A Stats page: Home's chart button gathers this month day by day, the recap of a week, a month or a year with a table of its days (tokens, Pokémon graduated), and your collection in numbers.",
+                                                  "統計ページ：ホームのグラフボタンで、今月の日ごとのグラフ、週・月・年のまとめと日ごとの表(トークン、卒業したポケモン)、コレクションの数字をまとめて見られます。",
+                                                  "Una página de Estadísticas: el botón de gráfico de Inicio reúne este mes día a día, el resumen de una semana, un mes o un año con una tabla de sus días (tokens, Pokémon graduados) y tu colección en cifras.",
+                                                  "Une page Statistiques : le bouton graphique de l'accueil réunit ce mois jour par jour, le récap d'une semaine, d'un mois ou d'une année avec le tableau de ses jours (tokens, Pokémon diplômés) et ta collection en chiffres.",
+                                                  "Uma página de Estatísticas: o botão de gráfico do Início reúne este mês dia a dia, o resumo de uma semana, um mês ou um ano com uma tabela dos dias (tokens, Pokémon formados) e sua coleção em números.",
+                                                  "Eine Statistikseite: Der Diagramm-Knopf der Startseite vereint diesen Monat Tag für Tag, den Rückblick auf eine Woche, einen Monat oder ein Jahr mit einer Tabelle seiner Tage (Tokens, verabschiedete Pokémon) und deine Sammlung in Zahlen.",
+                                                  "Страница статистики: кнопка графика на главной собирает этот месяц по дням, итоги недели, месяца или года с таблицей дней (токены, выпущенные покемоны) и вашу коллекцию в цифрах.") },
             .new("2026-10-27-ideas") { $0.t("아이디어나 버그를 앱에서 바로 보낼 수 있어요(전구 버튼). GitHub 이슈로 올라가고, GitHub CLI로 로그인돼 있으면 앱이 직접 올려요.",
                                              "Send an idea or a bug from the app (the light bulb button): it becomes a GitHub issue, posted by the app itself when the GitHub CLI is signed in.",
                                              "アプリからアイデアやバグを送れます(電球ボタン)。GitHubのissueになり、GitHub CLIでログインしていればアプリが直接投稿します。",

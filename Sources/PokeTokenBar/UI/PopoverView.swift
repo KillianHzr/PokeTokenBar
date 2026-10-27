@@ -218,7 +218,7 @@ struct PopoverView: View {
                     .environment(companion)
                     .environment(updater)
             } else if nav.showingRecap {
-                RecapScreen(store: store, companion: companion) { nav.showingRecap = false }
+                StatsScreen(store: store, companion: companion) { nav.showingRecap = false }
             } else if nav.showingBonuses {
                 BonusScreen(store: companion) { nav.showingBonuses = false }
             } else if nav.showingChangelog {
@@ -431,11 +431,11 @@ struct PopoverView: View {
 
     // MARK: 헤더 — 오늘 합계 + provider/토큰타입 분해
 
-    /// Today's usage, then the month's daily chart, then the selected tool's detail: one card each.
+    /// Today's usage, then the selected tool's detail: one card each. The month's daily chart is on the Stats page,
+    /// with every other number.
     private var header: some View {
         VStack(alignment: .leading, spacing: Design.sectionSpacing) {
             todayCard
-            trendCard
             providerCard
         }
     }
@@ -446,7 +446,7 @@ struct PopoverView: View {
                 SectionTitle(text: l.todayTokens, systemImage: "bolt.fill")
                 Spacer()
                 CircleIconButton(systemImage: "wand.and.stars", help: l.bonusOpen) { nav.showingBonuses = true }
-                CircleIconButton(systemImage: "chart.bar.xaxis", help: l.recapOpen) { nav.showingRecap = true }
+                CircleIconButton(systemImage: "chart.bar.xaxis", help: l.statsTitle) { nav.showingRecap = true }
             }
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(TokenFormatter.compact(store.todayTotalTokens))
@@ -474,22 +474,6 @@ struct PopoverView: View {
             }
         }
         .designCard()
-    }
-
-    private var trendCard: some View {
-        MonthDailyTrend(series: store.monthDailyTotals,
-                        providers: store.snapshots.compactMap { snap in
-                            snap.monthDaily.map {
-                                DailyTrendStack.ProviderSeries(
-                                    id: snap.providerID, name: snap.displayName,
-                                    days: $0, reportsCost: snap.reportsCost)
-                            }
-                        },
-                        providerOrder: store.registeredProviderIDs,
-                        showsCost: store.showsCost,
-                        today: LocalUsageReader.todayKey(),
-                        l: l)
-            .designCard()
     }
 
     @ViewBuilder
