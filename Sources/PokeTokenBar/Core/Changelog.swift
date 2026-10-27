@@ -67,6 +67,14 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-27", entries: [
+            .improved("2026-10-27-menu-bar-companion") { $0.t("메뉴 막대에 오늘 토큰과 비용 대신 진화·부화까지 남은 토큰(↑)과 상점 토큰(¤)을 보여 줘요. 설정에서 바꿀 수 있어요.",
+                          "The menu bar shows the tokens left to evolve or hatch (↑) and your Shop tokens (¤) instead of today's tokens and cost. Choose in Settings.",
+                          "メニューバーに今日のトークンとコストの代わりに、進化・孵化までの残りトークン(↑)とショップのトークン(¤)を表示します。設定で選べます。",
+                          "La barra de menús muestra los tokens que faltan para evolucionar o eclosionar (↑) y tus tokens de la tienda (¤) en lugar de los tokens y el coste de hoy. Elige en Ajustes.",
+                          "La barre des menus affiche les tokens restants avant l'évolution ou l'éclosion (↑) et tes tokens en boutique (¤) au lieu des tokens et du coût du jour. Au choix dans les Réglages.",
+                          "A barra de menus mostra os tokens que faltam para evoluir ou chocar (↑) e seus tokens da loja (¤) em vez dos tokens e do custo de hoje. Escolha nos Ajustes.",
+                          "Die Menüleiste zeigt die Tokens bis zur Entwicklung oder zum Schlüpfen (↑) und deine Shop-Tokens (¤) statt der heutigen Tokens und Kosten. Wählbar in den Einstellungen.",
+                          "В строке меню теперь токены до эволюции или вылупления (↑) и токены магазина (¤) вместо токенов и стоимости за сегодня. Настраивается в настройках.") },
             .new("2026-10-27-duplicate-badge") { $0.t("홈에서 지금 포켓몬이 100% 중복인지 보여 줘요. 갈 수 있는 모든 종과 폼이 이미 졸업했다면 놓아줘도 잃는 게 없어요. 아니면 \"신규\" 배지에 마우스를 올려 무엇이 추가되는지 볼 수 있어요.",
                           "Home shows when your Pokémon is a 100% duplicate: every species and form it can bring has graduated, so sending it off loses nothing. Otherwise hover its New badge to see what it adds.",
                           "いまのポケモンが100%ダブりかホームに表示します。たどり着ける種とフォルムがすべて卒業済みなら、手放しても失うものはありません。そうでなければ「新規」バッジにポインタを重ねると何が増えるか分かります。",

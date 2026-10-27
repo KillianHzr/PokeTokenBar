@@ -318,6 +318,10 @@ struct SettingsView: View {
         @Bindable var store = store
         VStack(alignment: .leading, spacing: 6) {
             settingsSection(l.menuBarSectionTitle) {
+                toggleRow(l.menuEvolutionTokens, $store.showEvolutionInMenu)
+                Divider()
+                toggleRow(l.menuShopTokens, $store.showShopInMenu)
+                Divider()
                 toggleRow(l.todayTokensShort, $store.showTokensInMenu)
                 Divider()
                 toggleRow(l.todayCost, $store.showCostInMenu)

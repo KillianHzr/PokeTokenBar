@@ -269,6 +269,16 @@ struct L {
     var todayTokensShort: String { t("오늘 토큰", "Today's tokens", "本日のトークン", "Tokens de hoy", "Tokens du jour", "Tokens de hoje", "Heutige Tokens", "Токены за сегодня") }
     var todayCost: String { t("오늘 비용 ($)", "Today's cost ($)", "本日のコスト ($)", "Coste de hoy ($)", "Coût du jour ($)", "Custo de hoje ($)", "Heutige Kosten ($)", "Стоимость за сегодня ($)") }
     var limitPercent: String { t("한도 %", "Limit %", "上限 %", "Límite %", "Limite %", "Limite %", "Limit %", "Лимит, %") }
+    /// Menu bar items: tokens to the next stage or the hatch (shown "↑12M"), and the Shop's tokens ("¤217M").
+    var menuEvolutionTokens: String {
+        t("↑ 진화·부화까지 토큰", "↑ Tokens to evolve or hatch", "↑ 進化・孵化までのトークン", "↑ Tokens hasta evolucionar o eclosionar",
+          "↑ Tokens avant évolution ou éclosion", "↑ Tokens até evoluir ou chocar", "↑ Tokens bis Entwicklung oder Schlüpfen",
+          "↑ Токены до эволюции или вылупления")
+    }
+    var menuShopTokens: String {
+        t("¤ 상점 토큰", "¤ Shop tokens", "¤ ショップのトークン", "¤ Tokens de la tienda", "¤ Tokens en boutique",
+          "¤ Tokens da loja", "¤ Shop-Tokens", "¤ Токены магазина")
+    }
     var menuLimitColor: String {
         t("퍼센트 색상", "Percent color", "パーセントの色", "Color del porcentaje", "Couleur du pourcentage",
           "Cor da porcentagem", "Prozentfarbe", "Цвет процентов")

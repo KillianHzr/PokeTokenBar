@@ -114,6 +114,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
         observeStore()
         observeCompanionSprite()
+        observeCompanionMenu()
         observeDisplaySleep()
         observePowerState()
         observeUpdater()
@@ -146,6 +147,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     /// 일부다(`menuSpriteKey`). `observeStore` 는 `menuTitle` 만 추적하므로, 이걸 빼면 설정을
     /// 바꿔도 다음 사용량 폴링(기본 120s)까지 옛 fps 로 돈다 — 위 '메뉴바 잔상'과 같은 부류.
     /// (플로팅 펫은 `body` 에서 직접 읽어 SwiftUI 관찰이 처리한다.)
+    /// The companion's numbers the menu bar can show (`UsageStore.companionMenu`): tokens to the next stage, or to the
+    /// hatch while an egg incubates, and the Shop's tokens.
+    private func observeCompanionMenu() {
+        withObservationTracking {
+            let menu = UsageStore.CompanionMenu(
+                toNext: companion.hasActive ? companion.tokensToNext : companion.eggTokensToHatch,
+                shop: companion.availableTokens)
+            if store.companionMenu != menu { store.companionMenu = menu }
+        } onChange: { [weak self] in
+            Task { @MainActor in self?.observeCompanionMenu() }
+        }
+    }
+
     private func observeCompanionSprite() {
         withObservationTracking {
             _ = companion.representativeSubject
