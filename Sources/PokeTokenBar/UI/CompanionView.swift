@@ -2175,16 +2175,19 @@ struct PokemonDetailView: View {
         }
     }
 
-    /// Unown's 28 letters fill seven columns; named forms get wider cells for their labels.
-    static func formPickerColumns(formCount: Int) -> Int {
-        formCount > 8 ? (formCount > 20 ? 7 : 6) : min(formCount, 4)
+    /// Unown's 28 letters fill seven columns and short labels six (Arceus's types), one line each. Longer names
+    /// ("Motif Continental", Alcremie's sweets) take four columns and two lines: in six, they were cut short.
+    static func formPickerColumns(formCount: Int, longestLabel: Int) -> Int {
+        guard formCount > 8, longestLabel <= 8 else { return min(formCount, 4) }
+        return longestLabel <= 2 ? 7 : 6
     }
 
     private var formPicker: some View {
         let forms = formSpecies
         let allForms = PokemonForm.forms(speciesID: species.id)
         let selected = displayedSpecies.form
-        let columns = Self.formPickerColumns(formCount: allForms.count)
+        let labels = allForms.map { PokemonForm.label(speciesID: species.id, form: $0, language: store.language) ?? "" }
+        let columns = Self.formPickerColumns(formCount: allForms.count, longestLabel: labels.map(\.count).max() ?? 0)
         let source = PokemonForm.unlockSource(speciesID: species.id)
         let unlockedTypes = source == .legendaryType ? store.state.silvallyMemoryTypes : store.state.plateTypes
         return VStack(alignment: .leading, spacing: 6) {
@@ -2212,11 +2215,12 @@ struct PokemonDetailView: View {
                                     .overlay(alignment: .topTrailing) {
                                         if owned?.isShiny == true { Text("✨").font(.system(size: 11)) }
                                     }
-                                // Wide grids hold short labels (letters, types); longer names wrap on two lines.
+                                // Wide grids hold short labels (letters, types); longer names wrap on two lines,
+                                // three for Alcremie's longest sweets.
                                 Text(label).font(.system(size: 11, weight: .semibold))
                                     .multilineTextAlignment(.center)
-                                    .lineLimit(columns > 4 ? 1 : 2, reservesSpace: columns <= 4)
-                                    .minimumScaleFactor(0.6)
+                                    .lineLimit(columns > 4 ? 1...1 : 2...3)
+                                    .minimumScaleFactor(columns > 4 ? 0.6 : 0.8)
                                     .padding(.horizontal, 2)
                             }
                             .opacity(owned == nil ? 0.25 : 1)
@@ -2321,16 +2325,16 @@ struct PokemonDetailView: View {
                         Ellipse().fill(Color.black.opacity(0.18)).frame(width: 60, height: 10).blur(radius: 2)
                     }
                 VStack(alignment: .leading, spacing: 5) {
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(species.name).font(.system(size: 18, weight: .bold, design: .rounded))
-                            .lineLimit(1).minimumScaleFactor(0.75)
-                        if species.rarity == .legendary {
-                            LegendaryBadge(text: store.l.rarityLabel(species.rarity).uppercased()).fixedSize()
-                        } else {
-                            Badge(store.l.rarityLabel(species.rarity).uppercased(), tint: .rarity(species.rarity))
-                                .lineLimit(1).fixedSize()
-                        }
+                    // The rarity above the name, as on Home: a long form name ("Vivillon [Continental Pattern]")
+                    // wraps whole instead of being cut beside the badge.
+                    if species.rarity == .legendary {
+                        LegendaryBadge(text: store.l.rarityLabel(species.rarity).uppercased()).fixedSize()
+                    } else {
+                        Badge(store.l.rarityLabel(species.rarity).uppercased(), tint: .rarity(species.rarity))
+                            .lineLimit(1).fixedSize()
                     }
+                    Text(species.name).font(.system(size: 18, weight: .bold, design: .rounded))
+                        .lineLimit(2).minimumScaleFactor(0.85).fixedSize(horizontal: false, vertical: true)
                     let types = PokemonTypeData.typeNames(speciesID: species.id, form: species.form,
                                                           fallback: store.pokemonDetails(speciesID: species.id, form: species.form)?.types)
                     if !types.isEmpty {

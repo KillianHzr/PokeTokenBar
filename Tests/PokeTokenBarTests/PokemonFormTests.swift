@@ -454,10 +454,13 @@ final class PokemonFormTests: XCTestCase {
         XCTAssertEqual(PokemonForm.displayName("Pikachu", speciesID: 25, form: sky, label: "Sky"), "Pikachu")
     }
 
+    /// Long names take four columns and two lines: "Motif Continental" was cut in six (Vivillon's 20 patterns).
     func testFormPickerKeepsSevenColumnsForUnownAndWidensNamedForms() {
-        XCTAssertEqual(PokemonDetailView.formPickerColumns(formCount: 28), 7)
-        XCTAssertEqual(PokemonDetailView.formPickerColumns(formCount: 18), 6)
-        XCTAssertEqual(PokemonDetailView.formPickerColumns(formCount: 6), 4)
-        XCTAssertEqual(PokemonDetailView.formPickerColumns(formCount: 2), 2)
+        XCTAssertEqual(PokemonDetailView.formPickerColumns(formCount: 28, longestLabel: 1), 7)
+        XCTAssertEqual(PokemonDetailView.formPickerColumns(formCount: 18, longestLabel: 8), 6)
+        XCTAssertEqual(PokemonDetailView.formPickerColumns(formCount: 20, longestLabel: 17), 4)
+        XCTAssertEqual(PokemonDetailView.formPickerColumns(formCount: 63, longestLabel: 24), 4)
+        XCTAssertEqual(PokemonDetailView.formPickerColumns(formCount: 6, longestLabel: 6), 4)
+        XCTAssertEqual(PokemonDetailView.formPickerColumns(formCount: 2, longestLabel: 20), 2)
     }
 }
