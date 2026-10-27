@@ -336,7 +336,7 @@ extension CompanionStore {
         case .legendPlate: return l.legendPlateHint
         case .rotomCatalog: return l.rotomCatalogEffectHint
         case .cometShard, .redNectar, .smoothRock, .sawsbuckSeasons, .fairyFeather, .furfrouTrims, .vivillonPatterns,
-             .whippedDream, .unownLetters:
+             .whippedDream, .unownLetters, .lightBall:
             return l.rewardsList(kind.achievementRewards)
         case .uncommonEgg: return l.eggGuaranteeHint(.uncommon)
         case .rareEgg: return l.eggGuaranteeHint(.rare)
@@ -344,7 +344,6 @@ extension CompanionStore {
         case .typeNullEgg: return l.typeNullEggHint
         case .legendaryEgg: return l.legendaryEggHint
         case .birthdayEgg: return l.birthdayEggHint
-        case .lightBall: return l.lightBallEffectHint
         case .ovalCharm: return l.ovalCharmEffectHint
         case .glimmeringCharm: return l.glimmeringCharmEffectHint
         case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,

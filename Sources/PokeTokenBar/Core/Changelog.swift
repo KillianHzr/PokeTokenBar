@@ -67,6 +67,17 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-27", entries: [
+            .improved("2026-10-27-light-ball-rewards") { l in
+                let ball = l.itemName(.lightBall), list = l.rewardsList(ItemKind.lightBall.achievementRewards)
+                return l.t("\(KoreanParticle.subject.attach(to: ball)) 이제 피츄 계열을 빨리 키우는 대신 가방에 넣어 줘요: \(list). 이미 가진 플레이어도 한 번 받아요.",
+                           "The \(ball) no longer speeds up Pikachu's line, which you stop raising once every costume is yours: it now puts in your Bag \(list). Players who already have it get them once.",
+                           "\(ball)はピカチュウ系統を早く育てるかわりに、バッグに入れてくれます：\(list)。すでに持っているプレイヤーも1回もらえます。",
+                           "La \(ball) ya no acelera la línea de Pikachu, que dejas de criar al tener todos los disfraces: ahora pone en tu bolsa \(list). Quien ya la tenía los recibe una vez.",
+                           "La \(ball) n'accélère plus la lignée de Pikachu, qu'on n'élève plus une fois tous les costumes obtenus : elle met maintenant dans ton sac \(list). Ceux qui l'avaient déjà les reçoivent une fois.",
+                           "A \(ball) não acelera mais a linha do Pikachu, que você para de criar ao ter todas as fantasias: agora coloca na sua bolsa \(list). Quem já tinha recebe uma vez.",
+                           "Der \(ball) beschleunigt nicht mehr Pikachus Reihe, die du mit allen Kostümen nicht mehr aufziehst: Er legt jetzt in deinen Beutel \(list). Wer ihn schon hat, bekommt sie einmal.",
+                           "«\(ball)» больше не ускоряет линию Пикачу, которую уже не растят, собрав все костюмы: теперь он кладёт в сумку \(list). Те, у кого он уже был, получат их один раз.")
+            },
             .new("2026-10-27-forms-achievements") { $0.t("업적에 폼 탭이 생겼어요. 로토무, 메테노, 마휘핑, 비비용, 안농 등 10종의 모든 폼을 졸업시키면 이상한 사탕, 알, 또는 새 폼으로 태어난 포켓몬마다 사탕을 주는 로토무카탈로그를 받아요.",
                                                            "A Forms tab in Achievements: graduate every form of Rotom, Minior, Alcremie, Vivillon, Unown and five more species to earn Rare Candies, eggs, or the Rotom Catalog, which gives a candy for each Pokémon hatched in a new form.",
                                                            "実績にフォルムのタブができました。ロトム、メテノ、マホイップ、ビビヨン、アンノーンなど10種のすべてのフォルムを卒業させると、ふしぎなアメやタマゴ、新しいフォルムで生まれたポケモンごとにアメをくれるロトムのカタログがもらえます。",

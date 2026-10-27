@@ -223,7 +223,7 @@ Pi は複数のモデルを一つのセッションログに流すことがあ�
 | **あくのかけじく** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/scroll-of-darkness.png" width="28" height="28" alt="あくのかけじく"> | ウーラオス、ザルード | かくとうタイプのポケモンが30%早く育つ |
 | **こだいのツボ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-vase.png" width="28" height="28" alt="こだいのツボ"> | チオンジェン、パオジアン、ディンルー、イーユイ | 中間の進化段階のポケモンが25%早く育つ |
 | **レジェンドプレート** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/legend-plate.png" width="28" height="28" alt="レジェンドプレート"> | アルセウス | レアのタマゴとアンコモンのタマゴが1個ずつバッグに:ショップと同じく、ポケモンを手放してそのレア度以上のタマゴをもらう |
-| **でんきだま** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/light-ball.png" width="28" height="28" alt="でんきだま"> | ピカチュウのいしょう15着すべて | ピチュー、ピカチュウ、ライチュウが50%早く育つ |
+| **でんきだま** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/light-ball.png" width="28" height="28" alt="でんきだま"> | ピカチュウのいしょう15着すべて | レアのタマゴ2個とふしぎなアメ5個がバッグに |
 | **タイプ：ヌルのタマゴ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/mystery-egg.png" width="28" height="28" alt="タイプ：ヌルのタマゴ"> | シルヴァディのメモリ17個すべて⁴ | いまのポケモンを手放して、タイプ：ヌルが生まれるタマゴを受け取る |
 | **まるいおまもり** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/oval-charm.png" width="28" height="28" alt="まるいおまもり"> | すべての種 (1,025) | 残っているあいだ、まだ集めていないフォルムがあるポケモンだけがそのフォルムで生まれる |
 | **きらめくおまもり** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/glimmering-charm.png" width="28" height="28" alt="きらめくおまもり"> | すべてのフォルム (1,350) | 生まれるポケモンがすべて色違いになる |

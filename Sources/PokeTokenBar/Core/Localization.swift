@@ -2033,14 +2033,15 @@ struct L {
                      "Die Belohnung für alle 17 Disks von Amigento. Gib dein aktuelles Pokémon ab für ein Ei, aus dem ein Typ:Null schlüpft.",
                      "Награда за все 17 дисков Сильвалли. Отпустите текущего покемона ради яйца, из которого вылупится Тип: Ноль.")
         case .lightBall:
-            return t("보유하면 피츄, 피카츄, 라이츄가 50% 더 빨리 성장합니다.",
-                     "While owned, Pichu, Pikachu and Raichu grow 50% faster.",
-                     "持っているとピチュー、ピカチュウ、ライチュウが50%早く育ちます。",
-                     "Mientras la tengas, Pichu, Pikachu y Raichu crecen un 50% más rápido.",
-                     "Tant que tu la possèdes, Pichu, Pikachu et Raichu grandissent 50 % plus vite.",
-                     "Enquanto estiver na bolsa, Pichu, Pikachu e Raichu crescem 50% mais rápido.",
-                     "Lässt im Beutel Pichu, Pikachu und Raichu 50% schneller wachsen.",
-                     "Пока он у вас, Пичу, Пикачу и Райчу растут на 50% быстрее.")
+            let list = rewardsList(kind.achievementRewards)
+            return t("피카츄의 코스튬 15벌을 모두 모은 보상. 받으면 가방에 들어와요: \(list).",
+                     "The reward for all 15 of Pikachu's costumes. Claiming it puts in your Bag: \(list).",
+                     "ピカチュウのコスチューム15着すべてのごほうび。受け取るとバッグに入ります：\(list)。",
+                     "La recompensa por los 15 disfraces de Pikachu. Al reclamarla, recibes en tu bolsa: \(list).",
+                     "La récompense des 15 costumes de Pikachu. En la réclamant, tu reçois dans ton sac : \(list).",
+                     "A recompensa pelas 15 fantasias de Pikachu. Ao resgatá-la, você recebe na sua bolsa: \(list).",
+                     "Die Belohnung für alle 15 Kostüme von Pikachu. Holst du sie ab, kommt in deinen Beutel: \(list).",
+                     "Награда за все 15 костюмов Пикачу. Получив её, вы найдёте в сумке: \(list).")
         case .birthdayEgg:
             return t("생일 선물. 지금 포켓몬을 놓아주고 이 알을 받아요. 무엇이 태어날지는 비밀이에요.",
                      "Your birthday gift. Send off your current Pokémon for this egg. What hatches from it is a surprise.",
@@ -2403,10 +2404,6 @@ struct L {
     }
     var allFormsGoal: String {
         t("모든 폼", "Every form", "すべてのフォルム", "Todas las formas", "Toutes les formes", "Todas as formas", "Alle Formen", "Все формы")
-    }
-    var lightBallEffectHint: String {
-        t("피츄 계열 성장 +50% · 적용 중", "Pikachu's line +50% · active", "ピカチュウ系統 +50% · 適用中", "Línea de Pikachu +50% · activo",
-          "Lignée de Pikachu +50% · actif", "Linha do Pikachu +50% · ativo", "Pikachu-Reihe +50% · aktiv", "Линия Пикачу +50% · активен")
     }
     var allPikachuCostumesGoal: String {
         t("피카츄의 옷 전부", "Every one of Pikachu's costumes", "ピカチュウのいしょう すべて", "Todos los trajes de Pikachu",

@@ -203,7 +203,8 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     /// The reward for each region whose every species is in the Pokédex: an egg that hatches a legendary or mythical
     /// Pokémon.
     case legendaryEgg
-    /// The reward for every one of Pikachu's costumes: Pichu, Pikachu and Raichu grow faster.
+    /// The reward for every one of Pikachu's costumes: Rare Eggs and Rare Candies (it used to speed up Pikachu's line,
+    /// which a player holding every costume no longer raises).
     case lightBall
     /// The birthday gift (`BirthdayGift`): an egg whose hatch is a surprise, a mythical Pokémon not graduated yet.
     case birthdayEgg
@@ -411,7 +412,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     var isPassive: Bool {
         switch self {
         case .rareCandy, .mint,
-             .typeNullEgg, .legendaryEgg, .birthdayEgg, .uncommonEgg, .rareEgg, .legendPlate,
+             .typeNullEgg, .legendaryEgg, .birthdayEgg, .uncommonEgg, .rareEgg, .legendPlate, .lightBall,
              .cometShard, .redNectar, .smoothRock, .sawsbuckSeasons, .fairyFeather, .furfrouTrims, .vivillonPatterns, .whippedDream, .unownLetters,
              .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg,
              .leafStone, .fireStone, .waterStone, .thunderStone, .sunStone,
@@ -438,7 +439,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .sawsbuckSeasons, .fairyFeather: return [(.uncommonEgg, 1)]
         case .furfrouTrims: return [(.rareEgg, 1)]
         case .vivillonPatterns, .unownLetters: return [(.rareEgg, 2)]
-        case .whippedDream: return [(.rareEgg, 2), (.rareCandy, 5)]
+        case .whippedDream, .lightBall: return [(.rareEgg, 2), (.rareCandy, 5)]
         default: return [(self, achievementRewardCount)]
         }
     }
@@ -612,7 +613,7 @@ enum BonusTheme: CaseIterable, Sendable {
     static func of(_ kind: ItemKind) -> BonusTheme? {
         if kind.badgeType != nil { return .growth }
         switch kind {
-        case .oldSeaMap, .dnaSplicers, .zygardeCube, .clearBell, .griseousOrb, .prisonBottle, .sparklingStone, .lightBall,
+        case .oldSeaMap, .dnaSplicers, .zygardeCube, .clearBell, .griseousOrb, .prisonBottle, .sparklingStone,
              .sunFlute, .gracidea, .relicStatue, .beastBall, .rustedSword, .boosterEnergy, .tealMask,
              .magmaStone, .libertyPass, .lunarWing, .oaksLetter, .shockDrive, .zRing, .scrollOfDarkness, .relicVase:
             return .growth
@@ -671,9 +672,6 @@ enum CollectorBonus {
     /// Ogerpon's four masks.
     static let tealMaskTypeList: [PokemonType] = [.grass, .water, .fire, .rock]
     static let clearBellRare = 1.25
-    /// The Light Ball: Pichu, Pikachu and Raichu grow 50% faster.
-    static let lightBallPikachuLine = 1.5
-    static let pikachuLine: Set<Int> = [172, 25, 26]
     static let griseousOrbGhostDragon = 1.3
     /// Rare Candies the Reins of Unity add to each graduation.
     static let reinsOfUnityCandies = 1

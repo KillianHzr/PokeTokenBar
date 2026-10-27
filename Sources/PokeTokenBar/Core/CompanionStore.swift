@@ -87,6 +87,7 @@ final class CompanionStore {
         migrateToOneDifficultyIfNeeded()
         migrateToAdditiveGrowthIfNeeded()
         migratePokemonProfilesIfNeeded()
+        migrateLightBallToRewardsIfNeeded()
         refreshRepresentativeSubject()
         refreshSnapshots()
         if state.active != nil { displayState = .idle }
@@ -120,6 +121,20 @@ final class CompanionStore {
         let previous = min(20, max(0.0001, stored))
         guard previous != growthDifficulty else { return }
         rescaleBankedGrowth(from: previous, to: growthDifficulty)
+        save()
+    }
+
+    /// The Light Ball used to speed up Pikachu's line, which a player holding every costume no longer raises: it now
+    /// gives eggs and candies (`ItemKind.achievementRewards`). A save holding the old item gets them once, and the item
+    /// leaves the Bag; the achievement stays claimed.
+    private func migrateLightBallToRewardsIfNeeded() {
+        guard itemCount(.lightBall) > 0 else { return }
+        state.inventory[ItemKind.lightBall.rawValue] = nil
+        state.claimedAchievements.insert(ItemKind.lightBall.rawValue)
+        for reward in ItemKind.lightBall.achievementRewards {
+            state.inventory[reward.kind.rawValue, default: 0] += reward.count
+        }
+        AppLog.write("light ball: traded for its rewards")
         save()
     }
 
@@ -246,7 +261,6 @@ final class CompanionStore {
         add(.rustedSword, CollectorBonus.rustedSwordLegendary, if: mon.rarity == .legendary)
         add(.boosterEnergy, CollectorBonus.boosterEnergyParadox, if: SpeciesGoal.paradoxes.contains(mon.currentID))
         add(.tealMask, CollectorBonus.tealMaskTypes, if: types.contains(where: CollectorBonus.tealMaskTypeList.contains))
-        add(.lightBall, CollectorBonus.lightBallPikachuLine, if: CollectorBonus.pikachuLine.contains(mon.currentID))
         add(.lunarWing, CollectorBonus.lunarWingPsychicDark, if: types.contains { $0 == .psychic || $0 == .dark })
         add(.oaksLetter, CollectorBonus.oaksLetterStarter, if: CollectorBonus.starterLines.contains(mon.currentID))
         add(.shockDrive, CollectorBonus.shockDriveFossil, if: CollectorBonus.fossilLines.contains(mon.currentID))
@@ -3283,6 +3297,7 @@ final class CompanionStore {
         displayState = state.active != nil ? .idle : .egg
         migrateToAdditiveGrowthIfNeeded()
         migratePokemonProfilesIfNeeded()
+        migrateLightBallToRewardsIfNeeded()
         save()
         if state.active != nil { Task { await loadCurrentLine() } }
         if detailProvider != nil { Task { await preparePokemonProfiles() } }

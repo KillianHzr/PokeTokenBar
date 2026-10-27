@@ -407,7 +407,6 @@ final class CollectorItemsTests: XCTestCase {
             (.boosterEnergy, mon(984, rarity: .rare), mon(147, rarity: .rare), CollectorBonus.boosterEnergyParadox),
             (.tealMask, mon(74), mon(19), CollectorBonus.tealMaskTypes),                      // Geodude (Rock)
             (.relicStatue, mon(128, forms: 1), mon(19), CollectorBonus.relicStatueNoEvolution), // Tauros vs Rattata
-            (.lightBall, mon(25), mon(19), CollectorBonus.lightBallPikachuLine),
             (.lunarWing, mon(63), mon(19), CollectorBonus.lunarWingPsychicDark),             // Abra
             (.lunarWing, mon(261), mon(19), CollectorBonus.lunarWingPsychicDark),            // Poochyena
             (.oaksLetter, mon(5, stage: 1), mon(19), CollectorBonus.oaksLetterStarter),       // Charmeleon
