@@ -61,13 +61,13 @@ final class CollectorItemsTests: XCTestCase {
 
     func testCollectorItemsAndAchievements() {
         let s = store()
-        XCTAssertEqual(s.collectorItems(in: .evolutionStones).count, 10)
+        XCTAssertEqual(s.collectorItems(in: .evolutionStones).count, 11, "10 stones and the excavation")
         XCTAssertEqual(s.collectorItems(in: .legendaryArtifacts).count, 38)
         XCTAssertEqual(s.collectorItems(in: .gymBadges).count, 18)
         XCTAssertEqual(s.collectorItems(in: .forms).count, 10)
         XCTAssertEqual(Set(CompanionStore.achievementItems), Set(ItemKind.allCases.filter { $0.collectorGroup != nil }))
-        XCTAssertEqual(s.totalAchievementsCount, 227,
-                       "10 stones, 37 artifacts and the Legendary Egg's 9 regions, 161 badge regions, 10 forms")
+        XCTAssertEqual(s.totalAchievementsCount, 242,
+                       "10 stones, 37 artifacts and the Legendary Egg's 9 regions, 161 badge regions, 10 forms, 15 digs")
         XCTAssertEqual(s.purchasableItems, [.mint, .rareCandy, .shinyCharm], "the Shop sells what main sells")
 
         // An unlocked stone is an achievement to claim, never a Shop item.
@@ -80,7 +80,7 @@ final class CollectorItemsTests: XCTestCase {
 
     func testItemsHaveAppropriatePricesAndUnlockConditions() {
         for kind in ItemKind.allCases {
-            if kind == .birthdayEgg || EventEgg(item: kind) != nil || kind.bagEggTier != nil {
+            if kind == .birthdayEgg || EventEgg(item: kind) != nil || kind.bagEggTier != nil || kind == .fossilEgg {
                 // The birthday and event gifts and the Legend Plate's eggs: neither sold nor an achievement of their own.
                 XCTAssertNil(kind.unlock)
                 XCTAssertNil(kind.shopPrice)

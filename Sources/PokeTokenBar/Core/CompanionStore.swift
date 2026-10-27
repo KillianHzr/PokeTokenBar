@@ -2006,18 +2006,50 @@ final class CompanionStore {
         let generation: Int
         let progress: GoalProgress
         let isClaimed: Bool
-        var isReady: Bool { progress.isMet && !isClaimed }
+        /// A dig whose fossil line was graduated some other way: done, with nothing to claim (`FossilDig`).
+        var isWaived = false
+        var isDone: Bool { isClaimed || isWaived }
+        var isReady: Bool { progress.isMet && !isDone }
     }
 
     /// The regional tiers of an achievement, in generation order. Empty for an item claimed once.
     func regionTiers(_ kind: ItemKind, registered: Set<Int>? = nil) -> [RegionTier] {
         guard let goals = kind.regionGoals else { return [] }
+        if kind == .excavation { return excavationTiers(goals) }
         let registered = registered ?? graduatedSpeciesIDs
         return goals.map { generation, goal in
             RegionTier(generation: generation,
                              progress: GoalProgress(goal: goal, registered: goal.species.filter(registered.contains)),
                        isClaimed: isRegionTierClaimed(kind, generation: generation))
         }
+    }
+
+    /// The digs: Rock-type species graduated in a Rock form count toward each; the last ones are done with nothing to
+    /// claim for every fossil line graduated beyond the Fossil Eggs hatched, so the eggs to claim match the lines
+    /// still missing.
+    private func excavationTiers(_ goals: [(generation: Int, goal: SpeciesGoal)]) -> [RegionTier] {
+        let rock = rockSpeciesGraduated
+        var tiers = goals.map { generation, goal in
+            RegionTier(generation: generation, progress: GoalProgress(goal: goal, registered: goal.species.filter(rock.contains)),
+                       isClaimed: isRegionTierClaimed(.excavation, generation: generation))
+        }
+        let graduatedLines = FossilDig.lines.filter(graduatedSpeciesIDs.contains).count
+        var waived = min(max(0, graduatedLines - state.fossilEggsHatched), tiers.filter { !$0.isClaimed }.count)
+        for index in tiers.indices.reversed() where waived > 0 && !tiers[index].isClaimed {
+            tiers[index].isWaived = true
+            waived -= 1
+        }
+        return tiers
+    }
+
+    /// Species graduated in a Rock-type form: their usual one, or one of their forms (Hisuian Arcanine).
+    var rockSpeciesGraduated: Set<Int> {
+        Set(graduatedSpeciesIDs.filter { id in
+            PokemonTypeData.types(forSpeciesID: id, form: nil).contains(.rock)
+                || state.collectedForms(speciesID: id, graduatedOnly: true).contains {
+                    PokemonTypeData.types(forSpeciesID: id, form: $0).contains(.rock)
+                }
+        })
     }
 
     func isRegionTierClaimed(_ kind: ItemKind, generation: Int) -> Bool {
@@ -2065,7 +2097,7 @@ final class CompanionStore {
     /// ledger can. A passive item owned before the ledger existed counts as claimed. A regional achievement is
     /// claimed once every regional tier is.
     func isClaimed(_ kind: ItemKind) -> Bool {
-        if kind.isRegional { return regionTiers(kind).allSatisfy(\.isClaimed) }
+        if kind.isRegional { return regionTiers(kind).allSatisfy(\.isDone) }
         return state.claimedAchievements.contains(kind.rawValue) || (kind.isPassive && itemCount(kind) > 0)
     }
 
@@ -2083,7 +2115,7 @@ final class CompanionStore {
             if kind.isRegional {
                 let tiers = regionTiers(kind, registered: registered)
                 tally.ready += tiers.filter(\.isReady).count
-                tally.claimed += tiers.filter(\.isClaimed).count
+                tally.claimed += tiers.filter(\.isDone).count
                 tally.total += tiers.count
             } else {
                 let claimed = isClaimed(kind)
@@ -2147,7 +2179,8 @@ final class CompanionStore {
         ready.forEach { grantRegionTier(kind, generation: $0.generation) }
         announceFormUnlocks(since: forms)
         save()
-        let regions = ready.map { l.regionName(generation: $0.generation) }.joined(separator: ", ")
+        let regions = ready.map { kind == .excavation ? "#\($0.generation)" : l.regionName(generation: $0.generation) }
+            .joined(separator: ", ")
         notifyCompanionEvent(l.notifAchievementClaimedTitle,
                              l.notifAchievementClaimedBody("\(l.itemName(kind)) (\(regions))"))
         return ready.count
@@ -2198,7 +2231,8 @@ final class CompanionStore {
         if kind.isPassive {
             state.inventory[kind.rawValue] = 1
         } else {
-            state.inventory[kind.rawValue, default: 0] += 1
+            // A Legendary Egg per region; a Fossil Egg per dig.
+            for reward in kind.achievementRewards { state.inventory[reward.kind.rawValue, default: 0] += reward.count }
         }
         AppLog.write("achievement claimed: \(key)")
     }
@@ -2380,6 +2414,21 @@ final class CompanionStore {
         return true
     }
 
+    func canUseFossilEgg() -> Bool { hasActive && itemCount(.fossilEgg) > 0 }
+
+    /// Uses a Fossil Egg: like a stone, the current Pokémon is sent off for an egg, which hatches a fossil line not
+    /// graduated yet (`FossilDig`).
+    @discardableResult
+    func useFossilEgg() -> Bool {
+        guard canUseFossilEgg() else { return false }
+        state.inventory[ItemKind.fossilEgg.rawValue] = itemCount(.fossilEgg) - 1
+        replaceActiveWithEgg(price: 0, tier: nil, type: nil)
+        state.eggFromFossilEgg = true
+        save()
+        AppLog.write("fossil egg used, discarded active")
+        return true
+    }
+
     // MARK: Event eggs
 
     /// The player's very first catch, its time and line: the companion's anniversary egg follows it.
@@ -2505,6 +2554,7 @@ final class CompanionStore {
         state.eggFromTypeNullEgg = false
         state.eggFromLegendaryEgg = false
         state.eggFromBirthdayEgg = false
+        state.eggFromFossilEgg = false
         state.eggEvent = nil
         state.pendingHatchID = nil    // 새 보증으로 처음부터 롤(활성 포켓몬이 있는 동안엔 원래 비어 있다)
         state.pendingForm = nil
@@ -2925,10 +2975,13 @@ final class CompanionStore {
         // Still restrict the form rolled below: a stone's type, a season's types.
         let formTypes = eggFormTypes
         let event = state.eggEvent
+        let fromFossilEgg = state.eggFromFossilEgg
+        if fromFossilEgg { state.fossilEggsHatched += 1 }
         state.eggTypeGuarantee = nil
         state.eggFromTypeNullEgg = false
         state.eggFromLegendaryEgg = false
         state.eggFromBirthdayEgg = false
+        state.eggFromFossilEgg = false
         state.eggEvent = nil
         state.pendingShiny = false
         // 개체 롤: shiny(1/64, 부적 1/48, Reveal Glass halves it)·성격(25종)은 부화 순간 확정, 진화해도 유지.
@@ -2945,7 +2998,7 @@ final class CompanionStore {
         var dittoDisguise: Int?
         // An egg that promises a type (a Stone's), an event's Pokémon or a form still missing (the Oval Charm) never
         // hides a Ditto, which has none of them. The roll is still drawn, so the rolls after it stay the same.
-        let keepsAPromise = typeGuarantee != nil || event != nil
+        let keepsAPromise = typeGuarantee != nil || event != nil || fromFossilEgg
             || (ownsOvalCharm && state.lineMissesForms(baseID: line.baseID, types: formTypes))
         if dittoDisguiseRollingEnabled,
            Self.dittoDisguiseHit(rarity: line.rarity, totalForms: line.totalForms, roll: rng.next()),
@@ -3116,6 +3169,7 @@ final class CompanionStore {
         let typeGuarantee = state.eggTypeGuarantee
         if let full = try? await provider.baseSpeciesIndex(), !full.isEmpty {
             if state.eggFromBirthdayEgg { return chooseBirthdayBase(full) }
+            if state.eggFromFossilEgg { return chooseFossilBase(full) }
             let event = state.eggEvent
             // A season's egg hatches Deerling in the season's form one time in three.
             if let event, event.seasonForm != nil, full.contains(where: { $0.id == EventEgg.deerlingID }),
@@ -3175,6 +3229,25 @@ final class CompanionStore {
         return others.isEmpty ? index : others
     }
 
+    /// The fossil lines a Fossil Egg can hatch: those not graduated yet, every one once all are.
+    private var fossilCandidates: Set<Int> {
+        let missing = FossilDig.lines.filter { !graduatedSpeciesIDs.contains($0) }
+        return Set(missing.isEmpty ? FossilDig.lines : missing)
+    }
+
+    /// A Fossil Egg's roll: one of its candidates, each as likely, not the line hatched last while another is left.
+    private func chooseFossilBase(_ index: [BaseSpecies]) -> (id: Int, shiny: Bool)? {
+        let candidates = fossilCandidates
+        let lines = Self.withoutLastHatched(index.filter { candidates.contains($0.id) }, last: state.lastHatchedBaseID)
+        guard !lines.isEmpty else {
+            AppLog.write("hatch: no fossil line for the fossil egg, egg kept; retry next tick")
+            return nil
+        }
+        let pick = lines[Int(rng.next() % UInt64(lines.count))]
+        AppLog.write("hatch roll: fossil egg base=\(pick.id) of \(lines.count)")
+        return (pick.id, false)
+    }
+
     /// A Birthday Egg's roll: a mythical line not graduated yet, else a legendary one, each as likely; once every one
     /// graduated, any of them by its hatch weight, shiny.
     private func chooseBirthdayBase(_ index: [BaseSpecies]) -> (id: Int, shiny: Bool)? {
@@ -3217,6 +3290,7 @@ final class CompanionStore {
                     // GraphQL 인덱스 장애 때 보증이 조용히 깨진다. 못 찾으면 알 유지(구매 소멸 금지).
                     if let tier, !tier.admits(bs) { continue }
                     if state.eggFromLegendaryEgg || state.eggFromBirthdayEgg, !bs.isLegendary { continue }
+                    if state.eggFromFossilEgg, !fossilCandidates.contains(bs.id) { continue }
                     if let typeGuarantee, !PokemonTypeData.canHatch(baseID: bs.id, as: typeGuarantee) { continue }
                     if let event = state.eggEvent, !event.admits(bs, companionLine: firstCatch?.baseID) { continue }
                     // Not the line hatched last again; the index path keeps it when it is the only one, this one

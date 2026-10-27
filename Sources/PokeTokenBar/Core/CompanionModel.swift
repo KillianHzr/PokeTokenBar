@@ -199,6 +199,10 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     /// the Bag, as the Legend Plate does.
     case rotomCatalog, cometShard, redNectar, smoothRock, sawsbuckSeasons, fairyFeather, furfrouTrims
     case vivillonPatterns, whippedDream, unownLetters
+    /// The excavation (`FossilDig`): a Fossil Egg for every few Rock-type Pokémon graduated, one dig per fossil line.
+    case excavation
+    /// What a dig gives: it hatches a fossil line not graduated yet, at random.
+    case fossilEgg
     case typeNullEgg
     /// The reward for each region whose every species is in the Pokédex: an egg that hatches a legendary or mythical
     /// Pokémon.
@@ -322,6 +326,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .smoothRock: return "smooth-rock"
         case .fairyFeather: return "fairy-feather"
         case .whippedDream: return "whipped-dream"
+        case .excavation: return "helix-fossil"
         case .lightBall: return "light-ball"
         case .typeNullEgg: return "mystery-egg"
         case .ovalCharm: return "oval-charm"
@@ -384,7 +389,8 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .smoothRock: return "🪨"
         case .fairyFeather: return "🪶"
         case .whippedDream: return "🍰"
-        case .sawsbuckSeasons, .furfrouTrims, .vivillonPatterns, .unownLetters: return "🥚"
+        case .sawsbuckSeasons, .furfrouTrims, .vivillonPatterns, .unownLetters, .fossilEgg: return "🥚"
+        case .excavation: return "🦴"
         case .typeNullEgg, .legendaryEgg, .birthdayEgg, .uncommonEgg, .rareEgg, .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return "🥚"
         case .lightBall: return "⚡"
         case .ovalCharm: return "🔶"
@@ -413,6 +419,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         switch self {
         case .rareCandy, .mint,
              .typeNullEgg, .legendaryEgg, .birthdayEgg, .uncommonEgg, .rareEgg, .legendPlate, .lightBall,
+             .excavation, .fossilEgg,
              .cometShard, .redNectar, .smoothRock, .sawsbuckSeasons, .fairyFeather, .furfrouTrims, .vivillonPatterns, .whippedDream, .unownLetters,
              .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg,
              .leafStone, .fireStone, .waterStone, .thunderStone, .sunStone,
@@ -440,6 +447,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .furfrouTrims: return [(.rareEgg, 1)]
         case .vivillonPatterns, .unownLetters: return [(.rareEgg, 2)]
         case .whippedDream, .lightBall: return [(.rareEgg, 2), (.rareCandy, 5)]
+        case .excavation: return [(.fossilEgg, 1)]   // per dig
         default: return [(self, achievementRewardCount)]
         }
     }
@@ -462,9 +470,10 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         if badgeType != nil { return .gymBadges }
         if stoneType != nil { return .evolutionStones }
         switch self {
-        case .rareCandy, .mint, .shinyCharm, .birthdayEgg, .uncommonEgg, .rareEgg: return nil
+        case .rareCandy, .mint, .shinyCharm, .birthdayEgg, .uncommonEgg, .rareEgg, .fossilEgg: return nil
         case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return nil
         case .rotomCatalog, .cometShard, .redNectar, .smoothRock, .sawsbuckSeasons, .fairyFeather, .furfrouTrims, .vivillonPatterns, .whippedDream, .unownLetters: return .forms
+        case .excavation: return .evolutionStones   // rocks and stones, side by side
         default: return .legendaryArtifacts
         }
     }
@@ -473,7 +482,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     /// Each item keeps the Pokémon of the achievement that used to award it.
     var unlock: ItemUnlock? {
         switch self {
-        case .rareCandy, .mint, .shinyCharm, .birthdayEgg, .uncommonEgg, .rareEgg: return nil
+        case .rareCandy, .mint, .shinyCharm, .birthdayEgg, .uncommonEgg, .rareEgg, .fossilEgg: return nil
         case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return nil
         // The first nine stones follow the generations: each asks for one region's final starters.
         case .leafStone:   return .species([SpeciesGoal([3, 6, 9])])            // Kanto starters
@@ -525,6 +534,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .scrollOfDarkness: return .species([SpeciesGoal([892, 893])])      // Urshifu, Zarude
         case .relicVase:   return .species([SpeciesGoal([1001, 1002, 1003, 1004])]) // Treasures of Ruin
         case .legendPlate: return .species([SpeciesGoal([493])])                // Arceus
+        case .excavation: return regionGoals.map { .species($0.map(\.goal)) }
         case .rotomCatalog: return .forms(FormGoal(479))                        // Rotom's six appliances
         case .cometShard: return .forms(FormGoal(774, excluding: ["meteor"]))   // Minior's seven cores
         case .redNectar: return .forms(FormGoal(741))                           // Oricorio's four styles
@@ -551,7 +561,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     }
 
     /// Whether this item's achievement is claimed region by region: one tier per region in `regionGoals`.
-    var isRegional: Bool { badgeType != nil || self == .legendaryEgg }
+    var isRegional: Bool { badgeType != nil || self == .legendaryEgg || self == .excavation }
 
     /// The regions (generations, Kanto first) this item's achievement is claimed in, with the species each asks
     /// for: a gym badge's type in every region that has it, every species of the region for the Legendary Egg.
@@ -561,6 +571,10 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
             return PokemonTypeData.badgeGenerations(for: type).map {
                 ($0, SpeciesGoal(PokemonTypeData.badgeSpecies(for: type, generation: $0)))
             }
+        }
+        if self == .excavation {
+            // Not regions but digs, numbered from 1: each asks `FossilDig.rockPerDig` more Rock-type species.
+            return (1...FossilDig.digs).map { ($0, SpeciesGoal(FossilDig.rockSpecies, needed: FossilDig.rockPerDig * $0)) }
         }
         guard self == .legendaryEgg else { return nil }
         return PokemonTypeData.generations.enumerated().map { ($0.offset + 1, SpeciesGoal(Array($0.element))) }
@@ -1213,6 +1227,10 @@ struct CompanionState: Codable, Sendable {
     /// The egg came from the Birthday Egg: it hatches a mythical Pokémon not graduated yet (`BirthdayGift`), and is
     /// drawn as that egg. Consumed with the egg's other guarantees.
     var eggFromBirthdayEgg = false
+    /// The egg in incubation is a Fossil Egg (`FossilDig`).
+    var eggFromFossilEgg = false
+    /// Fossil Eggs hatched so far: the fossil lines graduated beyond them came some other way, and count as dug.
+    var fossilEggsHatched = 0
     /// The pre-rolled hatch is shiny whatever its roll: a Birthday Egg once every legendary and mythical graduated.
     var pendingShiny = false
     /// The line of the last Pokémon hatched: the next egg never brings it again while another line is left.
@@ -1332,6 +1350,8 @@ struct CompanionState: Codable, Sendable {
         eggFromTypeNullEgg = c.lenient(Bool.self, forKey: .eggFromTypeNullEgg, default: false)
         eggFromLegendaryEgg = c.lenient(Bool.self, forKey: .eggFromLegendaryEgg, default: false)
         eggFromBirthdayEgg = c.lenient(Bool.self, forKey: .eggFromBirthdayEgg, default: false)
+        eggFromFossilEgg = c.lenient(Bool.self, forKey: .eggFromFossilEgg, default: false)
+        fossilEggsHatched = c.lenient(Int.self, forKey: .fossilEggsHatched, default: 0)
         pendingShiny = c.lenient(Bool.self, forKey: .pendingShiny, default: false)
         lastHatchedBaseID = c.lenientOptional(Int.self, forKey: .lastHatchedBaseID)
         birthday = c.lenientOptional(Birthday.self, forKey: .birthday)

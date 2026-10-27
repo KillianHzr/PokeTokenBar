@@ -211,6 +211,12 @@ private struct ItemCard: View {
                                   confirmText: l.stoneConfirm(store.displayName, l.itemName(kind))) {
                 store.useBirthdayEgg()
             }
+        } else if kind == .fossilEgg {
+            ReleaseForEggControls(store: store, nav: nav, detail: effectHint(l), actionTitle: l.useItem,
+                                  isAvailable: store.canUseFossilEgg(), unavailableText: l.useNeedsPokemon,
+                                  confirmText: l.stoneConfirm(store.displayName, l.itemName(kind))) {
+                store.useFossilEgg()
+            }
         } else if let event = EventEgg(item: kind) {
             ReleaseForEggControls(store: store, nav: nav, detail: effectHint(l), actionTitle: l.useItem,
                                   isAvailable: store.canUseEventEgg(event), unavailableText: l.useNeedsPokemon,
@@ -344,6 +350,8 @@ extension CompanionStore {
         case .typeNullEgg: return l.typeNullEggHint
         case .legendaryEgg: return l.legendaryEggHint
         case .birthdayEgg: return l.birthdayEggHint
+        case .fossilEgg: return l.fossilEggHint
+        case .excavation: return l.rewardsList(kind.achievementRewards)
         case .ovalCharm: return l.ovalCharmEffectHint
         case .glimmeringCharm: return l.glimmeringCharmEffectHint
         case .boulderBadge, .cascadeBadge, .thunderBadge, .rainbowBadge,

@@ -248,7 +248,7 @@ private struct AchievementCard: View {
         } else if kind.isRegional {
             // A regional achievement is never locked as a whole: show how many of its regions are claimed.
             let tiers = store.regionTiers(kind)
-            Label("\(tiers.filter(\.isClaimed).count)/\(tiers.count)", systemImage: "map")
+            Label("\(tiers.filter(\.isDone).count)/\(tiers.count)", systemImage: "map")
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
@@ -269,10 +269,12 @@ private struct RegionGrid: View {
 
     var body: some View {
         let l = store.l
+        // The digs are numbered, the regions named.
+        let isDig = kind == .excavation
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 3), alignment: .leading, spacing: 4) {
             ForEach(store.regionTiers(kind), id: \.generation) { tier in
                 HStack(spacing: 3) {
-                    Text(l.regionName(generation: tier.generation))
+                    Text(isDig ? "#\(tier.generation)" : l.regionName(generation: tier.generation))
                         .font(.caption2.weight(.semibold))
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
@@ -282,14 +284,16 @@ private struct RegionGrid: View {
                 .padding(.horizontal, 6)
                 .padding(.vertical, 4)
                 .background(RoundedRectangle(cornerRadius: 6).fill(background(tier)))
-                .help("\(tier.progress.registered.count)/\(tier.progress.goal.needed)")
+                .help(tier.isWaived ? l.excavationWaived : "\(tier.progress.registered.count)/\(tier.progress.goal.needed)")
             }
         }
     }
 
     @ViewBuilder
     private func status(_ tier: CompanionStore.RegionTier) -> some View {
-        if tier.isClaimed {
+        if tier.isWaived {
+            Image(systemName: "checkmark").font(.caption2.weight(.bold)).foregroundStyle(.secondary)
+        } else if tier.isClaimed {
             Image(systemName: "checkmark").font(.caption2.weight(.bold)).foregroundStyle(Color.readableGreen)
         } else if tier.isReady {
             Image(systemName: "gift.fill").font(.caption2).foregroundStyle(Color.accentColor)
@@ -300,6 +304,7 @@ private struct RegionGrid: View {
     }
 
     private func background(_ tier: CompanionStore.RegionTier) -> Color {
+        if tier.isWaived { return .secondary.opacity(0.14) }
         if tier.isClaimed { return .green.opacity(0.14) }
         if tier.isReady { return Color.accentColor.opacity(0.22) }
         return .secondary.opacity(0.08)

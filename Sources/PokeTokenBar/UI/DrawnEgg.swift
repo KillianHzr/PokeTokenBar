@@ -55,6 +55,8 @@ enum EggKind: Hashable, Sendable {
     case birthday
     /// An event's egg (`EventEgg`).
     case event(EventEgg)
+    /// The Fossil Egg (`FossilDig`).
+    case fossil
 
     /// The egg a guarantee hatches from: the type when there is one, else the rarity.
     init(tier: Rarity?, type: PokemonType? = nil) {
@@ -72,6 +74,7 @@ enum EggKind: Hashable, Sendable {
         case .typeNull: return EggColor(0.84, 0.84, 0.86)
         case .birthday: return EggColor(1, 0.66, 0.8)
         case .event: return .cream
+        case .fossil: return EggColor(0.9, 0.6, 0.2)
         }
     }
 
@@ -83,6 +86,7 @@ enum EggKind: Hashable, Sendable {
         case .typeNull: return EggColor(0.33, 0.35, 0.40)
         case .birthday: return EggColor(1, 0.98, 0.95)
         case .event: return .eggGreen
+        case .fossil: return EggColor(0.45, 0.25, 0.08)
         }
     }
 
@@ -269,6 +273,7 @@ extension CompanionStore {
         if state.active == nil, state.eggFromTypeNullEgg { return .typeNull }
         if state.active == nil, state.eggFromBirthdayEgg { return .birthday }
         if state.active == nil, let event = state.eggEvent { return .event(event) }
+        if state.active == nil, state.eggFromFossilEgg { return .fossil }
         return EggKind(tier: eggGuarantee, type: eggTypeGuarantee)
     }
 }

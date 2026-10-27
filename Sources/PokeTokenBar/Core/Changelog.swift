@@ -67,6 +67,14 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-27", entries: [
+            .new("2026-10-27-excavation") { $0.t("발굴: 바위 타입 포켓몬을 4마리 졸업시킬 때마다 화석 알을 하나 받아요(돌 탭, 15번). 화석 알에서는 아직 없는 화석 계열이 무작위로 태어나고, 이미 있는 계열은 발굴한 것으로 쳐요.",
+                                                  "Excavation: every 4 Rock-type Pokémon graduated give a Fossil Egg (Stones tab, 15 digs). It hatches a fossil line you're missing at random; lines you already have count as dug.",
+                                                  "発掘：いわタイプのポケモンを4匹卒業させるたびに化石のタマゴがもらえます(いしタブ、全15回)。まだいない化石の系統がランダムに生まれ、すでにいる系統は発掘済みになります。",
+                                                  "Excavación: cada 4 Pokémon de tipo Roca graduados dan un Huevo Fósil (pestaña Piedras, 15 excavaciones). Nace al azar una línea fósil que te falta; las que ya tienes cuentan como excavadas.",
+                                                  "Fouilles : tous les 4 Pokémon de type Roche diplômés, un Œuf fossile (onglet Pierres, 15 fouilles). Il fait éclore au hasard une lignée fossile qui te manque ; celles que tu as déjà comptent comme fouillées.",
+                                                  "Escavação: a cada 4 Pokémon do tipo Pedra formados, um Ovo Fóssil (aba Pedras, 15 escavações). Nasce ao acaso uma linha fóssil que falta; as que você já tem contam como escavadas.",
+                                                  "Ausgrabung: Alle 4 verabschiedeten Gestein-Pokémon gibt es ein Fossil-Ei (Tab Steine, 15 Ausgrabungen). Daraus schlüpft zufällig eine fehlende Fossil-Linie; vorhandene Linien gelten als ausgegraben.",
+                                                  "Раскопки: каждые 4 выпущенных покемона каменного типа дают Яйцо-окаменелость (вкладка «Камни», 15 раскопок). Из него вылупляется случайная недостающая линия окаменелостей; уже имеющиеся считаются раскопанными.") },
             .fixed("2026-10-27-contrast") { $0.t("밝은 테마와 어두운 테마 모두에서 초록·주황 글자와 배지, 아직 없는 폼과 도감 칸이 더 잘 보여요.",
                                                   "Green and orange text and badges, forms not caught yet and the Pokédex's missing species read better in both light and dark mode.",
                                                   "ライトとダークの両方で、緑やオレンジの文字とバッジ、まだいないフォルムや図鑑のマスが見やすくなりました。",

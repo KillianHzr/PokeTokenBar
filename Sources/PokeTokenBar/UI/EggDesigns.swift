@@ -231,6 +231,7 @@ enum EggDesigns {
         case .typeNull: return typeNull
         case .birthday: return birthdaySurprise
         case .event(let event): return EventEggArt.design(event)
+        case .fossil: return FossilEggArt.design
         case .tier(.uncommon): return emerald
         case .tier(.rare): return sapphire
         case .tier(.legendary): return legendary
