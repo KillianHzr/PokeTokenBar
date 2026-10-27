@@ -337,26 +337,6 @@ struct L {
         t("대표로 설정", "Set as representative", "代表ポケモンに設定", "Establecer como representante", "Définir comme représentatif", "Definir como representante", "Als repräsentativ festlegen", "Сделать основным")
     }
     var representativeBadge: String { t("대표", "Representative", "代表", "Representante", "Représentatif", "Representante", "Repräsentativ", "Основной") }
-    // MARK: 난이도
-    var difficultySectionTitle: String { t("난이도", "Difficulty", "難易度", "Dificultad", "Difficulté", "Dificuldade", "Schwierigkeit", "Сложность") }
-    var difficultyGrowthLabel: String { t("성장", "Growth", "成長", "Crecimiento", "Croissance", "Crescimento", "Wachstum", "Рост") }
-    var difficultyShopLabel: String { t("상점 가격", "Shop prices", "ショップ価格", "Precios de la tienda", "Prix de la boutique", "Preços da loja", "Shop-Preise", "Цены в магазине") }
-    var difficultyGrowthLowLabel: String { t("쉬움", "Easy", "やさしい", "Fácil", "Facile", "Fácil", "Leicht", "Легко") }
-    var difficultyGrowthHighLabel: String { t("어려움", "Hard", "難しい", "Difícil", "Difficile", "Difícil", "Schwer", "Сложно") }
-    var difficultyShopLowLabel: String { t("저렴", "Cheap", "安い", "Barato", "Pas cher", "Barato", "Günstig", "Дёшево") }
-    var difficultyShopHighLabel: String { t("비쌈", "Expensive", "高い", "Caro", "Cher", "Caro", "Teuer", "Дорого") }
-    func difficultyScaleHint(low: String, high: String) -> String {
-        t("낮추면 \(low), 높이면 \(high)", "Lower: \(low), higher: \(high)", "下げると\(low)、上げると\(high)",
-          "Más bajo: \(low); más alto: \(high)", "Plus bas : \(low) ; plus haut : \(high)",
-          "Mais baixo: \(low); mais alto: \(high)", "Niedriger: \(low), höher: \(high)", "Ниже: \(low), выше: \(high)")
-    }
-    /// 슬라이더 옆 현재 배율 — 10%~200%, 1.0 = 100%.
-    func difficultyValue(_ value: Double) -> String {
-        let percent = value * 100
-        if percent >= 10 { return String(format: "%.0f%%", percent) }
-        if percent >= 1 { return String(format: "%.1f%%", percent) }
-        return String(format: "%.2f%%", percent)
-    }
     // MARK: 플로팅 펫
     var floatingPetSectionTitle: String { t("플로팅 펫", "Floating Pet", "フローティングペット", "Mascota flotante", "Compagnon flottant", "Mascote flutuante", "Schwebendes Pokémon", "Питомец на экране") }
     var floatingPetEnableLabel: String { t("플로팅 펫 표시", "Show floating pet", "フローティングペットを表示", "Mostrar mascota flotante", "Afficher le compagnon flottant", "Mostrar mascote flutuante", "Schwebendes Pokémon anzeigen", "Показывать питомца на экране") }
@@ -2517,14 +2497,15 @@ struct L {
           "🍬 Du hast \(count)× \(item) erhalten!",
           "🍬 Вы получили: \(item) ×\(count)!")
     }
+    /// Why candies came: the limit windows whose usage paid them, paid as they go (`RareCandy.candiesDue`).
     func notifCandyBody(window: String) -> String {
-        t("\(window) 토큰 한도를 다 채웠어요. 열심히 쓴 만큼 사탕을 드려요 — 포켓몬에게 써서 진화시켜 보세요!",
-          "You maxed out your \(window) token limit. A treat for the effort — use it to evolve your Pokémon!",
-          "\(window)のトークン上限を使い切りました。がんばったごほうびです — ポケモンに使って進化させよう！",
-          "Has agotado tu límite de tokens \(window). Un premio por el esfuerzo — ¡úsalo para evolucionar a tu Pokémon!",
-          "Tu as atteint ta limite de tokens \(window). Une récompense pour l'effort — utilise-la pour faire évoluer ton Pokémon !",
-          "Você esgotou seu limite de tokens — \(window). Você merece um agrado: use no seu Pokémon para evoluir!",
-          "Du hast das Token-Limit für \(window) ausgeschöpft. Eine Belohnung für deinen Einsatz – verwende sie, um dein Pokémon zu entwickeln!",
-          "Вы полностью исчерпали лимит токенов (\(window)). Это награда за старания — используйте её, чтобы эволюционировать покемона!")
+        t("\(window) 사용량으로 받은 사탕이에요. 포켓몬에게 써서 진화시켜 보세요!",
+          "Earned with your usage: \(window). Use them to evolve your Pokémon!",
+          "\(window)の使用量でもらったアメです。ポケモンに使って進化させよう！",
+          "Ganados con tu uso: \(window). ¡Úsalos para evolucionar a tu Pokémon!",
+          "Gagnés grâce à ton utilisation : \(window). Utilise-les pour faire évoluer ton Pokémon !",
+          "Ganhos com o seu uso: \(window). Use no seu Pokémon para evoluir!",
+          "Mit deiner Nutzung verdient: \(window). Verwende sie, um dein Pokémon zu entwickeln!",
+          "Получены за использование: \(window). Используйте их, чтобы эволюционировать покемона!")
     }
 }

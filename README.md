@@ -40,7 +40,7 @@ PokeTokenBar turns the AI coding tokens you're already burning — Claude Code, 
 2. 🐣 **Hatch.** Eggs hatch into Pokémon with real evolution lines from [PokéAPI](https://pokeapi.co/) — any Gen 1 to 9 line (541 possible starts), weighted by the official capture rate: commons hatch often, a legendary is about a 1-in-220 event. It appears in your **Pokédex** immediately while you raise it. Every hatch rolls one of 25 natures — and once in a rare while, the egg hatches **✨ Shiny**.
 3. ⚡ **Evolve.** Keep coding and it grows through its actual evolution tree (1/2/3 stages, branching), with a little flash celebration at each step.
 4. 🎓 **Graduate & collect.** Final form + threshold permanently archives it in your **Pokédex** — rarer takes longer (≈3 days common → ≈24 days legendary at heavy use) — and a fresh egg arrives.
-5. 🍬 **Max out, get a candy.** Fill a 5-hour or weekly usage limit and you earn **Rare Candy** — spend it from the **Bag** to grow your current Pokémon.
+5. 🍬 **Use your plan, get candies.** Your 5-hour and weekly usage limits pay **Rare Candy** as they fill, at the same pace on every plan; spend it from the **Bag** to grow your current Pokémon.
 6. 🛒 **Spend at the Shop.** Every token you've used is spendable currency — buy **Rare Candy**, a **Mint** that re-rolls your Pokémon's nature, a **Shiny Charm** that permanently raises your shiny odds, or an egg to send off your current companion and start over. Eggs come in three grades: a plain **Pokémon Egg**, an **Uncommon Egg** guaranteed to hatch Uncommon or better, and a **Rare Egg** guaranteed to hatch Rare or better. Once your Pokédex holds the Pokémon they ask for, **evolution stones**, **legendary artifacts** and **gym badges** can be claimed for free from the **Achievements** tab.
 
 ## Tour
@@ -90,8 +90,8 @@ Menu-bar items, refresh interval (1–15 min or manual), launch at login, a Keyc
 </tr>
 <tr>
 <td width="55%" valign="middle">
-<h3>🍬 Fill a limit, earn a Rare Candy</h3>
-Max out a 5-hour or weekly usage limit and you're handed <b>Rare Candy</b>, a tenth of the tokens that window held and at least one: a weekly limit that held 5B tokens pays 5. Spend it from the new <b>Bag</b> tab to grow your current Pokémon: the moment you're rate-limited becomes the moment you level up.
+<h3>🍬 Use your plan, earn Rare Candy</h3>
+Your usage limits pay <b>Rare Candy</b> as they fill, without waiting for the limit: a whole 5-hour session of a Pro plan is one candy, a whole Pro week five, and a bigger plan pays as many Pro plans as it holds (a Max 20x session pays one every 5%, its week one every 1%). Every plan earns them at the same pace for the same use. Spend them from the <b>Bag</b> tab to grow your current Pokémon.
 </td>
 <td width="45%" align="center"><img src="assets/screenshot-bag.png" width="300" alt="Rare Candy and Mint in the Bag"></td>
 </tr>
@@ -140,8 +140,8 @@ Open a species in the <b>Pokédex</b> to inspect each individual: level, gender,
 <tr>
 <td width="45%" align="center"><img src="assets/screenshot-difficulty.png" width="300" alt="Choose your growth pace"></td>
 <td width="55%" valign="middle">
-<h3>Choose your growth pace</h3>
-Set growth thresholds and shop prices independently from <b>10% to 200%</b>, with Easy/Hard and Cheap/Expensive labels at the slider ends. Dragging only edits a draft; press <b>Save</b> to apply it. Changing growth difficulty preserves your current stage progress instead of triggering an evolution. A hatch from an evolution line you have already graduated grows <b>2× faster</b>. Growth bonuses from items and badges add up (+25% and +25% make +50%), and the repeat boost multiplies their total; the <b>Bonuses</b> page on Home shows each one. Hover the hatch or growth bar on Home to see used tokens, the target, and progress as a percentage.
+<h3>One growth pace for everyone</h3>
+Growth thresholds and shop prices are a tenth of the base tables, for every player: the sliders that set them are gone, since every player had set both to the lowest. A save made at another value keeps its current stage progress when it moves to it. A hatch from an evolution line you have already graduated grows <b>2× faster</b>. Growth bonuses from items and badges add up (+25% and +25% make +50%), and the repeat boost multiplies their total; the <b>Bonuses</b> page on Home shows each one. Hover the hatch or growth bar on Home to see used tokens, the target, and progress as a percentage.
 </td>
 </tr>
 <tr>

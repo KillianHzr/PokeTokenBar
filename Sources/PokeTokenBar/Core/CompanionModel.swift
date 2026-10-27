@@ -131,51 +131,17 @@ enum PokemonBalance {
         return max(1, Int((Double(standardThreshold) / Double(max(1, growthMultiplier))).rounded()))
     }
 
-    // MARK: 난이도 배율 (설정 슬라이더)
+    // MARK: Difficulty
 
-    /// 사용자 조절 배율의 허용 범위. 1 미만이면 기본보다 빠르고·싸며, 1 초과면 느리고·비싸다.
-    static let difficultyRange: ClosedRange<Double> = 0.1...2.0
-    /// 기본값 — 이 값에서 모든 밸런스가 위 상수표 그대로다(기존 동작과 동일).
-    static let defaultDifficulty: Double = 1.0
+    /// The balance every player has: thresholds and prices at a tenth of the tables above, Rare Candies at their full
+    /// EXP. It used to be two Settings sliders, from 10% to 200%; the players had all set both to the lowest, so it is
+    /// the one value now.
+    static let difficulty: Double = 0.1
 
-    /// 저장값을 허용 범위로 조인다. UserDefaults 는 `defaults write` 로 외부에서 쓸 수 있어
-    /// 0·음수·NaN 이 실제로 들어올 수 있고, 배율 0 은 임계 0(진행률 0 나눗셈·퇴화한 진화 루프)이 된다.
-    static func clampDifficulty(_ value: Double) -> Double {
-        guard value.isFinite else { return defaultDifficulty }
-        return min(max(value, difficultyRange.lowerBound), difficultyRange.upperBound)
-    }
-
-    /// 기본값 × 난이도 — 임계·가격 공통. **상수표 자체는 스케일하지 않는다**: 등급 알 가격이
-    /// `graduationTotal` 의 *비율*로 파생되므로(FreshEgg.price), 표를 건드리면 성장 배율이 상점
-    /// 가격까지 끌고 간다. 소비 지점에서만 곱해 두 배율을 서로 독립으로 유지한다.
-    static func scaled(_ base: Int, by difficulty: Double) -> Int {
-        Int((Double(base) * clampDifficulty(difficulty)).rounded())
-    }
-
-    // MARK: 슬라이더 위치 ↔ 배율 (로그 매핑)
-    // 같은 비율의 변화가 같은 거리를 차지한다. 기본값은 트랙의 ±1%에서 스냅한다.
-    private static let defaultSnapWidth = 0.01
-
-    /// 슬라이더 위치(0…1) → 배율.
-    static func difficulty(atPosition position: Double) -> Double {
-        let lo = difficultyRange.lowerBound, hi = difficultyRange.upperBound
-        let p = min(max(position, 0), 1)
-        if abs(p - difficultyPosition(defaultDifficulty)) < defaultSnapWidth { return defaultDifficulty }
-        return snapDifficulty(lo * pow(hi / lo, p))
-    }
-
-    /// 배율 → 슬라이더 위치(0…1).
-    static func difficultyPosition(_ value: Double) -> Double {
-        let lo = difficultyRange.lowerBound, hi = difficultyRange.upperBound
-        return log(clampDifficulty(value) / lo) / log(hi / lo)
-    }
-
-    /// 로그 슬라이더에서 나온 값을 유효숫자 2자리로 정리한다 — 없으면 1.0473 같은 값이 그대로 표시된다.
-    /// 기본값 되돌리기는 여기가 아니라 `difficulty(atPosition:)` 의 위치 스냅이 담당한다.
-    static func snapDifficulty(_ value: Double) -> Double {
-        guard value > 0 else { return difficultyRange.lowerBound }
-        let magnitude = pow(10, (log10(value)).rounded(.down) - 1)
-        return ((value / magnitude).rounded() * magnitude)
+    /// A table value at the difficulty, for thresholds and prices. **The tables themselves are not scaled**: the tier
+    /// eggs' prices derive from the ratios of `graduationTotal` (FreshEgg.price).
+    static func scaled(_ base: Int, by difficulty: Double = difficulty) -> Int {
+        Int((Double(base) * difficulty).rounded())
     }
 }
 
@@ -683,22 +649,27 @@ enum RareCandy {
     /// 기본 난이도·첫 부화에서는 초과 이월(<100M)이 다음 임계(125M)보다 작아 최대 1단계만 올린다.
     /// 낮은 난이도나 반복 부화 보너스에서는 여러 단계를 진행할 수 있다.
     static let xp = 100_000_000
-    /// 주간 한도 100% 도달 시 지급 개수(세션급은 1개).
+    /// Candies a whole week of a Pro plan pays; a whole 5-hour session pays one.
     static let weeklyGrant = 5
     /// 상점 구매가(재화 = 사용한 토큰: usedSinceInstall − spentTokens). XP 값어치(100M)의 5배.
     /// 토큰이 "성장 미터 + 상점 지갑"으로 이중 사용되는 구조라, 가격을 XP 와 같게 두면 구매가 사실상
     /// 공짜 추가성장(150M 써서 250M 성장)이 된다. 500M 로 두면 그 값 모으는 500M 패시브 성장 + 사탕
     /// 100M = 실질 보너스 +20% 로 억제된다. 무료 획득(한도 100% 보상)이 항상 이득이도록 값어치보다 비싸게.
     static let price = 500_000_000
-    /// The share of a window's tokens a full window pays back in candies.
-    static let windowShare = 0.10
 
-    /// Candies for a window at 100% (#59): a tenth of the tokens it held, at least one, the same per token for every
-    /// plan and provider; a window that held 5B tokens pays 5, the old weekly grant. Divided by `xp`, not the Soul
-    /// Dew's candy value, so the Soul Dew keeps its +50% per candy. Without the window's tokens, the old fixed grant.
-    static func grantCount(windowTokens: Int?, kind: WindowClass) -> Int {
-        guard let windowTokens else { return kind == .weekly ? weeklyGrant : 1 }
-        return max(1, Int((windowShare * Double(windowTokens) / Double(xp)).rounded()))
+    /// Candies a whole window pays: one 5-hour session of a Pro plan is one candy, a Pro week `weeklyGrant`, and a
+    /// bigger plan as many times more as it holds Pro plans (Max 20x: 20 a session).
+    static func windowCandies(kind: WindowClass, planMultiplier: Int) -> Int {
+        (kind == .weekly ? weeklyGrant : 1) * max(1, planMultiplier)
+    }
+
+    /// Candies a window owes at `utilization`, paid as it goes rather than at 100%: a Max 5x session pays one every
+    /// fifth, the same usage as a whole Pro session, so every plan earns them at the same pace whether or not it
+    /// reaches its limit.
+    static func candiesDue(utilization: Double, kind: WindowClass, planMultiplier: Int) -> Int {
+        guard utilization.isFinite, utilization > 0 else { return 0 }
+        let whole = windowCandies(kind: kind, planMultiplier: planMultiplier)
+        return min(whole, Int((min(utilization, 100) / 100 * Double(whole) + 1e-9).rounded(.down)))
     }
 }
 
@@ -760,29 +731,28 @@ enum ShopEntry: Hashable, Sendable {
     }
 }
 
-/// 사탕 지급 대상 한도 창의 분류 — session=1개·weekly=weeklyGrant.
+/// The two kinds of limit windows: a session (5 hours) and a week.
 enum WindowClass: Sendable { case session, weekly }
 
 /// 사탕 지급 판정 입력 — 프로바이더 무관 한도 창 1개. (UsageStore.candyEligibleWindows 가 생성)
 struct CandyWindow: Sendable {
     let key: String          // 안정 식별자(tier 추적) — resets_at 등 휘발 필드는 key 에 넣지 않는다
     let name: String         // 표시용(알림 "왜 받는지")
-    let kind: WindowClass    // session=1개 · weekly=5개
+    let kind: WindowClass
     let utilization: Double  // 0~100+
     /// 창 epoch (`resets_at` / reset unix). key 는 안정, epoch 가 바뀌면 새 창 → 재무장(#326).
     let epoch: String?
-    /// The tokens this account burned in the window, from its start (reset minus length) to now; nil when the reset,
-    /// the length or the local usage is unknown (`RareCandy.grantCount`).
-    let windowTokens: Int?
+    /// How many Pro plans the account's limits are worth (`LimitStatus.planMultiplier`): 1 when unknown.
+    let planMultiplier: Int
 
     init(key: String, name: String, kind: WindowClass, utilization: Double, epoch: String? = nil,
-         windowTokens: Int? = nil) {
+         planMultiplier: Int = 1) {
         self.key = key
         self.name = name
         self.kind = kind
         self.utilization = utilization
         self.epoch = epoch
-        self.windowTokens = windowTokens
+        self.planMultiplier = max(1, planMultiplier)
     }
 }
 
@@ -791,6 +761,8 @@ struct CandyGrant: Equatable, Sendable {
     let windowKey: String
     let windowName: String   // 알림 "왜 받는지"
     let count: Int
+    /// The window reached its last candy with this grant: the Meteorite adds one.
+    var completesWindow = false
 }
 
 /// 현재 서비스가 제공하는 움직이는 포켓몬 스프라이트 범위.
@@ -1223,12 +1195,16 @@ struct CompanionState: Codable, Sendable {
     var pikachuCostumes: Set<PikachuCostume> = []
     /// The costume Pikachu wears, chosen on its Pokédex page; nil, its own look.
     var equippedPikachuCostume: PikachuCostume?
-    // 사탕 지급 엣지 상태(창 key → 지급한 tier). ★영속 — notifiedTier(인메모리)와 달리 재시작 무한지급 방지.
+    // Candies already paid by each limit window (key) in its current epoch. ★영속: 재시작 무한지급 방지.
+    // Before `candyGrantsAsYouGo`, 1 meant "paid at 100%".
     var candyGrantTier: [String: Int] = [:]
     // 창 key → 마지막으로 본 epoch(`resets_at`). util 이 계속 100%여도 epoch 교체로 재무장(#326).
     var candyWindowEpoch: [String: String] = [:]
     // 사탕 지급 첫 실행 시드 완료 — 업데이트 직후 이미 100%였던 창의 소급 지급 차단.
     var candyFeatureSeeded = false
+    /// Windows pay their candies as they go (`RareCandy.candiesDue`). A save from before has `false`: its windows'
+    /// ledger said only whether 100% was paid, and is carried over once by `CompanionStore.grantCandies`.
+    var candyGrantsAsYouGo = false
     /// The growth bonuses add up (they used to multiply). A save from before that has `false`, and its current
     /// stage is carried over once by `CompanionStore.migrateToAdditiveGrowthIfNeeded`.
     var additiveGrowthBonuses = true
@@ -1278,6 +1254,7 @@ struct CompanionState: Codable, Sendable {
         candyGrantTier     = c.lenient([String: Int].self, forKey: .candyGrantTier, default: [:])
         candyWindowEpoch   = c.lenient([String: String].self, forKey: .candyWindowEpoch, default: [:])
         candyFeatureSeeded = c.lenient(Bool.self, forKey: .candyFeatureSeeded, default: false)
+        candyGrantsAsYouGo = c.lenient(Bool.self, forKey: .candyGrantsAsYouGo, default: false)
         additiveGrowthBonuses = c.lenient(Bool.self, forKey: .additiveGrowthBonuses, default: false)
         eggFromTypeNullEgg = c.lenient(Bool.self, forKey: .eggFromTypeNullEgg, default: false)
         eggFromLegendaryEgg = c.lenient(Bool.self, forKey: .eggFromLegendaryEgg, default: false)

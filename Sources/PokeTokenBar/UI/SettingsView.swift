@@ -105,7 +105,6 @@ struct SettingsView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
                         generalGroup(store)
-                        difficultyGroup
                         menuBarGroup(store)
                         floatingPetGroup(store)
                         notificationsGroup(store)
@@ -312,10 +311,6 @@ struct SettingsView: View {
                     }
             }
         }
-    }
-
-    private var difficultyGroup: some View {
-        DifficultySettingsSection(companion: companion)
     }
 
     @ViewBuilder

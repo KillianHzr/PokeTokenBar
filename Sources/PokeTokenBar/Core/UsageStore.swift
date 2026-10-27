@@ -658,8 +658,7 @@ final class UsageStore {
             windows += claudeCandyWindows(account, named: accounts.count > 1, l)
                 .filter { account.isDefault || armedCandyWindows.contains($0.key) }
         }
-        // Each provider's windows are summed from its own local usage: the tokens behind them.
-        let codexTokens = recentTokensByProvider["codex"], antigravityTokens = recentTokensByProvider["antigravity"]
+        // Codex and Antigravity publish no ratio between their plans: their windows pay as a Pro plan's.
         for bucket in codexLimits?.visibleSnapshots ?? [] {
             let bucketKey = bucket.limitId ?? bucket.limitName ?? "codex"
             let bucketName = bucket.bucketDisplayName
@@ -669,8 +668,7 @@ final class UsageStore {
                     name: "\(bucketName) \(l.codexWindow(primary.windowDurationMins))",
                     kind: Self.windowClass(minutes: primary.windowDurationMins),
                     utilization: Double(primary.usedPercent),
-                    epoch: primary.resetsAt.map(String.init),
-                    windowTokens: codexTokens?.windowTokens(reset: primary.resetDate, span: primary.windowSpan)))
+                    epoch: primary.resetsAt.map(String.init)))
             }
             if let secondary = bucket.secondary {
                 windows.append(CandyWindow(
@@ -678,8 +676,7 @@ final class UsageStore {
                     name: "\(bucketName) \(l.codexWindow(secondary.windowDurationMins))",
                     kind: Self.windowClass(minutes: secondary.windowDurationMins),
                     utilization: Double(secondary.usedPercent),
-                    epoch: secondary.resetsAt.map(String.init),
-                    windowTokens: codexTokens?.windowTokens(reset: secondary.resetDate, span: secondary.windowSpan)))
+                    epoch: secondary.resetsAt.map(String.init)))
             }
         }
         for group in antigravityLimits?.groups ?? [] {
@@ -692,8 +689,7 @@ final class UsageStore {
                     name: "\(groupTitle) \(l.fiveHourSession)",
                     kind: .session,
                     utilization: fiveHour.usedPercent,
-                    epoch: epoch,
-                    windowTokens: antigravityTokens?.windowTokens(reset: fiveHour.resetDate, span: fiveHour.windowSpan)))
+                    epoch: epoch))
             }
             if let weekly = group.weeklyBucket {
                 let epoch = weekly.resetDate.map { ISO8601DateFormatter().string(from: $0) } ?? weekly.resetTime
@@ -702,8 +698,7 @@ final class UsageStore {
                     name: "\(groupTitle) \(l.weekly)",
                     kind: .weekly,
                     utilization: weekly.usedPercent,
-                    epoch: epoch,
-                    windowTokens: antigravityTokens?.windowTokens(reset: weekly.resetDate, span: weekly.windowSpan)))
+                    epoch: epoch))
             }
         }
         return windows
@@ -712,24 +707,20 @@ final class UsageStore {
     /// `named`: next to other accounts, the notification says whose limit it is.
     private func claudeCandyWindows(_ account: ClaudeAccountLimits, named: Bool, _ l: L) -> [CandyWindow] {
         let suffix = named ? " (\(account.title))" : ""
-        // With several accounts each one's own turns, like its 5h block (`claudeCurrentBlock`).
-        let tokens = claudeAccounts.count > 1 ? claudeAccountTimelines[account.id] : recentTokensByProvider["claude_code"]
+        // Each account's own plan: a Max 20x login pays twenty Pro sessions' candies as its session fills.
+        let plan = account.status.planMultiplier
         var windows: [CandyWindow] = []
         if let fiveHour = account.status.fiveHour, let u = fiveHour.utilization {
             let epoch = fiveHour.resetDate.map { ISO8601DateFormatter().string(from: $0) } ?? fiveHour.resetsAt
             windows.append(CandyWindow(key: "\(account.windowKeyPrefix).fiveHour",
                                        name: l.claudeFiveHour + suffix, kind: .session,
-                                       utilization: u, epoch: epoch,
-                                       windowTokens: tokens?.windowTokens(reset: fiveHour.resetDate,
-                                                                          span: LimitWindowSpan.fiveHour)))
+                                       utilization: u, epoch: epoch, planMultiplier: plan))
         }
         if let sevenDay = account.status.sevenDay, let u = sevenDay.utilization {
             let epoch = sevenDay.resetDate.map { ISO8601DateFormatter().string(from: $0) } ?? sevenDay.resetsAt
             windows.append(CandyWindow(key: "\(account.windowKeyPrefix).sevenDay",
                                        name: l.claudeWeekly + suffix, kind: .weekly,
-                                       utilization: u, epoch: epoch,
-                                       windowTokens: tokens?.windowTokens(reset: sevenDay.resetDate,
-                                                                          span: LimitWindowSpan.sevenDay)))
+                                       utilization: u, epoch: epoch, planMultiplier: plan))
         }
         return windows
     }
@@ -1115,12 +1106,10 @@ final class UsageStore {
                             lastUsage: enrichment.periodsOK ? enrichment.lastUsage : nil)
                         if snapshot.hasDisplayableUsage { snapshots.append(snapshot) }
                     }
-                    if enrichment.periodsOK { recentTokensByProvider[id] = enrichment.recentTokens }
                     continue
                 }
                 if enrichment.blocksOK { snapshots[index].activeBlock = enrichment.activeBlock }
                 if enrichment.periodsOK {
-                    recentTokensByProvider[id] = enrichment.recentTokens
                     snapshots[index].weekTotal = enrichment.weekTotal
                     snapshots[index].monthTotal = enrichment.monthTotal
                     snapshots[index].monthDaily = enrichment.monthDaily
@@ -1261,10 +1250,6 @@ final class UsageStore {
     private(set) var unattributedClaudeUsage = ClaudeAccountUsage()
     /// Each account's own active 5h block, for its tab and forecast.
     private var claudeAccountBlocks: [String: BlockUsage] = [:]
-    /// Each account's last week of tokens, for its limits' candies, while several accounts are shown.
-    private var claudeAccountTimelines: [String: TokenTimeline] = [:]
-    /// Each provider's last week of tokens, for its limits' candies (`CandyWindow.windowTokens`).
-    private var recentTokensByProvider: [String: TokenTimeline] = [:]
 
     /// The account behind the menu bar percentage, warning state, companion mood, floating pet hover
     /// and 5h forecast. With a single account this is that account, whatever the mode.
@@ -1476,7 +1461,6 @@ final class UsageStore {
         claudeAccountActivity = [:]
         claudeAccountUsage = [:]
         claudeAccountBlocks = [:]
-        claudeAccountTimelines = [:]
         unattributedClaudeUsage = ClaudeAccountUsage()
     }
 
@@ -1518,14 +1502,12 @@ final class UsageStore {
         for (id, usage) in result.byAccount where !shown.contains(id) { unattributed.add(usage) }
         claudeAccountUsage = result.byAccount.filter { shown.contains($0.key) }
         claudeAccountBlocks = result.activeBlocks.filter { shown.contains($0.key) }
-        claudeAccountTimelines = result.timelines.filter { shown.contains($0.key) }
         unattributedClaudeUsage = unattributed
     }
 
-    /// The month, the whole 5h block when it started last month, and the last week for the weekly limit's candies.
+    /// The month, and the whole 5h block when it started last month.
     nonisolated static func claudeUsageScanStart(now: Date) -> Date {
-        min(LocalUsageReader.startOfMonth(now), now.addingTimeInterval(-LocalUsageReader.blockWindow),
-            now.addingTimeInterval(-TokenTimeline.span))
+        min(LocalUsageReader.startOfMonth(now), now.addingTimeInterval(-LocalUsageReader.blockWindow))
     }
 
     /// Local usage for the running app only, like `ClaudeAccountRoots.installedDiscovery`.

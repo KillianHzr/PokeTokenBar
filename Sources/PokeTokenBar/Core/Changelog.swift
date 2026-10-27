@@ -66,6 +66,27 @@ enum Changelog {
     }
 
     static let days: [ChangelogDay] = [
+        ChangelogDay(date: "2026-10-27", entries: [
+            .improved("2026-10-27-candies-as-you-go") { l in
+                let candy = l.itemName(.rareCandy)
+                return l.t("사용량 한도가 100%가 될 때까지 기다리지 않고, 차는 만큼 \(candy)을 받아요. Pro 5시간 세션 하나가 1개이고, 더 큰 요금제는 그만큼 더 받아요(Max 20x 세션은 5%마다 1개).",
+                           "\(candy) comes as your usage limits fill, without waiting for 100%: a whole Pro session is one, and a bigger plan pays as many Pro plans as it holds (a Max 20x session, one every 5%).",
+                           "使用量の上限が100%になるのを待たず、埋まるにつれて\(candy)がもらえます。Proの5時間セッション1つで1個、大きなプランはその分多く(Max 20xのセッションは5%ごとに1個)。",
+                           "Los \(candy) llegan a medida que se llenan tus límites de uso, sin esperar al 100%: una sesión Pro entera da uno, y un plan mayor da tantos como planes Pro contiene (una sesión Max 20x, uno cada 5%).",
+                           "Les \(candy) arrivent au fil de tes limites d'utilisation, sans attendre 100 % : une session Pro entière en donne un, et un plan plus grand autant de fois qu'il vaut de plans Pro (une session Max 20x, un tous les 5 %).",
+                           "Os \(candy) chegam conforme seus limites de uso enchem, sem esperar 100%: uma sessão Pro inteira dá um, e um plano maior dá tantos quantos planos Pro ele vale (uma sessão Max 20x, um a cada 5%).",
+                           "\(candy) gibt es, während sich deine Nutzungslimits füllen, ohne auf 100 % zu warten: eine ganze Pro-Sitzung bringt eins, ein größerer Plan so viele, wie er Pro-Pläne enthält (eine Max-20x-Sitzung alle 5 %).",
+                           "«\(candy)» выдаются по мере заполнения лимитов, не дожидаясь 100%: целая сессия Pro даёт одну, а план больше столько, сколько планов Pro он вмещает (сессия Max 20x: одну каждые 5%).")
+            },
+            .improved("2026-10-27-one-difficulty") { $0.t("성장·상점 난이도 설정이 없어지고 모두 10%로 플레이해요. 모두가 고른 값이에요. 지금 알이나 단계의 진행률은 그대로예요.",
+                          "The growth and Shop difficulty settings are gone: everyone plays at 10%, the value every player had chosen. Your current egg or stage keeps its progress.",
+                          "成長とショップの難易度設定がなくなり、みんな10%で遊びます。全員が選んでいた値です。いまのタマゴや段階の進み具合はそのままです。",
+                          "Los ajustes de dificultad de crecimiento y de tienda desaparecen: todos juegan al 10%, el valor que todos habían elegido. Tu huevo o etapa actual conserva su progreso.",
+                          "Les réglages de difficulté de croissance et de boutique disparaissent : tout le monde joue à 10 %, la valeur que chacun avait choisie. Ton œuf ou ton stade en cours garde sa progression.",
+                          "Os ajustes de dificuldade de crescimento e da loja somem: todos jogam a 10%, o valor que todos tinham escolhido. Seu ovo ou estágio atual mantém o progresso.",
+                          "Die Schwierigkeitseinstellungen für Wachstum und Shop entfallen: Alle spielen mit 10 %, dem Wert, den alle gewählt hatten. Dein aktuelles Ei oder deine Stufe behält den Fortschritt.",
+                          "Настройки сложности роста и магазина убраны: все играют на 10%, которые и так выбрали все. Текущее яйцо или стадия сохраняют прогресс.") },
+        ]),
         ChangelogDay(date: "2026-10-26", entries: [
             .fixed("2026-10-26-claude-sessions-cpu") { $0.t("긴 Claude Code 세션 동안에도 새로고침마다 세션 전체를 다시 읽지 않고 새로 추가된 부분만 읽어요. CPU를 계속 쓰며 Mac을 뜨겁게 하지 않아요.",
                           "The app no longer reads your whole Claude Code sessions again at every refresh, only what they added: it stops keeping the CPU busy and heating the Mac during long sessions.",

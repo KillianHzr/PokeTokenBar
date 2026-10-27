@@ -64,7 +64,7 @@ final class PokemonFormTests: XCTestCase {
         addTeardownBlock { UserDefaults.standard.removePersistentDomain(forName: suite) }
         let date = now
         return CompanionStore(provider: FormTestProvider(), clock: { date }, fileURL: url,
-                              rng: SeededRNG(seed: seed), dittoDisguiseRollingEnabled: false, defaults: defaults)
+                              rng: SeededRNG(seed: seed), dittoDisguiseRollingEnabled: false, defaults: defaults, difficulty: 1)
     }
 
     private func burmy(_ path: [Int], form: PokemonForm?, shiny: Bool = false) -> DexEntry {
@@ -391,7 +391,7 @@ final class PokemonFormTests: XCTestCase {
         addTeardownBlock { UserDefaults.standard.removePersistentDomain(forName: suite) }
         let date = now
         let s = CompanionStore(provider: FormTestProvider(), clock: { date }, fileURL: url, rng: SeededRNG(seed: 7),
-                               defaults: defaults)
+                               defaults: defaults, difficulty: 1)
         XCTAssertEqual(s.currentForm, sandy)
         s.update(todayTokensByProvider: ["test": 0], todayDate: "d1", monthTotal: 0, burnTier: .idle,
                  limitWarning: false, hasUsageData: true)

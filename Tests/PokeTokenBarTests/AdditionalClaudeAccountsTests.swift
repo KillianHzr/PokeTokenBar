@@ -1933,13 +1933,10 @@ extension ClaudeAccountUsageStoreTests {
                        "the latest prompt of both folders, not the last folder's")
     }
 
-    /// The month, and the last week for the weekly limit's candies (`TokenTimeline`), which covers a 5h block too.
-    func testTheScanCoversTheMonthAndTheLastWeek() {
+    func testTheScanCoversTheMonthAndABlockStartedLastMonth() {
         let monthStart = LocalUsageReader.startOfMonth(Date())
         let early = monthStart.addingTimeInterval(2 * 3600)
-        XCTAssertEqual(UsageStore.claudeUsageScanStart(now: early), early.addingTimeInterval(-TokenTimeline.span))
-        let third = monthStart.addingTimeInterval(3 * 86_400)
-        XCTAssertEqual(UsageStore.claudeUsageScanStart(now: third), third.addingTimeInterval(-TokenTimeline.span))
+        XCTAssertEqual(UsageStore.claudeUsageScanStart(now: early), early.addingTimeInterval(-LocalUsageReader.blockWindow))
         let later = monthStart.addingTimeInterval(10 * 86_400)
         XCTAssertEqual(UsageStore.claudeUsageScanStart(now: later), monthStart)
     }

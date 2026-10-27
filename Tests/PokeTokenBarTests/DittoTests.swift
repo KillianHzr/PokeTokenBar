@@ -96,7 +96,7 @@ final class DittoPromiseTests: XCTestCase {
             + "\"collectedFinals\":[]\(extra)}"
         try Data(json.utf8).write(to: url)
         return CompanionStore(provider: provider, clock: { dNow }, fileURL: url, rng: SeededRNG(seed: seed),
-                              dittoDisguiseRollingEnabled: true)
+                              dittoDisguiseRollingEnabled: true, difficulty: 1)
     }
 
     func testAStoneEggNeverHidesADitto() async throws {
@@ -159,7 +159,7 @@ final class DittoRevealTests: XCTestCase {
     /// 활성 = 커먼 3형태 위장 메타몽(정체). currentLine 은 nil(재시작류) → update 로 로드해 리빌 트리거.
     private func seedDisguise(usedAtStage: Int = 0, shiny: Bool = false, revealed: Bool = false,
                               boosted: Bool = false, newForm: Bool = false, collectedFinals: [String] = [],
-                              defaults: UserDefaults = .standard) -> CompanionStore {
+                              defaults: UserDefaults = .standard, difficulty: Double = 1) -> CompanionStore {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("ditto-\(UUID().uuidString).json")
         let active = "{\"baseID\":1,\"pathIDs\":[1],\"stageIndex\":0,\"usedAtStage\":\(usedAtStage),"
             + "\"rarity\":\"common\",\"totalForms\":3,\"isShiny\":\(shiny),\"hasGrowthBoost\":\(boosted),"
@@ -169,7 +169,7 @@ final class DittoRevealTests: XCTestCase {
         let json = "{\"installBaselineSet\":true,\"usedSinceInstall\":1000000000,\"spentTokens\":0,"
             + "\"lastDate\":\"d1\",\"active\":\(active),\"dex\":[],\"collectedFinals\":[\(finals)]}"
         try? json.data(using: .utf8)!.write(to: url)
-        return CompanionStore(provider: DittoTestProvider(), clock: { dNow }, fileURL: url, rng: SeededRNG(seed: 7), defaults: defaults)
+        return CompanionStore(provider: DittoTestProvider(), clock: { dNow }, fileURL: url, rng: SeededRNG(seed: 7), defaults: defaults, difficulty: difficulty)
     }
 
     /// update → loadCurrentLine → applyUsage(0) → (임계 초과 시) revealDitto 비동기 체인을 드레인.
@@ -243,8 +243,7 @@ final class DittoRevealTests: XCTestCase {
         let suite = "ditto-profile-\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
-        let s = seedDisguise(boosted: true, defaults: defaults)
-        s.setGrowthDifficulty(0.1)
+        let s = seedDisguise(boosted: true, defaults: defaults, difficulty: PokemonBalance.difficulty)
         await s.loadPokemonDetails(speciesID: 1, form: nil)
         let initial = try XCTUnwrap(s.state.active?.profile)
         s.applyUsage(7_250_000) // 6.25M reveal threshold plus 1M raw carryover.
@@ -327,7 +326,7 @@ final class DittoRevealTests: XCTestCase {
             + "\"active\":\(active),\"dex\":[],\"collectedFinals\":[]}"
         try Data(json.utf8).write(to: url)
         let s = CompanionStore(provider: PrunedDittoTestProvider(), clock: { dNow }, fileURL: url,
-                               rng: SeededRNG(seed: 7))
+                               rng: SeededRNG(seed: 7), difficulty: 1)
 
         await drainReveal(s)
 
@@ -358,7 +357,7 @@ final class DittoRevealTests: XCTestCase {
         }
         let selectedSeed = try XCTUnwrap(seed)
         let s = CompanionStore(provider: provider, clock: { dNow }, fileURL: url,
-                               rng: SeededRNG(seed: selectedSeed), dittoDisguiseRollingEnabled: true)
+                               rng: SeededRNG(seed: selectedSeed), dittoDisguiseRollingEnabled: true, difficulty: 1)
 
         s.update(todayTokensByProvider: ["test": 0], todayDate: "d1", monthTotal: 0,
                  burnTier: .idle, limitWarning: false, hasUsageData: true)
@@ -410,7 +409,7 @@ final class DittoRevealTests: XCTestCase {
         await drainReveal(s)
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("normal-candy-\(UUID()).json")
         let normal = CompanionStore(provider: DittoTestProvider(), clock: { dNow }, fileURL: url,
-                                    dittoDisguiseRollingEnabled: false)
+                                    dittoDisguiseRollingEnabled: false, difficulty: 1)
         await normal.hatch(baseID: 1)
         normal.applyUsage(100_000_000)
         for store in [s, normal] {
@@ -443,12 +442,11 @@ final class DittoRevealTests: XCTestCase {
     }
 
     func testApparentGraduationBatchPreservesUnusedCandiesAtDittoReveal() async throws {
-        for difficulty in [0.1, 1.0, 2.0] {
+        do {
             for boosted in [false, true] {
                 let suiteName = "ditto-candy-\(UUID())"
                 let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
                 defer { defaults.removePersistentDomain(forName: suiteName) }
-                defaults.set(difficulty, forKey: "growthDifficulty")
                 let s = seedDisguise(boosted: boosted, defaults: defaults)
                 await drainReveal(s)
                 s.grantCandies(from: [], limitsReady: true)
@@ -492,7 +490,7 @@ final class DittoRevealTests: XCTestCase {
         let json = "{\"installBaselineSet\":true,\"usedSinceInstall\":0,\"spentTokens\":0,"
             + "\"lastDate\":\"d1\",\"active\":\(active),\"dex\":[],\"collectedFinals\":[]}"
         try? json.data(using: .utf8)!.write(to: url)
-        let s = CompanionStore(provider: DittoTestProvider(), clock: { dNow }, fileURL: url, rng: SeededRNG(seed: 7))
+        let s = CompanionStore(provider: DittoTestProvider(), clock: { dNow }, fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
         XCTAssertNil(s.state.active?.dittoDisguise)
         XCTAssertFalse(s.state.active?.dittoRevealed ?? true)
         XCTAssertTrue(s.currentIsShiny, "위장 아님 → 이로치 그대로 표시")

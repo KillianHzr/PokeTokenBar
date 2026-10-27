@@ -279,6 +279,15 @@ struct LimitStatus: Decodable, Sendable {
         return base
     }
 
+    /// How many Pro plans this account's limits are worth, for its candies (`RareCandy.windowCandies`): the tier's
+    /// multiple ("default_claude_max_20x": 20), 5 for a Max plan whose tier names none (the smallest Max), else 1.
+    var planMultiplier: Int {
+        if let tier = rateLimitTier, let token = Self.tierMultiplier(from: tier), let n = Int(token.dropLast()), n > 0 {
+            return n
+        }
+        return subscriptionType?.lowercased() == "max" ? 5 : 1
+    }
+
     /// 계정 라벨 — "email · 조직명". 개인 플랜의 자동 생성 조직명("<email>'s Organization")은
     /// 이메일과 중복 정보라 생략한다(조직명에 이메일이 포함되는지로 판정). 이메일 없으면 nil —
     /// 조직명만으로는 어느 로그인인지 특정되지 않아 부분 라벨을 만들지 않는다.

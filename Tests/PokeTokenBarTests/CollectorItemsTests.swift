@@ -44,16 +44,8 @@ final class CollectorItemsTests: XCTestCase {
         st.claimedAchievements = claimed
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("collector-\(UUID().uuidString).json")
         try? JSONEncoder().encode(st).write(to: url)
-        guard let growthDifficulty else {
-            return CompanionStore(provider: CollectorStubProvider(), clock: { self.now }, fileURL: url,
-                                  rng: SeededRNG(seed: 1))
-        }
-        let suite = "collector-\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suite)!
-        defaults.set(growthDifficulty, forKey: "growthDifficulty")
-        addTeardownBlock { UserDefaults.standard.removePersistentDomain(forName: suite) }
         return CompanionStore(provider: CollectorStubProvider(), clock: { self.now }, fileURL: url,
-                              rng: SeededRNG(seed: 1), defaults: defaults)
+                              rng: SeededRNG(seed: 1), difficulty: growthDifficulty ?? PokemonBalance.difficulty)
     }
 
     private func entry(_ chain: [Int], rarity: Rarity = .common, released: Bool = false) -> DexEntry {
@@ -535,8 +527,8 @@ final class CollectorItemsTests: XCTestCase {
         }
     }
 
-    /// The Silver Wing and the Tera Orb halve the egg at every difficulty. A 1M floor used to make the egg slower
-    /// with them below difficulty 0.4 (500k without, 1M with at 0.1).
+    /// The Silver Wing and the Tera Orb halve the egg at any difficulty. A 1M floor used to make the egg slower
+    /// with them below difficulty 0.4 (500k without, 1M with at 0.1, the players' difficulty).
     func testEggItemsHalveTheThresholdAtEveryDifficulty() {
         for difficulty in [0.1, 0.2, 0.3, 0.4, 1.0, 2.0] {
             let plain = store(growthDifficulty: difficulty).eggHatchThreshold

@@ -97,14 +97,19 @@ final class LegendaryArtifactsTests: XCTestCase {
         XCTAssertEqual(without.eggHatchThreshold, base)
     }
 
-    /// The Meteorite adds a candy to each full usage window, on top of the window's own grant.
-    func testTheMeteoriteAddsACandyToEachFullWindow() throws {
+    /// The Meteorite adds a candy to each window paid to its end, on top of the window's own candies; a window paid
+    /// part of the way gets nothing extra.
+    func testTheMeteoriteAddsACandyToEachWindowPaidToItsEnd() throws {
         for owned in [false, true] {
             let s = try store(inventory: owned ? [.meteorite: 1] : [:])
+            let session = { (u: Double) in
+                CandyWindow(key: "s", name: "T", kind: .session, utilization: u, epoch: "e", planMultiplier: 5)
+            }
             s.grantCandies(from: [], limitsReady: true)
-            s.grantCandies(from: [CandyWindow(key: "s", name: "T", kind: .session, utilization: 100,
-                                              windowTokens: 3_000_000_000)], limitsReady: true)
-            XCTAssertEqual(s.rareCandyCount, 3 + (owned ? CollectorBonus.meteoriteWindowCandies : 0), "owned: \(owned)")
+            s.grantCandies(from: [session(40)], limitsReady: true)
+            XCTAssertEqual(s.rareCandyCount, 2, "owned: \(owned)")
+            s.grantCandies(from: [session(100)], limitsReady: true)
+            XCTAssertEqual(s.rareCandyCount, 5 + (owned ? CollectorBonus.meteoriteWindowCandies : 0), "owned: \(owned)")
         }
     }
 

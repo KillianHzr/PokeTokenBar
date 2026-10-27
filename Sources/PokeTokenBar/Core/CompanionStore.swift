@@ -61,9 +61,9 @@ final class CompanionStore {
 
     /// 성장 배율 — 알 부화 임계 + 진화/졸업 임계에 곱한다. 낮을수록 빨리 자란다.
     /// 사탕 XP(RareCandy.xp)는 스케일하지 않는다 — 함께 곱하면 서로 상쇄돼 사탕만 난이도를 안 탄다.
-    private(set) var growthDifficulty: Double
-    /// 상점 배율 — 아이템·알 가격에 곱한다. 낮을수록 싸다.
-    private(set) var shopDifficulty: Double
+    let growthDifficulty: Double
+    /// 상점 배율: 아이템·알 가격에 곱한다. 낮을수록 싸다.
+    let shopDifficulty: Double
 
     init(provider: any PokeProviding = PokeAPIClient.shared,
          detailProvider: (any PokemonDetailProviding)? = nil,
@@ -71,7 +71,8 @@ final class CompanionStore {
          fileURL: URL? = nil,
          rng: any RandomNumberGenerator = SystemRandomNumberGenerator(),
          dittoDisguiseRollingEnabled: Bool = AppEnv.isBundledApp,
-         defaults: UserDefaults = .standard) {
+         defaults: UserDefaults = .standard,
+         difficulty: Double = PokemonBalance.difficulty) {
         self.provider = provider
         self.detailProvider = detailProvider ?? (provider as? any PokemonDetailProviding)
         self.clock = clock
@@ -79,20 +80,11 @@ final class CompanionStore {
         self.rng = rng
         self.dittoDisguiseRollingEnabled = dittoDisguiseRollingEnabled
         self.defaults = defaults
-        let storedGrowth = defaults.object(forKey: "growthDifficulty") as? Double ?? PokemonBalance.defaultDifficulty
-        // Previous releases accepted 0.01%–2000%. Reprice their banked progress before
-        // persisting the narrower range, otherwise an upgrade silently changes completion.
-        let previousGrowth = storedGrowth.isFinite ? min(20, max(0.0001, storedGrowth)) : 1
-        growthDifficulty = PokemonBalance.clampDifficulty(storedGrowth)
-        shopDifficulty = PokemonBalance.clampDifficulty(
-            defaults.object(forKey: "shopDifficulty") as? Double ?? PokemonBalance.defaultDifficulty)
+        // The players' difficulty; tests of the mechanics pass 1, the tables as they are.
+        growthDifficulty = difficulty
+        shopDifficulty = difficulty
         load()
-        if previousGrowth != growthDifficulty {
-            rescaleBankedGrowth(from: previousGrowth, to: growthDifficulty)
-            save()
-        }
-        defaults.set(growthDifficulty, forKey: "growthDifficulty")
-        defaults.set(shopDifficulty, forKey: "shopDifficulty")
+        migrateToOneDifficultyIfNeeded()
         migrateToAdditiveGrowthIfNeeded()
         migratePokemonProfilesIfNeeded()
         refreshRepresentativeSubject()
@@ -112,17 +104,22 @@ final class CompanionStore {
     var language: AppLanguage { state.language }
     func setLanguage(_ lang: AppLanguage) { state.language = lang; save() }
 
-    // MARK: 난이도 — 저장할 때만 적용
+    // MARK: Difficulty
 
-    /// Keep the earned fraction of this egg/stage. These are progression credits,
-    /// not actual usage: lifetime tokens, provider ledgers and wallet never change here.
-    func setGrowthDifficulty(_ value: Double) {
-        let clamped = PokemonBalance.clampDifficulty(value)
-        guard clamped != growthDifficulty else { return }
-        rescaleBankedGrowth(from: growthDifficulty, to: clamped)
-        growthDifficulty = clamped
-        defaults.set(clamped, forKey: "growthDifficulty")
-        // Do not evolve, graduate or hatch just because Settings changed.
+    /// The growth slider of a previous release, if its value is saved: the progress earned at it keeps its fraction of
+    /// the egg or stage at the one difficulty (`PokemonBalance.difficulty`), once. Both sliders' values are then removed.
+    /// Without a saved value the save never had progress at another difficulty.
+    private func migrateToOneDifficultyIfNeeded() {
+        let stored = defaults.object(forKey: "growthDifficulty") as? Double
+        defer {
+            defaults.removeObject(forKey: "growthDifficulty")
+            defaults.removeObject(forKey: "shopDifficulty")
+        }
+        // Releases before the sliders' 10% to 200% range accepted 0.01% to 2000%.
+        guard let stored, stored.isFinite, stored > 0 else { return }
+        let previous = min(20, max(0.0001, stored))
+        guard previous != growthDifficulty else { return }
+        rescaleBankedGrowth(from: previous, to: growthDifficulty)
         save()
     }
 
@@ -144,13 +141,6 @@ final class CompanionStore {
         }
     }
 
-    /// 상점 배율 변경 — 가격은 순수 읽기(파생값)라 재평가할 상태가 없다.
-    func setShopDifficulty(_ value: Double) {
-        let clamped = PokemonBalance.clampDifficulty(value)
-        guard clamped != shopDifficulty else { return }
-        shopDifficulty = clamped
-        defaults.set(clamped, forKey: "shopDifficulty")
-    }
 
     /// 난이도를 반영한 알 부화 임계. 첫 실행 안내 문구도 이 값을 보여준다.
     /// Items only halve it, with no floor: a 1M floor made the egg slower with them below difficulty 0.4.
@@ -2374,13 +2364,6 @@ final class CompanionStore {
     @discardableResult
     func buyFreshEgg() -> Bool { buyEgg(nil) }
 
-    /// 지급 판정(순수·엣지 트리거) — 한도 창이 100% 를 새로 넘어선 순간에만 지급.
-    /// - 100% 미만 → 맵에서 제거(재무장).
-    /// - 같은 key 라도 epoch(`resets_at`)가 바뀌면 새 창으로 보고 재무장 — 슬립·종료로 &lt;100% 샘플을
-    ///   못 본 채 다시 100%만 관측해도 지급 누락이 없다(#326). key 자체엔 epoch 를 넣지 않는다
-    ///   (알림 dedup 과 같은 이유로 매 fetch 새 키 폭탄 방지).
-    /// - 이미 지급한 창(tier≥1)은 재지급 안 함. session=1개·weekly=weeklyGrant.
-    /// - 부수효과(인벤토리·알림)와 분리해 xctest 가능. (evaluateLimitAlerts 자매)
     /// Parse an epoch string into a Date, supporting Unix timestamp (seconds or ms) or ISO8601 strings.
     static func parseEpochDate(_ string: String) -> Date? {
         if let ts = Double(string) {
@@ -2408,6 +2391,13 @@ final class CompanionStore {
         return delta >= minAdvance
     }
 
+    /// The candies each window owes now (`RareCandy.candiesDue`), less those it already paid in its epoch. Pure, so
+    /// it is tested apart from the Bag and the notifications (evaluateLimitAlerts 자매).
+    /// - The ledger (`grantTier`) keeps what each window paid. A new epoch (`resets_at`) starts it again, even when the
+    ///   app never saw the window go down (#326); the key never holds the epoch.
+    /// - Without an epoch, a window back to nothing owed is a new one.
+    /// - What a window paid is never taken back: a utilization that goes down a little pays nothing until it is past
+    ///   it again.
     static func evaluateCandyGrants(
         windows: [CandyWindow],
         grantTier: inout [String: Int],
@@ -2425,42 +2415,40 @@ final class CompanionStore {
                     windowEpoch[w.key] = epoch
                 }
             }
-            guard w.utilization >= 100 else {
-                grantTier[w.key] = nil
-                if let epoch = w.epoch {
-                    windowEpoch[w.key] = epoch
-                }
-                continue
+            let due = RareCandy.candiesDue(utilization: w.utilization, kind: w.kind, planMultiplier: w.planMultiplier)
+            var paid = grantTier[w.key] ?? 0
+            if w.epoch == nil, due == 0 { paid = 0 }
+            if due > paid {
+                let whole = RareCandy.windowCandies(kind: w.kind, planMultiplier: w.planMultiplier)
+                grants.append(CandyGrant(windowKey: w.key, windowName: w.name, count: due - paid,
+                                         completesWindow: due == whole))
+                paid = due
             }
-            let previous = grantTier[w.key] ?? 0
-            guard previous < 1 else { continue }
-            grantTier[w.key] = 1
-            if let epoch = w.epoch {
-                windowEpoch[w.key] = epoch
-            }
-            let count = RareCandy.grantCount(windowTokens: w.windowTokens, kind: w.kind)
-            grants.append(CandyGrant(windowKey: w.key, windowName: w.name, count: count))
+            grantTier[w.key] = paid > 0 ? paid : nil
         }
         return grants
     }
 
-    /// 한도 창 상태로부터 사탕 지급(엣지·영속). AppDelegate 가 매 refresh 완료 시(한도 로드 후) 호출.
-    /// - 첫 실행: 현재 100% 창을 지급 없이 tier 시드만 → 이후 "새로 넘어서는" 순간부터 지급(소급 차단).
-    /// - limitsReady=false(한도 미로딩)면 시드/지급 모두 대기(다음 refresh 에 재시도).
+    /// Pays the candies the limit windows owe (`evaluateCandyGrants`). AppDelegate 가 매 refresh 완료 시(한도 로드 후)
+    /// 호출. limitsReady=false(한도 미로딩)면 대기(다음 refresh 에 재시도).
+    /// - First run: what the windows already owe is not paid back; they pay from then on.
+    /// - A save from the rule that paid at 100% only: a window it already paid owes nothing more in its epoch, any
+    ///   other pays its usage so far.
     func grantCandies(from windows: [CandyWindow], limitsReady: Bool) {
         guard limitsReady else { return }
         if !state.candyFeatureSeeded {
-            // 한계(수용): 첫 refresh 에 한 프로바이더 한도만 로드되면 그 프로바이더 창만 시드된다.
-            // 이후 다른 프로바이더가 이미 100%인 채 로드되면 소급 지급될 수 있으나, 1회·소수 캔디라
-            // 1인 로컬에서 무시(YAGNI). refresh() 는 전 프로바이더 fetch 를 await 후 onRefresh 하므로
-            // 정상 경로(둘 다 성공)에선 원자적 시드다.
-            for w in windows where w.utilization >= 100 {
-                state.candyGrantTier[w.key] = 1
-                if let epoch = w.epoch { state.candyWindowEpoch[w.key] = epoch }
-            }
+            // 한계(수용): 첫 refresh 에 한 프로바이더 한도만 로드되면 그 프로바이더 창만 시드된다. refresh() 는 전
+            // 프로바이더 fetch 를 await 후 onRefresh 하므로 정상 경로에선 원자적 시드다.
+            for w in windows { seedCandyLedger(w, paid: true) }
             state.candyFeatureSeeded = true
+            state.candyGrantsAsYouGo = true
             save()
             return
+        }
+        if !state.candyGrantsAsYouGo {
+            for w in windows { seedCandyLedger(w, paid: (state.candyGrantTier[w.key] ?? 0) >= 1) }
+            state.candyGrantsAsYouGo = true
+            save()
         }
         let beforeTier = state.candyGrantTier
         let beforeEpoch = state.candyWindowEpoch
@@ -2474,18 +2462,44 @@ final class CompanionStore {
         state.candyWindowEpoch = windowEpoch
         let meteorite = itemCount(.meteorite) > 0 ? CollectorBonus.meteoriteWindowCandies : 0
         for g in grants {
-            let received = addRareCandies(g.count + meteorite)
-            // 지급 자체는 알림 여부와 무관(상태 변경). 알림은 "왜 받는지"(그 창 한도를 다 채운 수고) 명시.
-            notifyCompanionEvent(l.notifCandyTitle(item: l.itemName(.rareCandy), count: received),
-                                 l.notifCandyBody(window: g.windowName))
+            let received = addRareCandies(g.count + (g.completesWindow ? meteorite : 0))
+            pendingCandyNotice.count += received
+            pendingCandyNotice.windows.append(g.windowName)
         }
-        // 지급이 없어도 재무장(util dip / epoch 교체)은 영속해야 한다 —
-        // 안 하면 재시작 시 stale tier=1 로 다음 100% 도달이 "이미 지급"으로 오판돼 지급 누락(회귀).
+        if !grants.isEmpty {
+            AppLog.write("candies: " + grants.map { "\($0.windowKey) +\($0.count)" }.joined(separator: ", "))
+        }
+        announcePendingCandies()
+        // 지급이 없어도 원장 변화(epoch 교체)는 영속해야 한다: 안 하면 재시작 시 지난 창의 원장으로 판정한다.
         if !grants.isEmpty
             || state.candyGrantTier != beforeTier
             || state.candyWindowEpoch != beforeEpoch {
             save()
         }
+    }
+
+    /// Records a window as paid up to what it owes now (`paid`), or as owing all of it.
+    private func seedCandyLedger(_ w: CandyWindow, paid: Bool) {
+        let due = RareCandy.candiesDue(utilization: w.utilization, kind: w.kind, planMultiplier: w.planMultiplier)
+        state.candyGrantTier[w.key] = paid && due > 0 ? due : nil
+        if let epoch = w.epoch { state.candyWindowEpoch[w.key] = epoch }
+    }
+
+    /// Candies paid since the last candy notification. Windows pay as they go, a bigger plan every few percent, so
+    /// one notification sums them at most once an hour.
+    private var pendingCandyNotice: (count: Int, windows: [String]) = (0, [])
+    private var lastCandyNotice: Date?
+    static let candyNoticeInterval: TimeInterval = 3600
+
+    private func announcePendingCandies() {
+        guard pendingCandyNotice.count > 0 else { return }
+        if let last = lastCandyNotice, clock().timeIntervalSince(last) < Self.candyNoticeInterval { return }
+        var seen = Set<String>()
+        let names = pendingCandyNotice.windows.filter { seen.insert($0).inserted }.joined(separator: " · ")
+        notifyCompanionEvent(l.notifCandyTitle(item: l.itemName(.rareCandy), count: pendingCandyNotice.count),
+                             l.notifCandyBody(window: names))
+        pendingCandyNotice = (0, [])
+        lastCandyNotice = clock()
     }
 
     /// companion 이벤트 시스템 알림(.app + 토글 ON 일 때만). 한도 알림과 독립.

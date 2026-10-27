@@ -565,7 +565,7 @@ final class SaveTransferTests: XCTestCase {
                                      // The next egg's roll leaves it out: it follows the save's last hatch.
                                      "lastHatchedBaseID"]
         let deviceLedger: Set<String> = ["installBaselineSet", "claimedTodayTokensByProvider", "lastDate"]
-        let accountLedger: Set<String> = ["candyGrantTier", "candyWindowEpoch", "candyFeatureSeeded"]
+        let accountLedger: Set<String> = ["candyGrantTier", "candyWindowEpoch", "candyFeatureSeeded", "candyGrantsAsYouGo"]
         let devicePreference: Set<String> = ["language"]
 
         let classified = progress.union(deviceLedger).union(accountLedger).union(devicePreference)

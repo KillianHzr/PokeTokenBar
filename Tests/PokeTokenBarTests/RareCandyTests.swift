@@ -261,7 +261,7 @@ final class InventoryDecodeTests: XCTestCase {
 final class RareCandyStoreTests: XCTestCase {
     private func store(_ line: EvoLine, seed: UInt64 = 7) -> CompanionStore {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("rc-\(UUID().uuidString).json")
-        return CompanionStore(provider: StubProvider(value: line), clock: { rcNow }, fileURL: url, rng: SeededRNG(seed: seed))
+        return CompanionStore(provider: StubProvider(value: line), clock: { rcNow }, fileURL: url, rng: SeededRNG(seed: seed), difficulty: 1)
     }
 
     /// [#326] 시드 후 util 이 계속 100%여도 창 epoch 가 바뀌면 재지급.
@@ -331,13 +331,13 @@ final class RareCandyStoreTests: XCTestCase {
     /// (notifiedTier 인메모리와 달리 candyGrantTier 는 파일에 저장돼야 함.)
     func testGrantTierPersistsAcrossRestartNoDoubleGrant() {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("rc-persist-\(UUID().uuidString).json")
-        let s1 = CompanionStore(provider: StubProvider(value: rcLinear3), clock: { rcNow }, fileURL: url, rng: SeededRNG(seed: 1))
+        let s1 = CompanionStore(provider: StubProvider(value: rcLinear3), clock: { rcNow }, fileURL: url, rng: SeededRNG(seed: 1), difficulty: 1)
         s1.grantCandies(from: [], limitsReady: true)                                        // 시드
         s1.grantCandies(from: [w("claude.fiveHour", .session, 100)], limitsReady: true)     // 지급 1
         XCTAssertEqual(s1.rareCandyCount, 1)
 
         // 재시작: 같은 파일 로드
-        let s2 = CompanionStore(provider: StubProvider(value: rcLinear3), clock: { rcNow }, fileURL: url, rng: SeededRNG(seed: 1))
+        let s2 = CompanionStore(provider: StubProvider(value: rcLinear3), clock: { rcNow }, fileURL: url, rng: SeededRNG(seed: 1), difficulty: 1)
         XCTAssertEqual(s2.rareCandyCount, 1, "인벤토리 영속")
         XCTAssertEqual(s2.state.candyGrantTier["claude.fiveHour"], 1, "tier 영속")
         // 여전히 100%인 같은 창 → 재지급 없어야 함
@@ -349,7 +349,7 @@ final class RareCandyStoreTests: XCTestCase {
     /// 지급 없이 재무장만 발생한 경우에도 save() 돼야 한다(과거: grants 비면 save 스킵 → stale tier 잔존).
     func testRearmPersistsAcrossRestart() {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("rc-rearm-\(UUID().uuidString).json")
-        let s1 = CompanionStore(provider: StubProvider(value: rcLinear3), clock: { rcNow }, fileURL: url, rng: SeededRNG(seed: 1))
+        let s1 = CompanionStore(provider: StubProvider(value: rcLinear3), clock: { rcNow }, fileURL: url, rng: SeededRNG(seed: 1), difficulty: 1)
         s1.grantCandies(from: [], limitsReady: true)                                      // 시드
         s1.grantCandies(from: [w("claude.fiveHour", .session, 100)], limitsReady: true)   // 지급 1 (tier=1)
         XCTAssertEqual(s1.rareCandyCount, 1)
@@ -357,7 +357,7 @@ final class RareCandyStoreTests: XCTestCase {
         XCTAssertNil(s1.state.candyGrantTier["claude.fiveHour"])
 
         // 재시작: 재무장이 영속됐어야 함
-        let s2 = CompanionStore(provider: StubProvider(value: rcLinear3), clock: { rcNow }, fileURL: url, rng: SeededRNG(seed: 1))
+        let s2 = CompanionStore(provider: StubProvider(value: rcLinear3), clock: { rcNow }, fileURL: url, rng: SeededRNG(seed: 1), difficulty: 1)
         XCTAssertNil(s2.state.candyGrantTier["claude.fiveHour"], "재무장이 영속돼야 함")
         // 다시 100% → 재지급(누락 없음)
         s2.grantCandies(from: [w("claude.fiveHour", .session, 100)], limitsReady: true)
@@ -434,7 +434,7 @@ final class RareCandyStoreTests: XCTestCase {
                 defer { defaults.removePersistentDomain(forName: suiteName) }
                 defaults.set(difficulty, forKey: "growthDifficulty")
                 let s = CompanionStore(provider: StubProvider(value: rcLinear3), clock: { rcNow },
-                                       fileURL: url, rng: SeededRNG(seed: 7), defaults: defaults)
+                                       fileURL: url, rng: SeededRNG(seed: 7), defaults: defaults, difficulty: 1)
                 await s.hatch(baseID: 1)
                 if boosted {
                     s.applyUsage(10_000_000_000)
@@ -457,7 +457,7 @@ final class RareCandyStoreTests: XCTestCase {
                     XCTAssertEqual(s.rareCandyCount, stock - finalPreview.count)
                 }
                 let reloaded = CompanionStore(provider: StubProvider(value: rcLinear3), fileURL: url,
-                                               defaults: defaults)
+                                               defaults: defaults, difficulty: 1)
                 XCTAssertEqual(reloaded.rareCandyCount, s.rareCandyCount)
                 XCTAssertNil(reloaded.state.active)
                 XCTAssertEqual(reloaded.state.dex.count, s.state.dex.count)
@@ -579,7 +579,7 @@ final class RareCandyStoreTests: XCTestCase {
         // 활성 포켓몬 + 사탕 1 + 시드완료 상태를 저장 → RCLineThrows 로 로드하면 currentLine 이 nil.
         let json = #"{"installBaselineSet":true,"lastDate":"d1","active":{"baseID":1,"pathIDs":[1],"stageIndex":0,"usedAtStage":0,"rarity":"common","totalForms":3},"inventory":{"rareCandy":1},"candyFeatureSeeded":true,"dex":[],"collectedFinals":[]}"#
         try? json.data(using: .utf8)!.write(to: url)
-        let s = CompanionStore(provider: RCLineThrows(), clock: { rcNow }, fileURL: url, rng: SeededRNG(seed: 1))
+        let s = CompanionStore(provider: RCLineThrows(), clock: { rcNow }, fileURL: url, rng: SeededRNG(seed: 1), difficulty: 1)
         XCTAssertNotNil(s.state.active, "활성 포켓몬 로드")
         XCTAssertNil(s.currentLine, "라인 미로딩(throws)")
         XCTAssertEqual(s.rareCandyCount, 1)
@@ -722,7 +722,7 @@ final class RareCandyGrantIntegrationTests: XCTestCase {
     }
     private func companion() -> CompanionStore {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("rc-int-\(UUID().uuidString).json")
-        return CompanionStore(provider: StubProvider(value: rcLinear3), clock: { rcNow }, fileURL: url, rng: SeededRNG(seed: 7))
+        return CompanionStore(provider: StubProvider(value: rcLinear3), clock: { rcNow }, fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
     }
 
     // MARK: candyEligibleWindows 구성
@@ -923,10 +923,10 @@ final class CandyNotificationCopyTests: XCTestCase {
     /// 본문은 넘겨받은 창 이름을 그대로 앞에 붙인다 — Claude·Codex 어느 창이든 자연스럽게 뜬다.
     func testBodyPrefixesWindowNameClaudeAndCodex() {
         let l = L(.ko)
-        XCTAssertTrue(l.notifCandyBody(window: "Claude 5시간 세션").hasPrefix("Claude 5시간 세션 토큰 한도를 다 채웠"))
-        XCTAssertTrue(l.notifCandyBody(window: "Claude 주간").hasPrefix("Claude 주간 토큰 한도를 다 채웠"))
-        XCTAssertTrue(l.notifCandyBody(window: "Codex 5시간 세션").hasPrefix("Codex 5시간 세션 토큰 한도를 다 채웠"))
-        XCTAssertTrue(l.notifCandyBody(window: "Codex 주간").hasPrefix("Codex 주간 토큰 한도를 다 채웠"))
+        XCTAssertTrue(l.notifCandyBody(window: "Claude 5시간 세션").hasPrefix("Claude 5시간 세션 사용량으로"))
+        XCTAssertTrue(l.notifCandyBody(window: "Claude 주간").hasPrefix("Claude 주간 사용량으로"))
+        XCTAssertTrue(l.notifCandyBody(window: "Codex 5시간 세션").hasPrefix("Codex 5시간 세션 사용량으로"))
+        XCTAssertTrue(l.notifCandyBody(window: "Codex 주간").hasPrefix("Codex 주간 사용량으로"))
     }
 
     /// 3개 언어 모두 개수 치환 + 비어있지 않음.
