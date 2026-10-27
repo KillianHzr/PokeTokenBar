@@ -294,7 +294,9 @@ final class CollectorItemsTests: XCTestCase {
         XCTAssertEqual(s.itemCount(.fireStone), 0)
         XCTAssertEqual(s.unclaimedAchievementsCount, 0)
         XCTAssertEqual(s.claimedAchievementsCount, 1)
-        XCTAssertEqual(s.collectorItems(in: .evolutionStones).last, .fireStone, "claimed cards sink to the bottom")
+        let stones = s.collectorItems(in: .evolutionStones)
+        XCTAssertEqual(stones.last, .excavation, "the Excavation closes the tab")
+        XCTAssertEqual(stones.dropLast().last, .fireStone, "claimed stones sink to the bottom of the stones")
     }
 
     /// Badges and artifacts claimed before the ledger existed are only in the Bag: they stay claimed.

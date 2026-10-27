@@ -1999,8 +1999,10 @@ struct FullDexView: View {
         if let species {
             Button { onSelectSpecies(species) } label: {
                 VStack(spacing: 2) {
+                    // One scale for the whole grid, as on the caught grid: a Charmander smaller than a Charizard.
                     SpriteView(speciesID: id, size: 42,
-                               shiny: species.isShiny && !PokemonForm.hasForms(speciesID: id), form: species.form)
+                               shiny: species.isShiny && !PokemonForm.hasForms(speciesID: id), form: species.form,
+                               sameScale: true)
                         .frame(width: 44, height: 44)
                         // A shiny one says so, as on the caught grid.
                         .overlay(alignment: .topTrailing) {

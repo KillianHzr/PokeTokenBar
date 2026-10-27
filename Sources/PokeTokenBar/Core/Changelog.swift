@@ -67,6 +67,22 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-27", entries: [
+            .fixed("2026-10-27-dex-sprite-scale") { $0.t("도감 전체와 업적에서 포켓몬이 다시 원래 크기 비율로 보여요. 파이리가 리자몽보다 작아요.",
+                                                         "In the whole Pokédex and in Achievements, Pokémon keep their sizes again: a Charmander is smaller than a Charizard.",
+                                                         "図鑑全体と実績で、ポケモンの大きさの違いがまた正しく表示されます。ヒトカゲはリザードンより小さくなります。",
+                                                         "En la Pokédex completa y en Logros, los Pokémon vuelven a tener su tamaño: un Charmander es más pequeño que un Charizard.",
+                                                         "Dans le Pokédex entier et les Succès, les Pokémon retrouvent leur taille : un Salamèche est plus petit qu'un Dracaufeu.",
+                                                         "Na Pokédex completa e em Conquistas, os Pokémon voltam a ter seu tamanho: um Charmander é menor que um Charizard.",
+                                                         "Im ganzen Pokédex und bei den Erfolgen haben Pokémon wieder ihre Größe: Glumanda ist kleiner als Glurak.",
+                                                         "Во всём покедексе и в достижениях покемоны снова в своём размере: Чармандер меньше Чаризарда.") },
+            .fixed("2026-10-27-fossil-egg-count") { $0.t("화석 알을 부화시켜도 더 이상 발굴이 하나 더 열리지 않아요. 화석 계열마다 알 하나예요. 그렇게 더 받은 알은 아직 가방에 있으면 회수돼요.",
+                                                         "Hatching a Fossil Egg no longer opens one more dig: one egg per fossil line. An extra egg got that way leaves the Bag if it was not hatched.",
+                                                         "化石のタマゴをかえしても、発掘がもう1つ開くことはなくなりました。化石の系統ごとにタマゴ1つです。そうして増えたタマゴは、まだバッグにあれば回収されます。",
+                                                         "Abrir un Huevo Fósil ya no abre una excavación de más: un huevo por línea fósil. Un huevo de más obtenido así sale de la Bolsa si no se abrió.",
+                                                         "Ouvrir un Œuf fossile ne débloque plus une fouille en trop : un œuf par lignée fossile. Un œuf en trop reçu ainsi quitte le sac s'il n'a pas été ouvert.",
+                                                         "Abrir um Ovo Fóssil não libera mais uma escavação a mais: um ovo por linha fóssil. Um ovo a mais recebido assim sai da Bolsa se não foi aberto.",
+                                                         "Ein Fossil-Ei auszubrüten öffnet keine zusätzliche Ausgrabung mehr: ein Ei pro Fossil-Linie. Ein so erhaltenes Ei zu viel verlässt den Beutel, wenn es nicht geöffnet wurde.",
+                                                         "Открытие Яйца-окаменелости больше не открывает лишнюю раскопку: одно яйцо на линию окаменелостей. Лишнее яйцо, полученное так, убирается из сумки, если его не открыли.") },
             .improved("2026-10-27-fossil-pool") { $0.t("졸업한 화석 계열은 모든 알에 다시 나와요. 이로치나 다른 성격으로 또 얻을 수 있어요. 그 전까지는 화석 알에서만 태어나요.",
                                                        "A fossil line you've graduated comes back in every egg: you can get it again, shiny or with another nature. Until then it still hatches from Fossil Eggs only.",
                                                        "卒業した化石の系統はすべてのタマゴに戻ります。色違いや別の性格でまた手に入ります。それまでは化石のタマゴからしか生まれません。",

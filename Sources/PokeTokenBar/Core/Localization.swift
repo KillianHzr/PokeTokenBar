@@ -2531,36 +2531,21 @@ struct L {
         t("없는 화석 계열", "A fossil line you're missing", "まだいない化石の系統", "Una línea fósil que te falta",
           "Une lignée fossile qui te manque", "Uma linha fóssil que falta", "Eine fehlende Fossil-Linie", "Недостающая линия окаменелостей")
     }
-    /// Under the eggs, when fossil lines graduated before the digs took their egg away: why there are fewer than 15.
-    func excavationLinesAlreadyHad(_ had: Int, eggsLeft: Int) -> String {
-        let last = eggsLeft == 1
-        return t("화석 계열 15개 중 \(had)개는 이미 있었어요. 나머지 \(eggsLeft)개에 하나씩 알이 있어요.",
-                 (had == 1 ? "You already had 1 of the 15 fossil lines: " : "You already had \(had) of the 15 fossil lines: ")
-                    + (last ? "one egg is left for the last one." : "one egg is left for each of the other \(eggsLeft)."),
-                 "15の化石の系統のうち\(had)つはすでにいました。残りの\(eggsLeft)つに1つずつタマゴがあります。",
-                 (had == 1 ? "Ya tenías 1 de las 15 líneas fósiles: " : "Ya tenías \(had) de las 15 líneas fósiles: ")
-                    + (last ? "queda un huevo para la última." : "queda un huevo para cada una de las otras \(eggsLeft)."),
-                 (had == 1 ? "Tu avais déjà 1 lignée fossile sur 15 : " : "Tu avais déjà \(had) lignées fossiles sur 15 : ")
-                    + (last ? "il reste un œuf pour la dernière." : "il reste un œuf pour chacune des \(eggsLeft) autres."),
-                 (had == 1 ? "Você já tinha 1 das 15 linhas fósseis: " : "Você já tinha \(had) das 15 linhas fósseis: ")
-                    + (last ? "resta um ovo para a última." : "resta um ovo para cada uma das outras \(eggsLeft)."),
-                 (had == 1 ? "1 der 15 Fossil-Linien hattest du schon: " : "\(had) der 15 Fossil-Linien hattest du schon: ")
-                    + (last ? "Für die letzte bleibt ein Ei." : "Für jede der übrigen \(eggsLeft) bleibt ein Ei."),
-                 "У вас уже было \(had) из 15 линий окаменелостей: "
-                    + (last ? "осталось одно яйцо на последнюю." : "осталось по яйцу на каждую из остальных (\(eggsLeft))."))
+    var excavationEggOpened: String {
+        t("부화함", "Hatched", "かえした", "Abierto", "Ouvert", "Aberto", "Geöffnet", "Открыто")
     }
-    /// Fossil Eggs dug and not hatched yet: where they wait.
-    func excavationEggsInBag(_ count: Int) -> String {
-        let name = itemName(.fossilEgg)
-        return t("가방에서 부화를 기다리는 \(name): \(count)개", "In your Bag, ready to hatch: \(count) × \(name)",
-                 "バッグでかえるのを待つ\(name): \(count)個", "En tu Bolsa, listos para eclosionar: \(count) × \(name)",
-                 "Dans ton sac, prêts à éclore : \(count) × \(name)", "Na sua Bolsa, prontos para chocar: \(count) × \(name)",
-                 "In deinem Beutel, bereit zum Schlüpfen: \(count) × \(name)", "В сумке ждут вылупления: \(name) × \(count)")
+    var excavationEggInBag: String {
+        t("가방에", "In the Bag", "バッグの中", "En la Bolsa", "Dans le sac", "Na Bolsa", "Im Beutel", "В сумке")
     }
-    func excavationEggsDug(_ dug: Int, of total: Int) -> String {
-        t("발굴한 알: \(dug)/\(total)", "Eggs dug up: \(dug)/\(total)", "発掘したタマゴ: \(dug)/\(total)",
-          "Huevos desenterrados: \(dug)/\(total)", "Œufs déterrés : \(dug)/\(total)", "Ovos desenterrados: \(dug)/\(total)",
-          "Ausgegrabene Eier: \(dug)/\(total)", "Выкопано яиц: \(dug)/\(total)")
+    var excavationEggReady: String {
+        t("받을 수 있음", "To claim", "受け取れる", "Por reclamar", "À récupérer", "Para resgatar", "Abholbereit", "Можно забрать")
+    }
+    var excavationEggToEarn: String {
+        t("앞으로 받을 알", "To earn", "これから", "Por ganar", "À gagner", "A ganhar", "Noch zu verdienen", "Впереди")
+    }
+    var excavationEggNotClaimable: String {
+        t("받을 수 없음", "Not claimable", "受け取れない", "No reclamable", "Non récupérable", "Não resgatável", "Nicht abholbar",
+          "Нельзя забрать")
     }
     func excavationNextEgg(_ count: Int, of needed: Int) -> String {
         t("다음 알: 바위 타입 \(count)/\(needed)", "Next egg: \(count)/\(needed) Rock-type Pokémon",
@@ -2573,12 +2558,6 @@ struct L {
           "Líneas fósiles que tienes: \(owned)/\(total)", "Lignées fossiles obtenues : \(owned)/\(total)",
           "Linhas fósseis que você tem: \(owned)/\(total)", "Deine Fossil-Linien: \(owned)/\(total)",
           "Ваши линии окаменелостей: \(owned)/\(total)")
-    }
-    var excavationComplete: String {
-        t("모든 화석 계열이 도감에 있어요.", "Every fossil line is in your Pokédex.", "すべての化石の系統が図鑑にいます。",
-          "Todas las líneas fósiles están en tu Pokédex.", "Toutes les lignées fossiles sont dans ton Pokédex.",
-          "Todas as linhas fósseis estão na sua Pokédex.", "Alle Fossil-Linien sind in deinem Pokédex.",
-          "Все линии окаменелостей уже в покедексе.")
     }
     var rotomCatalogEffectHint: String {
         t("새 폼마다 사탕 +1 · 적용 중", "+1 candy per new form · active", "新フォルムごとにアメ+1 · 適用中", "+1 caramelo por forma nueva · activo",

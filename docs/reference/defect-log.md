@@ -1461,6 +1461,28 @@ read_when:
   than 15 eggs when lines were had before, the Fossil Eggs waiting in the Bag, and the fossil lines folded away.
   The other regional cards name their regions and count each one's own species, with no cumulative goal.
 
+- **A count of what was had before must be taken once, not derived again from counters that move.** The digs done
+  with nothing to claim were "fossil lines graduated minus Fossil Eggs hatched". Hatching an egg raises the second at
+  once while its line graduates days later: in between a dig came free and a player got a sixth egg for five missing
+  lines. The test set `fossilEggsHatched` with the hatched lines already graduated, never an egg hatched and its
+  Pokémon still raised. `CompanionState.fossilLinesBeforeDigs` is now taken once, when a save first meets the digs
+  (load and import), and never moves; `testHatchingAFossilEggFreesNoDig` hatches an egg from the real flow and fails
+  on the old count. Sweep: no other achievement subtracts a consumption counter; event and birthday eggs record keys.
+
+- **Keep store fixtures small in hatch tests (cause not found yet).** `testHatchingAFossilEggFreesNoDig` first hatched
+  an egg in a store holding 60 graduated species: alone and beside the sprite cache suites it passed, but in the whole
+  suite `SpriteImageCacheTests` and `UnownSpriteCacheTests` then failed 60 times ("a warm lookup must reuse the
+  image object"), their shared `NSCache` evicting fresh entries. Skipping that test, or shrinking its dex to 30, made
+  the whole run green again; what the larger store leaves behind is not identified. Use the smallest dex that still
+  reaches the condition, and run the full suite before calling a fixture done.
+
+- **A guard pinned to one screen misses the screen added beside it.** The same-scale test opened the caught grid
+  (`dexScope = .caught`); the whole Pokédex, added as the default, drew each cell filled again and a Charmander stood
+  as tall as a Charizard. `testTheWholePokedexDrawsACharmanderSmallerThanACharizard` renders the default scope and
+  failed before the fix (42 pt for both). Sweep of sprites shown side by side: the whole Pokédex, the Stats page's
+  graduates, the Excavation's fossil lines and the achievements' species rows now draw at one scale; single heroes
+  and the forms of one species still fill their box.
+
 ## 에너지 (상시 표시 애니메이션)
 
 - **절전용 정지 상태는 짝 알림 하나에만 복구를 맡기지 마라.** `screensDidSleep` 이 폴링 타이머를 끄고

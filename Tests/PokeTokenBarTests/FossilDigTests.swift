@@ -97,29 +97,96 @@ final class FossilDigTests: XCTestCase {
         XCTAssertEqual(s.itemCount(.fossilEgg), 12)
         XCTAssertTrue(s.isClaimed(.excavation), "every dig done")
 
-        let hatched = try store(dex: owned + rocks.prefix(12).map { graduated($0) }) { $0.fossilEggsHatched = 3 }
-        XCTAssertEqual(hatched.regionTiers(.excavation).filter(\.isWaived).count, 0, "those came from Fossil Eggs")
+        let hatched = try store(dex: owned + rocks.prefix(12).map { graduated($0) }) { $0.fossilLinesBeforeDigs = [] }
+        XCTAssertEqual(hatched.regionTiers(.excavation).filter(\.isWaived).count, 0,
+                       "lines that came after the digs, from Fossil Eggs, were not had before")
     }
 
-    /// What the card tells: the eggs left to dig once the lines had before take theirs away, the ones dug and ready,
-    /// and the Rock-type Pokémon the next one still wants out of 4.
-    func testTheCardCountsTheEggsAndTheRockPokemonTowardTheNext() throws {
+    /// What the card tells: 15 eggs, the claimed ones opened or still in the Bag, the ones ready, those not claimable
+    /// for the lines had before the digs, and the Rock-type Pokémon the next one still wants out of 4.
+    func testTheCardCountsFifteenEggsAndTheRockPokemonTowardTheNext() throws {
         // Omanyte and Kabuto, had before the digs and Rock themselves, plus 9 more Rock: 11 in all.
-        let s = try store(dex: [138, 140].map { graduated($0) } + rocks.prefix(9).map { graduated($0) }) {
+        let dex = [138, 140].map { graduated($0) } + rocks.prefix(9).map { graduated($0) }
+        let firstClaimed: (inout CompanionState) -> Void = {
             $0.claimedAchievements = [CompanionState.regionTierKey(.excavation, generation: 1)]
         }
-        let progress = s.excavationProgress
-        XCTAssertEqual(progress.digs.count, 13, "15 digs, 2 lines already had")
-        XCTAssertEqual(progress.waived, 2)
-        XCTAssertEqual(progress.dug, 1)
+        let progress = try store(dex: dex, firstClaimed).excavationProgress
+        XCTAssertEqual(progress.total, 15, "one egg per fossil line, always")
+        XCTAssertEqual([progress.opened, progress.inBag], [1, 0], "the first one claimed and used")
         XCTAssertEqual(progress.ready, 1, "8 Rock reached, not claimed yet")
+        XCTAssertEqual(progress.notClaimable, 2, "Omanyte and Kabuto were had before")
+        XCTAssertEqual(progress.toEarn, 11)
         XCTAssertEqual(progress.towardNext, 3, "the third egg wants 12: 11 is 3 of its 4")
         XCTAssertEqual(progress.linesGraduated, 2)
+        let kept = try store(dex: dex, inventory: [.fossilEgg: 1], firstClaimed).excavationProgress
+        XCTAssertEqual([kept.opened, kept.inBag], [0, 1], "claimed and still in the Bag")
 
         let every = try store(dex: FossilDig.lines.map { graduated($0) }).excavationProgress
-        XCTAssertTrue(every.digs.isEmpty, "every line already had: no egg to dig")
+        XCTAssertEqual([every.total, every.notClaimable, every.toEarn], [15, 15, 0], "every line had before")
         XCTAssertNil(every.towardNext)
         XCTAssertEqual(try store().excavationProgress.towardNext, 0, "nothing yet: 0 of 4")
+    }
+
+    /// Regression: hatching a Fossil Egg gave a sixth egg for five missing lines. The lines had before the digs were
+    /// counted again as the lines graduated minus the eggs hatched, so an egg hatched, its line not graduated yet,
+    /// freed a dig. They are taken once now.
+    func testHatchingAFossilEggFreesNoDig() async throws {
+        let had = [138, 140, 142, 345, 408, 564, 566, 696, 698, 881]
+        let claimed = Set((1...5).map { CompanionState.regionTierKey(.excavation, generation: $0) })
+        // 29 Rock species with 9 of the lines (Arctozolt is not Rock): the sixth dig is met, the one the old count freed.
+        let s = try store(dex: had.map { graduated($0) } + rocks.prefix(20).map { graduated($0) },
+                          inventory: [.fossilEgg: 5]) {
+            $0.claimedAchievements = claimed
+            $0.active = MonState(baseID: 1, pathIDs: [1], stageIndex: 0, usedAtStage: 0, rarity: .common, totalForms: 1)
+        }
+        XCTAssertEqual(s.state.fossilLinesBeforeDigs, Set(had), "taken when the save first meets the digs")
+        XCTAssertEqual(s.excavationProgress.ready, 0)
+        XCTAssertTrue(s.useFossilEgg())
+        s.setEggUsageForTesting(s.eggHatchThreshold)
+        await s.hatchIfNeeded()
+        XCTAssertEqual(s.state.fossilEggsHatched, 1)
+        XCTAssertEqual(s.excavationProgress.ready, 0, "no sixth egg while the hatched line is raised")
+        XCTAssertFalse(s.claimAchievement(.excavation))
+
+        let line = try XCTUnwrap(s.state.active).baseID
+        let graduatedLater = try store(dex: (had + [line]).map { graduated($0) } + rocks.prefix(20).map { graduated($0) }) {
+            $0.claimedAchievements = claimed
+            $0.fossilLinesBeforeDigs = Set(had)
+            $0.fossilEggsHatched = 1
+        }
+        XCTAssertEqual(graduatedLater.excavationProgress.ready, 0, "nor once it graduates")
+        XCTAssertEqual(graduatedLater.excavationProgress.notClaimable, 10)
+    }
+
+    /// A save that got the extra egg: 10 lines had, 6 digs claimed for 5 missing lines. The extra egg leaves the Bag
+    /// and its dig is done again with nothing to claim; with every egg already used, nothing is taken.
+    func testTheExtraEggIsTakenBackFromTheBag() throws {
+        let had = [138, 140, 142, 345, 408, 564, 566, 696, 698, 881]
+        let six = Set((1...6).map { CompanionState.regionTierKey(.excavation, generation: $0) })
+        let dex = had.map { graduated($0) } + rocks.prefix(20).map { graduated($0) }
+        let s = try store(dex: dex, inventory: [.fossilEgg: 5]) {
+            $0.claimedAchievements = six
+            $0.fossilEggsHatched = 1
+        }
+        XCTAssertEqual(s.itemCount(.fossilEgg), 4, "five missing lines: one hatched, four left in the Bag")
+        let progress = s.excavationProgress
+        XCTAssertEqual([progress.opened, progress.inBag, progress.ready, progress.notClaimable], [1, 4, 0, 10])
+
+        let used = try store(dex: dex) {
+            $0.claimedAchievements = six
+            $0.fossilEggsHatched = 6
+        }
+        XCTAssertEqual(used.itemCount(.fossilEgg), 0)
+        XCTAssertEqual(used.regionTiers(.excavation).filter(\.isClaimed).count, 6, "an egg already used stays used")
+    }
+
+    /// The Excavation is not a stone: last in the Stones tab, with an egg to claim or every dig done.
+    func testTheExcavationClosesTheStonesTab() throws {
+        let ready = try store(dex: rocks.prefix(4).map { graduated($0) })
+        XCTAssertTrue(ready.regionTiers(.excavation).contains(where: \.isReady))
+        XCTAssertEqual(ready.achievementItems(in: .evolutionStones).last, .excavation)
+        let done = try store(dex: FossilDig.lines.map { graduated($0) })
+        XCTAssertEqual(done.achievementItems(in: .evolutionStones).last, .excavation)
     }
 
     /// A Fossil Egg hatches a missing fossil line, each as likely; once every line graduated, any of them.

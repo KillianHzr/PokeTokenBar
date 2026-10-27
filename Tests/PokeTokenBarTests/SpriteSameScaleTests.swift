@@ -72,6 +72,34 @@ final class SpriteSameScaleTests: XCTestCase {
                        "the Charmander keeps its scale")
     }
 
+    /// The whole Pokédex, the default since it came: the test above opens the caught grid, so this one went back to
+    /// filling each cell and a Charmander stood as tall as a Charizard.
+    func testTheWholePokedexDrawsACharmanderSmallerThanACharizard() async throws {
+        let keys = seedCharmanderAndCharizard()
+        defer { for key in keys { SpriteLoader.imageCache.removeObject(forKey: key) } }
+        var state = CompanionState()
+        state.language = .en
+        state.dex = [4, 6].map {
+            DexEntry(baseID: $0, finalID: $0, chainOrder: [$0], rarity: .common,
+                     caughtAt: Date(timeIntervalSince1970: 1_790_000_000), names: [$0: ["en": "Fixture"]])
+        }
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("same-scale-\(UUID().uuidString).json")
+        try JSONEncoder().encode(state).write(to: file)
+        defer { try? FileManager.default.removeItem(at: file) }
+        let store = CompanionStore(provider: SameScaleProvider(), fileURL: file)
+        let all = PopoverNavigation()
+        all.dexScope = .all
+        let host = NSHostingView(rootView: CollectionView(store: store, navigation: all)
+            .frame(width: PopoverMetrics.contentWidth, height: 400).background(Color.white))
+        host.frame = NSRect(x: 0, y: 0, width: PopoverMetrics.contentWidth, height: 400)
+        let heights = try spriteHeights(host)
+        XCTAssertEqual(heights.count, 2, "two green sprites: \(heights)")
+        // Its cells' sprites are 42 pt; Charizard (#6) starts the second row, left of Charmander (#4).
+        XCTAssertEqual(heights.max() ?? 0, 42, accuracy: 1.5, "the Charizard fills its 42 pt sprite box")
+        XCTAssertEqual(heights.min() ?? 0, 57 * 42 / SpriteFit.sameScaleReference, accuracy: 1.5,
+                       "the Charmander keeps its scale")
+    }
+
     /// Solid green stills for Charmander and Charizard at their Showdown sizes, where `SpriteView` looks first.
     private func seedCharmanderAndCharizard() -> [NSString] {
         [(4, Self.charmander), (6, Self.charizard)].map { id, size in

@@ -382,7 +382,7 @@ struct StatsScreen: View {
             } else {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 8), spacing: 4) {
                     ForEach(Array(shown), id: \.id) { entry in
-                        SpriteView(speciesID: entry.finalID, size: 30, shiny: entry.isShiny, form: entry.form)
+                        SpriteView(speciesID: entry.finalID, size: 30, shiny: entry.isShiny, form: entry.form, sameScale: true)
                             .overlay(alignment: .topTrailing) {
                                 if entry.isShiny { Text("✨").font(.system(size: 8)) }
                             }

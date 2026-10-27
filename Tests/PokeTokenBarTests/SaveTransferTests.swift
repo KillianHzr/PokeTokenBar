@@ -565,8 +565,9 @@ final class SaveTransferTests: XCTestCase {
                                      // The event egg in incubation, and the events' eggs already taken or announced:
                                      // moving the save never brings an event's egg twice the same year.
                                      "eggEvent", "claimedEventEggs", "eventEggsNotified",
-                                     // The Fossil Egg in incubation, and how many hatched: the digs follow them.
-                                     "eggFromFossilEgg", "fossilEggsHatched",
+                                     // The Fossil Egg in incubation, how many hatched, and the fossil lines had
+                                     // before the digs: the digs follow the save.
+                                     "eggFromFossilEgg", "fossilEggsHatched", "fossilLinesBeforeDigs",
                                      // The next egg's roll leaves it out: it follows the save's last hatch.
                                      "lastHatchedBaseID"]
         let deviceLedger: Set<String> = ["installBaselineSet", "claimedTodayTokensByProvider", "lastDate"]
