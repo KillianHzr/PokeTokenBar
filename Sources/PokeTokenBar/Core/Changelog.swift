@@ -67,6 +67,14 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-27", entries: [
+            .new("2026-10-27-ideas") { $0.t("아이디어나 버그를 앱에서 바로 보낼 수 있어요(전구 버튼). GitHub 이슈로 올라가고, GitHub CLI로 로그인돼 있으면 앱이 직접 올려요.",
+                                             "Send an idea or a bug from the app (the light bulb button): it becomes a GitHub issue, posted by the app itself when the GitHub CLI is signed in.",
+                                             "アプリからアイデアやバグを送れます(電球ボタン)。GitHubのissueになり、GitHub CLIでログインしていればアプリが直接投稿します。",
+                                             "Envía una idea o un error desde la app (el botón de la bombilla): se convierte en una issue de GitHub, que la app publica sola si la CLI de GitHub tiene la sesión iniciada.",
+                                             "Propose une idée ou signale un bug depuis l'app (le bouton ampoule) : ça devient une issue GitHub, publiée par l'app elle-même si la CLI GitHub est connectée.",
+                                             "Envie uma ideia ou um bug pelo app (o botão da lâmpada): vira uma issue no GitHub, publicada pelo próprio app se a CLI do GitHub estiver conectada.",
+                                             "Schick eine Idee oder einen Fehler aus der App (der Glühbirnen-Knopf): Daraus wird ein GitHub-Issue, das die App selbst postet, wenn die GitHub-CLI angemeldet ist.",
+                                             "Отправьте идею или ошибку из приложения (кнопка с лампочкой): она станет issue на GitHub, а если GitHub CLI авторизован, приложение опубликует её само.") },
             .improved("2026-10-27-whats-new-updates") { $0.t("새 소식이 업데이트별로 새 기능, 개선, 수정으로 나뉘어 보이고, 신문 아이콘으로 바뀌었어요.",
                                                              "What's New now shows each update with its changes grouped as new, improved and fixed, behind a newspaper icon.",
                                                              "最新情報がアップデートごとに新機能・改善・修正に分かれて表示され、新聞のアイコンになりました。",

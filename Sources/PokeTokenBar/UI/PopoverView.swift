@@ -107,6 +107,8 @@ final class PopoverNavigation {
     var showingBonuses = false { didSet { if showingBonuses { dexDetailCollectionID = nil } } }
     /// The changelog takes over the popover the same way.
     var showingChangelog = false { didSet { if showingChangelog { dexDetailCollectionID = nil } } }
+    /// The ideas page (`IdeasScreen`) too.
+    var showingIdeas = false { didSet { if showingIdeas { dexDetailCollectionID = nil } } }
     /// The changelog entries seen before it was opened: the others are marked new on it.
     var changelogSeenBefore: Set<String> = []
     /// The Collection tab's open Pokédex detail page (`DexSpecies.collectionID`); nil = grid or log.
@@ -157,6 +159,7 @@ final class PopoverNavigation {
         showingRecap = false
         showingBonuses = false
         showingChangelog = false
+        showingIdeas = false
         tab = .home
     }
 
@@ -222,6 +225,8 @@ struct PopoverView: View {
                 ChangelogScreen(l: l, language: companion.language, seenBefore: nav.changelogSeenBefore) {
                     nav.showingChangelog = false
                 }
+            } else if nav.showingIdeas {
+                IdeasScreen(l: l) { nav.showingIdeas = false }
             } else {
                 mainContent
             }
@@ -1290,6 +1295,7 @@ struct PopoverView: View {
                              help: store.floatingPetEnabled ? l.floatingPetHideLabel : l.floatingPetEnableLabel) {
                 store.floatingPetEnabled.toggle()
             }
+            CircleIconButton(systemImage: "lightbulb", help: l.ideasTitle) { nav.showingIdeas = true }
             CircleIconButton(systemImage: "newspaper", help: l.changelogTitle) { openChangelog() }
                 .overlay(alignment: .topTrailing) {
                     if !store.unseenChangelogEntries.isEmpty {

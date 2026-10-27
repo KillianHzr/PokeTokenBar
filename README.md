@@ -299,6 +299,7 @@ Every badge has a **region per generation**: register every Pokémon of its type
 - **Birthday gift**: enter your birthday in Settings and a banner offers you a gift egg from the day on, the first time you open the app within three months, once a year. What hatches from it is a surprise.
 - **Event eggs**: Christmas, New Year, Valentine's Day, Pokémon Day, Easter, Halloween, the start of each season and the anniversary of your first catch each bring an egg drawn for the occasion. A banner offers it during the event and for two weeks after, once a year. What hatches belongs to the event, most often shiny.
 - **What's new**: the newspaper button lists every change update by update, grouped as new, improved and fixed; after an update, a banner says what changed since your last visit.
+- **Ideas**: the light bulb button sends an idea or a bug as an issue of this repository: posted by the app when the GitHub CLI (`gh`) is signed in, else opened prefilled in the browser. The app holds no token.
 - **Quota pace** — gauge markers show the elapsed share of a limit window; six color tiers indicate usage pace, and menu-bar limit percentages use the same colors.
 
 <img src="assets/screenshot-usage-recap.png" width="360" alt="Usage recap for a selected period">
