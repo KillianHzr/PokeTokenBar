@@ -90,14 +90,14 @@ enum Changelog {
                            "Das \(egg) schlüpft, auch wenn dein erstes Pokémon ein Ditto war: Es bringt die Linie deines nächsten Fangs.",
                            "\"\(egg)\" вылупляется, даже если первым покемоном был Дитто: оно приносит линию следующей поимки.")
             },
-            .fixed("2026-10-28-safe-update", { $0.t("업데이트가 실패해도 지금 앱은 그대로 남고 다시 열리며, 이유를 알려 줘요. 업데이트 뒤에도 로그인 시 실행이 계속 동작해요.",
-                                                    "A failed update now leaves your app as it was, reopens it and tells you why. Launch at login keeps working after an update.",
-                                                    "アップデートに失敗しても、いまのアプリはそのまま残って再び開き、理由を表示します。アップデート後もログイン時の起動が動き続けます。",
-                                                    "Si una actualización falla, tu app queda como estaba, se vuelve a abrir y te dice por qué. El inicio al iniciar sesión sigue funcionando tras actualizar.",
-                                                    "Une mise à jour ratée laisse maintenant ton app intacte, la rouvre et te dit pourquoi. Le lancement à l'ouverture de session marche toujours après une mise à jour.",
-                                                    "Uma atualização que falha agora deixa seu app como estava, reabre e diz por quê. Abrir ao iniciar a sessão continua funcionando depois de atualizar.",
-                                                    "Ein fehlgeschlagenes Update lässt deine App jetzt unverändert, öffnet sie wieder und sagt dir, warum. Der Start bei der Anmeldung funktioniert auch nach einem Update.",
-                                                    "Неудачное обновление теперь оставляет приложение как было, снова открывает его и объясняет причину. Запуск при входе продолжает работать после обновления.") }),
+            .fixed("2026-10-28-safe-update", { $0.t("업데이트가 실패해도 지금 앱은 그대로 남고 다시 열리며, 이유를 알려 줘요.",
+                                                    "A failed update now leaves your app as it was, reopens it and tells you why.",
+                                                    "アップデートに失敗しても、いまのアプリはそのまま残って再び開き、理由を表示します。",
+                                                    "Si una actualización falla, tu app queda como estaba, se vuelve a abrir y te dice por qué.",
+                                                    "Une mise à jour ratée laisse maintenant ton app intacte, la rouvre et te dit pourquoi.",
+                                                    "Uma atualização que falha agora deixa seu app como estava, reabre e diz por quê.",
+                                                    "Ein fehlgeschlagenes Update lässt deine App jetzt unverändert, öffnet sie wieder und sagt dir, warum.",
+                                                    "Неудачное обновление теперь оставляет приложение как было, снова открывает его и объясняет причину.") }),
             .fixed("2026-10-28-candy-accounts") { l in
                 let candy = l.itemName(.rareCandy)
                 return l.t("같은 폴더에서 계정을 바꾸거나, 백업을 복원하거나, 자정 뒤 서쪽 시간대로 이동해도 토큰과 \(candy) 개수가 바르게 계산돼요.",
