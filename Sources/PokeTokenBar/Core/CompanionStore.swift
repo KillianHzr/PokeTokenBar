@@ -60,7 +60,8 @@ final class CompanionStore {
     // 바뀌며 SaveTransfer 의 관대 디코딩·검증까지 새 수치 필드를 떠안는다.
 
     /// 성장 배율 — 알 부화 임계 + 진화/졸업 임계에 곱한다. 낮을수록 빨리 자란다.
-    /// 사탕 XP(RareCandy.xp)는 스케일하지 않는다 — 함께 곱하면 서로 상쇄돼 사탕만 난이도를 안 탄다.
+    /// The candy's XP (`RareCandy.xp`) is a common line at the one difficulty, not at this one: scaled with it, a test
+    /// store at 1.0 would see 750M candies.
     let growthDifficulty: Double
     /// 상점 배율: 아이템·알 가격에 곱한다. 낮을수록 싸다.
     let shopDifficulty: Double
@@ -144,9 +145,31 @@ final class CompanionStore {
     /// from the lines graduated minus the Fossil Eggs hatched freed a dig as soon as an egg hatched, its line not
     /// graduated yet: a sixth egg for five missing lines. Kept with the next save, not written here: a fresh or reset
     /// state must not touch the file on launch, and until a Fossil Egg hatches it would read the same again.
+    ///
+    /// Only lines first graduated before the digs came (`FossilDig.introduced`) count: a save that ran the first
+    /// version of the digs, or its export imported later, would otherwise count the lines its Fossil Eggs brought.
+    /// The same rule mends a set taken that way; the digs it frees come back to claim.
     private func recordFossilLinesBeforeDigsIfNeeded() {
-        guard state.fossilLinesBeforeDigs == nil else { return }
-        state.fossilLinesBeforeDigs = Set(FossilDig.lines.filter(graduatedSpeciesIDs.contains))
+        let had = Set(FossilDig.lines.filter { line in
+            guard let first = firstGraduation(ofLine: line) else { return false }
+            return first < FossilDig.introduced
+        })
+        if let taken = state.fossilLinesBeforeDigs {
+            let mended = taken.filter { line in firstGraduation(ofLine: line).map { $0 < FossilDig.introduced } ?? true }
+            if mended != taken {
+                AppLog.write("excavation: \(taken.count - mended.count) line(s) from Fossil Eggs no longer counted as had")
+                state.fossilLinesBeforeDigs = mended
+            }
+            return
+        }
+        state.fossilLinesBeforeDigs = had
+    }
+
+    /// When the first graduated Pokémon of this line graduated (an entry with no date counts as long ago).
+    private func firstGraduation(ofLine line: Int) -> Date? {
+        let entries = state.dex.filter { !$0.isReleased && $0.chainOrder.contains(line) }
+        guard !entries.isEmpty else { return nil }
+        return entries.map { $0.caughtAt ?? .distantPast }.min()
     }
 
     /// Digs claimed beyond the eggs owed, the extra egg the old count gave when a Fossil Egg hatched: the extra Fossil
@@ -191,12 +214,13 @@ final class CompanionStore {
         if ownsSilverWing {
             threshold /= 2
         }
-        // Tera Orb: an egg from an evolution stone hatches twice as fast.
-        if ownsTeraOrb, state.eggTypeGuarantee != nil {
+        // Tera Orb: an egg from an evolution stone hatches twice as fast. An event egg's type or rarity is the
+        // event's, not a stone's or the Shop's: neither item speeds it.
+        if ownsTeraOrb, state.eggTypeGuarantee != nil, state.eggEvent == nil {
             threshold /= 2
         }
         // Sea Incense: so does an egg of a guaranteed rarity, bought in the Shop or from the Legend Plate.
-        if itemCount(.seaIncense) > 0, state.eggTier != nil {
+        if itemCount(.seaIncense) > 0, state.eggTier != nil, state.eggEvent == nil {
             threshold /= 2
         }
         return threshold
@@ -499,7 +523,7 @@ final class CompanionStore {
     enum EvolutionTrackStop: Equatable {
         /// A stage this individual went through, or the one it is at.
         case reached(Int, isCurrent: Bool)
-        /// A stage it will reach: the line goes on with one species. `isCaught`: in the Pokédex already.
+        /// A stage it will reach: the line goes on with one species. `isCaught`: graduated already.
         case coming(Int, isCaught: Bool)
         /// Where the line goes several ways: every path from there to a final stage (Wurmple into Silcoon then
         /// Beautifly, or Cascoon then Dustox). A coming stage that brings forms (Dunsparce into a two- or
@@ -553,7 +577,7 @@ final class CompanionStore {
               PokemonForm.unlockSource(speciesID: speciesID) == nil else {
             return EvoLineItem(.species(speciesID), .future)
         }
-        let owned = state.collectedForms(speciesID: speciesID)
+        let owned = state.collectedForms(speciesID: speciesID, graduatedOnly: true)
         return EvoLineItem(.branch(forms.map {
             BranchEvolutionItem(speciesID: speciesID, isCollected: owned.contains($0), form: $0)
         }), .future)
@@ -659,7 +683,12 @@ final class CompanionStore {
             }
         }
         let newSpecies = line.filter { !held.contains(DexSpeciesKey(speciesID: $0, form: a.form)) }
-        let firstShiny = a.isShiny && !graduated.contains { $0.isShiny && $0.chainOrder.contains(a.currentID) }
+        // A first shiny as the Pokédex counts one: a species of the line, in this form, with no graduated shiny. The
+        // shine a disguised Ditto hides stays hidden (`displaysShiny`).
+        let shinyHeld = Set(graduated.filter(\.isShiny).flatMap { e in
+            e.chainOrder.map { DexSpeciesKey(speciesID: $0, form: e.form) }
+        })
+        let firstShiny = a.displaysShiny && line.contains { !shinyHeld.contains(DexSpeciesKey(speciesID: $0, form: a.form)) }
         // The costume comes on arriving as Pikachu (`grantPikachuCostume`): one already reached brought its own.
         let costume = line.contains(PikachuCostume.speciesID)
             && !a.pathIDs.prefix(a.stageIndex + 1).contains(PikachuCostume.speciesID)
@@ -1555,12 +1584,11 @@ final class CompanionStore {
         save()
     }
 
-    /// 특정 진화 종이 이미 도감(dex), 졸업(collectedFinals), 또는 활성 개체에 등록되어 있는지 여부.
+    /// Whether this evolution graduated already, what the evolution plan avoids and Home's track shows as had: neither
+    /// a Pokémon sent off nor the one being raised, as the goals count (a Vaporeon sent off leaves Vaporeon to find).
     func isEvolutionCollected(speciesID: Int, baseID: Int) -> Bool {
         if state.collectedFinals.contains("\(baseID):\(speciesID)") { return true }
-        if state.dex.contains(where: { $0.finalID == speciesID || $0.chainOrder.contains(speciesID) }) { return true }
-        if state.active?.pathIDs.contains(speciesID) == true { return true }
-        return false
+        return state.dex.contains { !$0.isReleased && ($0.finalID == speciesID || $0.chainOrder.contains(speciesID)) }
     }
 
     /// 분기 노드의 모든 최종체가 이미 수집되었는지 여부. (단일 진화 종인 경우 해당 종 자체의 수집 여부)
@@ -2567,9 +2595,18 @@ final class CompanionStore {
     func setBirthday(_ birthday: Birthday?) {
         guard state.birthday != birthday else { return }
         if let lastGift = state.lastBirthdayGiftYear {
-            // A save that claimed before the claim date was kept: its gift's birthday year, at least.
-            let claimedIn = state.lastBirthdayGiftClaimedAt.map { Calendar.current.component(.year, from: $0) } ?? lastGift
-            state.birthdayChangedAfterGiftYear = max(state.birthdayChangedAfterGiftYear ?? claimedIn, claimedIn)
+            // The date of the last gift (a save from before it was kept: the date set until now). Settings clear the
+            // date, then set a month, then a day: only a date that differs from the gift's waits for a later year, and
+            // clearing it sets nothing.
+            let giftDate = state.lastBirthdayGiftDate ?? state.birthday
+            state.lastBirthdayGiftDate = giftDate
+            if let birthday, birthday != giftDate {
+                // A save that claimed before the claim date was kept: its gift's birthday year, at least.
+                let claimedIn = state.lastBirthdayGiftClaimedAt.map { Calendar.current.component(.year, from: $0) } ?? lastGift
+                state.birthdayChangedAfterGiftYear = max(state.birthdayChangedAfterGiftYear ?? claimedIn, claimedIn)
+            } else if birthday == giftDate {
+                state.birthdayChangedAfterGiftYear = nil
+            }
         }
         state.birthday = birthday
         announceBirthdayGiftIfNeeded()
@@ -2583,6 +2620,7 @@ final class CompanionStore {
         state.inventory[ItemKind.birthdayEgg.rawValue] = itemCount(.birthdayEgg) + 1
         state.lastBirthdayGiftYear = gift.year
         state.lastBirthdayGiftClaimedAt = clock()
+        state.lastBirthdayGiftDate = state.birthday
         save()
         AppLog.write("birthday gift claimed for \(gift.year) (\(gift.occasion))")
         return true
@@ -2601,6 +2639,11 @@ final class CompanionStore {
         state.spentTokens += price
         if let a = state.active {
             state.dex.append(releasedDexEntry(from: a))   // 놓아줌 기록 — 도감에서 종이 사라지지 않게
+            // A Fossil Egg's Pokémon sent off before it graduates gives its egg back: its line has no other egg.
+            if a.fromFossilEgg {
+                state.inventory[ItemKind.fossilEgg.rawValue] = itemCount(.fossilEgg) + 1
+                AppLog.write("fossil egg: back to the Bag, its Pokémon sent off before graduating")
+            }
         }
         state.active = nil            // 놓아줌 (졸업 아님 — collectedFinals 는 미변경)
         // 놓아준 종도 이제 dex 에 있으므로 대표 선택은 유지된다. 손상 상태 파일 등으로 정말 보유가
@@ -2701,6 +2744,9 @@ final class CompanionStore {
     /// - First run: what the windows already owe is not paid back; they pay from then on.
     /// - A save from the rule that paid at 100% only: a window it already paid owes nothing more in its epoch, any
     ///   other pays its usage so far.
+    /// - A window first seen later (another login, a Codex bucket), or seen at another plan, pays from then on too:
+    ///   a Max 20x login added at 80% of its week would pay 80 candies at once, a Pro week at 60% read as Max 5x 12
+    ///   (#79).
     func grantCandies(from windows: [CandyWindow], limitsReady: Bool) {
         guard limitsReady else { return }
         if !state.candyFeatureSeeded {
@@ -2719,6 +2765,15 @@ final class CompanionStore {
         }
         let beforeTier = state.candyGrantTier
         let beforeEpoch = state.candyWindowEpoch
+        let beforePlan = state.candyWindowPlan
+        for w in windows where state.candyWindowPlan[w.key] != w.planMultiplier {
+            let firstSeen = state.candyWindowPlan[w.key] == nil
+            let paid = state.candyGrantTier[w.key] ?? 0
+            seedCandyLedger(w, paid: true)
+            // Seen for the first time, what it paid already stays paid; at another plan, it paid that plan's share.
+            if firstSeen, paid > (state.candyGrantTier[w.key] ?? 0) { state.candyGrantTier[w.key] = paid }
+            AppLog.write("candies: \(w.key) \(firstSeen ? "first seen" : "plan now ×\(w.planMultiplier)"), pays from \(state.candyGrantTier[w.key] ?? 0)")
+        }
         var grantTier = state.candyGrantTier
         var windowEpoch = state.candyWindowEpoch
         let grants = Self.evaluateCandyGrants(
@@ -2740,7 +2795,8 @@ final class CompanionStore {
         // 지급이 없어도 원장 변화(epoch 교체)는 영속해야 한다: 안 하면 재시작 시 지난 창의 원장으로 판정한다.
         if !grants.isEmpty
             || state.candyGrantTier != beforeTier
-            || state.candyWindowEpoch != beforeEpoch {
+            || state.candyWindowEpoch != beforeEpoch
+            || state.candyWindowPlan != beforePlan {
             save()
         }
     }
@@ -2750,6 +2806,7 @@ final class CompanionStore {
         let due = RareCandy.candiesDue(utilization: w.utilization, kind: w.kind, planMultiplier: w.planMultiplier)
         state.candyGrantTier[w.key] = paid && due > 0 ? due : nil
         if let epoch = w.epoch { state.candyWindowEpoch[w.key] = epoch }
+        state.candyWindowPlan[w.key] = w.planMultiplier
     }
 
     /// Candies paid since the last candy notification. Windows pay as they go, a bigger plan every few percent, so
@@ -2915,7 +2972,7 @@ final class CompanionStore {
         // The same forms the Oval Charm's species filter reads (`CompanionState.lineMissesForms`).
         var forms = CompanionState.eggForms(baseID: baseID, types: types)
         guard !forms.isEmpty else { return nil }
-        let collected = state.collectedLineForms(baseID: baseID)
+        let collected = state.graduatedLineForms(baseID: baseID)
         // The Oval Charm hatches a form still missing when the line has one.
         if ownsOvalCharm {
             let missing = forms.filter { !collected.contains($0) }
@@ -3080,7 +3137,7 @@ final class CompanionStore {
         // Pokédex even after a Kanto one graduated, so it gets no repeat boost.
         let hasGrowthBoost = state.hasCollectedFinal(forBaseID: line.baseID, form: form)
         // Checked before this individual joins the Pokédex: does it bring a form its line never had?
-        let hasNewForm = form.map { !state.collectedLineForms(baseID: line.baseID).contains($0) } ?? false
+        let hasNewForm = form.map { !state.graduatedLineForms(baseID: line.baseID).contains($0) } ?? false
         // 위장 중엔 이로치를 숨긴다 — 부화 알림·연출도 일반체로(정체는 리빌 때 공개).
         let showShiny = isShiny && dittoDisguise == nil
         activeGeneration += 1
@@ -3090,6 +3147,7 @@ final class CompanionStore {
                                 isShiny: isShiny, nature: nature, profile: profile, hasGrowthBoost: hasGrowthBoost,
                                 dittoDisguise: dittoDisguise, form: form)
         state.active?.hasNewForm = hasNewForm
+        state.active?.fromFossilEgg = fromFossilEgg
         // The Rotom Catalog pays for a form the line never had; a disguised Ditto's form is not its own.
         if hasNewForm, dittoDisguise == nil, itemCount(.rotomCatalog) > 0 {
             state.inventory[ItemKind.rareCandy.rawValue, default: 0] += CollectorBonus.rotomCatalogNewFormCandies
@@ -3232,8 +3290,11 @@ final class CompanionStore {
             if state.eggFromBirthdayEgg { return chooseBirthdayBase(full) }
             if state.eggFromFossilEgg { return chooseFossilBase(full) }
             let event = state.eggEvent
-            // A season's egg hatches Deerling in the season's form one time in three.
-            if let event, event.seasonForm != nil, full.contains(where: { $0.id == EventEgg.deerlingID }),
+            // A season's egg hatches Deerling in the season's form one time in three, under the rules every egg keeps:
+            // not the line hatched last, and with the Oval Charm, not a form already collected.
+            if let event, let seasonForm = event.seasonForm, full.contains(where: { $0.id == EventEgg.deerlingID }),
+               state.lastHatchedBaseID != EventEgg.deerlingID,
+               !ownsOvalCharm || !state.graduatedLineForms(baseID: EventEgg.deerlingID).contains(seasonForm),
                rng.next() % EventEgg.deerlingOdds == 0 {
                 AppLog.write("hatch roll: \(event.rawValue) egg base=\(EventEgg.deerlingID)")
                 return (EventEgg.deerlingID, event.alwaysShiny)
@@ -3244,7 +3305,9 @@ final class CompanionStore {
             // A fossil line hatches from Fossil Eggs only until it graduates (`FossilDig`), then from any egg like
             // every other species: shiny, twice, with another nature.
             let graduated = graduatedSpeciesIDs
-            let admitted = full.filter { !FossilDig.isFossilLine($0.id) || graduated.contains($0.id) }
+            // The Friendship Egg keeps its promise even then: the line is the player's own first Pokémon.
+            let friendship = event == .companion ? firstCatch?.baseID : nil
+            let admitted = full.filter { !FossilDig.isFossilLine($0.id) || graduated.contains($0.id) || $0.id == friendship }
             var index = tier.map { t in admitted.filter(t.admits) } ?? admitted
             // A Legendary Egg hatches a legendary or mythical Pokémon, any of them.
             if state.eggFromLegendaryEgg { index = index.filter(\.isLegendary) }
@@ -3341,6 +3404,12 @@ final class CompanionStore {
     /// GraphQL 인덱스가 죽어도 부화가 되게 한다. 가중치(capture_rate)는 생략 — 희귀도는 부화 후
     /// line() 이 실제 capture_rate 로 계산하므로 결과 개체의 등급은 정확하다. 인덱스 복구 시 가중 선택 재개.
     private func chooseBaseViaREST() async -> Int? {
+        // A Fossil Egg asks for its candidates themselves: 32 random numbers seldom meet one of 15 lines, one in 1,025
+        // even less. So does an event egg of a few lines, the Friendship Egg's one above all.
+        if state.eggFromFossilEgg { return await chooseListedBaseViaREST(fossilCandidates, charm: false) }
+        if let lines = state.eggEvent?.lines(companionLine: firstCatch?.baseID) {
+            return await chooseListedBaseViaREST(lines, charm: ownsOvalCharm)
+        }
         let tier = state.eggTier
         let typeGuarantee = state.eggTypeGuarantee
         // The Oval Charm, as in `chooseBase`: a line with a form still missing while the tries find one, else the
@@ -3383,6 +3452,36 @@ final class CompanionStore {
         }
         AppLog.write("hatch: REST fallback exhausted 32 tries")
         return nil
+    }
+
+    /// The REST fallback of an egg that names its lines: each of them asked for, in a random order, then the index
+    /// path's rules (`chooseBase`): with the Oval Charm, a line with a form still missing while one is left; not the
+    /// line hatched last while another is.
+    private func chooseListedBaseViaREST(_ candidates: Set<Int>, charm: Bool) async -> Int? {
+        var lines = Array(candidates).sorted()
+        for index in lines.indices.reversed() {
+            lines.swapAt(index, Int(rng.next() % UInt64(index + 1)))
+        }
+        var found: [Int] = []
+        for line in lines {
+            do {
+                if try await provider.baseSpecies(id: line) != nil { found.append(line) }
+            } catch {
+                AppLog.write("hatch: REST fallback network error, retry next tick: \(error)")
+                return nil
+            }
+        }
+        if charm {
+            let missing = found.filter { state.lineMissesForms(baseID: $0, types: eggFormTypes) }
+            if !missing.isEmpty { found = missing }
+        }
+        let others = found.filter { $0 != state.lastHatchedBaseID }
+        guard let pick = (others.isEmpty ? found : others).first else {
+            AppLog.write("hatch: REST fallback found none of the egg's \(candidates.count) lines")
+            return nil
+        }
+        AppLog.write("hatch: REST fallback picked listed line \(pick) of \(found.count) found")
+        return pick
     }
 
     private func computeState(burnTier: BurnTier, limitWarning: Bool, hasUsageData: Bool, today: Int) -> CompanionStateKind {

@@ -61,6 +61,25 @@ struct SessionKeyCredential: Codable, Sendable, Equatable {
     var key: String
     /// 마지막으로 고른 조직. 있으면 목록 조회를 건너뛴다.
     var organizationID: String?
+    /// That organization's plan, read from its row in the organizations list: the usage answer has none.
+    var plan: SessionKeyPlan?
+}
+
+/// An organization's plan, from its row in `/api/organizations` (`rate_limit_tier`, `capabilities`). The usage answer
+/// has no plan, so without it every session-key login read as Pro and paid a Pro plan's candies (#79).
+struct SessionKeyPlan: Codable, Sendable, Equatable {
+    var subscriptionType: String?
+    var rateLimitTier: String?
+    var readAt: Date
+}
+
+extension LimitStatus {
+    /// Takes the plan a session-key answer lacks; the answer's own plan, if it ever has one, stays.
+    mutating func adopt(_ plan: SessionKeyPlan?) {
+        guard let plan else { return }
+        if subscriptionType == nil { subscriptionType = plan.subscriptionType }
+        if rateLimitTier == nil { rateLimitTier = plan.rateLimitTier }
+    }
 }
 
 /// 세션 키 영속 — Application Support 평문 JSON(0600).
@@ -157,11 +176,19 @@ struct SessionKeyLimitsProvider: ClaudeLimitsProviding, SessionKeyManaging {
 
     private let store: SessionKeyStore
     private let http: any SessionKeyHTTPClient
+    private let now: @Sendable () -> Date
+
+    /// A plan is read again once a day: an upgrade shows within a day, and the list costs one request a day.
+    static let planMaxAge: TimeInterval = 86_400
+    /// After a failed read, the next try: an hour, not every poll.
+    static let planRetryDelay: TimeInterval = 3_600
 
     init(store: SessionKeyStore = SessionKeyStore(),
-         http: any SessionKeyHTTPClient = URLSessionSessionKeyClient()) {
+         http: any SessionKeyHTTPClient = URLSessionSessionKeyClient(),
+         now: @escaping @Sendable () -> Date = Date.init) {
         self.store = store
         self.http = http
+        self.now = now
     }
 
     /// `allowKeychainPrompt` 는 쓰지 않는다 — 이 경로는 Keychain 을 건드리지 않으므로 자동 폴링에서도
@@ -171,7 +198,9 @@ struct SessionKeyLimitsProvider: ClaudeLimitsProviding, SessionKeyManaging {
 
         if let orgID = credential.organizationID {
             do {
-                return try await usage(organizationID: orgID, sessionKey: credential.key)
+                var limits = try await usage(organizationID: orgID, sessionKey: credential.key)
+                limits.adopt(await plan(organizationID: orgID, credential: credential))
+                return limits
             } catch LimitsError.httpStatus(403) {
                 // 403 은 "이 조직에 권한 없음"(탈퇴·권한 회수). 키 자체는 살아있을 수 있으니 다시 고른다.
                 // 401(키 무효)은 여기서 잡지 않는다 — 재탐색해도 같은 401 이라 낭비다.
@@ -199,11 +228,40 @@ struct SessionKeyLimitsProvider: ClaudeLimitsProviding, SessionKeyManaging {
         guard let picked = candidates.first(where: \.hasUsageData) ?? candidates.first else {
             throw LimitsError.sessionKeyNoOrganization
         }
+        let plan = SessionKeyPlan(subscriptionType: picked.limits.subscriptionType,
+                                  rateLimitTier: picked.limits.rateLimitTier, readAt: now())
+        try? store.save(SessionKeyCredential(key: credential.key, organizationID: picked.id, plan: plan))
         if picked.id != credential.organizationID {
-            try? store.save(SessionKeyCredential(key: credential.key, organizationID: picked.id))
             AppLog.write("session key: selected org \(picked.id) (hasUsage=\(picked.hasUsageData))")
         }
         return picked.limits
+    }
+
+    /// The cached organization's plan: the one saved, read again from the list once it is a day old. A failed read
+    /// keeps the plan saved and tries again in an hour; the usage stands without it.
+    private func plan(organizationID: String, credential: SessionKeyCredential) async -> SessionKeyPlan? {
+        let date = now()
+        if let saved = credential.plan, saved.readAt <= date, date.timeIntervalSince(saved.readAt) < Self.planMaxAge {
+            return saved
+        }
+        var read: SessionKeyPlan?
+        do {
+            let response = try await http.get(Self.base.appendingPathComponent("organizations"), sessionKey: credential.key)
+            try Self.mapFailure(response)
+            read = try Self.decodeRows(response.data).first { $0.uuid == organizationID }?.plan(at: date)
+        } catch {
+            AppLog.write("session key: plan read failed, retry in an hour: \(error)")
+        }
+        let kept = read ?? SessionKeyPlan(subscriptionType: credential.plan?.subscriptionType,
+                                          rateLimitTier: credential.plan?.rateLimitTier,
+                                          readAt: date.addingTimeInterval(Self.planRetryDelay - Self.planMaxAge))
+        var updated = credential
+        updated.plan = kept
+        try? store.save(updated)
+        if let read {
+            AppLog.write("session key: plan read, tier=\(read.rateLimitTier ?? "none") type=\(read.subscriptionType ?? "none")")
+        }
+        return kept
     }
 
     func credential() -> SessionKeyCredential? { store.load() }
@@ -233,7 +291,8 @@ struct SessionKeyLimitsProvider: ClaudeLimitsProviding, SessionKeyManaging {
             for (index, row) in candidates.enumerated() {
                 group.addTask {
                     do {
-                        let limits = try await usage(organizationID: row.uuid, sessionKey: sessionKey)
+                        var limits = try await usage(organizationID: row.uuid, sessionKey: sessionKey)
+                        limits.adopt(row.plan(at: now()))
                         return (index, SessionKeyOrganization(
                             id: row.uuid, name: row.name ?? row.uuid,
                             hasUsageData: Self.hasUsageData(limits), limits: limits))
@@ -280,6 +339,21 @@ struct SessionKeyLimitsProvider: ClaudeLimitsProviding, SessionKeyManaging {
         let uuid: String
         let name: String?
         let capabilities: [String]?
+        /// "default_claude_max_5x", as the OAuth credential's `rateLimitTier`.
+        let rateLimitTier: String?
+
+        enum CodingKeys: String, CodingKey {
+            case uuid, name, capabilities
+            case rateLimitTier = "rate_limit_tier"
+        }
+
+        /// Max when the capabilities or the tier say so, Pro when the capabilities do, else unknown.
+        func plan(at date: Date) -> SessionKeyPlan {
+            let capabilities = capabilities ?? []
+            let type: String? = capabilities.contains("claude_max") || rateLimitTier?.contains("claude_max") == true
+                ? "max" : capabilities.contains("claude_pro") ? "pro" : nil
+            return SessionKeyPlan(subscriptionType: type, rateLimitTier: rateLimitTier, readAt: date)
+        }
     }
 
     private static func decodeRows(_ data: Data) throws -> [OrganizationRow] {

@@ -22,6 +22,11 @@ private actor URLRecorder {
     func record(_ url: URL) { urls.append(url) }
 }
 
+private struct RecordingNames: PokemonNameProviding {
+    let names: [String: String]
+    func names(for resource: PokemonNameResource) async throws -> [String: String] { names }
+}
+
 private actor DelayedNameProvider: PokemonNameProviding {
     private var continuation: CheckedContinuation<[String: String], Never>?
     private var result: [String: String]?
@@ -168,6 +173,43 @@ final class PokemonNameLocalizationTests: XCTestCase {
         _ = try await client.names(for: .init(kind: .type, name: "tackle"))
         let calls = await server.calls
         XCTAssertEqual(calls, 3)
+    }
+
+    /// A form's hover loads the form's name itself: it read names another view had loaded and showed the identifier
+    /// ("Sky", "Icy Snow") in every language until the Pokédex page was opened. So does a long forms goal for each of
+    /// its forms.
+    @MainActor
+    func testFormTooltipsLoadTheirFormNames() async throws {
+        let provider = RecordingNames(names: ["fr": "Forme Céleste", "en": "Sky Forme"])
+        let store = PokemonNameDisplayStore()
+        let sky = PokemonForm("sky")
+        func mount(_ view: some View) -> NSWindow {
+            let host = NSHostingView(rootView: view.frame(width: 60, height: 60))
+            host.frame = NSRect(x: 0, y: 0, width: 60, height: 60)
+            let window = NSWindow(contentRect: NSRect(x: -10000, y: -10000, width: 60, height: 60),
+                                  styleMask: .borderless, backing: .buffered, defer: false)
+            window.isReleasedWhenClosed = false
+            window.contentView = host
+            window.orderFront(nil)
+            return window
+        }
+        let skyName = try XCTUnwrap(PokemonForm.nameResource(speciesID: 492, form: sky))
+        let tooltip = mount(Color.clear.modifier(SpeciesNameTooltip(speciesID: 492, form: sky, language: .fr,
+                                                                    displayStore: store, provider: provider)))
+        defer { tooltip.close() }
+        for _ in 0..<200 where store.names[skyName] == nil { try await Task.sleep(for: .milliseconds(5)) }
+        XCTAssertNotNil(store.names[skyName], "the hovered form's name")
+        XCTAssertEqual(PokemonForm.label(speciesID: 492, form: sky, language: .fr, names: store), "Forme Céleste")
+
+        let goalStore = PokemonNameDisplayStore()
+        let goal = mount(Color.clear.modifier(FormNamesLoader(speciesID: 666, displayStore: goalStore, provider: provider)))
+        defer { goal.close() }
+        let patterns = PokemonForm.nameResources(speciesID: 666)
+        XCTAssertEqual(patterns.count, 20)
+        for _ in 0..<400 where patterns.contains(where: { goalStore.names[$0] == nil }) {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        XCTAssertTrue(patterns.allSatisfy { goalStore.names[$0] != nil }, "every Vivillon pattern")
     }
 
     @MainActor

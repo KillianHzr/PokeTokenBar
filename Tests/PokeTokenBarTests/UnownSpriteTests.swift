@@ -80,6 +80,9 @@ final class UnownSpriteCacheTests: XCTestCase {
     override func setUp() async throws {
         savedImageCacheLimit = SpriteLoader.imageCache.countLimit
         SpriteLoader.imageCache.countLimit = 0
+        // And empty: by here the whole suite has filled it, and under the memory it holds the cache evicts the images
+        // these tests just put in, limit or not.
+        SpriteLoader.imageCache.removeAllObjects()
     }
 
     override func tearDown() async throws {

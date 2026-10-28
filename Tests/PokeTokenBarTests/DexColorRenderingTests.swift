@@ -189,6 +189,13 @@ final class DexColorRenderingTests: XCTestCase {
         let bitmap = try await waitForDetailSprite(host, shiny: false)
         XCTAssertGreaterThan(colorRows(bitmap, shiny: false).count, 40, "Normal picked: the normal look")
         XCTAssertEqual(colorRows(bitmap, shiny: true).count, 0)
+        // The picker itself shows: picking Normal by code alone would pass with it hidden.
+        let recognition = VNRecognizeTextRequest()
+        recognition.recognitionLevel = .accurate
+        recognition.recognitionLanguages = ["en-US"]
+        try VNImageRequestHandler(cgImage: try XCTUnwrap(bitmap.cgImage)).perform([recognition])
+        let words = (recognition.results ?? []).flatMap { $0.topCandidates(3).map(\.string) }
+        XCTAssertTrue(words.contains { $0.contains(store.l.dexNormalLabel) }, "the Normal/Shiny picker: \(words)")
     }
 
     func testDetailSelectorChangesMountedPixelsAndReturnsToNormal() async throws {

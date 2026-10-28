@@ -50,6 +50,9 @@ final class CollectionReadabilityRenderingTests: XCTestCase {
             for log in [false, true] {
                 let navigation = PopoverNavigation()
                 navigation.showingCollectionLog = log
+                // The caught grid this test reads: the whole Pokédex, the default, would also fetch every missing
+                // species' sprite for its silhouette, and those loads land in the shared sprite cache after the test.
+                navigation.dexScope = .caught
                 try await capture(CollectionView(store: store, navigation: navigation), language: language,
                                   expectedTexts: [.common, .uncommon, .rare, .legendary].map(store.l.rarityLabel),
                                   to: directory.appendingPathComponent("\(language.rawValue)-\(log ? "log" : "grid").png"))

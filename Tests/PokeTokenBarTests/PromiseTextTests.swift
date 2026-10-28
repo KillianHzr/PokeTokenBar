@@ -26,12 +26,12 @@ final class PromiseTextTests: XCTestCase {
         XCTAssertTrue(l.itemDescription(.plainBadge).hasPrefix("Each region claimed"))
     }
 
-    /// The Soul Dew's candy grants 150M: the description says so where the Bag shows "+150M XP".
+    /// The Soul Dew's candy grants 112.5M: the description says so where the Bag shows "+112.5M XP".
     func testTheRareCandySaysItsOwnEXP() throws {
         let dew = try store([.soulDew])
-        XCTAssertEqual(dew.rareCandyXP, 150_000_000)
-        XCTAssertTrue(dew.l.itemDescription(.rareCandy, rareCandyXP: dew.rareCandyXP).contains("150M"))
-        XCTAssertTrue(L(.en).itemDescription(.rareCandy).contains("100M"))
+        XCTAssertEqual(dew.rareCandyXP, 112_500_000)
+        XCTAssertTrue(dew.l.itemDescription(.rareCandy, rareCandyXP: dew.rareCandyXP).contains("112.5M"))
+        XCTAssertTrue(L(.en).itemDescription(.rareCandy).contains("75M"))
     }
 
     /// With the Glimmering Charm every hatch is shiny: the notification tells no odds.

@@ -97,7 +97,7 @@ struct StatsReport {
     let projection: Projection?
     /// nil unless every day with usage is still in the providers' month series.
     let breakdown: Breakdown?
-    /// Pokémon graduated in the period, sent off since or not, newest first.
+    /// Pokémon graduated in the period, newest first. One sent off for an egg never graduated.
     let graduated: [DexEntry]
 
     private let details: [String: BucketDetail]
@@ -146,13 +146,16 @@ struct StatsReport {
         // The previous period, over as many days as this one has completed while it runs.
         let previous = period.shifted(by: -1, calendar: calendar)
         let previousDays = days(previous.start, previous.end)
-        let compared = recap.isInProgress ? Array(previousDays.prefix(completed.count)) : previousDays
+        // While it runs, as many days on both sides: from the 29th, March has completed more days than February has.
+        let sameDays = min(completed.count, previousDays.count)
+        let current = recap.isInProgress ? Array(completed.prefix(sameDays)) : completed
+        let compared = recap.isInProgress ? Array(previousDays.prefix(sameDays)) : previousDays
         let previousTotal = tokens(compared)
         // One completed day says little: a Monday off would read as a 100% drop.
-        let change: Double? = if completed.count >= (recap.isInProgress ? 2 : 1), let first = completed.first,
+        let change: Double? = if current.count >= (recap.isInProgress ? 2 : 1), let first = current.first,
                                  let previousFirst = compared.first, known(first), ledger.covers(previousFirst),
                                  previousTotal > 0 {
-            Double(tokens(completed) - previousTotal) / Double(previousTotal)
+            Double(tokens(current) - previousTotal) / Double(previousTotal)
         } else {
             nil
         }
@@ -210,8 +213,9 @@ struct StatsReport {
             }
         }
 
+        // A Pokémon sent off for an egg is in the Pokédex too, as an entry released before it graduated: not counted.
         let graduated = dex
-            .filter { entry in entry.caughtAt.map { $0 >= period.start && $0 < period.end } == true }
+            .filter { entry in !entry.isReleased && entry.caughtAt.map { $0 >= period.start && $0 < period.end } == true }
             .sorted { ($0.caughtAt ?? .distantPast) > ($1.caughtAt ?? .distantPast) }
 
         var details: [String: BucketDetail] = [:]
@@ -233,9 +237,9 @@ struct StatsReport {
     }
 }
 
-/// The records of every day the ledger holds (this year and the last), and the usual week.
+/// The records of every day the ledger holds (this year and the last; `Kept` holds older ones), and the usual week.
 struct StatsRecords: Equatable {
-    struct Record: Equatable {
+    struct Record: Equatable, Codable {
         /// `yyyy-MM-dd` of the day, or of the first day of the week or month.
         let key: String
         let tokens: Int
@@ -312,5 +316,49 @@ struct StatsRecords: Equatable {
             currentStreak: current,
             weekdayAverages: counts.reduce(0, +) >= 14 && !counts.contains(0)
                 ? zip(sums, counts).map { $0 / $1 } : nil)
+    }
+}
+
+extension StatsRecords {
+    /// The records kept past the ledger's pruning, which keeps this year and the last: a best day of two years ago
+    /// stays the best.
+    struct Kept: Codable, Equatable {
+        static let defaultsKey = "usageRecords"
+
+        var bestDay: Record?
+        var bestWeek: Record?
+        var bestMonth: Record?
+        var longestStreak = 0
+
+        var isEmpty: Bool { bestDay == nil && longestStreak == 0 }
+
+        mutating func merge(_ records: StatsRecords) {
+            func best(_ a: Record?, _ b: Record?) -> Record? {
+                guard let a else { return b }
+                guard let b else { return a }
+                return b.tokens > a.tokens ? b : a
+            }
+            bestDay = best(bestDay, records.bestDay)
+            bestWeek = best(bestWeek, records.bestWeek)
+            bestMonth = best(bestMonth, records.bestMonth)
+            longestStreak = max(longestStreak, records.longestStreak)
+        }
+
+        static func load(from defaults: UserDefaults) -> Kept {
+            defaults.data(forKey: defaultsKey).flatMap { try? JSONDecoder().decode(Kept.self, from: $0) } ?? Kept()
+        }
+
+        func save(to defaults: UserDefaults) {
+            defaults.set(try? JSONEncoder().encode(self), forKey: Self.defaultsKey)
+        }
+    }
+
+    /// These records with the kept ones, the best of both. The streak running now and the usual week stay the ledger's.
+    func keeping(_ kept: Kept) -> StatsRecords {
+        var merged = kept
+        merged.merge(self)
+        return StatsRecords(bestDay: merged.bestDay, bestWeek: merged.bestWeek, bestMonth: merged.bestMonth,
+                            longestStreak: merged.longestStreak, currentStreak: currentStreak,
+                            weekdayAverages: weekdayAverages)
     }
 }

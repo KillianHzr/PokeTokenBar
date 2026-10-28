@@ -620,7 +620,7 @@ struct EvoLineView: View {
                             }
                             .frame(width: thumb + (names == nil ? 0 : Self.nameSlack))
                             .modifier(dexLinkModifier(forSpeciesID: item.speciesID, isCollected: item.isCollected))
-                            .help(item.isCollected ? (names?[item.speciesID] ?? "") : mysteryLabel)
+                            .hoverTip(item.isCollected ? (names?[item.speciesID] ?? "") : mysteryLabel)
                         }
                     }
                     .id(i)
@@ -708,7 +708,7 @@ struct EvolutionTrackView: View {
     @ViewBuilder
     private func stretch(_ index: Int) -> some View {
         if index == currentIndex + 1 {
-            bar(fill: min(1, max(0, progress))).help(detail)
+            bar(fill: min(1, max(0, progress))).hoverTip(detail)
         } else {
             bar(fill: index <= currentIndex ? 1 : 0)
         }
@@ -809,7 +809,7 @@ struct EvolutionTrackView: View {
             .frame(width: size, height: size)
             .modifier(DexEntryLink(target: item.isCollected ? dexLinks[item.speciesID] : nil, hint: l.dexOpenEntryHint,
                                    accessibilityName: names[item.speciesID], cornerRadius: 5, open: onOpenDexEntry))
-            .help(item.isCollected ? (names[item.speciesID] ?? l.dexOpenEntryHint) : l.unknownNextEvolution)
+            .hoverTip(item.isCollected ? (names[item.speciesID] ?? l.dexOpenEntryHint) : l.unknownNextEvolution)
     }
 }
 
@@ -912,7 +912,7 @@ struct DexEntryLink: ViewModifier {
             // A click navigates the link away while the pointer is still on it; no `.ended` follows,
             // so without this the hand cursor sticks on the next screen.
             .onDisappear { Self.cursor(after: .disappeared, wasHovered: isHovered)?.nsCursor.set() }
-            .help(hint)
+            .hoverTip(hint)
             .accessibilityLabel(accessibilityName.map { "\($0), \(hint)" } ?? hint)
         } else {
             content
@@ -985,11 +985,11 @@ struct CompanionHeader: View {
             if let onOpenBonuses {
                 Button(action: onOpenBonuses) { badge }
                     .buttonStyle(.plain)
-                    .help(breakdown)
+                    .hoverTip(breakdown)
                     .accessibilityLabel(isRepeat ? store.l.repeatGrowthBoost(total) : store.l.growthBoost(total))
                     .accessibilityHint(breakdown)
             } else {
-                badge.help(breakdown)
+                badge.hoverTip(breakdown)
             }
         }
     }
@@ -1003,17 +1003,17 @@ struct CompanionHeader: View {
         if isNewForm {
             Badge(l.newFormBadge.uppercased(), tint: .blue, style: .tinted)
                 .lineLimit(1).fixedSize()
-                .help(store.activeNewsHint)
+                .hoverTip(store.activeNewsHint)
         }
         if let news = store.activeNews {
             if news.isDuplicate {
                 Badge(l.activeDuplicateBadge.uppercased(), tint: .secondary, style: .tinted)
                     .lineLimit(1).fixedSize()
-                    .help(l.activeDuplicateHint)
+                    .hoverTip(l.activeDuplicateHint)
             } else if !isNewForm {
                 Badge(l.activeNewBadge.uppercased(), tint: .green, style: .tinted)
                     .lineLimit(1).fixedSize()
-                    .help(store.activeNewsHint)
+                    .hoverTip(store.activeNewsHint)
             }
         }
     }
@@ -1380,7 +1380,7 @@ struct DexSummaryHeader: View {
                         }
                         .buttonStyle(.plain)
                         .disabled(count == 0)          // 0마리 희귀도는 필터 불가
-                        .help(store.l.dexFilterHint)
+                        .hoverTip(store.l.dexFilterHint)
                     }
                 }
                 .fixedSize(horizontal: true, vertical: false)
@@ -1468,6 +1468,7 @@ struct CollectionView: View {
                     catchLog
                 } else if nav.dexScope != .caught {
                     FullDexView(store: store, searchText: searchText, missingOnly: nav.dexScope == .missing,
+                                shinyOnly: shinyOnly && nav.dexScope != .missing, evolutionFamily: evolutionFamily,
                                 scope: $nav.dexScope,
                                 onSelectSpecies: { sp in nav.dexDetailCollectionID = sp.collectionID })
                 } else {
@@ -1499,8 +1500,10 @@ struct CollectionView: View {
                           options: PopoverNavigation.DexScope.allCases.map { ($0, store.l.dexScope($0)) })
     }
 
-    /// The shiny, family and sort buttons sort and filter caught individuals: the whole Pokédex keeps the search alone.
-    private var filtersCaughtOnly: Bool { navigation.showingCollectionLog || navigation.dexScope == .caught }
+    /// The sort orders individuals and the caught grid; the whole Pokédex keeps its regions' order.
+    private var sortsCaught: Bool { navigation.showingCollectionLog || navigation.dexScope == .caught }
+    /// Shiny only: individuals, caught species, the whole Pokédex's; the missing species have no shiny.
+    private var filtersShiny: Bool { navigation.showingCollectionLog || navigation.dexScope != .missing }
 
     private var filterToolbar: some View {
         HStack(spacing: 6) {
@@ -1532,7 +1535,7 @@ struct CollectionView: View {
                     .strokeBorder(Color.secondary.opacity(0.2), lineWidth: 0.5)
             )
 
-            if filtersCaughtOnly {
+            if filtersShiny {
             Button {
                 withAnimation(.easeInOut(duration: 0.15)) {
                     shinyOnly.toggle()
@@ -1552,8 +1555,9 @@ struct CollectionView: View {
                     )
             }
             .buttonStyle(.plain)
-            .help(store.l.filterShinyOnly)
+            .hoverTip(store.l.filterShinyOnly)
             .accessibilityLabel(store.l.filterShinyOnly)
+            }
 
             Button {
                 withAnimation(.easeInOut(duration: 0.15)) {
@@ -1574,9 +1578,10 @@ struct CollectionView: View {
                     )
             }
             .buttonStyle(.plain)
-            .help(store.l.filterEvolutionFamily)
+            .hoverTip(store.l.filterEvolutionFamily)
             .accessibilityLabel(store.l.filterEvolutionFamily)
 
+            if sortsCaught {
             Menu {
                 if navigation.showingCollectionLog {
                     ForEach(CompanionStore.CatchLogSortOption.allCases) { option in
@@ -1620,7 +1625,7 @@ struct CollectionView: View {
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
-            .help(store.l.sortTitle)
+            .hoverTip(store.l.sortTitle)
             .accessibilityLabel(store.l.sortTitle)
             }
         }
@@ -1736,7 +1741,7 @@ struct RepresentativeFooterButton: View {
             Label(title, systemImage: isRepresentative ? "arrow.triangle.2.circlepath" : "star")
         }
         .labelStyle(.iconOnly)
-        .help(title)
+        .hoverTip(title)
         .accessibilityLabel(title)
         .buttonStyle(.bordered)
         .controlSize(.mini)
@@ -1877,6 +1882,10 @@ struct FullDexView: View {
     let store: CompanionStore
     let searchText: String
     let missingOnly: Bool
+    /// Only the species caught shiny.
+    var shinyOnly = false
+    /// The search finds whole evolution families, their missing members included.
+    var evolutionFamily = false
     @Binding var scope: PopoverNavigation.DexScope
     let onSelectSpecies: (CompanionStore.DexSpecies) -> Void
     @State private var folded: Set<Int> = []
@@ -1888,7 +1897,10 @@ struct FullDexView: View {
         let species = Dictionary(store.dexSpecies.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let graduated = store.graduatedSpeciesIDs
         let names = species.mapValues(\.name)
-        func shows(_ id: Int) -> Bool { Self.shows(id, names: names, missingOnly: missingOnly, query: searchText) }
+        let visible = Self.visibleIDs(names: names, missingOnly: missingOnly, query: searchText,
+                                      shinies: shinyOnly ? Set(store.dexSpecies.filter(\.isShiny).map(\.id)) : nil,
+                                      family: evolutionFamily)
+        func shows(_ id: Int) -> Bool { visible.contains(id) }
         return VStack(alignment: .leading, spacing: 6) {
             PillPicker(selection: $scope, options: PopoverNavigation.DexScope.allCases.map { ($0, store.l.dexScope($0)) })
             summary(registered: species.count, graduated: graduated)
@@ -1912,7 +1924,39 @@ struct FullDexView: View {
     /// without "#" and leading zeros) or by the name of a species in the Pokédex.
     static func shows(_ id: Int, names: [Int: String], missingOnly: Bool, query: String) -> Bool {
         if missingOnly, names[id] != nil { return false }
-        let query = query.trimmingCharacters(in: .whitespaces).lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+        return found(id, names: names, query: query)
+    }
+
+    /// The species shown: those `shows` keeps, with the whole family of each one the search finds when `family` is
+    /// on (missing members too: a search for a caught Charmander brings Charizard still missing), and only the
+    /// `shinies` when given.
+    static func visibleIDs(names: [Int: String], missingOnly: Bool, query: String, shinies: Set<Int>? = nil,
+                           family: Bool = false) -> Set<Int> {
+        let every = PokemonTypeData.generations.flatMap { Array($0) }
+        var ids = Set(every.filter { found($0, names: names, query: query) })
+        if family, !normalized(query).isEmpty { ids = Set(ids.flatMap(Self.family)) }
+        return ids.filter { id in
+            (!missingOnly || names[id] == nil) && (shinies.map { $0.contains(id) } ?? true)
+        }
+    }
+
+    /// Every species of the line `id` is in, from its first one down every branch.
+    static func family(of id: Int) -> [Int] {
+        var line: [Int] = []
+        var queue = [PokemonEvolutionData.root(of: id)]
+        while let next = queue.popLast() {
+            line.append(next)
+            queue += PokemonEvolutionData.children[next] ?? []
+        }
+        return line
+    }
+
+    private static func normalized(_ query: String) -> String {
+        query.trimmingCharacters(in: .whitespaces).lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+    }
+
+    private static func found(_ id: Int, names: [Int: String], query: String) -> Bool {
+        let query = normalized(query)
         guard !query.isEmpty else { return true }
         if let number = Int(query) { return id == number || String(id).hasPrefix(String(number)) }
         return names[id]?.lowercased().contains(query) == true
@@ -1930,7 +1974,7 @@ struct FullDexView: View {
                 Spacer(minLength: 4)
                 if registered > owned.species {
                     Label(store.l.dexSeenOnly(registered - owned.species), systemImage: "eye").labelStyle(.titleAndIcon)
-                        .foregroundStyle(.secondary).help(store.l.dexSeenNotGraduated)
+                        .foregroundStyle(.secondary).hoverTip(store.l.dexSeenNotGraduated)
                 }
             }
             HStack(spacing: 8) {
@@ -1972,7 +2016,7 @@ struct FullDexView: View {
                                     Circle().fill(rarityColor(rarity)).frame(width: 6, height: 6)
                                     Text("\(count)").font(.caption2.monospacedDigit())
                                 }
-                                .help(store.l.rarityLabel(rarity))
+                                .hoverTip(store.l.rarityLabel(rarity))
                             }
                         }
                     }
@@ -2019,19 +2063,19 @@ struct FullDexView: View {
                 .opacity(isGraduated ? 1 : 0.5)
             }
             .buttonStyle(.plain)
-            .help("#\(id) \(species.name) · \(store.l.rarityLabel(species.rarity))"
+            .hoverTip("#\(id) \(species.name) · \(store.l.rarityLabel(species.rarity))"
                   + (isGraduated ? "" : " · \(store.l.dexSeenNotGraduated)"))
             .accessibilityLabel("#\(id) \(species.name)")
         } else {
             VStack(spacing: 2) {
-                Text("?").font(.system(size: 18, weight: .bold, design: .rounded)).foregroundStyle(.secondary)
+                // Who's that Pokémon: its shape in black, at the grid's one scale, its name still hidden.
+                SpriteView(speciesID: id, size: 42, isSilhouette: true, sameScale: true)
                     .frame(width: 44, height: 44)
                 Text(number).font(.system(size: 10, weight: .semibold).monospacedDigit()).foregroundStyle(.secondary)
             }
-            .opacity(0.75)
             .frame(maxWidth: .infinity).padding(.vertical, 4)
             .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
-            .help(store.l.dexMissingHint(id))
+            .hoverTip(store.l.dexMissingHint(id))
             .accessibilityLabel(store.l.dexMissingHint(id))
         }
     }
@@ -2161,7 +2205,7 @@ private struct DexGridView: View {
                 if seen > 0 {
                     Text("·").foregroundStyle(.tertiary)
                     Label(store.l.dexSeenOnly(seen), systemImage: "eye").labelStyle(.titleAndIcon)
-                        .help(store.l.dexSeenNotGraduated)
+                        .hoverTip(store.l.dexSeenNotGraduated)
                 }
                 Text("·").foregroundStyle(.tertiary)
                 Text(store.l.formsCollected(owned.forms, of: owned.formsTotal))
@@ -2184,7 +2228,7 @@ private struct DexGridView: View {
                         }
                         .buttonStyle(.plain)
                         .disabled(count == 0)
-                        .help(store.l.dexFilterHint)
+                        .hoverTip(store.l.dexFilterHint)
                     }
                 }
                 .fixedSize(horizontal: true, vertical: false)
@@ -2507,7 +2551,7 @@ struct PokemonDetailView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(!isOwned)
-                    .help(name)
+                    .hoverTip(name)
                     .accessibilityLabel(name)
                     .accessibilityAddTraits(costume == equipped ? .isSelected : [])
                 }
@@ -2796,7 +2840,7 @@ private struct DexSpeciesCell: View {
         Button(action: onTap) { cell }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
-        .help(tooltip)
+        .hoverTip(tooltip)
         .accessibilityLabel(tooltip)
         .contextMenu {
             if formCount != nil {

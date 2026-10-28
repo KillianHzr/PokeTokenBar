@@ -14,8 +14,12 @@ private struct FossilProvider: PokeProviding {
         return entries
     }
     func baseSpecies(id: Int) async throws -> BaseSpecies? {
-        indexDown ? BaseSpecies(id: id, captureRate: 45) : entries.first { $0.id == id }
+        guard indexDown else { return entries.first { $0.id == id } }
+        // The REST fallback can be held to the entries' ids, so that what it finds is no accident of the draw.
+        if restKnowsEntriesOnly, !entries.contains(where: { $0.id == id }) { return nil }
+        return BaseSpecies(id: id, captureRate: 45)
     }
+    var restKnowsEntriesOnly = false
 }
 
 /// The excavation: a Fossil Egg for every 4 Rock-type species graduated, one dig per fossil line, the lines graduated
@@ -25,6 +29,7 @@ final class FossilDigTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1_790_000_000)
 
     private func store(dex: [DexEntry] = [], inventory: [ItemKind: Int] = [:], seed: UInt64 = 1, indexDown: Bool = false,
+                       restKnowsEntriesOnly: Bool = false, url fileURL: URL? = nil,
                        _ edit: (inout CompanionState) -> Void = { _ in }) throws -> CompanionStore {
         var st = CompanionState()
         st.installBaselineSet = true
@@ -32,10 +37,12 @@ final class FossilDigTests: XCTestCase {
         st.dex = dex
         st.inventory = Dictionary(uniqueKeysWithValues: inventory.map { ($0.key.rawValue, $0.value) })
         edit(&st)
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("fossil-\(UUID().uuidString).json")
+        let url = fileURL ?? FileManager.default.temporaryDirectory.appendingPathComponent("fossil-\(UUID().uuidString).json")
         try JSONEncoder().encode(st).write(to: url)
         addTeardownBlock { try? FileManager.default.removeItem(at: url) }
-        return CompanionStore(provider: FossilProvider(indexDown: indexDown), clock: { self.now }, fileURL: url,
+        var provider = FossilProvider(indexDown: indexDown)
+        provider.restKnowsEntriesOnly = restKnowsEntriesOnly
+        return CompanionStore(provider: provider, clock: { self.now }, fileURL: url,
                               rng: SeededRNG(seed: seed))
     }
 
@@ -152,10 +159,33 @@ final class FossilDigTests: XCTestCase {
         let graduatedLater = try store(dex: (had + [line]).map { graduated($0) } + rocks.prefix(20).map { graduated($0) }) {
             $0.claimedAchievements = claimed
             $0.fossilLinesBeforeDigs = Set(had)
-            $0.fossilEggsHatched = 1
         }
         XCTAssertEqual(graduatedLater.excavationProgress.ready, 0, "nor once it graduates")
         XCTAssertEqual(graduatedLater.excavationProgress.notClaimable, 10)
+    }
+
+    /// A save from the first version of the digs, or its export: a line its Fossil Egg brought, first graduated
+    /// after the digs came, is not "had before". Nothing is taken back, and no dig is done for that line (#77).
+    func testALineFromAFossilEggIsNotCountedAsHadBefore() throws {
+        let had = [138, 140, 142, 345, 408, 564, 566, 696, 698, 881]
+        let anorith = DexEntry(baseID: 347, finalID: 347, chainOrder: [347], rarity: .common,
+                               caughtAt: FossilDig.introduced.addingTimeInterval(3 * 86_400))
+        let five = Set((1...5).map { CompanionState.regionTierKey(.excavation, generation: $0) })
+        let dex = had.map { graduated($0) } + [anorith] + rocks.prefix(20).map { graduated($0) }
+        let s = try store(dex: dex, inventory: [.fossilEgg: 4]) {
+            $0.claimedAchievements = five
+        }
+        XCTAssertEqual(s.state.fossilLinesBeforeDigs, Set(had))
+        XCTAssertEqual(s.itemCount(.fossilEgg), 4, "nothing taken")
+        XCTAssertEqual(s.excavationProgress.notClaimable, 10)
+
+        // The same save after #75 took the set with Anorith in it, then took an egg back: mended, the dig returns.
+        let taken = try store(dex: dex, inventory: [.fossilEgg: 3]) {
+            $0.claimedAchievements = Set((1...4).map { CompanionState.regionTierKey(.excavation, generation: $0) })
+            $0.fossilLinesBeforeDigs = Set(had + [347])
+        }
+        XCTAssertEqual(taken.state.fossilLinesBeforeDigs, Set(had), "mended")
+        XCTAssertEqual(taken.excavationProgress.ready, 1, "the egg taken back is to claim again")
     }
 
     /// A save that got the extra egg: 10 lines had, 6 digs claimed for 5 missing lines. The extra egg leaves the Bag
@@ -166,7 +196,6 @@ final class FossilDigTests: XCTestCase {
         let dex = had.map { graduated($0) } + rocks.prefix(20).map { graduated($0) }
         let s = try store(dex: dex, inventory: [.fossilEgg: 5]) {
             $0.claimedAchievements = six
-            $0.fossilEggsHatched = 1
         }
         XCTAssertEqual(s.itemCount(.fossilEgg), 4, "five missing lines: one hatched, four left in the Bag")
         let progress = s.excavationProgress
@@ -174,7 +203,6 @@ final class FossilDigTests: XCTestCase {
 
         let used = try store(dex: dex) {
             $0.claimedAchievements = six
-            $0.fossilEggsHatched = 6
         }
         XCTAssertEqual(used.itemCount(.fossilEgg), 0)
         XCTAssertEqual(used.regionTiers(.excavation).filter(\.isClaimed).count, 6, "an egg already used stays used")
@@ -218,21 +246,73 @@ final class FossilDigTests: XCTestCase {
         XCTAssertTrue(FossilDig.lines.contains(try XCTUnwrap(all.state.active).baseID), "every line graduated: any of them")
     }
 
-    /// The base index down, the REST fallback keeps to the fossil lines.
-    func testTheRestFallbackKeepsToFossils() async throws {
-        var hatched = 0
+    /// A Fossil Egg's Pokémon sent off before it graduates gives its egg back: its line hatches from no other egg (#77).
+    /// Any other Pokémon sent off gives nothing, and the mark survives a restart.
+    func testAFossilEggsPokemonSentOffGivesTheEggBack() async throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("fossil-\(UUID().uuidString).json")
+        let s = try store(inventory: [.fossilEgg: 1, .fireStone: 1], url: url) {
+            $0.active = MonState(baseID: 1, pathIDs: [1], stageIndex: 0, usedAtStage: 0, rarity: .common, totalForms: 1)
+        }
+        XCTAssertTrue(s.useFossilEgg())
+        XCTAssertEqual(s.itemCount(.fossilEgg), 0, "Bulbasaur came from no Fossil Egg")
+        s.setEggUsageForTesting(s.eggHatchThreshold)
+        await s.hatchIfNeeded()
+        let fossil = try XCTUnwrap(s.state.active)
+        XCTAssertTrue(FossilDig.lines.contains(fossil.baseID))
+        XCTAssertTrue(fossil.fromFossilEgg)
+        let reloaded = CompanionStore(provider: FossilProvider(), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: 1))
+        XCTAssertEqual(reloaded.state.active?.fromFossilEgg, true, "kept by the save")
+
+        XCTAssertTrue(s.useStone(.fireStone))
+        XCTAssertEqual(s.itemCount(.fossilEgg), 1, "back in the Bag")
+        XCTAssertEqual([s.excavationProgress.opened, s.excavationProgress.inBag], [0, 0], "no dig claimed here")
+    }
+
+    /// The base index down, a Fossil Egg's REST fallback asks for its lines themselves: it hatches one on every try,
+    /// not the line hatched last while another is left. It used to draw 32 random numbers and seldom met one.
+    func testTheRestFallbackFindsAFossilLineEveryTime() async throws {
         for seed: UInt64 in 1...12 {
             let s = try store(inventory: [.fossilEgg: 1], seed: seed, indexDown: true) {
                 $0.active = MonState(baseID: 1, pathIDs: [1], stageIndex: 0, usedAtStage: 0, rarity: .common, totalForms: 1)
+                $0.lastHatchedBaseID = 138
             }
             XCTAssertTrue(s.useFossilEgg())
             s.setEggUsageForTesting(s.eggHatchThreshold)
             await s.hatchIfNeeded()
-            guard let mon = s.state.active else { continue }   // no fossil among the tries: the egg waits
-            hatched += 1
+            let mon = try XCTUnwrap(s.state.active, "seed \(seed): the egg found no line")
             XCTAssertTrue(FossilDig.lines.contains(mon.baseID), "seed \(seed): \(mon.baseID)")
+            XCTAssertNotEqual(mon.baseID, 138, "not the line hatched last, seed \(seed)")
         }
-        XCTAssertGreaterThan(hatched, 0)
+        // One line left, hatched last: still hatched rather than kept.
+        let last = FossilDig.lines.filter { $0 != 883 }.map { graduated($0) }
+        let s = try store(dex: last, inventory: [.fossilEgg: 1], indexDown: true) {
+            $0.active = MonState(baseID: 1, pathIDs: [1], stageIndex: 0, usedAtStage: 0, rarity: .common, totalForms: 1)
+            $0.lastHatchedBaseID = 883
+        }
+        XCTAssertTrue(s.useFossilEgg())
+        s.setEggUsageForTesting(s.eggHatchThreshold)
+        await s.hatchIfNeeded()
+        XCTAssertEqual(s.state.active?.baseID, 883)
+    }
+
+    /// The REST fallback of any other egg leaves out a fossil line not graduated, and keeps one graduated (#75). Held
+    /// to Bulbasaur and the fossil lines, its draws can only meet those.
+    func testTheRestFallbackOfOtherEggsFollowsTheFossilRule() async throws {
+        var withGraduated: Set<Int> = []
+        for seed: UInt64 in 1...64 {
+            let s = try store(seed: seed, indexDown: true, restKnowsEntriesOnly: true)
+            s.setEggUsageForTesting(s.eggHatchThreshold)
+            await s.hatchIfNeeded()
+            if let base = s.state.active?.baseID { XCTAssertEqual(base, 1, "seed \(seed)") }
+            let omanyte = try store(dex: [graduated(138)], seed: seed, indexDown: true, restKnowsEntriesOnly: true)
+            omanyte.setEggUsageForTesting(omanyte.eggHatchThreshold)
+            await omanyte.hatchIfNeeded()
+            if let base = omanyte.state.active?.baseID {
+                XCTAssertTrue([1, 138].contains(base), "seed \(seed): \(base)")
+                withGraduated.insert(base)
+            }
+        }
+        XCTAssertTrue(withGraduated.contains(138), "a graduated Omanyte comes back from a plain egg")
     }
 
     /// A fossil line not graduated yet hatches from Fossil Eggs only: a plain egg, a rarity's egg, a stone's egg or an
@@ -254,9 +334,6 @@ final class FossilDigTests: XCTestCase {
             XCTAssertNil(water, "no fossil for a Water Stone's egg: it waits")
             let kanto = try await hatch(seed: seed) { $0.eggEvent = .pokemonDay }
             XCTAssertEqual(kanto, 1, "Pokémon Day's Kanto pool without Omanyte, Kabuto, Aerodactyl")
-            if let rest = try await hatch(seed: seed, indexDown: true) {
-                XCTAssertFalse(FossilDig.isFossilLine(rest), "the REST fallback: seed \(seed)")
-            }
         }
     }
 
@@ -282,11 +359,14 @@ final class FossilDigTests: XCTestCase {
         var st = CompanionState()
         st.eggFromFossilEgg = true
         st.fossilEggsHatched = 4
+        st.fossilLinesBeforeDigs = [138]
         let kept = try JSONDecoder().decode(CompanionState.self, from: JSONEncoder().encode(st))
         XCTAssertTrue(kept.eggFromFossilEgg)
         XCTAssertEqual(kept.fossilEggsHatched, 4)
+        XCTAssertEqual(kept.fossilLinesBeforeDigs, [138], "a lost key would take the lines again at every load")
         st.active = MonState(baseID: 1, pathIDs: [1], stageIndex: 0, usedAtStage: 0, rarity: .common, totalForms: 1)
         XCTAssertFalse(SaveTransfer.sanitized(st).eggFromFossilEgg, "no egg beside a Pokémon being raised")
         XCTAssertEqual(SaveTransfer.sanitized(st).fossilEggsHatched, 4)
+        XCTAssertEqual(SaveTransfer.sanitized(st).fossilLinesBeforeDigs, [138])
     }
 }

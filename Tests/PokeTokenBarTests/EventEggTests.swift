@@ -41,15 +41,31 @@ final class EventEggTests: XCTestCase {
 
     /// During the event and the two weeks after it, then gone; once claimed, gone for the year.
     func testAnEggWaitsTwoWeeksAfterItsEvent() {
-        XCTAssertEqual(waiting(at(2026, 12, 19)), [])
-        XCTAssertEqual(waiting(at(2026, 12, 20, hour: 0)), ["christmas@2026"])
-        XCTAssertEqual(waiting(at(2026, 12, 22)), ["christmas@2026", "winter@2026"], "the earliest event first")
+        XCTAssertEqual(waiting(at(2026, 12, 19)), ["autumn@2026"], "the season's egg alone")
+        XCTAssertEqual(waiting(at(2026, 12, 20, hour: 0)), ["autumn@2026", "christmas@2026"], "the earliest event first")
+        XCTAssertEqual(waiting(at(2026, 12, 22)), ["christmas@2026", "winter@2026"])
         XCTAssertTrue(EventEgg.christmas.isOn(year: 2026, now: at(2026, 12, 26, hour: 23), firstCatch: nil, calendar: utc))
         XCTAssertFalse(EventEgg.christmas.isOn(year: 2026, now: at(2026, 12, 27, hour: 0), firstCatch: nil, calendar: utc))
         XCTAssertTrue(waiting(at(2027, 1, 9, hour: 23)).contains("christmas@2026"), "December 27 plus two weeks")
         XCTAssertFalse(waiting(at(2027, 1, 10, hour: 0)).contains("christmas@2026"))
         XCTAssertFalse(waiting(at(2026, 12, 22), claimed: ["christmas@2026"]).contains("christmas@2026"))
         XCTAssertTrue(waiting(at(2027, 12, 22), claimed: ["christmas@2026"]).contains("christmas@2027"), "every year")
+    }
+
+    /// A season's egg waits the whole season, once: 2026's autumn one came for three days and was gone before the
+    /// eggs shipped. The winter's crosses the year under the year it starts.
+    func testASeasonsEggWaitsTheWholeSeason() {
+        XCTAssertFalse(waiting(at(2026, 9, 21, hour: 23)).contains("autumn@2026"))
+        XCTAssertTrue(waiting(at(2026, 9, 22, hour: 0)).contains("autumn@2026"))
+        XCTAssertTrue(waiting(at(2026, 10, 28)).contains("autumn@2026"), "any day of the season")
+        XCTAssertTrue(waiting(at(2026, 12, 20, hour: 23)).contains("autumn@2026"))
+        XCTAssertFalse(waiting(at(2026, 12, 21, hour: 0)).contains("autumn@2026"), "the winter's takes over")
+        XCTAssertFalse(waiting(at(2026, 10, 28), claimed: ["autumn@2026"]).contains("autumn@2026"), "once")
+        XCTAssertTrue(EventEgg.autumn.isOn(year: 2026, now: at(2026, 11, 15), firstCatch: nil, calendar: utc))
+        XCTAssertTrue(waiting(at(2027, 3, 19, hour: 23)).contains("winter@2026"))
+        XCTAssertEqual(waiting(at(2027, 3, 20, hour: 0)).filter { $0.hasPrefix("winter") || $0.hasPrefix("spring") },
+                       ["spring@2027"])
+        XCTAssertTrue(waiting(at(2027, 8, 1)).contains("summer@2027"))
     }
 
     /// The New Year's egg starts on December 31 and counts for the year beginning.
@@ -111,7 +127,7 @@ final class EventEggTests: XCTestCase {
                          BaseSpecies(id: 4, captureRate: 45), BaseSpecies(id: 252, captureRate: 45),
                          BaseSpecies(id: 370, captureRate: 225), BaseSpecies(id: 175, captureRate: 190),
                          BaseSpecies(id: 585, captureRate: 190), BaseSpecies(id: 37, captureRate: 190),
-                         BaseSpecies(id: 361, captureRate: 190)]
+                         BaseSpecies(id: 361, captureRate: 190), BaseSpecies(id: 138, captureRate: 45)]
 
     private let christmas21 = Calendar.current.date(from: DateComponents(year: 2026, month: 12, day: 21, hour: 12))!
 
@@ -212,6 +228,71 @@ final class EventEggTests: XCTestCase {
         }
     }
 
+    /// A first catch that is a fossil line sent off before it graduated hatches from no egg but a Fossil Egg; the
+    /// Friendship Egg still brings it back, from the index and from the REST fallback.
+    func testTheFriendshipEggHatchesAFossilFirstCatchNotGraduated() async throws {
+        let long = Date(timeIntervalSince1970: 1_700_000_000)
+        let omanyte = DexEntry(baseID: 138, finalID: 138, chainOrder: [138], rarity: .common, caughtAt: long)
+        let later = DexEntry(baseID: 1, finalID: 1, chainOrder: [1], rarity: .common, caughtAt: long.addingTimeInterval(86_400))
+        for seed: UInt64 in 1...4 {
+            for indexDown in [false, true] {
+                let mon = try await tryHatch(.companion, seed: seed, indexDown: indexDown) {
+                    $0.dex = [omanyte.releasedNow(at: long.addingTimeInterval(3_600)), later]
+                }
+                XCTAssertEqual(mon?.baseID, 138, "seed \(seed) indexDown \(indexDown)")
+                XCTAssertEqual(mon?.isShiny, true)
+            }
+        }
+    }
+
+    /// An event egg's type and rarity are the event's: the Tera Orb and the Sea Incense, which speed a stone's and a
+    /// Shop egg, leave it as it is.
+    func testTheEggSpeedItemsLeaveAnEventEgg() throws {
+        let raising = MonState(baseID: 252, pathIDs: [252], stageIndex: 0, usedAtStage: 0, rarity: .common, totalForms: 1)
+        let plain = try store {
+            $0.active = raising
+            $0.inventory = [EventEgg.christmas.item.rawValue: 1]
+        }
+        let s = try store {
+            $0.active = raising
+            $0.inventory = [EventEgg.christmas.item.rawValue: 1, ItemKind.teraOrb.rawValue: 1, ItemKind.seaIncense.rawValue: 1]
+        }
+        XCTAssertTrue(plain.useEventEgg(.christmas))
+        XCTAssertTrue(s.useEventEgg(.christmas))
+        XCTAssertNotNil(s.state.eggTier)
+        XCTAssertNotNil(s.state.eggTypeGuarantee)
+        XCTAssertEqual(s.eggHatchThreshold, plain.eggHatchThreshold)
+        // The same guarantees from no event: both items halve it.
+        let stone = try store {
+            $0.active = nil
+            $0.eggTier = .rare
+            $0.eggTypeGuarantee = .ice
+            $0.inventory = [ItemKind.teraOrb.rawValue: 1, ItemKind.seaIncense.rawValue: 1]
+        }
+        XCTAssertEqual(stone.eggHatchThreshold, plain.eggHatchThreshold / 4)
+    }
+
+    /// A season's Deerling follows the rules of every egg: not the line hatched last, and with the Oval Charm, not a
+    /// form already collected.
+    func testTheSeasonsDeerlingKeepsTheLastHatchedRuleAndTheOvalCharm() async throws {
+        for seed: UInt64 in 1...24 {
+            let afterDeerling = try await hatch(.winter, seed: seed) { $0.lastHatchedBaseID = EventEgg.deerlingID }
+            XCTAssertNotEqual(afterDeerling.baseID, EventEgg.deerlingID, "seed \(seed)")
+            // `hatch` sets the Bag itself: the charm goes in by hand.
+            let s = try store(seed: seed) {
+                $0.dex = [DexEntry(baseID: EventEgg.deerlingID, finalID: 586, chainOrder: [585, 586], rarity: .common,
+                                   caughtAt: Date(timeIntervalSince1970: 1_700_000_000), form: PokemonForm("winter"))]
+                $0.active = MonState(baseID: 252, pathIDs: [252], stageIndex: 0, usedAtStage: 0, rarity: .common, totalForms: 1)
+                $0.inventory = [EventEgg.winter.item.rawValue: 1, ItemKind.ovalCharm.rawValue: 1]
+            }
+            XCTAssertTrue(s.useEventEgg(.winter))
+            s.setEggUsageForTesting(s.eggHatchThreshold)
+            await s.hatchIfNeeded()
+            let charmed = try XCTUnwrap(s.state.active, "seed \(seed)")
+            XCTAssertNotEqual(charmed.baseID, EventEgg.deerlingID, "winter Deerling already collected, seed \(seed)")
+        }
+    }
+
     /// A season's egg: Deerling in the season's form one time in three, else a Pokémon of the season's types, in a
     /// form that has one (an Alolan Vulpix in winter, never a Fire one).
     func testASeasonEggHatchesDeerlingOrTheSeasonsTypes() async throws {
@@ -244,6 +325,25 @@ final class EventEggTests: XCTestCase {
         XCTAssertGreaterThan(hatched, 0)
     }
 
+    /// The base index down, an egg of a few lines asks for them: it hatches one on every try. It used to draw 32
+    /// random numbers among 1,025 and seldom met one, the Friendship Egg's single line least of all.
+    func testTheRestFallbackOfAnEggOfFewLinesHatchesEveryTime() async throws {
+        let first = DexEntry(baseID: 4, finalID: 4, chainOrder: [4], rarity: .common, caughtAt: Date(timeIntervalSince1970: 1_700_000_000))
+        for seed: UInt64 in 1...8 {
+            let love = try await tryHatch(.valentine, seed: seed, indexDown: true)
+            XCTAssertTrue(EventEgg.valentineLines.contains(try XCTUnwrap(love, "seed \(seed)").baseID))
+            let easter = try await tryHatch(.easter, seed: seed, indexDown: true) { $0.lastHatchedBaseID = 175 }
+            let easterLine = try XCTUnwrap(easter, "seed \(seed)").baseID
+            XCTAssertTrue(EventEgg.easterLines.contains(easterLine))
+            XCTAssertNotEqual(easterLine, 175, "not the line hatched last while another is left")
+            let friend = try await tryHatch(.companion, seed: seed, indexDown: true) {
+                $0.dex = [first]
+                $0.lastHatchedBaseID = 4
+            }
+            XCTAssertEqual(friend?.baseID, 4, "its only line, even hatched last")
+        }
+    }
+
     /// An imported save with a Pokémon being raised drops an event guarantee left beside it.
     func testAnImportedSaveDropsAStrayEventGuarantee() {
         var st = CompanionState()
@@ -253,5 +353,14 @@ final class EventEggTests: XCTestCase {
         let clean = SaveTransfer.sanitized(st)
         XCTAssertNil(clean.eggEvent)
         XCTAssertEqual(clean.claimedEventEggs, ["christmas@2026"], "the record of eggs taken travels")
+    }
+}
+
+private extension DexEntry {
+    /// The record of a Pokémon sent off for an egg before it graduated.
+    func releasedNow(at date: Date) -> DexEntry {
+        var entry = self
+        entry.releasedAt = date
+        return entry
     }
 }

@@ -150,7 +150,7 @@ final class UsageLedgerRecordingTests: XCTestCase {
     func testTheFirstRefreshAlreadyFillsTheLedger() async {
         let formatter = LocalUsageReader.localDayFormatter()
         let today = formatter.string(from: Date())
-        let yesterday = formatter.string(from: Date().addingTimeInterval(-86_400))
+        let yesterday = formatter.string(from: Calendar.current.date(byAdding: .day, value: -1, to: Date())!)
         let defaults = UserDefaults(suiteName: "ledger-refresh-\(UUID().uuidString)")!
         let store = UsageStore(
             providers: [LedgerProvider(daily: usage(today, 300),

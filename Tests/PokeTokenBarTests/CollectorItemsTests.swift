@@ -345,7 +345,7 @@ final class CollectorItemsTests: XCTestCase {
         }
         let flower = store(used: rich, inventory: [ItemKind.gracidea.rawValue: 1])
         flower.grantCandies(from: [], limitsReady: true)
-        flower.grantCandies(from: [window("s", .session)], limitsReady: true)
+        flower.grantCandiesFilling([window("s", .session)])
         XCTAssertEqual(flower.rareCandyCount, 1)
         XCTAssertTrue(flower.buy(.rareCandy))
         XCTAssertEqual(flower.rareCandyCount, 2)

@@ -106,7 +106,7 @@ final class LegendaryArtifactsTests: XCTestCase {
                 CandyWindow(key: "s", name: "T", kind: .session, utilization: u, epoch: "e", planMultiplier: 5)
             }
             s.grantCandies(from: [], limitsReady: true)
-            s.grantCandies(from: [session(40)], limitsReady: true)
+            s.grantCandiesFilling([session(40)])
             XCTAssertEqual(s.rareCandyCount, 2, "owned: \(owned)")
             s.grantCandies(from: [session(100)], limitsReady: true)
             XCTAssertEqual(s.rareCandyCount, 5 + (owned ? CollectorBonus.meteoriteWindowCandies : 0), "owned: \(owned)")

@@ -41,6 +41,19 @@ PR을 보류하지 않는다. 적절한 생성·첨부 대안을 시도한 뒤�
 Claude Code는 `.claude/skills/prepare-pr`의 symlink를 통해
 동일한 skill을 인식하고, Codex는 `.agents/skills/prepare-pr`를 사용한다.
 
+## Branches: everything to `release`, `main` only on the owner's word
+
+Each merge into `main` is an update offered to every player by the in-app updater, so development is batched on the
+`release` branch (not to be confused with the versioned releases below):
+
+- Every development goes to `release`: a branch from an up-to-date `release`, a PR with `--base release`, merged into
+  `release` once the full local suite passes (PRs into `release` get no CI). Group what is asked together in one PR.
+- Nothing is merged into `main` until the owner says so. Then everything in `release` goes to `main` in one
+  `release → main` PR: one merge, one update.
+- Never open a PR against `main` for a feature, not even to get CI: CI runs on that single `release → main` PR.
+- Before that merge, sync upstream PokeTokenBar and date the What's New entries with the merge day. After it,
+  fast-forward `release` to `main` if it fell behind, and rebuild the installed app from `main`.
+
 ## What's New (앱 내 변경 내역): 매번 갱신
 
 플레이어가 볼 수 있는 변경을 만들 때마다(기능·수정·밸런스·문구, PR이든 직접 커밋이든) 같은 작업 안에서

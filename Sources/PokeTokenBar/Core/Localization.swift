@@ -1219,14 +1219,14 @@ struct L {
           "100% дубликат")
     }
     var activeDuplicateHint: String {
-        t("갈 수 있는 모든 종과 폼이 이미 졸업했어요. 놓아줘도 잃는 게 없어요.",
-          "Every species and form it can bring has already graduated: sending it off loses nothing.",
-          "たどり着けるすべての種とフォルムが卒業済みです。手放しても失うものはありません。",
-          "Todas las especies y formas que puede traer ya se graduaron: soltarlo no te hace perder nada.",
-          "Toutes les espèces et formes qu'il peut apporter sont déjà diplômées : le laisser partir ne fait rien perdre.",
-          "Todas as espécies e formas que ele pode trazer já se formaram: soltá-lo não faz perder nada.",
-          "Alle Arten und Formen, die es bringen kann, hatten schon ihren Abschied: Es abzugeben kostet nichts.",
-          "Все виды и формы, которые он может принести, уже выпущены: отпустив его, вы ничего не потеряете.")
+        t("새로운 게 없어요. 종, 폼, 이로치, 코스튬이 이미 도감에 있어 놓아줘도 잃는 게 없어요.",
+          "Nothing new: its species, forms, shiny and costumes are already in your Pokédex, so sending it off loses nothing.",
+          "新しいものはありません。種、フォルム、色違い、コスチュームはすでに図鑑にあり、手放しても失うものはありません。",
+          "Nada nuevo: sus especies, formas, variocolor y disfraces ya están en tu Pokédex, así que soltarlo no te hace perder nada.",
+          "Rien de nouveau : ses espèces, formes, chromatique et costumes sont déjà dans ton Pokédex, le laisser partir ne fait rien perdre.",
+          "Nada novo: suas espécies, formas, brilhante e fantasias já estão na sua Pokédex, então soltá-lo não faz perder nada.",
+          "Nichts Neues: Seine Arten, Formen, Schillernde und Kostüme sind schon in deinem Pokédex, es abzugeben kostet nichts.",
+          "Ничего нового: его виды, формы, сияющий вариант и костюмы уже в покедексе, отпустив его, вы ничего не потеряете.")
     }
     var activeNewBadge: String { t("신규", "New", "新規", "Nuevo", "Nouveau", "Novo", "Neu", "Новое") }
     /// What graduating the current Pokémon adds, for the hint of its New badge.
@@ -1294,7 +1294,8 @@ struct L {
     }
     var dexNormalLabel: String { t("일반", "Normal", "通常", "Normal", "Normal", "Normal", "Normal", "Обычный") }
     var dexAppearance: String { t("모습", "Appearance", "姿", "Aspecto", "Apparence", "Aparência", "Aussehen", "Внешний вид") }
-    var dexAppearancePreview: String { t("수집한 모습 · 종 정보", "Collected appearance · species reference", "収集した姿・種情報", "Aspecto coleccionado · datos de especie", "Apparence collectionnée · données de l’espèce", "Aparência coletada · dados da espécie", "Gesammeltes Aussehen · Speziesdaten", "Собранный облик · образец вида") }
+    /// Shown when no Pokémon of the picked look was caught: Normal on a form caught shiny only.
+    var dexAppearancePreview: String { t("미리보기 · 이 모습으로는 잡지 않았어요", "Preview · not caught in this look", "プレビュー・この姿では未入手", "Vista previa · no capturado con este aspecto", "Aperçu · pas attrapé sous cet aspect", "Prévia · não capturado com esta aparência", "Vorschau · in diesem Aussehen nicht gefangen", "Предпросмотр · в этом облике не пойман") }
     // MARK: Pokémon 상세
     var loadingPokemonDetails: String { t("포켓몬 정보를 불러오는 중…", "Loading Pokémon details…", "ポケモン情報を読み込み中…", "Cargando detalles del Pokémon…", "Chargement des détails du Pokémon…", "Carregando detalhes do Pokémon…", "Pokémon-Details werden geladen…", "Загрузка данных покемона…") }
     var pokemonDetailsUnavailable: String { t("포켓몬 정보를 불러오지 못했어요.", "Pokémon details could not be loaded.", "ポケモン情報を読み込めませんでした。", "No se pudieron cargar los detalles.", "Impossible de charger les détails.", "Não foi possível carregar os detalhes.", "Pokémon-Details konnten nicht geladen werden.", "Не удалось загрузить данные покемона.") }
@@ -2159,23 +2160,23 @@ struct L {
                      "Arceus' Belohnung: Holst du sie ab, kommen ein \(rare) und ein \(uncommon) in deinen Beutel.",
                      "Награда Арсеуса: получив её, вы найдёте в сумке «\(rare)» и «\(uncommon)».")
         case .excavation:
-            return t("바위 타입 포켓몬을 4마리 졸업시킬 때마다 화석 알을 하나 발굴해요. 알에서는 아직 없는 화석 계열이 태어나요. 화석 계열은 이 알에서만 태어나고, 졸업한 뒤에는 모든 알에서 나올 수 있어요.",
-                     "Every 4 Rock-type Pokémon you graduate dig up a Fossil Egg. It hatches a fossil line you're missing: a fossil line hatches from these eggs only, then from any egg once graduated.",
-                     "いわタイプのポケモンを4匹卒業させるたびに化石のタマゴを1つ発掘します。まだいない化石の系統が生まれます。化石の系統はこのタマゴからしか生まれず、卒業したあとはどのタマゴからも生まれます。",
-                     "Cada 4 Pokémon de tipo Roca que gradúas desentierran un Huevo Fósil. De él nace una línea fósil que te falta: una línea fósil solo nace de estos huevos y, una vez graduada, de cualquier huevo.",
-                     "Tous les 4 Pokémon de type Roche que tu diplômes, tu déterres un Œuf fossile. Il fait éclore une lignée fossile qui te manque : une lignée fossile n'éclot que de ces œufs, puis de tous les œufs une fois diplômée.",
-                     "A cada 4 Pokémon do tipo Pedra que você forma, você desenterra um Ovo Fóssil. Dele nasce uma linha fóssil que falta: uma linha fóssil só nasce desses ovos e, depois de formada, de qualquer ovo.",
-                     "Alle 4 Gestein-Pokémon, die du verabschiedest, gräbst du ein Fossil-Ei aus. Daraus schlüpft eine Fossil-Linie, die dir fehlt: Eine Fossil-Linie schlüpft nur aus diesen Eiern, nach ihrem Abschied dann aus jedem Ei.",
-                     "Каждые 4 выпущенных покемона каменного типа приносят Яйцо-окаменелость. Из него вылупляется недостающая линия окаменелостей: такая линия вылупляется только из этих яиц, а после выпуска из любых яиц.")
+            return t("바위 타입 포켓몬을 4마리 졸업시킬 때마다 화석 알을 하나 발굴해요. 알에서는 아직 졸업하지 않은 화석 계열이 태어나요. 화석 계열은 이 알에서만 태어나고, 졸업한 뒤에는 모든 알에서 나올 수 있어요.",
+                     "Every 4 Rock-type Pokémon you graduate dig up a Fossil Egg. It hatches a fossil line you haven't graduated yet: a fossil line hatches from these eggs only, then from any egg once graduated.",
+                     "いわタイプのポケモンを4匹卒業させるたびに化石のタマゴを1つ発掘します。まだ卒業していない化石の系統が生まれます。化石の系統はこのタマゴからしか生まれず、卒業したあとはどのタマゴからも生まれます。",
+                     "Cada 4 Pokémon de tipo Roca que gradúas desentierran un Huevo Fósil. De él nace una línea fósil que aún no has graduado: una línea fósil solo nace de estos huevos y, una vez graduada, de cualquier huevo.",
+                     "Tous les 4 Pokémon de type Roche que tu diplômes, tu déterres un Œuf fossile. Il fait éclore une lignée fossile pas encore diplômée : une lignée fossile n'éclot que de ces œufs, puis de tous les œufs une fois diplômée.",
+                     "A cada 4 Pokémon do tipo Pedra que você forma, você desenterra um Ovo Fóssil. Dele nasce uma linha fóssil que você ainda não formou: uma linha fóssil só nasce desses ovos e, depois de formada, de qualquer ovo.",
+                     "Alle 4 Gestein-Pokémon, die du verabschiedest, gräbst du ein Fossil-Ei aus. Daraus schlüpft eine Fossil-Linie, die du noch nicht verabschiedet hast: Eine Fossil-Linie schlüpft nur aus diesen Eiern, nach ihrem Abschied dann aus jedem Ei.",
+                     "Каждые 4 выпущенных покемона каменного типа приносят Яйцо-окаменелость. Из него вылупляется ещё не выпущенная линия окаменелостей: такая линия вылупляется только из этих яиц, а после выпуска из любых яиц.")
         case .fossilEgg:
-            return t("지금 포켓몬을 놓아주고 이 알을 받아요. 아직 없는 화석 계열의 포켓몬이 무작위로 태어나요.",
-                     "Send off your current Pokémon for it: it hatches, at random, a fossil Pokémon whose line you don't have yet.",
-                     "いまのポケモンを手放してこのタマゴにします。まだいない化石の系統のポケモンがランダムに生まれます。",
-                     "Suelta a tu Pokémon actual por él: nace al azar un Pokémon fósil de una línea que aún no tienes.",
-                     "Laisse partir ton Pokémon actuel contre lui : il fait éclore au hasard un Pokémon fossile d'une lignée que tu n'as pas encore.",
-                     "Solte seu Pokémon atual por ele: nasce ao acaso um Pokémon fóssil de uma linha que você ainda não tem.",
-                     "Gib dein aktuelles Pokémon dafür ab: Daraus schlüpft zufällig ein Fossil-Pokémon einer Linie, die du noch nicht hast.",
-                     "Отпустите текущего покемона ради него: из него вылупится случайный покемон-окаменелость из линии, которой у вас ещё нет.")
+            return t("지금 포켓몬을 놓아주고 이 알을 받아요. 아직 졸업하지 않은 화석 계열의 포켓몬이 무작위로 태어나고, 모든 계열을 졸업했다면 아무 화석 계열이나 태어나요.",
+                     "Send off your current Pokémon for it: it hatches, at random, a fossil Pokémon of a line you haven't graduated yet, or of any fossil line once all are graduated.",
+                     "いまのポケモンを手放してこのタマゴにします。まだ卒業していない化石の系統のポケモンがランダムに生まれ、すべて卒業していればどの化石の系統でも生まれます。",
+                     "Suelta a tu Pokémon actual por él: nace al azar un Pokémon fósil de una línea que aún no has graduado, o de cualquier línea fósil si ya las graduaste todas.",
+                     "Laisse partir ton Pokémon actuel contre lui : il fait éclore au hasard un Pokémon fossile d'une lignée pas encore diplômée, ou de n'importe quelle lignée fossile une fois toutes diplômées.",
+                     "Solte seu Pokémon atual por ele: nasce ao acaso um Pokémon fóssil de uma linha ainda não formada, ou de qualquer linha fóssil quando todas estiverem formadas.",
+                     "Gib dein aktuelles Pokémon dafür ab: Daraus schlüpft zufällig ein Fossil-Pokémon einer noch nicht verabschiedeten Linie, oder jeder Fossil-Linie, sobald alle verabschiedet sind.",
+                     "Отпустите текущего покемона ради него: из него вылупится случайный покемон-окаменелость из ещё не выпущенной линии, а когда выпущены все, из любой.")
         case .rotomCatalog:
             return t("보유하면 그 진화 라인에 없던 폼으로 태어난 포켓몬마다 이상한 사탕을 1개 받습니다.",
                      "While owned, every Pokémon that hatches in a form its line never had gives you one Rare Candy.",
@@ -2528,11 +2529,18 @@ struct L {
     /// The Legend Plate never sits in the Bag: its claim gives these two eggs.
     var legendPlateHint: String { "\(eggName(.rare)) + \(eggName(.uncommon))" }
     var fossilEggHint: String {
-        t("없는 화석 계열", "A fossil line you're missing", "まだいない化石の系統", "Una línea fósil que te falta",
-          "Une lignée fossile qui te manque", "Uma linha fóssil que falta", "Eine fehlende Fossil-Linie", "Недостающая линия окаменелостей")
+        t("아직 졸업하지 않은 화석 계열", "A fossil line not graduated yet", "まだ卒業していない化石の系統",
+          "Una línea fósil aún sin graduar", "Une lignée fossile pas encore diplômée", "Uma linha fóssil ainda não formada",
+          "Eine noch nicht verabschiedete Fossil-Linie", "Ещё не выпущенная линия окаменелостей")
+    }
+    /// On a forms goal too long to draw: the forms still missing.
+    func missingFormsHint(_ names: [String]) -> String {
+        let list = names.joined(separator: ", ")
+        return t("아직 없는 폼: \(list)", "Still missing: \(list)", "まだないフォルム：\(list)", "Faltan: \(list)",
+                 "Il manque : \(list)", "Faltam: \(list)", "Es fehlen: \(list)", "Не хватает: \(list)")
     }
     var excavationEggOpened: String {
-        t("부화함", "Hatched", "かえした", "Abierto", "Ouvert", "Aberto", "Geöffnet", "Открыто")
+        t("사용함", "Opened", "開けた", "Abierto", "Ouvert", "Aberto", "Geöffnet", "Открыто")
     }
     var excavationEggInBag: String {
         t("가방에", "In the Bag", "バッグの中", "En la Bolsa", "Dans le sac", "Na Bolsa", "Im Beutel", "В сумке")
@@ -2543,10 +2551,6 @@ struct L {
     var excavationEggToEarn: String {
         t("앞으로 받을 알", "To earn", "これから", "Por ganar", "À gagner", "A ganhar", "Noch zu verdienen", "Впереди")
     }
-    var excavationEggNotClaimable: String {
-        t("받을 수 없음", "Not claimable", "受け取れない", "No reclamable", "Non récupérable", "Não resgatável", "Nicht abholbar",
-          "Нельзя забрать")
-    }
     func excavationNextEgg(_ count: Int, of needed: Int) -> String {
         t("다음 알: 바위 타입 \(count)/\(needed)", "Next egg: \(count)/\(needed) Rock-type Pokémon",
           "次のタマゴ: いわタイプ \(count)/\(needed)", "Próximo huevo: \(count)/\(needed) Pokémon de tipo Roca",
@@ -2554,10 +2558,10 @@ struct L {
           "Nächstes Ei: \(count)/\(needed) Gestein-Pokémon", "Следующее яйцо: \(count)/\(needed) каменного типа")
     }
     func excavationLines(_ owned: Int, of total: Int) -> String {
-        t("가진 화석 계열: \(owned)/\(total)", "Fossil lines you have: \(owned)/\(total)", "持っている化石の系統: \(owned)/\(total)",
-          "Líneas fósiles que tienes: \(owned)/\(total)", "Lignées fossiles obtenues : \(owned)/\(total)",
-          "Linhas fósseis que você tem: \(owned)/\(total)", "Deine Fossil-Linien: \(owned)/\(total)",
-          "Ваши линии окаменелостей: \(owned)/\(total)")
+        t("졸업한 화석 계열: \(owned)/\(total)", "Fossil lines graduated: \(owned)/\(total)", "卒業した化石の系統: \(owned)/\(total)",
+          "Líneas fósiles graduadas: \(owned)/\(total)", "Lignées fossiles diplômées : \(owned)/\(total)",
+          "Linhas fósseis formadas: \(owned)/\(total)", "Verabschiedete Fossil-Linien: \(owned)/\(total)",
+          "Выпущенные линии окаменелостей: \(owned)/\(total)")
     }
     var rotomCatalogEffectHint: String {
         t("새 폼마다 사탕 +1 · 적용 중", "+1 candy per new form · active", "新フォルムごとにアメ+1 · 適用中", "+1 caramelo por forma nueva · activo",
