@@ -290,7 +290,7 @@ private struct RegionGrid: View {
                 .padding(.horizontal, 6)
                 .padding(.vertical, 4)
                 .background(RoundedRectangle(cornerRadius: 6).fill(background(tier)))
-                .help("\(tier.progress.registered.count)/\(tier.progress.goal.needed)")
+                .hoverTip("\(tier.progress.registered.count)/\(tier.progress.goal.needed)")
             }
         }
     }
@@ -314,28 +314,26 @@ private struct RegionGrid: View {
     }
 }
 
-/// The digs told as eggs: 15, one per fossil line, in the digs' order, each state its own look and named in a legend
-/// below. The fossil lines fold away under it: they are what the eggs give, not what the digs ask for, and shown first
-/// they read as a goal.
+/// The digs told as a row of eggs, as the Pokémon a goal asks for: 15, one per fossil line, in the digs' order, each
+/// state its own badge. The fossil lines fold away under it: they are what the eggs give, not what the digs ask for,
+/// and shown first they read as a goal.
 @MainActor
 private struct ExcavationPanel: View {
     let store: CompanionStore
     @State private var showsLines = false
 
-    private static let amber = Color(red: 0.93, green: 0.58, blue: 0.16)
+    enum Egg: CaseIterable { case opened, inBag, ready, next, toEarn }
 
-    enum Egg: CaseIterable { case opened, inBag, ready, next, toEarn, notClaimable }
-
-    /// The eggs in the digs' order: claimed (opened, then in the Bag), ready, the next one, those to earn, and the
-    /// digs done with nothing to claim, which are the last ones.
+    /// The eggs in the digs' order: claimed (opened, then in the Bag), ready, the next one, those to earn. A dig with
+    /// nothing to claim (its line had before the digs) reads as opened: there is nothing left to do with it.
     static func eggs(_ progress: CompanionStore.ExcavationProgress) -> [Egg] {
-        var eggs = Array(repeating: Egg.opened, count: progress.opened) + Array(repeating: .inBag, count: progress.inBag)
-        eggs += Array(repeating: .ready, count: progress.ready)
+        var eggs = Array(repeating: Egg.opened, count: progress.opened + progress.notClaimable)
+        eggs += Array(repeating: .inBag, count: progress.inBag) + Array(repeating: .ready, count: progress.ready)
         if progress.toEarn > 0 {
             eggs += (progress.towardNext != nil ? [.next] : [.toEarn])
             eggs += Array(repeating: .toEarn, count: progress.toEarn - 1)
         }
-        return eggs + Array(repeating: .notClaimable, count: progress.notClaimable)
+        return eggs
     }
 
     var body: some View {
@@ -343,29 +341,33 @@ private struct ExcavationPanel: View {
         let progress = store.excavationProgress
         let eggs = Self.eggs(progress)
         let toward = progress.towardNext ?? 0
-        // The next egg is one to earn: one entry for both.
-        let named = Egg.allCases.filter { kind in kind != .next && eggs.contains { $0 == kind || ($0 == .next && kind == .toEarn) } }
+        // Out of the 15 digs, as every regional card counts its regions: those claimed, a dig with nothing to claim
+        // among them.
+        let claimed = eggs.count { $0 == .opened || $0 == .inBag }
         VStack(alignment: .leading, spacing: 8) {
-            LazyVGrid(columns: Array(repeating: GridItem(.fixed(20), spacing: 7), count: 10), alignment: .leading,
-                      spacing: 7) {
-                ForEach(Array(eggs.enumerated()), id: \.offset) { _, egg in
-                    look(egg, toward: toward, width: 19)
-                        .help(egg == .next ? l.excavationNextEgg(toward, of: FossilDig.rockPerDig) : name(egg, l))
-                }
-            }
-            WrappingHStack(spacing: 10, lineSpacing: 4) {
-                ForEach(named, id: \.self) { egg in
-                    HStack(spacing: 4) {
-                        look(egg, toward: toward, width: 10)
-                        Text(name(egg, l)).font(.caption2).foregroundStyle(.secondary)
+            HStack(alignment: .center, spacing: 6) {
+                LazyVGrid(columns: Array(repeating: GridItem(.fixed(22), spacing: 2), count: 8), alignment: .leading,
+                          spacing: 4) {
+                    ForEach(Array(eggs.enumerated()), id: \.offset) { _, egg in
+                        let lit = egg == .opened || egg == .inBag || egg == .ready
+                        eggSprite(22)
+                            .grayscale(lit ? 0 : 1)
+                            .opacity(lit ? (egg == .opened ? 0.55 : 1) : 0.35)
+                            .overlay(alignment: .bottomTrailing) { badge(egg) }
+                            .hoverTip(egg == .next ? l.excavationNextEgg(toward, of: FossilDig.rockPerDig) : name(egg, l))
                     }
-                    .fixedSize()
                 }
+                Spacer(minLength: 4)
+                Text("\(claimed)/\(eggs.count)")
+                    .font(.caption2.weight(.semibold)).foregroundStyle(.secondary).monospacedDigit()
             }
             if progress.towardNext != nil {
-                Text(l.excavationNextEgg(toward, of: FossilDig.rockPerDig))
-                    .font(.caption.weight(.semibold)).monospacedDigit()
+                HStack(spacing: 6) {
+                    Text(l.excavationNextEgg(toward, of: FossilDig.rockPerDig)).font(.caption2).foregroundStyle(.secondary)
+                    ProgressView(value: Double(toward), total: Double(FossilDig.rockPerDig)).controlSize(.small)
+                }
             }
+            legend(eggs, l)
             Button {
                 withAnimation(.easeOut(duration: 0.15)) { showsLines.toggle() }
             } label: {
@@ -390,76 +392,50 @@ private struct ExcavationPanel: View {
         case .inBag: l.excavationEggInBag
         case .ready: l.excavationEggReady
         case .next, .toEarn: l.excavationEggToEarn
-        case .notClaimable: l.excavationEggNotClaimable
         }
     }
 
-    /// Opened: the bottom of a hatched shell under its faint outline. In the Bag: whole, with a bag. To claim: whole, ringed, with a gift.
-    /// The next: filling from the bottom as its Rock-type Pokémon graduate. To earn: an outline. Not claimable: grey,
-    /// barred.
-    private func look(_ egg: Egg, toward: Int, width: CGFloat) -> some View {
-        let height = width * 24 / 19
-        let icon = width * 0.42
-        let shape = Ellipse()
-        return ZStack {
-            switch egg {
-            case .opened:
-                // The shell's missing top, faint, so the bottom half reads as an egg hatched.
-                shape.strokeBorder(Self.amber.opacity(0.35), lineWidth: max(1, width / 16))
-                shape.fill(Self.amber.opacity(0.85)).mask(OpenedShell())
-            case .inBag:
-                shape.fill(Self.amber)
-                Image(systemName: "bag.fill").font(.system(size: icon)).foregroundStyle(.white)
-            case .ready:
-                shape.fill(Self.amber)
-                shape.strokeBorder(Color.accentColor, lineWidth: max(1, width / 10))
-                Image(systemName: "gift.fill").font(.system(size: icon)).foregroundStyle(.white)
-            case .next:
-                shape.fill(Self.amber.opacity(0.7))
-                    .mask(alignment: .bottom) {
-                        Rectangle().frame(height: height * CGFloat(toward) / CGFloat(FossilDig.rockPerDig))
+    private func eggSprite(_ size: CGFloat) -> some View {
+        SpriteView(speciesID: nil, size: size, egg: .fossil)
+    }
+
+    @ViewBuilder
+    private func badge(_ egg: Egg) -> some View {
+        switch egg {
+        case .opened: Image(systemName: "checkmark.circle.fill").font(.system(size: 9)).foregroundStyle(Color.readableGreen)
+        case .inBag: Image(systemName: "bag.circle.fill").font(.system(size: 9)).foregroundStyle(Color.readableOrange)
+        case .ready: Image(systemName: "gift.circle.fill").font(.system(size: 9)).foregroundStyle(Color.accentColor)
+        case .next, .toEarn: EmptyView()
+        }
+    }
+
+    /// The states the eggs show, named once.
+    private func legend(_ eggs: [Egg], _ l: L) -> some View {
+        let named = Egg.allCases.filter { kind in kind != .next && eggs.contains { $0 == kind || ($0 == .next && kind == .toEarn) } }
+        return WrappingHStack(spacing: 10, lineSpacing: 4) {
+            ForEach(named, id: \.self) { egg in
+                HStack(spacing: 3) {
+                    badge(egg)
+                    if egg == .toEarn {
+                        eggSprite(12).grayscale(1).opacity(0.35)
                     }
-                shape.strokeBorder(Self.amber, lineWidth: max(1, width / 13))
-            case .toEarn:
-                shape.strokeBorder(Color.secondary.opacity(0.5),
-                                   style: StrokeStyle(lineWidth: max(1, width / 16), dash: [width / 8, width / 10]))
-            case .notClaimable:
-                shape.fill(Color.secondary.opacity(0.25))
-                Image(systemName: "nosign").font(.system(size: icon, weight: .semibold)).foregroundStyle(.secondary)
+                    Text(name(egg, l)).font(.caption2).foregroundStyle(.secondary)
+                }
+                .fixedSize()
             }
         }
-        .frame(width: width, height: height)
     }
 
-    /// The fossil lines, those graduated in color.
+    /// The fossil lines, those graduated in color, the others in black as in the Pokédex.
     private var lines: some View {
         let graduated = store.graduatedSpeciesIDs
         return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 8), spacing: 2) {
             ForEach(FossilDig.lines, id: \.self) { line in
                 let owned = graduated.contains(line)
-                SpriteView(speciesID: line, size: 26, sameScale: true)
+                SpriteView(speciesID: line, size: 26, isSilhouette: !owned, sameScale: true)
                     .frame(width: 28, height: 28)
-                    .grayscale(owned ? 0 : 1).opacity(owned ? 1 : 0.35)
                     .speciesNameTooltip(line, language: store.language)
             }
         }
-    }
-}
-
-/// The bottom of a hatched egg: below a zigzag rim.
-private struct OpenedShell: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let rim = rect.minY + rect.height * 0.45
-        let teeth = 3
-        path.move(to: CGPoint(x: rect.minX, y: rim))
-        for index in 1...(teeth * 2) {
-            let x = rect.minX + rect.width * CGFloat(index) / CGFloat(teeth * 2)
-            path.addLine(to: CGPoint(x: x, y: rim + (index % 2 == 1 ? -rect.height * 0.1 : rect.height * 0.06)))
-        }
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
-        path.closeSubpath()
-        return path
     }
 }

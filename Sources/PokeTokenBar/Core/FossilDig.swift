@@ -12,6 +12,10 @@ enum FossilDig {
     /// Whether a base is a fossil line's: those only hatch from Fossil Eggs.
     static func isFossilLine(_ baseID: Int) -> Bool { lines.contains(baseID) }
 
+    /// When the digs came (the release of 27 October 2026, a little before it). From then on a fossil line could
+    /// first come only from a Fossil Egg: a line first graduated later was not had before the digs.
+    static let introduced = Date(timeIntervalSince1970: 1_793_102_400)   // 2026-10-27 12:00 UTC
+
     static let rockPerDig = 4
     static var digs: Int { lines.count }
 

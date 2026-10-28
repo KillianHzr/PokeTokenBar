@@ -553,6 +553,8 @@ final class UsageStore {
     private(set) var dailyLedger = UsageLedger()
     /// Each day's cost beside it, so the Stats page can price a past period (`CostLedger`).
     private(set) var dailyCostLedger = CostLedger()
+    /// The Stats page's records, kept past the ledger's pruning (`StatsRecords.Kept`).
+    private(set) var keptRecords = StatsRecords.Kept()
 
     private func recordDailyLedger() {
         var ledger = dailyLedger
@@ -563,6 +565,15 @@ final class UsageStore {
         let lastYear = RecapPeriod(scope: .year, containing: Date(), calendar: calendar)
             .shifted(by: -1, calendar: calendar)
         let cutoff = LocalUsageReader.localDayFormatter().string(from: lastYear.start)
+        // The records before the oldest days go.
+        if ledger != dailyLedger || keptRecords.isEmpty {
+            var kept = keptRecords
+            kept.merge(StatsRecords.make(ledger: ledger, now: Date(), calendar: calendar))
+            if kept != keptRecords {
+                keptRecords = kept
+                kept.save(to: defaults)
+            }
+        }
         ledger.prune(before: cutoff)
         var costs = dailyCostLedger
         costs.merge(monthDailyTotals)
@@ -894,6 +905,7 @@ final class UsageStore {
         armedCandyWindows = Set(d.stringArray(forKey: Self.armedCandyWindowsKey) ?? [])
         dailyLedger = UsageLedger.load(from: d)
         dailyCostLedger = CostLedger.load(from: d)
+        keptRecords = StatsRecords.Kept.load(from: d)
 
         if let credential = sessionKeys.credential() {
             sessionKeyConfigured = true

@@ -276,11 +276,11 @@ final class RareCandyStoreTests: XCTestCase {
         XCTAssertEqual(s.state.candyWindowEpoch["claude.fiveHour"], "E2")
     }
 
-    /// 시드+지급 헬퍼 — 빈 창으로 시드 완료 후, 유니크 세션 창을 100%로 올려 n개 지급.
+    /// Seeds with no window, then fills n session windows, each seen empty first, one candy each.
     private func giveCandies(_ s: CompanionStore, _ n: Int) {
         s.grantCandies(from: [], limitsReady: true)   // 시드(지급 0)
         for i in 0..<n {
-            s.grantCandies(from: [w("test.session.\(i)", .session, 100)], limitsReady: true)
+            s.grantCandiesFilling([w("test.session.\(i)", .session, 100)])
         }
     }
 
@@ -315,7 +315,7 @@ final class RareCandyStoreTests: XCTestCase {
     func testSessionGrantAfterSeed() {
         let s = store(rcLinear3)
         s.grantCandies(from: [], limitsReady: true)   // 시드
-        s.grantCandies(from: [w("claude.fiveHour", .session, 100)], limitsReady: true)
+        s.grantCandiesFilling([w("claude.fiveHour", .session, 100)])
         XCTAssertEqual(s.rareCandyCount, 1)
     }
 
@@ -323,7 +323,7 @@ final class RareCandyStoreTests: XCTestCase {
     func testWeeklyGrantsFiveCandies() {
         let s = store(rcLinear3)
         s.grantCandies(from: [], limitsReady: true)
-        s.grantCandies(from: [w("claude.sevenDay", .weekly, 100)], limitsReady: true)
+        s.grantCandiesFilling([w("claude.sevenDay", .weekly, 100)])
         XCTAssertEqual(s.rareCandyCount, RareCandy.weeklyGrant)
     }
 
@@ -333,7 +333,7 @@ final class RareCandyStoreTests: XCTestCase {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("rc-persist-\(UUID().uuidString).json")
         let s1 = CompanionStore(provider: StubProvider(value: rcLinear3), clock: { rcNow }, fileURL: url, rng: SeededRNG(seed: 1), difficulty: 1)
         s1.grantCandies(from: [], limitsReady: true)                                        // 시드
-        s1.grantCandies(from: [w("claude.fiveHour", .session, 100)], limitsReady: true)     // 지급 1
+        s1.grantCandiesFilling([w("claude.fiveHour", .session, 100)])                       // 지급 1
         XCTAssertEqual(s1.rareCandyCount, 1)
 
         // 재시작: 같은 파일 로드
@@ -351,7 +351,7 @@ final class RareCandyStoreTests: XCTestCase {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("rc-rearm-\(UUID().uuidString).json")
         let s1 = CompanionStore(provider: StubProvider(value: rcLinear3), clock: { rcNow }, fileURL: url, rng: SeededRNG(seed: 1), difficulty: 1)
         s1.grantCandies(from: [], limitsReady: true)                                      // 시드
-        s1.grantCandies(from: [w("claude.fiveHour", .session, 100)], limitsReady: true)   // 지급 1 (tier=1)
+        s1.grantCandiesFilling([w("claude.fiveHour", .session, 100)])                     // 지급 1 (tier=1)
         XCTAssertEqual(s1.rareCandyCount, 1)
         s1.grantCandies(from: [w("claude.fiveHour", .session, 40)], limitsReady: true)    // 재무장(제거) — 지급 0
         XCTAssertNil(s1.state.candyGrantTier["claude.fiveHour"])
@@ -372,17 +372,18 @@ final class RareCandyStoreTests: XCTestCase {
         s.applyUsage(100_000_000)
         giveCandies(s, 10)
         let before = s.state.usedSinceInstall
-        let preview = try XCTUnwrap(s.planRareCandyUse(count: 3))
-        XCTAssertEqual(s.maxRareCandyUseCount, 7)
-        XCTAssertEqual(preview.count, 3)
+        // 75M candies over 125M, 250M and 375M stages: four carry 100M past both evolutions.
+        let preview = try XCTUnwrap(s.planRareCandyUse(count: 4))
+        XCTAssertEqual(s.maxRareCandyUseCount, 9)
+        XCTAssertEqual(preview.count, 4)
         XCTAssertTrue(preview.evolves)
         XCTAssertFalse(preview.graduates)
         XCTAssertEqual(preview.carryoverXP, 25_000_000)
         XCTAssertEqual(preview.discardedXP, 0)
-        XCTAssertEqual(s.useRareCandy(count: 3), .evolved)
+        XCTAssertEqual(s.useRareCandy(count: 4), .evolved)
         XCTAssertEqual(s.state.active?.stageIndex, 2)
         XCTAssertEqual(s.state.active?.usedAtStage, preview.carryoverXP)
-        XCTAssertEqual(s.rareCandyCount, 7)
+        XCTAssertEqual(s.rareCandyCount, 6)
         XCTAssertEqual(s.candyFeedbackAmount, 300_000_000)
         XCTAssertEqual(s.state.usedSinceInstall, before)
     }
@@ -393,13 +394,13 @@ final class RareCandyStoreTests: XCTestCase {
             await s.hatch(baseID: 20)
             s.applyUsage(750_000_000 - remaining)
             giveCandies(s, 5)
-            XCTAssertEqual(s.maxRareCandyUseCount, 3)
+            XCTAssertEqual(s.maxRareCandyUseCount, 4)
             let preview = try XCTUnwrap(s.planRareCandyUse(count: 5))
-            XCTAssertEqual(preview.count, 3)
+            XCTAssertEqual(preview.count, 4)
             XCTAssertTrue(preview.graduates)
             XCTAssertEqual(preview.discardedXP, 300_000_000 - remaining)
             XCTAssertEqual(s.useRareCandy(count: 5), .graduated)
-            XCTAssertEqual(s.rareCandyCount, 2)
+            XCTAssertEqual(s.rareCandyCount, 1)
             XCTAssertEqual(s.state.eggUsage, 0)
             XCTAssertEqual(s.dexEntries.count, 1)
             XCTAssertEqual(s.maxRareCandyUseCount, 0)
@@ -608,17 +609,18 @@ final class RareCandyStoreTests: XCTestCase {
         XCTAssertEqual(s.ownedItems.first?.count, 3)
     }
 
-    /// 데모 시나리오(구구 3형태, usedAtStage 100M, 사탕 3): 진화 → 부분성장 → 진화, 그 뒤 재고 0.
+    /// The demo (three stages, usedAtStage 100M, 4 candies of 75M): evolves, grows twice, evolves, then none left.
     func testSequentialCandyUseMatchesDemo() async {
         let s = store(rcLinear3)
         await s.hatch(baseID: 1)
-        s.applyUsage(100_000_000)                      // stage0(125M) 도달 전
-        giveCandies(s, 3)
-        XCTAssertEqual(s.useRareCandy(), .evolved)     // 200M ≥125M → stage1, 이월 75M
+        s.applyUsage(100_000_000)                      // before stage0 (125M)
+        giveCandies(s, 4)
+        XCTAssertEqual(s.useRareCandy(), .evolved)     // 175M ≥125M: stage1, 50M carried
         XCTAssertEqual(s.state.active?.stageIndex, 1)
-        XCTAssertEqual(s.useRareCandy(), .progressed)  // 175M <250M → 부분성장
+        XCTAssertEqual(s.useRareCandy(), .progressed)  // 125M <250M
+        XCTAssertEqual(s.useRareCandy(), .progressed)  // 200M <250M
         XCTAssertEqual(s.state.active?.stageIndex, 1)
-        XCTAssertEqual(s.useRareCandy(), .evolved)     // 275M ≥250M → stage2
+        XCTAssertEqual(s.useRareCandy(), .evolved)     // 275M ≥250M: stage2
         XCTAssertEqual(s.state.active?.stageIndex, 2)
         XCTAssertEqual(s.rareCandyCount, 0)
     }
@@ -779,7 +781,7 @@ final class RareCandyGrantIntegrationTests: XCTestCase {
         c.grantCandies(from: [], limitsReady: true)   // 시드(현재 100% 창 없음)
         let store = usage(claude: rcClaude(fiveHour: 100))
         await store.refresh(scheduleEmptyRetry: false)
-        c.grantCandies(from: store.candyEligibleWindows, limitsReady: store.limitsReady)
+        c.grantCandiesFilling(store.candyEligibleWindows)
         XCTAssertEqual(c.rareCandyCount, 1)
     }
 
@@ -789,7 +791,7 @@ final class RareCandyGrantIntegrationTests: XCTestCase {
         c.grantCandies(from: [], limitsReady: true)
         let store = usage(claude: rcClaude(sevenDay: 100))
         await store.refresh(scheduleEmptyRetry: false)
-        c.grantCandies(from: store.candyEligibleWindows, limitsReady: store.limitsReady)
+        c.grantCandiesFilling(store.candyEligibleWindows)
         XCTAssertEqual(c.rareCandyCount, RareCandy.weeklyGrant)
     }
 
@@ -799,7 +801,7 @@ final class RareCandyGrantIntegrationTests: XCTestCase {
         c.grantCandies(from: [], limitsReady: true)
         let store = usage(claude: rcClaude(fiveHour: 100, sevenDay: 100))
         await store.refresh(scheduleEmptyRetry: false)
-        c.grantCandies(from: store.candyEligibleWindows, limitsReady: store.limitsReady)
+        c.grantCandiesFilling(store.candyEligibleWindows)
         XCTAssertEqual(c.rareCandyCount, 1 + RareCandy.weeklyGrant)
     }
 
@@ -810,7 +812,7 @@ final class RareCandyGrantIntegrationTests: XCTestCase {
         let store = usage(codex: rcCodex(primary: 100),
                           providers: [RCFakeProvider(id: "codex", displayName: "Codex", daily: rcDaily(1_000))])
         await store.refresh(scheduleEmptyRetry: false)
-        c.grantCandies(from: store.candyEligibleWindows, limitsReady: store.limitsReady)
+        c.grantCandiesFilling(store.candyEligibleWindows)
         XCTAssertEqual(c.rareCandyCount, 1)
     }
 
@@ -842,7 +844,8 @@ final class RareCandyGrantIntegrationTests: XCTestCase {
         c.grantCandies(from: [], limitsReady: true)
         let store = usage(claude: rcClaude(fiveHour: 100))
         await store.refresh(scheduleEmptyRetry: false)
-        for _ in 0..<5 { c.grantCandies(from: store.candyEligibleWindows, limitsReady: store.limitsReady) }
+        c.grantCandiesFilling(store.candyEligibleWindows)
+        for _ in 0..<4 { c.grantCandies(from: store.candyEligibleWindows, limitsReady: store.limitsReady) }
         XCTAssertEqual(c.rareCandyCount, 1, "여러 번 호출해도 엣지 1회만")
     }
 
@@ -888,22 +891,21 @@ final class RareCandyGrantIntegrationTests: XCTestCase {
         XCTAssertEqual(c.rareCandyCount, 0, "97% < 사탕 임계 100 → 지급 없음")
     }
 
-    /// [문서화된 한계 잠금] 첫 시드에 한 프로바이더만 로드되면 그 프로바이더만 시드된다.
-    /// 이후 늦게 등장한 프로바이더가 이미 100%면 소급 지급된다(정상 경로는 둘 다 await 후라 원자적).
-    /// 이 동작을 잠가, 향후 "수정"이 의식적 선택이 되게 한다.
-    func testStaggeredProviderSeedRetroactiveGrant() async {
+    /// A provider first seen after the seed, already at its limit, pays nothing back: it pays from then on, as the
+    /// first run does (#79). It used to pay its whole window at once, a documented limit of the seed.
+    func testALateProviderFirstSeenAtItsLimitPaysFromThen() async {
         let c = companion()
         let claudeStore = usage(claude: rcClaude(fiveHour: 50))   // 시드 시점 Claude 는 100 아님
         await claudeStore.refresh(scheduleEmptyRetry: false)
         c.grantCandies(from: claudeStore.candyEligibleWindows, limitsReady: claudeStore.limitsReady)  // 시드(Claude만)
         XCTAssertTrue(c.state.candyFeatureSeeded)
         XCTAssertEqual(c.rareCandyCount, 0)
-        // 이후: Codex 가 이미 100% 인 채 처음 등장 → 시드 안 돼 소급 지급
         let codexStore = usage(codex: rcCodex(primary: 100),
                                providers: [RCFakeProvider(id: "codex", displayName: "Codex", daily: rcDaily(1_000))])
         await codexStore.refresh(scheduleEmptyRetry: false)
         c.grantCandies(from: codexStore.candyEligibleWindows, limitsReady: codexStore.limitsReady)
-        XCTAssertEqual(c.rareCandyCount, 1, "문서화된 한계: 늦게 등장한 100% 창은 소급 지급됨")
+        XCTAssertEqual(c.rareCandyCount, 0, "Codex first seen at 100%: nothing back")
+        XCTAssertEqual(c.state.candyWindowPlan["codex.codex.primary"], 1)
     }
 }
 

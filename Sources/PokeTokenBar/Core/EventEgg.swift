@@ -150,6 +150,17 @@ enum EventEgg: String, CaseIterable, Codable, Sendable {
 
     /// Whether a base line can hatch from this egg (the tier and type guarantees apart). `companionLine`: the line of
     /// the player's first catch.
+    /// The lines of an egg that names them, which `admits` keeps alone: nil for an egg of a type, a region or every
+    /// legendary.
+    func lines(companionLine: Int?) -> Set<Int>? {
+        switch self {
+        case .valentine: return Self.valentineLines
+        case .easter: return Self.easterLines
+        case .companion: return companionLine.map { [$0] } ?? []
+        case .newYear, .pokemonDay, .halloween, .christmas, .spring, .summer, .autumn, .winter: return nil
+        }
+    }
+
     func admits(_ base: BaseSpecies, companionLine: Int?) -> Bool {
         switch self {
         case .newYear: return base.isLegendary

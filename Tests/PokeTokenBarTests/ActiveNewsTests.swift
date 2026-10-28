@@ -91,6 +91,32 @@ final class ActiveNewsTests: XCTestCase {
         XCTAssertEqual(again.activeNews?.isDuplicate, true)
     }
 
+    /// The first shiny is counted as the Pokédex counts shinies, per species and form, through every branch: a shiny
+    /// Kanto Vulpix does not make a shiny Alolan one a duplicate, nor a shiny Slowbro a shiny Slowpoke that could still
+    /// become a first shiny Slowking.
+    func testTheFirstShinyReadsTheFormAndEveryBranch() throws {
+        let alola = PokemonForm("alola")
+        let alolan = try store(active: mon([37], form: alola, shiny: true),
+                               dex: [graduated([37, 38], form: alola), graduated([37, 38], shiny: true)])
+        XCTAssertEqual(alolan.activeNews?.firstShiny, true, "no Alolan shiny yet")
+        let slowpoke = try store(active: mon([79], shiny: true),
+                                 dex: [graduated([79, 80]), graduated([79, 199]), graduated([79, 80], shiny: true)])
+        XCTAssertEqual(slowpoke.activeNews?.firstShiny, true, "a shiny Slowking would be new")
+        let both = try store(active: mon([79], shiny: true),
+                             dex: [graduated([79, 80], shiny: true), graduated([79, 199], shiny: true)])
+        XCTAssertEqual(both.activeNews?.isDuplicate, true)
+    }
+
+    /// A disguised Ditto keeps its shine hidden: the badge's hint must not say "its first shiny".
+    func testADisguisedDittosShineStaysHidden() throws {
+        var ditto = mon([25], shiny: true)
+        ditto.dittoDisguise = 132
+        let disguised = try store(active: ditto, dex: [])
+        XCTAssertEqual(disguised.activeNews?.firstShiny, false)
+        ditto.dittoRevealed = true
+        XCTAssertEqual(try store(active: ditto, dex: []).activeNews?.firstShiny, true, "revealed, it shows")
+    }
+
     /// A Pokémon sent off stays in the Pokédex but never graduated: it holds nothing here.
     func testReleasedPokemonHoldNothing() throws {
         let news = try XCTUnwrap(try store(active: mon([4]), dex: [graduated([4, 5, 6], released: true)]).activeNews)

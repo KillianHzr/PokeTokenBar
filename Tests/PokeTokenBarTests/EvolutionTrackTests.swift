@@ -20,7 +20,7 @@ private struct TrackLineProvider: PokeProviding {
 /// several ways, every way to its end.
 @MainActor
 final class EvolutionTrackTests: XCTestCase {
-    private func store(_ path: [Int], stage: Int, caught: [[Int]] = [],
+    private func store(_ path: [Int], stage: Int, caught: [[Int]] = [], released: [[Int]] = [],
                        form: PokemonForm? = nil) async throws -> CompanionStore {
         let suite = "Track-\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -36,6 +36,9 @@ final class EvolutionTrackTests: XCTestCase {
         state.dex = caught.enumerated().map { index, chain in
             DexEntry(baseID: chain[0], finalID: chain.last!, chainOrder: chain, rarity: .common,
                      caughtAt: Date(timeIntervalSince1970: 1_790_000_000 + Double(index)))
+        } + released.map { chain in
+            DexEntry(baseID: chain[0], finalID: chain.last!, chainOrder: chain, rarity: .common,
+                     caughtAt: Date(timeIntervalSince1970: 1_789_000_000), releasedAt: Date(timeIntervalSince1970: 1_789_500_000))
         }
         try JSONEncoder().encode(state).write(to: file)
         let store = CompanionStore(provider: TrackLineProvider(), fileURL: file, defaults: defaults)
@@ -106,6 +109,17 @@ final class EvolutionTrackTests: XCTestCase {
         let ralts = try await store([280, 281, 282], stage: 0)
         XCTAssertEqual(ralts.evolutionTrack, [.reached(280, isCurrent: true), .coming(281, isCaught: false),
                                               .branch([[item(282, false)], [item(475, false)]])])
+    }
+
+    /// A Pokémon sent off before it graduated is not had: its evolution stays to find on the track, and the evolution
+    /// plan of the next one does not avoid it, as the goals count.
+    func testAnEvolutionSentOffIsStillToFind() async throws {
+        let eevee = try await store([133, 197], stage: 0, caught: [[133, 136]], released: [[133, 134]])
+        guard case .branch(let paths)? = eevee.evolutionTrack.last else { return XCTFail("\(eevee.evolutionTrack)") }
+        XCTAssertEqual(paths.flatMap { $0 }.filter(\.isCollected).map(\.speciesID), [136], "the released Vaporeon is not had")
+        XCTAssertFalse(eevee.isEvolutionCollected(speciesID: 134, baseID: 133))
+        XCTAssertTrue(eevee.isEvolutionCollected(speciesID: 136, baseID: 133))
+        XCTAssertFalse(eevee.isEvolutionCollected(speciesID: 197, baseID: 133), "nor the one being raised")
     }
 
     func testTheCaptionNamesTheNextStop() async throws {

@@ -54,7 +54,8 @@ struct StatsScreen: View {
                     if report.recap.total > 0 { chart(report, content, l) }
                     if let breakdown = report.breakdown { whereTokensWent(breakdown, l) }
                     graduates(report, l)
-                    sinceInstall(StatsRecords.make(ledger: store.dailyLedger, now: Date(), calendar: calendar), l)
+                    sinceInstall(StatsRecords.make(ledger: store.dailyLedger, now: Date(), calendar: calendar)
+                        .keeping(store.keptRecords), l)
                 }
                 .reservesScrollerLane()
             }
@@ -129,6 +130,10 @@ struct StatsScreen: View {
                 HStack(spacing: 6) {
                     ForEach(tiles, id: \.0) { label, value in tile(label, value) }
                 }
+            }
+            if store.showsCost, cost == nil, recap.total > 0 {
+                Label(l.statsCostUnknown, systemImage: "questionmark.circle")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             if let projection = report.projection {
                 let value = cost != nil && projection.cost != nil
@@ -337,7 +342,7 @@ struct StatsScreen: View {
                             .fontWeight(.semibold).monospacedDigit()
                     }
                     .font(.caption)
-                    .help(TokenFormatter.grouped(kind.1))
+                    .hoverTip(TokenFormatter.grouped(kind.1))
                 }
             }
             if breakdown.tools.count > 1 {
@@ -401,7 +406,8 @@ struct StatsScreen: View {
     // MARK: Since install
 
     private func sinceInstall(_ records: StatsRecords, _ l: L) -> some View {
-        let dex = companion.state.dex
+        // Graduated ones: a Pokémon sent off for an egg stays in the Pokédex as a released entry.
+        let dex = companion.state.dex.filter { !$0.isReleased }
         let tokens = companion.state.usedSinceInstall
         let shinies = dex.filter(\.isShiny).count
         let legendaries = dex.filter { $0.rarity == .legendary }.count
@@ -486,7 +492,7 @@ struct StatsScreen: View {
                             .foregroundStyle(.secondary)
                     }
                     .frame(maxWidth: .infinity)
-                    .help(TokenFormatter.compact(averages[slot]))
+                    .hoverTip(TokenFormatter.compact(averages[slot]))
                 }
             }
             Text(l.statsBusiestDay(symbol(busiest, names), TokenFormatter.compact(averages[busiest])))

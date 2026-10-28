@@ -102,6 +102,12 @@ private func limitStatus(fiveHour: Double) -> LimitStatus {
 private let orgsPath = "/api/organizations"
 private func usagePath(_ id: String) -> String { "/api/organizations/\(id)/usage" }
 
+/// A clock the plan tests move by hand.
+private final class MutableClock: @unchecked Sendable {
+    var date: Date
+    init(_ date: Date) { self.date = date }
+}
+
 // MARK: 테스트
 
 final class SessionKeyLimitsTests: XCTestCase {
@@ -191,7 +197,9 @@ final class SessionKeyLimitsTests: XCTestCase {
     }
 
     func testFetchReusesCachedOrgWithoutListingOrganizations() async throws {
-        try seed(org: "org-team")
+        try store.save(SessionKeyCredential(key: "sk-ant-sid02-\(String(repeating: "a", count: 60))", organizationID: "org-team",
+                                            plan: SessionKeyPlan(subscriptionType: nil, rateLimitTier: "default_raven",
+                                                                 readAt: Date())))
         let http = StubSessionKeyHTTP([
             orgsPath: ok(orgsJSON),
             usagePath("org-team"): ok(activeUsageJSON),
@@ -203,6 +211,74 @@ final class SessionKeyLimitsTests: XCTestCase {
         let paths = await http.paths()
         XCTAssertEqual(paths, [usagePath("org-team")],
                        "캐시된 조직이 있으면 목록 조회 없이 usage 만 쳐야 한다")
+    }
+
+    // MARK: Plan
+
+    /// The usage answer has no plan, so a Max 5x login read as Pro and earned a Pro plan's candies (#79): the plan
+    /// comes from the organization's row, read once and kept a day.
+    func testTheCachedOrganizationsPlanComesFromItsRowOnceADay() async throws {
+        try seed(org: "org-max")
+        let rows = """
+        [{"uuid":"org-other","name":"Other","capabilities":["chat"],"rate_limit_tier":"default_claude_ai"},
+         {"uuid":"org-max","name":"Me","capabilities":["chat","claude_max"],"rate_limit_tier":"default_claude_max_5x"}]
+        """
+        let http = StubSessionKeyHTTP([orgsPath: ok(rows), usagePath("org-max"): ok(activeUsageJSON)])
+        let clock = MutableClock(Date(timeIntervalSince1970: 1_790_000_000))
+        let provider = SessionKeyLimitsProvider(store: store, http: http, now: { clock.date })
+
+        let first = try await provider.fetch(allowKeychainPrompt: false)
+        XCTAssertEqual(first.planMultiplier, 5)
+        XCTAssertEqual(first.planDisplay, "Max 5x")
+        XCTAssertEqual(store.load()?.plan?.rateLimitTier, "default_claude_max_5x")
+        clock.date += SessionKeyLimitsProvider.planMaxAge - 60
+        let second = try await provider.fetch(allowKeychainPrompt: false)
+        XCTAssertEqual(second.planMultiplier, 5, "from the saved plan")
+        var paths = await http.paths()
+        XCTAssertEqual(paths, [usagePath("org-max"), orgsPath, usagePath("org-max")], "the list once")
+        clock.date += 120
+        _ = try await provider.fetch(allowKeychainPrompt: false)
+        paths = await http.paths()
+        XCTAssertEqual(paths.filter { $0 == orgsPath }.count, 2, "a day old: read again")
+    }
+
+    /// A failed read keeps the usage and the plan saved, and tries again in an hour, not every poll.
+    func testAFailedPlanReadKeepsTheUsageAndWaitsAnHour() async throws {
+        try store.save(SessionKeyCredential(key: "sk-ant-sid02-\(String(repeating: "a", count: 60))", organizationID: "org-max",
+                                            plan: SessionKeyPlan(subscriptionType: "max", rateLimitTier: "default_claude_max_20x",
+                                                                 readAt: Date(timeIntervalSince1970: 1_700_000_000))))
+        let http = StubSessionKeyHTTP([orgsPath: fail(429), usagePath("org-max"): ok(activeUsageJSON)])
+        let clock = MutableClock(Date(timeIntervalSince1970: 1_790_000_000))
+        let provider = SessionKeyLimitsProvider(store: store, http: http, now: { clock.date })
+
+        let limits = try await provider.fetch(allowKeychainPrompt: false)
+        XCTAssertEqual(limits.fiveHour?.utilization, 7)
+        XCTAssertEqual(limits.planMultiplier, 20, "the plan saved before")
+        clock.date += SessionKeyLimitsProvider.planRetryDelay - 60
+        _ = try await provider.fetch(allowKeychainPrompt: false)
+        var paths = await http.paths()
+        XCTAssertEqual(paths.filter { $0 == orgsPath }.count, 1)
+        clock.date += 120
+        _ = try await provider.fetch(allowKeychainPrompt: false)
+        paths = await http.paths()
+        XCTAssertEqual(paths.filter { $0 == orgsPath }.count, 2, "an hour later")
+    }
+
+    /// The organization found by the discovery carries its plan too, and saves it.
+    func testTheDiscoveredOrganizationCarriesItsPlan() async throws {
+        try seed()
+        let rows = """
+        [{"uuid":"org-pro","name":"Me","capabilities":["chat","claude_pro"],"rate_limit_tier":"default_claude_ai"}]
+        """
+        let http = StubSessionKeyHTTP([orgsPath: ok(rows), usagePath("org-pro"): ok(activeUsageJSON)])
+        let provider = SessionKeyLimitsProvider(store: store, http: http)
+        let limits = try await provider.fetch(allowKeychainPrompt: false)
+        XCTAssertEqual(limits.planDisplay, "Pro")
+        XCTAssertEqual(limits.planMultiplier, 1)
+        XCTAssertEqual(store.load()?.plan?.subscriptionType, "pro")
+        _ = try await provider.fetch(allowKeychainPrompt: false)
+        let paths = await http.paths()
+        XCTAssertEqual(paths.filter { $0 == orgsPath }.count, 1, "the plan saved with the organization")
     }
 
     /// 조직에서 빠졌거나 권한이 사라진 경우(403) — 목록을 다시 훑어 살아있는 조직으로 옮겨간다.

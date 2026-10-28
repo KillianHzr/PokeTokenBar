@@ -721,16 +721,15 @@ enum LegendCharm {
 
 /// 이상한 사탕 밸런스 상수.
 enum RareCandy {
-    /// 사용 시 현재 포켓몬에 주입하는 XP(토큰 환산). 2× 성장의 최소 임계는 62.5M 이지만,
-    /// 기본 난이도·첫 부화에서는 초과 이월(<100M)이 다음 임계(125M)보다 작아 최대 1단계만 올린다.
-    /// 낮은 난이도나 반복 부화 보너스에서는 여러 단계를 진행할 수 있다.
-    static let xp = 100_000_000
+    /// The XP (in tokens) one candy gives the Pokémon being raised: the usage of a whole common line at the one
+    /// difficulty (`PokemonBalance.graduationTotal`), 75M at 10%. An uncommon line takes 2.5 candies, a rare one 4, a
+    /// legendary one 8.
+    static let xp = PokemonBalance.scaled(PokemonBalance.graduationTotal(.common))
     /// Candies a whole week of a Pro plan pays; a whole 5-hour session pays one.
     static let weeklyGrant = 5
-    /// 상점 구매가(재화 = 사용한 토큰: usedSinceInstall − spentTokens). XP 값어치(100M)의 5배.
-    /// 토큰이 "성장 미터 + 상점 지갑"으로 이중 사용되는 구조라, 가격을 XP 와 같게 두면 구매가 사실상
-    /// 공짜 추가성장(150M 써서 250M 성장)이 된다. 500M 로 두면 그 값 모으는 500M 패시브 성장 + 사탕
-    /// 100M = 실질 보너스 +20% 로 억제된다. 무료 획득(한도 100% 보상)이 항상 이득이도록 값어치보다 비싸게.
+    /// The Shop's table price, scaled like every price (`PokemonBalance.scaled`): 50M at 10%. The wallet is the tokens
+    /// used (usedSinceInstall minus spentTokens), which also grew the Pokémon, so a candy priced at its XP would be
+    /// free growth. Candies also come free from the limit windows, paid as they fill (`candiesDue`).
     static let price = 500_000_000
 
     /// Candies a whole window pays: one 5-hour session of a Pro plan is one candy, a Pro week `weeklyGrant`, and a
@@ -1022,6 +1021,9 @@ struct MonState: Codable, Sendable {
     var hasGrowthBoost = false
     /// Hatched in a form its line had never registered (Prison Bottle). Fixed at hatch, kept through evolution.
     var hasNewForm = false
+    /// Hatched from a Fossil Egg: sent off before it graduates, its egg goes back to the Bag, or its line would be
+    /// out of reach (there are as many eggs as fossil lines).
+    var fromFossilEgg = false
     /// The costume this individual brought when it became a Pikachu: it wears that one rather than the equipped one.
     var pikachuCostume: PikachuCostume?
     // 메타몽 위장 — nil=일반. 값=정체 메타몽, 이 종으로 위장 중(위장 구간엔 baseID 와 동일, 리빌 후에도 원 위장체 보존).
@@ -1093,6 +1095,7 @@ struct MonState: Codable, Sendable {
         profile = (try? c.decodeIfPresent(PokemonProfile.self, forKey: .profile)) ?? nil
         hasGrowthBoost = try c.decodeIfPresent(Bool.self, forKey: .hasGrowthBoost) ?? false
         hasNewForm = try c.decodeIfPresent(Bool.self, forKey: .hasNewForm) ?? false
+        fromFossilEgg = (try? c.decodeIfPresent(Bool.self, forKey: .fromFossilEgg)) ?? false
         // A costume this version doesn't know is dropped, not the whole individual.
         pikachuCostume = ((try? c.decodeIfPresent(String.self, forKey: .pikachuCostume)) ?? nil)
             .flatMap(PikachuCostume.init(rawValue:))
@@ -1244,6 +1247,8 @@ struct CompanionState: Codable, Sendable {
     var lastBirthdayGiftYear: Int?
     /// When that gift was claimed: a December birthday's gift claimed in January counts for the year before.
     var lastBirthdayGiftClaimedAt: Date?
+    /// The birthday the last gift was for: typing it again after clearing it is no change of date.
+    var lastBirthdayGiftDate: Birthday?
     /// Set when the birthday changes after a gift: the calendar year that gift was claimed in. The next gift must be
     /// for a later birthday year, so a new date never brings a second egg within a year of the last.
     var birthdayChangedAfterGiftYear: Int?
@@ -1294,6 +1299,10 @@ struct CompanionState: Codable, Sendable {
     var candyGrantTier: [String: Int] = [:]
     // 창 key → 마지막으로 본 epoch(`resets_at`). util 이 계속 100%여도 epoch 교체로 재무장(#326).
     var candyWindowEpoch: [String: String] = [:]
+    /// The plan (`CandyWindow.planMultiplier`) each window was last seen at. A window first seen, or seen at another
+    /// plan, is recorded as paid up to what it owes then (`CompanionStore.grantCandies`): its usage so far was used
+    /// before the app knew it, or counted at another plan (#79).
+    var candyWindowPlan: [String: Int] = [:]
     // 사탕 지급 첫 실행 시드 완료 — 업데이트 직후 이미 100%였던 창의 소급 지급 차단.
     var candyFeatureSeeded = false
     /// Windows pay their candies as they go (`RareCandy.candiesDue`). A save from before has `false`: its windows'
@@ -1347,6 +1356,7 @@ struct CompanionState: Codable, Sendable {
             .flatMap(PikachuCostume.init(rawValue:)).flatMap { pikachuCostumes.contains($0) ? $0 : nil }
         candyGrantTier     = c.lenient([String: Int].self, forKey: .candyGrantTier, default: [:])
         candyWindowEpoch   = c.lenient([String: String].self, forKey: .candyWindowEpoch, default: [:])
+        candyWindowPlan    = c.lenient([String: Int].self, forKey: .candyWindowPlan, default: [:])
         candyFeatureSeeded = c.lenient(Bool.self, forKey: .candyFeatureSeeded, default: false)
         candyGrantsAsYouGo = c.lenient(Bool.self, forKey: .candyGrantsAsYouGo, default: false)
         additiveGrowthBonuses = c.lenient(Bool.self, forKey: .additiveGrowthBonuses, default: false)
@@ -1361,6 +1371,7 @@ struct CompanionState: Codable, Sendable {
         birthday = c.lenientOptional(Birthday.self, forKey: .birthday)
         lastBirthdayGiftYear = c.lenientOptional(Int.self, forKey: .lastBirthdayGiftYear)
         lastBirthdayGiftClaimedAt = c.lenientOptional(Date.self, forKey: .lastBirthdayGiftClaimedAt)
+        lastBirthdayGiftDate = c.lenientOptional(Birthday.self, forKey: .lastBirthdayGiftDate)
         birthdayChangedAfterGiftYear = c.lenientOptional(Int.self, forKey: .birthdayChangedAfterGiftYear)
         claimedEventEggs = c.lenient(Set<String>.self, forKey: .claimedEventEggs, default: [])
         eventEggsNotified = c.lenient(Set<String>.self, forKey: .eventEggsNotified, default: [])
@@ -1437,7 +1448,7 @@ struct CompanionState: Codable, Sendable {
         // Once in the Pokédex, Arceus has its default form and every form its Plates unlock.
         if !forms.isEmpty, PokemonForm.unlockSource(speciesID: speciesID) != nil {
             if let first = PokemonForm.forms(speciesID: speciesID).first { forms.insert(first) }
-            forms.formUnion(itemUnlockedForms(speciesID: speciesID))
+            forms.formUnion(itemUnlockedForms(speciesID: speciesID, graduatedOnly: graduatedOnly))
         }
         return forms
     }
@@ -1480,13 +1491,14 @@ struct CompanionState: Codable, Sendable {
     }
 
     /// Forms a species unlocks through items (Arceus's Plates, Silvally's Memories), whether or not it is in the
-    /// Pokédex yet: they count as collected once it is. Its default form needs no item.
-    func itemUnlockedForms(speciesID: Int) -> Set<PokemonForm> {
+    /// Pokédex yet: they count as collected once it is. Its default form needs no item. `graduatedOnly`: the Memories
+    /// of graduated legendaries only, what a goal counts.
+    func itemUnlockedForms(speciesID: Int, graduatedOnly: Bool = false) -> Set<PokemonForm> {
         guard let source = PokemonForm.unlockSource(speciesID: speciesID) else { return [] }
         let types: Set<PokemonType>
         switch source {
         case .gymBadge: types = plateTypes
-        case .legendaryType: types = silvallyMemoryTypes
+        case .legendaryType: types = memoryTypes(graduatedOnly: graduatedOnly)
         }
         return Set(PokemonForm.forms(speciesID: speciesID).filter {
             PokemonForm.unlockType(speciesID: speciesID, form: $0).map(types.contains) ?? false
@@ -1494,13 +1506,13 @@ struct CompanionState: Codable, Sendable {
     }
 
     /// Whether the egg roll treats a line as collected (its weight halved): every final of the line graduated,
-    /// branches and form-gated finals included, and every form of the line in the Pokédex. One graduated
+    /// branches and form-gated finals included, and every form of the line graduated. One graduated
     /// final is not enough: after a Vaporeon, Eevee keeps its full chance while seven evolutions are missing.
     func isLineComplete(baseID: Int) -> Bool {
         let finals = PokemonEvolutionData.finals(from: baseID)
         guard finals.allSatisfy({ collectedFinals.contains("\(baseID):\($0)") }) else { return false }
         let forms = PokemonForm.rollableLineForms(baseID: baseID)
-        return forms.isEmpty || Set(forms).isSubset(of: collectedLineForms(baseID: baseID))
+        return forms.isEmpty || Set(forms).isSubset(of: graduatedLineForms(baseID: baseID))
     }
 
     /// Whether an egg of `type` (a stone's) has nothing new to give from this line: the forms that hatch with its
@@ -1531,19 +1543,22 @@ struct CompanionState: Codable, Sendable {
         return typed.isEmpty ? forms : typed
     }
 
-    /// Whether this egg can still bring a form of the line missing from the Pokédex (the Oval Charm's target):
-    /// only the forms it can roll count, so a Fire Stone egg does not pick Vulpix for its missing Alolan form.
+    /// Whether this egg can still bring a form of the line not graduated yet (the Oval Charm's target): only the
+    /// forms it can roll count, so a Fire Stone egg does not pick Vulpix for its missing Alolan form.
     func lineMissesForms(baseID: Int, type: PokemonType? = nil) -> Bool {
         lineMissesForms(baseID: baseID, types: type.map { [$0] } ?? [])
     }
 
     func lineMissesForms(baseID: Int, types: [PokemonType]) -> Bool {
         let forms = Self.eggForms(baseID: baseID, types: types)
-        return !forms.isEmpty && !Set(forms).isSubset(of: collectedLineForms(baseID: baseID))
+        return !forms.isEmpty && !Set(forms).isSubset(of: graduatedLineForms(baseID: baseID))
     }
 
-    func collectedLineForms(baseID: Int) -> Set<PokemonForm> {
-        let owned = PokemonForm.formSpecies(baseID: baseID).map { ($0, collectedForms(speciesID: $0)) }
+    /// The line's forms every one of its species graduated in, what the game counts as had: the roll, the Oval
+    /// Charm, a new form's bonuses, as the goals do. Neither a Pokémon sent off nor the one being raised: a form
+    /// counts once a Pokémon of it is kept.
+    func graduatedLineForms(baseID: Int) -> Set<PokemonForm> {
+        let owned = PokemonForm.formSpecies(baseID: baseID).map { ($0, collectedForms(speciesID: $0, graduatedOnly: true)) }
         return Set(PokemonForm.lineForms(baseID: baseID).filter { form in
             owned.allSatisfy { speciesID, forms in
                 PokemonForm.ownForm(speciesID: speciesID, lineForm: form).map(forms.contains) ?? true

@@ -322,7 +322,7 @@ struct CircleIconButton: View {
                 .background(Circle().fill(Color.primary.opacity(0.07)))
         }
         .buttonStyle(.plain)
-        .help(help)
+        .hoverTip(help)
         .accessibilityLabel(help)
     }
 }

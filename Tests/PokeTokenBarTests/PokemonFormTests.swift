@@ -310,10 +310,25 @@ final class PokemonFormTests: XCTestCase {
     func testLineFormCountsOnlyOnceEverySpeciesShowingItIsOwned() {
         var state = CompanionState()
         state.dex = [burmy([412, 414], form: sandy)]
-        XCTAssertFalse(state.collectedLineForms(baseID: 412).contains(sandy), "Sandy Wormadam is still missing")
+        XCTAssertFalse(state.graduatedLineForms(baseID: 412).contains(sandy), "Sandy Wormadam is still missing")
         state.dex.append(burmy([412, 413], form: sandy))
-        XCTAssertEqual(state.collectedLineForms(baseID: 412), [sandy])
-        XCTAssertEqual(state.collectedLineForms(baseID: 201), [])
+        XCTAssertEqual(state.graduatedLineForms(baseID: 412), [sandy])
+        XCTAssertEqual(state.graduatedLineForms(baseID: 201), [])
+    }
+
+    /// The game counts graduated forms only, as the goals do (#82): an Unown Q sent off, or the one being raised, leaves
+    /// Q to the roll, the Oval Charm and a new form's bonuses.
+    func testAFormSentOffOrBeingRaisedIsStillMissing() {
+        let q = PokemonForm("q"), a = PokemonForm("a")
+        var state = CompanionState()
+        state.dex = [DexEntry(baseID: 201, finalID: 201, chainOrder: [201], rarity: .common, caughtAt: now, form: a),
+                     DexEntry(baseID: 201, finalID: 201, chainOrder: [201], rarity: .common, caughtAt: now,
+                              releasedAt: now, form: q)]
+        state.active = MonState(baseID: 201, pathIDs: [201], stageIndex: 0, usedAtStage: 0, rarity: .common,
+                                totalForms: 1, form: PokemonForm("b"))
+        XCTAssertEqual(state.graduatedLineForms(baseID: 201), [a])
+        XCTAssertTrue(state.lineMissesForms(baseID: 201))
+        XCTAssertEqual(state.collectedForms(speciesID: 201), [a, q, PokemonForm("b")], "the Pokédex still shows them")
     }
 
     func testDetailListsOwnedFormsAndMainDexKeepsOneCell() throws {

@@ -97,8 +97,9 @@ struct UnlockRequirementView: View {
                     if compact && progress.isMet { checkmark }
                     ForEach(goal.species, id: \.self) { id in
                         let has = progress.registered.contains(id)
-                        SpriteView(speciesID: id, size: spriteSize(count: goal.species.count), sameScale: true)
-                            .grayscale(has ? 0 : 1).opacity(has ? 1 : 0.35)
+                        // Still to graduate: its shape in black, as in the Pokédex.
+                        SpriteView(speciesID: id, size: spriteSize(count: goal.species.count), isSilhouette: !has,
+                                   sameScale: true)
                             .speciesNameTooltip(id, language: store.language)
                     }
                     Spacer(minLength: 4)
@@ -124,11 +125,17 @@ struct UnlockRequirementView: View {
                     ProgressView(value: Double(progress.count), total: Double(max(1, needed))).controlSize(.small)
                 }
             }
+            // Too many to draw: the ones still missing, named on hover, with their names loaded here.
+            .hoverTip(missingForms(progress).isEmpty ? nil
+                      : HoverTip(id: "forms:\(goal.speciesID)", title: l.missingFormsHint(missingForms(progress))))
+            .loadsFormNames(goal.speciesID)
         } else {
             HStack(spacing: compact ? 2 : 3) {
                 if compact && progress.isMet { checkmark }
                 ForEach(goal.forms, id: \.self) { form in
                     let has = progress.graduated.contains(form)
+                    // Faded until it graduated, as the Pokédex's form picker: in black, the forms of one species
+                    // would all look alike.
                     SpriteView(speciesID: goal.speciesID, size: spriteSize(count: needed), form: form)
                         .grayscale(has ? 0 : 1).opacity(has ? 1 : 0.35)
                         .speciesNameTooltip(goal.speciesID, form: form, language: store.language)
@@ -136,6 +143,13 @@ struct UnlockRequirementView: View {
                 Spacer(minLength: 4)
                 counter(progress.count, needed: needed)
             }
+        }
+    }
+
+    /// The forms of a goal not graduated yet, by name, in the goal's order.
+    private func missingForms(_ progress: CompanionStore.FormProgress) -> [String] {
+        progress.goal.forms.filter { !progress.graduated.contains($0) }.map {
+            PokemonForm.label(speciesID: progress.goal.speciesID, form: $0, language: store.language) ?? $0.rawValue
         }
     }
 

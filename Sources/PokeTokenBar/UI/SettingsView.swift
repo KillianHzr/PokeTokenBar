@@ -1025,7 +1025,7 @@ struct SettingsView: View {
             Text(title).underline()
         }
         .buttonStyle(.plain)
-        .help(urlString)
+        .hoverTip(urlString)
     }
 
     private func commitCustomScanDraft() {

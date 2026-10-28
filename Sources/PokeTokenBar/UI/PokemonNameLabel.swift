@@ -46,24 +46,53 @@ final class PokemonNameDisplayStore {
 }
 
 /// A Pokémon's name in the player's language as its tooltip (PokéAPI's species names, fetched once and cached), in
-/// its form; "#25" until it is known.
+/// its form; "#25" until it is known. The form's name is loaded too: read from names another view had loaded, it
+/// showed the identifier ("Icy Snow") in every language until the Pokédex page was opened.
 @MainActor
 struct SpeciesNameTooltip: ViewModifier {
     let speciesID: Int
     var form: PokemonForm?
     let language: AppLanguage
     var displayStore = PokemonNameDisplayStore.shared
+    var provider: any PokemonNameProviding = PokemonNameClient.shared
 
-    private var resource: PokemonNameResource { .init(kind: .pokemonSpecies, name: String(speciesID)) }
+    private var resources: [PokemonNameResource] {
+        [.init(kind: .pokemonSpecies, name: String(speciesID))]
+            + (form.flatMap { PokemonForm.nameResource(speciesID: speciesID, form: $0) }.map { [$0] } ?? [])
+    }
 
     func body(content: Content) -> some View {
-        let base = displayStore.names[resource].flatMap(language.resolveName) ?? "#\(speciesID)"
+        let base = displayStore.names[resources[0]].flatMap(language.resolveName) ?? "#\(speciesID)"
+        let name = PokemonForm.displayName(base, speciesID: speciesID, form: form,
+                                           label: PokemonForm.label(speciesID: speciesID, form: form, language: language,
+                                                                    names: displayStore))
         content
-            .help(PokemonForm.displayName(base, speciesID: speciesID, form: form, language: language))
-            .task(id: speciesID) {
-                guard displayStore.names[resource] == nil else { return }
-                _ = await displayStore.load(resource, provider: PokemonNameClient.shared)
-            }
+            .hoverTip(HoverTip(id: "species:\(speciesID):\(form?.rawValue ?? "")", title: name))
+            .task(id: resources) { await displayStore.loadMissing(resources, provider: provider) }
+    }
+}
+
+/// Loads the names of a species' forms, for a hover that names them all (a forms goal too long to draw).
+@MainActor
+struct FormNamesLoader: ViewModifier {
+    let speciesID: Int
+    var displayStore = PokemonNameDisplayStore.shared
+    var provider: any PokemonNameProviding = PokemonNameClient.shared
+
+    func body(content: Content) -> some View {
+        content.task(id: speciesID) {
+            await displayStore.loadMissing(PokemonForm.nameResources(speciesID: speciesID), provider: provider)
+        }
+    }
+}
+
+extension PokemonNameDisplayStore {
+    /// Loads the resources not known yet, one after the other (the client caches each on disk).
+    func loadMissing(_ resources: [PokemonNameResource], provider: any PokemonNameProviding) async {
+        for resource in resources where names[resource] == nil {
+            guard !Task.isCancelled else { return }
+            _ = await load(resource, provider: provider)
+        }
     }
 }
 
@@ -71,6 +100,8 @@ extension View {
     func speciesNameTooltip(_ speciesID: Int, form: PokemonForm? = nil, language: AppLanguage) -> some View {
         modifier(SpeciesNameTooltip(speciesID: speciesID, form: form, language: language))
     }
+
+    func loadsFormNames(_ speciesID: Int) -> some View { modifier(FormNamesLoader(speciesID: speciesID)) }
 }
 
 /// Only mounted rows fetch names, following the LazyVStack's lazy row creation.
