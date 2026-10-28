@@ -67,6 +67,14 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-28", entries: [
+            .fixed("2026-10-28-smooth-move-list") { $0.t("도감에서 포켓몬의 전체 기술 목록이 이제 끊기지 않고 부드럽게 스크롤돼요.",
+                                                     "A Pokémon's full move list in the Pokédex now scrolls smoothly instead of lagging.",
+                                                     "図鑑のポケモンのわざ一覧が、引っかからずになめらかにスクロールするようになりました。",
+                                                     "La lista completa de movimientos de un Pokémon en la Pokédex ahora se desplaza con fluidez, sin tirones.",
+                                                     "La liste complète des capacités d'un Pokémon dans le Pokédex défile maintenant sans ramer.",
+                                                     "A lista completa de golpes de um Pokémon na Pokédex agora rola com fluidez, sem travar.",
+                                                     "Die vollständige Attackenliste eines Pokémon im Pokédex scrollt jetzt flüssig statt zu ruckeln.",
+                                                     "Полный список приёмов покемона в покедексе теперь прокручивается плавно, без рывков.") },
             .improved("2026-10-28-season-eggs") { $0.t("계절 알은 이제 그 계절 동안 언제든, 계절마다 한 번 받을 수 있어요. 이번 가을 알도 지금 배너에 있어요.",
                                                     "A season's egg now waits any day of its season, once per season: this autumn's is in the banner now.",
                                                     "季節のタマゴは、その季節のあいだいつでも、季節ごとに1回受け取れるようになりました。この秋のタマゴもいまバナーにあります。",

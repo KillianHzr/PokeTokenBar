@@ -279,6 +279,31 @@ final class PokemonNameLocalizationTests: XCTestCase {
         XCTAssertTrue(store.names.isEmpty)
     }
 
+    /// The move list lagged: each row scrolled in loads its move's name, even a known one, and each load rewrote one
+    /// observed dictionary that every name on screen read, the Pokédex page too (its form picker). So each row
+    /// redrew all the others and the page. A name now wakes only the views reading it, and only when it changes.
+    @MainActor
+    func testALoadedNameRedrawsOnlyTheViewsReadingIt() async {
+        let store = PokemonNameDisplayStore()
+        let provider = RecordingNames(names: ["en": "Tackle"])
+        let growl = PokemonNameResource(kind: .move, name: "growl")
+        _ = await store.load(resource, provider: provider)
+
+        let redrawn = expectation(description: "a row reading Tackle redrawn")
+        redrawn.isInverted = true
+        withObservationTracking { _ = store.names[resource] } onChange: { redrawn.fulfill() }
+        _ = await store.load(growl, provider: provider)
+        _ = await store.load(resource, provider: provider)
+        await fulfillment(of: [redrawn], timeout: 0.2)
+
+        let arrived = expectation(description: "a row waiting for its name")
+        let ember = PokemonNameResource(kind: .move, name: "ember")
+        withObservationTracking { _ = store.names[ember] } onChange: { arrived.fulfill() }
+        _ = await store.load(ember, provider: provider)
+        await fulfillment(of: [arrived], timeout: 1)
+        XCTAssertEqual(store.names[ember]?["en"], "Tackle")
+    }
+
     @MainActor
     func testLoadingNamesNeverShowsEnglishAndReopeningUsesSnapshot() async throws {
         let server = NameServer(try response(["en": "Tackle", "ko": "몸통박치기"]))

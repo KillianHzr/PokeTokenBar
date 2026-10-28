@@ -1543,6 +1543,16 @@ read_when:
   graduates, the Excavation's fossil lines and the achievements' species rows now draw at one scale; single heroes
   and the forms of one species still fill their box.
 
+- **One observed collection read by many views and written one item at a time redraws them all for each item.**
+  `PokemonNameDisplayStore` kept every translated name in one `@Observable` dictionary. Each move row of the
+  Pokédex page loads its move's name when it scrolls in, known or not, and each load wrote the dictionary again: every
+  name on screen, and the page itself (its form picker and the active Pokémon's title read form names), redrew for
+  each row, so the move list lagged. Each name is now its own observed entry, written only when it changes, and a row
+  whose name is known loads nothing. `testALoadedNameRedrawsOnlyTheViewsReadingIt` failed before the fix (a row
+  reading Tackle was redrawn when Growl loaded). Sweep: the other `@Observable` stores (`CompanionStore`,
+  `UsageStore`, `UpdateChecker`, the popover's) write per event, not per mounted row; `enrichProfiles` already writes
+  only on change. An observed store fed by rows as they mount needs a box per item, never one shared collection.
+
 ## 에너지 (상시 표시 애니메이션)
 
 - **절전용 정지 상태는 짝 알림 하나에만 복구를 맡기지 마라.** `screensDidSleep` 이 폴링 타이머를 끄고
