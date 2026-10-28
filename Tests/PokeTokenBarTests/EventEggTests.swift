@@ -41,15 +41,31 @@ final class EventEggTests: XCTestCase {
 
     /// During the event and the two weeks after it, then gone; once claimed, gone for the year.
     func testAnEggWaitsTwoWeeksAfterItsEvent() {
-        XCTAssertEqual(waiting(at(2026, 12, 19)), [])
-        XCTAssertEqual(waiting(at(2026, 12, 20, hour: 0)), ["christmas@2026"])
-        XCTAssertEqual(waiting(at(2026, 12, 22)), ["christmas@2026", "winter@2026"], "the earliest event first")
+        XCTAssertEqual(waiting(at(2026, 12, 19)), ["autumn@2026"], "the season's egg alone")
+        XCTAssertEqual(waiting(at(2026, 12, 20, hour: 0)), ["autumn@2026", "christmas@2026"], "the earliest event first")
+        XCTAssertEqual(waiting(at(2026, 12, 22)), ["christmas@2026", "winter@2026"])
         XCTAssertTrue(EventEgg.christmas.isOn(year: 2026, now: at(2026, 12, 26, hour: 23), firstCatch: nil, calendar: utc))
         XCTAssertFalse(EventEgg.christmas.isOn(year: 2026, now: at(2026, 12, 27, hour: 0), firstCatch: nil, calendar: utc))
         XCTAssertTrue(waiting(at(2027, 1, 9, hour: 23)).contains("christmas@2026"), "December 27 plus two weeks")
         XCTAssertFalse(waiting(at(2027, 1, 10, hour: 0)).contains("christmas@2026"))
         XCTAssertFalse(waiting(at(2026, 12, 22), claimed: ["christmas@2026"]).contains("christmas@2026"))
         XCTAssertTrue(waiting(at(2027, 12, 22), claimed: ["christmas@2026"]).contains("christmas@2027"), "every year")
+    }
+
+    /// A season's egg waits the whole season, once: 2026's autumn one came for three days and was gone before the
+    /// eggs shipped. The winter's crosses the year under the year it starts.
+    func testASeasonsEggWaitsTheWholeSeason() {
+        XCTAssertFalse(waiting(at(2026, 9, 21, hour: 23)).contains("autumn@2026"))
+        XCTAssertTrue(waiting(at(2026, 9, 22, hour: 0)).contains("autumn@2026"))
+        XCTAssertTrue(waiting(at(2026, 10, 28)).contains("autumn@2026"), "any day of the season")
+        XCTAssertTrue(waiting(at(2026, 12, 20, hour: 23)).contains("autumn@2026"))
+        XCTAssertFalse(waiting(at(2026, 12, 21, hour: 0)).contains("autumn@2026"), "the winter's takes over")
+        XCTAssertFalse(waiting(at(2026, 10, 28), claimed: ["autumn@2026"]).contains("autumn@2026"), "once")
+        XCTAssertTrue(EventEgg.autumn.isOn(year: 2026, now: at(2026, 11, 15), firstCatch: nil, calendar: utc))
+        XCTAssertTrue(waiting(at(2027, 3, 19, hour: 23)).contains("winter@2026"))
+        XCTAssertEqual(waiting(at(2027, 3, 20, hour: 0)).filter { $0.hasPrefix("winter") || $0.hasPrefix("spring") },
+                       ["spring@2027"])
+        XCTAssertTrue(waiting(at(2027, 8, 1)).contains("summer@2027"))
     }
 
     /// The New Year's egg starts on December 31 and counts for the year beginning.

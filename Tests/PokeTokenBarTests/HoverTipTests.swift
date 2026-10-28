@@ -21,7 +21,11 @@ final class HoverTipTests: XCTestCase {
         defer { window.close() }
         try await Task.sleep(for: .milliseconds(300))
         host.layoutSubtreeIfNeeded()
-        let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
+        // Twice the points, as on a Retina screen: at 1x (the CI's) the text recognition drops letters.
+        let bitmap = try XCTUnwrap(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(width * 2),
+            pixelsHigh: Int(height * 2), bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+        bitmap.size = host.bounds.size
         host.cacheDisplay(in: host.bounds, to: bitmap)
         return bitmap
     }
@@ -66,7 +70,8 @@ final class HoverTipTests: XCTestCase {
                 .environment(\.forcedHoverTipID, long)
                 .hoverTipHost(), height: 200)
         let text = try words(bitmap)
-        for word in ["Still", "Icy", "Tundra", "Archipelago", "High", "Plains"] {
+        // Words inside the lines: the first of a line touches the bubble's edge, where recognition is least sure.
+        for word in ["missing", "Tundra", "Modern", "Archipelago", "Plains"] {
             XCTAssertTrue(text.contains(word), "\(word) in \(text)")
         }
     }

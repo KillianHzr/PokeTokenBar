@@ -135,6 +135,12 @@ read_when:
   last-hatched rules; `EventEggTests.testTheRestFallbackOfAnEggOfFewLinesHatchesEveryTime` and
   `FossilDigTests.testTheRestFallbackFindsAFossilLineEveryTime` hatch on every seed.
 
+- **An event that already passed when its feature ships gives nothing until next year.** The season eggs came out
+  on 2026-10-27 with a three-day window plus two weeks: autumn's had closed on October 8, so no player got one,
+  and a player away for those days missed the season. **Why it was missed:** the tests checked the windows'
+  dates, not what a player opening the app on any day of the season gets. A season's egg now waits the whole season
+  (once per season, no grace after: the next season's takes over); `EventEggTests.testASeasonsEggWaitsTheWholeSeason`.
+
 - **An item that speeds one kind of egg checks the kind, not a field other eggs share (#80).** The Tera Orb (stone
   eggs) and the Sea Incense (Shop and Legend Plate eggs) read `eggTypeGuarantee` and `eggTier`, which an event egg
   sets too (Christmas: Ice, Rare): both halved it. They now skip an event egg;

@@ -8,8 +8,11 @@ enum EventEgg: String, CaseIterable, Codable, Sendable {
     case companion
     case spring, summer, autumn, winter
 
-    /// Days after the event's last one an egg still waits.
-    static let claimDays = 14
+    /// Days after the event's last one an egg still waits. A season's egg waits the whole season, then the next
+    /// season's takes over.
+    var claimDays: Int { isSeason ? 0 : 14 }
+
+    var isSeason: Bool { seasonForm != nil }
 
     /// The event's days in `year`: from its first day to the start of the day after its last. Nil for the companion's
     /// anniversary without a first catch, or in the first catch's own year.
@@ -17,6 +20,10 @@ enum EventEgg: String, CaseIterable, Codable, Sendable {
         func day(_ y: Int, _ m: Int, _ d: Int) -> Date? { calendar.date(from: DateComponents(year: y, month: m, day: d)) }
         func span(_ start: Date?, days: Int) -> (start: Date, end: Date)? {
             guard let start, let end = calendar.date(byAdding: .day, value: days, to: start) else { return nil }
+            return (start, end)
+        }
+        func season(_ start: Date?, until end: Date?) -> (start: Date, end: Date)? {
+            guard let start, let end else { return nil }
             return (start, end)
         }
         switch self {
@@ -35,10 +42,12 @@ enum EventEgg: String, CaseIterable, Codable, Sendable {
             // February 29 comes on February 28 in other years.
             let valid = calendar.range(of: .day, in: .month, for: day(year, m, 1) ?? firstCatch)?.contains(d) ?? true
             return span(day(year, m, valid ? d : d - 1), days: 1)
-        case .spring: return span(day(year, 3, 20), days: 3)
-        case .summer: return span(day(year, 6, 21), days: 3)
-        case .autumn: return span(day(year, 9, 22), days: 3)
-        case .winter: return span(day(year, 12, 21), days: 3)
+        // A season's egg comes any day of it, once: a player who first opens the app in November still gets the
+        // autumn's. It used to come for three days, and none of 2026's autumn came, gone before the eggs shipped.
+        case .spring: return season(day(year, 3, 20), until: day(year, 6, 21))
+        case .summer: return season(day(year, 6, 21), until: day(year, 9, 22))
+        case .autumn: return season(day(year, 9, 22), until: day(year, 12, 21))
+        case .winter: return season(day(year, 12, 21), until: day(year + 1, 3, 20))
         }
     }
 
@@ -62,7 +71,7 @@ enum EventEgg: String, CaseIterable, Codable, Sendable {
             // A December event still waits in January; the New Year's starts in December.
             for y in [year - 1, year, year + 1] where !claimed.contains(egg.key(year: y)) {
                 guard let days = egg.days(in: y, firstCatch: firstCatch, calendar: calendar),
-                      let last = calendar.date(byAdding: .day, value: claimDays, to: days.end),
+                      let last = calendar.date(byAdding: .day, value: egg.claimDays, to: days.end),
                       now >= days.start, now < last else { continue }
                 out.append((egg, y, days.start))
             }

@@ -67,6 +67,14 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-28", entries: [
+            .improved("2026-10-28-season-eggs") { $0.t("계절 알은 이제 그 계절 동안 언제든, 계절마다 한 번 받을 수 있어요. 이번 가을 알도 지금 배너에 있어요.",
+                                                    "A season's egg now waits any day of its season, once per season: this autumn's is in the banner now.",
+                                                    "季節のタマゴは、その季節のあいだいつでも、季節ごとに1回受け取れるようになりました。この秋のタマゴもいまバナーにあります。",
+                                                    "El huevo de cada estación espera ahora cualquier día de la estación, una vez por estación: el de este otoño ya está en el aviso.",
+                                                    "L'œuf de chaque saison t'attend maintenant n'importe quel jour de la saison, une fois par saison : celui de cet automne est déjà dans la bannière.",
+                                                    "O ovo de cada estação agora espera qualquer dia da estação, uma vez por estação: o deste outono já está no aviso.",
+                                                    "Das Ei einer Jahreszeit wartet jetzt an jedem Tag der Jahreszeit, einmal pro Jahreszeit: das dieses Herbstes ist schon im Banner.",
+                                                    "Яйцо сезона теперь ждёт в любой день сезона, раз за сезон: осеннее уже в баннере.") },
             .improved("2026-10-28-hover-tips") { $0.t("툴팁이 기다림 없이 바로 떠요. 업적에서는 아직 없는 포켓몬을 포함해 모든 포켓몬 위에서 이름이 보여요.",
                                                    "Tooltips show at once, and in the achievements every Pokémon names itself on hover, the missing ones too.",
                                                    "ツールチップがすぐに表示されます。実績では、まだいないポケモンも含め、すべてのポケモンにカーソルを合わせると名前が出ます。",
