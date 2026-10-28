@@ -290,7 +290,7 @@ private struct RegionGrid: View {
                 .padding(.horizontal, 6)
                 .padding(.vertical, 4)
                 .background(RoundedRectangle(cornerRadius: 6).fill(background(tier)))
-                .help("\(tier.progress.registered.count)/\(tier.progress.goal.needed)")
+                .hoverTip("\(tier.progress.registered.count)/\(tier.progress.goal.needed)")
             }
         }
     }
@@ -354,7 +354,7 @@ private struct ExcavationPanel: View {
                             .grayscale(lit ? 0 : 1)
                             .opacity(lit ? (egg == .opened ? 0.55 : 1) : 0.35)
                             .overlay(alignment: .bottomTrailing) { badge(egg) }
-                            .help(egg == .next ? l.excavationNextEgg(toward, of: FossilDig.rockPerDig) : name(egg, l))
+                            .hoverTip(egg == .next ? l.excavationNextEgg(toward, of: FossilDig.rockPerDig) : name(egg, l))
                     }
                 }
                 Spacer(minLength: 4)
@@ -426,15 +426,14 @@ private struct ExcavationPanel: View {
         }
     }
 
-    /// The fossil lines, those graduated in color.
+    /// The fossil lines, those graduated in color, the others in black as in the Pokédex.
     private var lines: some View {
         let graduated = store.graduatedSpeciesIDs
         return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 8), spacing: 2) {
             ForEach(FossilDig.lines, id: \.self) { line in
                 let owned = graduated.contains(line)
-                SpriteView(speciesID: line, size: 26, sameScale: true)
+                SpriteView(speciesID: line, size: 26, isSilhouette: !owned, sameScale: true)
                     .frame(width: 28, height: 28)
-                    .grayscale(owned ? 0 : 1).opacity(owned ? 1 : 0.35)
                     .speciesNameTooltip(line, language: store.language)
             }
         }

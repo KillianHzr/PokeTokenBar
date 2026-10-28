@@ -1136,6 +1136,14 @@ read_when:
 
 ## 표시·UI
 
+- **The app draws its own tooltips (`HoverTip`), never the system's.** The owner saw no tooltip over the faded
+  sprites of the achievements' missing Pokémon (grayscale and 35% opacity), only over the ones in color; the system
+  tooltip also waits about a second. The exact reason AppKit drops it there is not traced. Every `.help` is now a
+  `.hoverTip`: the hovered view's whole box answers the pointer (`contentShape`), and the popover's
+  `hoverTipHost()` draws the bubble above the cards and scroll views, which clip. `HoverTipTests` render it forced
+  (`forcedHoverTipID`), nested in a card with its own tip, wrapped when long, and fail the build if a `.help(` comes
+  back. The pointer's own hover is not reachable from a test: check it by hand after a change to `HoverTipSource`.
+
 - **A hover that names a form loads the form's name itself.** The long forms goals' "Still missing" list and the
   forms' sprite tooltips (achievements, the Stats page's graduates) read `PokemonForm.label`, which answers from names
   another view loaded: until the Pokédex page of that species was opened, a French player read "Icy Snow, Tundra".

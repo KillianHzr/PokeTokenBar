@@ -67,6 +67,22 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-28", entries: [
+            .improved("2026-10-28-hover-tips") { $0.t("툴팁이 기다림 없이 바로 떠요. 업적에서는 아직 없는 포켓몬을 포함해 모든 포켓몬 위에서 이름이 보여요.",
+                                                   "Tooltips show at once, and in the achievements every Pokémon names itself on hover, the missing ones too.",
+                                                   "ツールチップがすぐに表示されます。実績では、まだいないポケモンも含め、すべてのポケモンにカーソルを合わせると名前が出ます。",
+                                                   "Las descripciones emergentes aparecen al instante, y en los logros cada Pokémon dice su nombre al pasar el cursor, también los que faltan.",
+                                                   "Les infobulles s'affichent tout de suite, et dans les succès chaque Pokémon donne son nom au survol, même ceux qui manquent.",
+                                                   "As dicas aparecem na hora, e nas conquistas cada Pokémon mostra o nome ao passar o cursor, inclusive os que faltam.",
+                                                   "Tooltips erscheinen sofort, und bei den Erfolgen nennt jedes Pokémon beim Darüberfahren seinen Namen, auch die fehlenden.",
+                                                   "Подсказки появляются сразу, а в достижениях каждый покемон называет себя при наведении, даже недостающие.") },
+            .improved("2026-10-28-goal-silhouettes") { $0.t("업적에서 아직 졸업하지 않은 포켓몬은 도감처럼 검은 실루엣으로 보여요.",
+                                                         "In the achievements, the Pokémon not graduated yet show as black silhouettes, as in the Pokédex.",
+                                                         "実績で、まだ卒業していないポケモンは図鑑と同じく黒いシルエットで表示されます。",
+                                                         "En los logros, los Pokémon aún sin graduar aparecen como siluetas negras, como en la Pokédex.",
+                                                         "Dans les succès, les Pokémon pas encore diplômés apparaissent en silhouette noire, comme dans le Pokédex.",
+                                                         "Nas conquistas, os Pokémon ainda não formados aparecem como silhuetas pretas, como na Pokédex.",
+                                                         "Bei den Erfolgen erscheinen noch nicht verabschiedete Pokémon wie im Pokédex als schwarze Silhouetten.",
+                                                         "В достижениях ещё не выпущенные покемоны показаны чёрными силуэтами, как в покедексе.") },
             .fixed("2026-10-28-candy-plan") { l in
                 let candy = l.itemName(.rareCandy)
                 return l.t("세션 키로 연결한 Claude 계정도 요금제만큼 \(candy)을 받아요. Max 요금제가 Pro처럼 받고 있었어요.",

@@ -236,6 +236,8 @@ struct PopoverView: View {
             }
         }
         .frame(width: PopoverMetrics.width)
+        // Above the scroll views and cards, which clip: the Pokémon names shown on hover.
+        .hoverTipHost()
         .overlay(alignment: .top) {
             if !companion.formUnlockNews.isEmpty {
                 FormUnlockToast(store: companion)
@@ -1041,7 +1043,7 @@ struct PopoverView: View {
                 .foregroundStyle(.secondary)
         }
         .buttonStyle(.plain)
-        .help(l.claudeKeychainHelpTooltip)
+        .hoverTip(l.claudeKeychainHelpTooltip)
         .popover(isPresented: $showingClaudeKeychainHelp) {
             VStack(alignment: .leading, spacing: 8) {
                 Text(l.claudeKeychainHelpTitle)
@@ -1273,7 +1275,7 @@ struct PopoverView: View {
                 if store.lastErrorDescription != nil {
                     Image(systemName: "exclamationmark.triangle")
                         .foregroundStyle(Color.readableOrange)
-                        .help(store.lastErrorMessage(l) ?? "")
+                        .hoverTip(store.lastErrorMessage(l) ?? "")
                 }
             }
             Spacer()
@@ -1942,7 +1944,7 @@ struct CapsuleTabBar: View {
                         .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
-                    .help(item.help ?? "")
+                    .hoverTip(item.help ?? "")
                 }
             }
         }
@@ -1952,10 +1954,10 @@ struct CapsuleTabBar: View {
 }
 
 private extension View {
-    /// 문구가 있을 때만 툴팁을 단다 — `.help("")` 는 빈 툴팁 상자를 띄운다.
+    /// 문구가 있을 때만 툴팁을 단다 — `.hoverTip("")` 는 빈 툴팁 상자를 띄운다.
     @ViewBuilder
     func helpIfPresent(_ text: String?) -> some View {
-        if let text { help(text) } else { self }
+        if let text { hoverTip(text) } else { self }
     }
 }
 

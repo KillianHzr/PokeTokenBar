@@ -620,7 +620,7 @@ struct EvoLineView: View {
                             }
                             .frame(width: thumb + (names == nil ? 0 : Self.nameSlack))
                             .modifier(dexLinkModifier(forSpeciesID: item.speciesID, isCollected: item.isCollected))
-                            .help(item.isCollected ? (names?[item.speciesID] ?? "") : mysteryLabel)
+                            .hoverTip(item.isCollected ? (names?[item.speciesID] ?? "") : mysteryLabel)
                         }
                     }
                     .id(i)
@@ -708,7 +708,7 @@ struct EvolutionTrackView: View {
     @ViewBuilder
     private func stretch(_ index: Int) -> some View {
         if index == currentIndex + 1 {
-            bar(fill: min(1, max(0, progress))).help(detail)
+            bar(fill: min(1, max(0, progress))).hoverTip(detail)
         } else {
             bar(fill: index <= currentIndex ? 1 : 0)
         }
@@ -809,7 +809,7 @@ struct EvolutionTrackView: View {
             .frame(width: size, height: size)
             .modifier(DexEntryLink(target: item.isCollected ? dexLinks[item.speciesID] : nil, hint: l.dexOpenEntryHint,
                                    accessibilityName: names[item.speciesID], cornerRadius: 5, open: onOpenDexEntry))
-            .help(item.isCollected ? (names[item.speciesID] ?? l.dexOpenEntryHint) : l.unknownNextEvolution)
+            .hoverTip(item.isCollected ? (names[item.speciesID] ?? l.dexOpenEntryHint) : l.unknownNextEvolution)
     }
 }
 
@@ -912,7 +912,7 @@ struct DexEntryLink: ViewModifier {
             // A click navigates the link away while the pointer is still on it; no `.ended` follows,
             // so without this the hand cursor sticks on the next screen.
             .onDisappear { Self.cursor(after: .disappeared, wasHovered: isHovered)?.nsCursor.set() }
-            .help(hint)
+            .hoverTip(hint)
             .accessibilityLabel(accessibilityName.map { "\($0), \(hint)" } ?? hint)
         } else {
             content
@@ -985,11 +985,11 @@ struct CompanionHeader: View {
             if let onOpenBonuses {
                 Button(action: onOpenBonuses) { badge }
                     .buttonStyle(.plain)
-                    .help(breakdown)
+                    .hoverTip(breakdown)
                     .accessibilityLabel(isRepeat ? store.l.repeatGrowthBoost(total) : store.l.growthBoost(total))
                     .accessibilityHint(breakdown)
             } else {
-                badge.help(breakdown)
+                badge.hoverTip(breakdown)
             }
         }
     }
@@ -1003,17 +1003,17 @@ struct CompanionHeader: View {
         if isNewForm {
             Badge(l.newFormBadge.uppercased(), tint: .blue, style: .tinted)
                 .lineLimit(1).fixedSize()
-                .help(store.activeNewsHint)
+                .hoverTip(store.activeNewsHint)
         }
         if let news = store.activeNews {
             if news.isDuplicate {
                 Badge(l.activeDuplicateBadge.uppercased(), tint: .secondary, style: .tinted)
                     .lineLimit(1).fixedSize()
-                    .help(l.activeDuplicateHint)
+                    .hoverTip(l.activeDuplicateHint)
             } else if !isNewForm {
                 Badge(l.activeNewBadge.uppercased(), tint: .green, style: .tinted)
                     .lineLimit(1).fixedSize()
-                    .help(store.activeNewsHint)
+                    .hoverTip(store.activeNewsHint)
             }
         }
     }
@@ -1380,7 +1380,7 @@ struct DexSummaryHeader: View {
                         }
                         .buttonStyle(.plain)
                         .disabled(count == 0)          // 0마리 희귀도는 필터 불가
-                        .help(store.l.dexFilterHint)
+                        .hoverTip(store.l.dexFilterHint)
                     }
                 }
                 .fixedSize(horizontal: true, vertical: false)
@@ -1555,7 +1555,7 @@ struct CollectionView: View {
                     )
             }
             .buttonStyle(.plain)
-            .help(store.l.filterShinyOnly)
+            .hoverTip(store.l.filterShinyOnly)
             .accessibilityLabel(store.l.filterShinyOnly)
             }
 
@@ -1578,7 +1578,7 @@ struct CollectionView: View {
                     )
             }
             .buttonStyle(.plain)
-            .help(store.l.filterEvolutionFamily)
+            .hoverTip(store.l.filterEvolutionFamily)
             .accessibilityLabel(store.l.filterEvolutionFamily)
 
             if sortsCaught {
@@ -1625,7 +1625,7 @@ struct CollectionView: View {
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
-            .help(store.l.sortTitle)
+            .hoverTip(store.l.sortTitle)
             .accessibilityLabel(store.l.sortTitle)
             }
         }
@@ -1741,7 +1741,7 @@ struct RepresentativeFooterButton: View {
             Label(title, systemImage: isRepresentative ? "arrow.triangle.2.circlepath" : "star")
         }
         .labelStyle(.iconOnly)
-        .help(title)
+        .hoverTip(title)
         .accessibilityLabel(title)
         .buttonStyle(.bordered)
         .controlSize(.mini)
@@ -1974,7 +1974,7 @@ struct FullDexView: View {
                 Spacer(minLength: 4)
                 if registered > owned.species {
                     Label(store.l.dexSeenOnly(registered - owned.species), systemImage: "eye").labelStyle(.titleAndIcon)
-                        .foregroundStyle(.secondary).help(store.l.dexSeenNotGraduated)
+                        .foregroundStyle(.secondary).hoverTip(store.l.dexSeenNotGraduated)
                 }
             }
             HStack(spacing: 8) {
@@ -2016,7 +2016,7 @@ struct FullDexView: View {
                                     Circle().fill(rarityColor(rarity)).frame(width: 6, height: 6)
                                     Text("\(count)").font(.caption2.monospacedDigit())
                                 }
-                                .help(store.l.rarityLabel(rarity))
+                                .hoverTip(store.l.rarityLabel(rarity))
                             }
                         }
                     }
@@ -2063,7 +2063,7 @@ struct FullDexView: View {
                 .opacity(isGraduated ? 1 : 0.5)
             }
             .buttonStyle(.plain)
-            .help("#\(id) \(species.name) · \(store.l.rarityLabel(species.rarity))"
+            .hoverTip("#\(id) \(species.name) · \(store.l.rarityLabel(species.rarity))"
                   + (isGraduated ? "" : " · \(store.l.dexSeenNotGraduated)"))
             .accessibilityLabel("#\(id) \(species.name)")
         } else {
@@ -2075,7 +2075,7 @@ struct FullDexView: View {
             }
             .frame(maxWidth: .infinity).padding(.vertical, 4)
             .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
-            .help(store.l.dexMissingHint(id))
+            .hoverTip(store.l.dexMissingHint(id))
             .accessibilityLabel(store.l.dexMissingHint(id))
         }
     }
@@ -2205,7 +2205,7 @@ private struct DexGridView: View {
                 if seen > 0 {
                     Text("·").foregroundStyle(.tertiary)
                     Label(store.l.dexSeenOnly(seen), systemImage: "eye").labelStyle(.titleAndIcon)
-                        .help(store.l.dexSeenNotGraduated)
+                        .hoverTip(store.l.dexSeenNotGraduated)
                 }
                 Text("·").foregroundStyle(.tertiary)
                 Text(store.l.formsCollected(owned.forms, of: owned.formsTotal))
@@ -2228,7 +2228,7 @@ private struct DexGridView: View {
                         }
                         .buttonStyle(.plain)
                         .disabled(count == 0)
-                        .help(store.l.dexFilterHint)
+                        .hoverTip(store.l.dexFilterHint)
                     }
                 }
                 .fixedSize(horizontal: true, vertical: false)
@@ -2551,7 +2551,7 @@ struct PokemonDetailView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(!isOwned)
-                    .help(name)
+                    .hoverTip(name)
                     .accessibilityLabel(name)
                     .accessibilityAddTraits(costume == equipped ? .isSelected : [])
                 }
@@ -2840,7 +2840,7 @@ private struct DexSpeciesCell: View {
         Button(action: onTap) { cell }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
-        .help(tooltip)
+        .hoverTip(tooltip)
         .accessibilityLabel(tooltip)
         .contextMenu {
             if formCount != nil {

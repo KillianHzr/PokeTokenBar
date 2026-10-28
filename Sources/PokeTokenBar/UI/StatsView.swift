@@ -342,7 +342,7 @@ struct StatsScreen: View {
                             .fontWeight(.semibold).monospacedDigit()
                     }
                     .font(.caption)
-                    .help(TokenFormatter.grouped(kind.1))
+                    .hoverTip(TokenFormatter.grouped(kind.1))
                 }
             }
             if breakdown.tools.count > 1 {
@@ -492,7 +492,7 @@ struct StatsScreen: View {
                             .foregroundStyle(.secondary)
                     }
                     .frame(maxWidth: .infinity)
-                    .help(TokenFormatter.compact(averages[slot]))
+                    .hoverTip(TokenFormatter.compact(averages[slot]))
                 }
             }
             Text(l.statsBusiestDay(symbol(busiest, names), TokenFormatter.compact(averages[busiest])))

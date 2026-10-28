@@ -63,10 +63,11 @@ struct SpeciesNameTooltip: ViewModifier {
 
     func body(content: Content) -> some View {
         let base = displayStore.names[resources[0]].flatMap(language.resolveName) ?? "#\(speciesID)"
+        let name = PokemonForm.displayName(base, speciesID: speciesID, form: form,
+                                           label: PokemonForm.label(speciesID: speciesID, form: form, language: language,
+                                                                    names: displayStore))
         content
-            .help(PokemonForm.displayName(base, speciesID: speciesID, form: form,
-                                          label: PokemonForm.label(speciesID: speciesID, form: form, language: language,
-                                                                   names: displayStore)))
+            .hoverTip(HoverTip(id: "species:\(speciesID):\(form?.rawValue ?? "")", title: name))
             .task(id: resources) { await displayStore.loadMissing(resources, provider: provider) }
     }
 }
