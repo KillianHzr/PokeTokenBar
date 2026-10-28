@@ -2179,14 +2179,14 @@ struct L {
                      "Gib dein aktuelles Pokémon dafür ab: Daraus schlüpft zufällig ein Fossil-Pokémon einer noch nicht verabschiedeten Linie, oder jeder Fossil-Linie, sobald alle verabschiedet sind.",
                      "Отпустите текущего покемона ради него: из него вылупится случайный покемон-окаменелость из ещё не выпущенной линии, а когда выпущены все, из любой.")
         case .rotomCatalog:
-            return t("보유하면 그 진화 라인에 없던 폼으로 태어난 포켓몬마다 이상한 사탕을 1개 받습니다.",
-                     "While owned, every Pokémon that hatches in a form its line never had gives you one Rare Candy.",
-                     "持っていると、その進化ラインになかったフォルムで生まれたポケモンごとにふしぎなアメを1個もらえます。",
-                     "Mientras lo tengas, cada Pokémon que nace en una forma que su línea nunca tuvo te da un Caramelo Raro.",
-                     "Tant que tu le possèdes, chaque Pokémon qui éclot dans une forme que sa lignée n'avait jamais eue te donne un Super Bonbon.",
-                     "Enquanto estiver na bolsa, cada Pokémon que nasce numa forma que sua linha nunca teve te dá um Doce Raro.",
-                     "Gibt im Beutel für jedes Pokémon, das in einer Form schlüpft, die seine Linie noch nie hatte, ein Sonderbonbon.",
-                     "Пока он у вас, за каждого покемона, вылупившегося в форме, которой у его линии ещё не было, вы получаете Редкую конфету.")
+            return t("보유하면 그 진화 라인이 아직 졸업시킨 적 없는 폼으로 졸업한 포켓몬마다 이상한 사탕을 1개 받습니다.",
+                     "While owned, every Pokémon that graduates in a form its line had never graduated gives you one Rare Candy.",
+                     "持っていると、その進化ラインがまだ卒業させていないフォルムで卒業したポケモンごとにふしぎなアメを1個もらえます。",
+                     "Mientras lo tengas, cada Pokémon que se gradúa en una forma que su línea nunca había graduado te da un Caramelo Raro.",
+                     "Tant que tu le possèdes, chaque Pokémon diplômé dans une forme que sa lignée n'avait jamais diplômée te donne un Super Bonbon.",
+                     "Enquanto estiver na bolsa, cada Pokémon que se forma numa forma que sua linha nunca tinha formado te dá um Doce Raro.",
+                     "Gibt im Beutel für jedes Pokémon, das in einer Form verabschiedet wird, die seine Linie noch nie verabschiedet hat, ein Sonderbonbon.",
+                     "Пока он у вас, за каждого покемона, выпущенного в форме, которую его линия ещё не выпускала, вы получаете Редкую конфету.")
         case .cometShard, .redNectar, .smoothRock, .sawsbuckSeasons, .fairyFeather, .furfrouTrims, .vivillonPatterns,
              .whippedDream, .unownLetters:
             let list = rewardsList(kind.achievementRewards)
@@ -2566,8 +2566,10 @@ struct L {
           "Выпущенные линии окаменелостей: \(owned)/\(total)")
     }
     var rotomCatalogEffectHint: String {
-        t("새 폼마다 사탕 +1 · 적용 중", "+1 candy per new form · active", "新フォルムごとにアメ+1 · 適用中", "+1 caramelo por forma nueva · activo",
-          "+1 bonbon par nouvelle forme · actif", "+1 doce por forma nova · ativo", "+1 Bonbon pro neuer Form · aktiv", "+1 конфета за новую форму · активен")
+        t("새 폼 졸업마다 사탕 +1 · 적용 중", "+1 candy per new form graduated · active", "新フォルムの卒業ごとにアメ+1 · 適用中",
+          "+1 caramelo por forma nueva graduada · activo", "+1 bonbon par nouvelle forme diplômée · actif",
+          "+1 doce por forma nova formada · ativo", "+1 Bonbon pro neu verabschiedeter Form · aktiv",
+          "+1 конфета за новую выпущенную форму · активен")
     }
     // 알 (리롤) — tier = 보증 등급 하한(nil = 보증 없는 기본 알).
     // 이름은 `rarityLabel(r) + " 알"` 식 조합으로 만들지 않는다: 한국어·영어는 맞아떨어져도 일본어에서
@@ -2600,6 +2602,12 @@ struct L {
                  "Solte seu Pokémon atual e ganhe um ovo que garante \(r) ou melhor.",
                  "Verabschiede dein aktuelles Pokémon und erhalte ein Ei, aus dem garantiert ein Pokémon der Seltenheitsstufe \(r) oder höher schlüpft.",
                  "Отпустите текущего покемона и получите яйцо с гарантией: \(r) или выше.")
+    }
+    /// Under a greyed-out Fossil Egg while a Fossil Egg's own Pokémon grows (#90).
+    var fossilEggInProgress: String {
+        t("화석 알이 이미 진행 중이에요", "A Fossil Egg is already in progress", "化石のタマゴがすでに進行中です",
+          "Ya hay un Huevo Fósil en curso", "Un œuf fossile est déjà en cours", "Já há um Ovo Fóssil em andamento",
+          "Ein Fossil-Ei läuft bereits", "Яйцо-окаменелость уже в процессе")
     }
     /// Under a Shop egg: bought, it waits in the Bag, and the Pokémon is sent off only when the egg is used.
     var eggGoesToBag: String {

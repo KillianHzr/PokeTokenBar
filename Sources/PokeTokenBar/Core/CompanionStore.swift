@@ -1683,6 +1683,12 @@ final class CompanionStore {
         a.profile?.advanceGrowth(to: PokemonBalance.graduationTotal(a.rarity), rarity: a.rarity)
         if let details = pokemonDetails(speciesID: a.currentID, form: a.form) { a.profile?.enrich(with: details) }
         let finalID = a.currentID
+        // The Rotom Catalog pays for a form the line never graduated, when it graduates: paid at the hatch, a form
+        // sent off before graduating paid again each time it hatched (#91). A revealed Ditto has no form.
+        if let form = a.form, itemCount(.rotomCatalog) > 0, !state.graduatedLineForms(baseID: a.baseID).contains(form) {
+            let received = addRareCandies(CollectorBonus.rotomCatalogNewFormCandies)
+            AppLog.write("graduate: rotom catalog +\(received) candy for a new form")
+        }
         state.collectedFinals.insert("\(a.baseID):\(finalID)")
         state.dex.append(DexEntry(id: a.profile?.instanceID ?? UUID().uuidString,
                                   baseID: a.baseID, finalID: finalID,
@@ -2498,7 +2504,12 @@ final class CompanionStore {
         return true
     }
 
-    func canUseFossilEgg() -> Bool { hasActive && itemCount(.fossilEgg) > 0 }
+    /// The Pokémon raised hatched from a Fossil Egg: sent off, it gives its egg back (#77).
+    var isRaisingFossilEggPokemon: Bool { state.active?.fromFossilEgg == true }
+
+    /// Not on a Fossil Egg's own Pokémon: sent off, it gives its egg back, so the egg would cost nothing and fossil
+    /// hatches would reroll for free (#90). A stone or a Shop egg sends it off.
+    func canUseFossilEgg() -> Bool { hasActive && !isRaisingFossilEggPokemon && itemCount(.fossilEgg) > 0 }
 
     /// Uses a Fossil Egg: like a stone, the current Pokémon is sent off for an egg, which hatches a fossil line not
     /// graduated yet (`FossilDig`).
@@ -2590,16 +2601,18 @@ final class CompanionStore {
     func setBirthday(_ birthday: Birthday?) {
         guard state.birthday != birthday else { return }
         if let lastGift = state.lastBirthdayGiftYear {
-            // The date of the last gift (a save from before it was kept: the date set until now). Settings clear the
-            // date, then set a month, then a day: only a date that differs from the gift's waits for a later year, and
+            // The date of the last gift. A save from before it was kept: the date set until now if it has not moved
+            // since the gift, else unknown (#92), and then no date typed lifts the block. Settings clear the date,
+            // then set a month, then a day: only a date that differs from the gift's waits for a later year, and
             // clearing it sets nothing.
-            let giftDate = state.lastBirthdayGiftDate ?? state.birthday
-            state.lastBirthdayGiftDate = giftDate
+            let giftDate = state.lastBirthdayGiftDate
+                ?? (state.birthdayChangedAfterGiftYear == nil ? state.birthday : nil)
+            if let giftDate { state.lastBirthdayGiftDate = giftDate }
             if let birthday, birthday != giftDate {
                 // A save that claimed before the claim date was kept: its gift's birthday year, at least.
                 let claimedIn = state.lastBirthdayGiftClaimedAt.map { Calendar.current.component(.year, from: $0) } ?? lastGift
                 state.birthdayChangedAfterGiftYear = max(state.birthdayChangedAfterGiftYear ?? claimedIn, claimedIn)
-            } else if birthday == giftDate {
+            } else if let giftDate, birthday == giftDate {
                 state.birthdayChangedAfterGiftYear = nil
             }
         }
@@ -3138,11 +3151,6 @@ final class CompanionStore {
                                 dittoDisguise: dittoDisguise, form: form)
         state.active?.hasNewForm = hasNewForm
         state.active?.fromFossilEgg = fromFossilEgg
-        // The Rotom Catalog pays for a form the line never had; a disguised Ditto's form is not its own.
-        if hasNewForm, dittoDisguise == nil, itemCount(.rotomCatalog) > 0 {
-            state.inventory[ItemKind.rareCandy.rawValue, default: 0] += CollectorBonus.rotomCatalogNewFormCandies
-            AppLog.write("rotom catalog: +\(CollectorBonus.rotomCatalogNewFormCandies) candy for a new form")
-        }
         state.lastHatchedBaseID = line.baseID
         // A disguised Ditto is not the species it shows: nothing unlocks until it is revealed.
         if dittoDisguise == nil { announceFormUnlocks(since: unlockedForms) }

@@ -10,7 +10,7 @@ private struct FormProvider: PokeProviding {
 }
 
 /// The forms achievements: every form of one species graduated earns candies or eggs, and the Rotom Catalog a candy
-/// for each Pokémon hatched in a form its line never had.
+/// for each Pokémon graduated in a form its line never graduated.
 @MainActor
 final class FormAchievementsTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1_790_000_000)
@@ -96,24 +96,45 @@ final class FormAchievementsTests: XCTestCase {
         XCTAssertEqual(BonusTheme.of(.rotomCatalog), .candies)
     }
 
-    /// The Rotom Catalog pays one candy for a Pokémon hatched in a form its line never had, none for a form it had.
-    func testTheRotomCatalogPaysForANewForm() async throws {
+    /// The Rotom Catalog pays one candy when a Pokémon graduates in a form its line never graduated, nothing at the
+    /// hatch. Paid at the hatch, a form sent off before graduating paid again each time it hatched (#91). A form only
+    /// sent off (Wash here) still pays once graduated.
+    func testTheRotomCatalogPaysForANewFormGraduated() async throws {
         let heat = graduated([479], "heat")
-        for (owned, expected) in [(1, 1), (0, 0)] {
-            let s = try store(dex: [heat], inventory: owned > 0 ? [.rotomCatalog: 1] : [:])
-            await s.hatch(baseID: 479)
-            let mon = try XCTUnwrap(s.state.active)
-            XCTAssertEqual(s.itemCount(.rareCandy), mon.hasNewForm ? expected : 0, "form \(String(describing: mon.form))")
-        }
-        // Over seeds, both a new form (a candy) and the known Heat Rotom (none) come.
+        let wash = graduated([479], "wash", released: true)
         var paid = Set<Bool>()
         for seed: UInt64 in 1...24 {
-            let s = try store(dex: [heat], inventory: [.rotomCatalog: 1], seed: seed)
+            let s = try store(dex: [heat, wash], inventory: [.rotomCatalog: 1], seed: seed)
             await s.hatch(baseID: 479)
             let mon = try XCTUnwrap(s.state.active)
-            XCTAssertEqual(s.itemCount(.rareCandy), mon.form == PokemonForm("heat") ? 0 : 1, "seed \(seed)")
+            XCTAssertEqual(s.itemCount(.rareCandy), 0, "nothing at the hatch, seed \(seed)")
+            s.applyUsage(100_000_000_000)
+            XCTAssertNil(s.state.active, "graduated, seed \(seed)")
+            XCTAssertEqual(s.itemCount(.rareCandy), mon.form == PokemonForm("heat") ? 0 : 1,
+                           "seed \(seed), \(String(describing: mon.form))")
             paid.insert(s.itemCount(.rareCandy) > 0)
         }
         XCTAssertEqual(paid, [true, false])
+
+        let without = try store(dex: [heat])
+        await without.hatch(baseID: 479)
+        without.applyUsage(100_000_000_000)
+        XCTAssertEqual(without.itemCount(.rareCandy), 0, "no Catalog, no candy")
+    }
+
+    /// Graduated again, a form pays nothing: ten Rotom for six forms, so one comes twice.
+    func testTheRotomCatalogPaysEachFormOnce() async throws {
+        let s = try store(inventory: [.rotomCatalog: 1], seed: 3)
+        var graduatedForms = Set<PokemonForm>()
+        for round in 0..<10 {
+            await s.hatch(baseID: 479)
+            let form = try XCTUnwrap(s.state.active?.form, "round \(round)")
+            let before = s.itemCount(.rareCandy)
+            s.applyUsage(100_000_000_000)
+            XCTAssertNil(s.state.active, "round \(round)")
+            XCTAssertEqual(s.itemCount(.rareCandy) - before, graduatedForms.contains(form) ? 0 : 1, "round \(round), \(form)")
+            graduatedForms.insert(form)
+        }
+        XCTAssertLessThan(graduatedForms.count, 10, "a form graduated twice")
     }
 }

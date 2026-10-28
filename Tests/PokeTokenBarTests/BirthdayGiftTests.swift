@@ -184,6 +184,66 @@ final class BirthdayGiftTests: XCTestCase {
         XCTAssertEqual(s.state.birthdayChangedAfterGiftYear, 2028, "a really new date still waits")
     }
 
+    /// Regression (#92): a save from before #88 keeps no gift date. Changed after a gift, its date is not the gift's, and
+    /// was taken for it: cleared and typed again, February 10 lifted the block, and February 10, 2028 brought a second
+    /// egg five weeks after a December 30 gift claimed on January 2, 2028. The gift's date is unknown there, so no date
+    /// typed lifts the block, the gift's own included. A save whose date never moved since its gift keeps #83's rule
+    /// (`testTypingTheSameDateAgainKeepsNextYearsGift`).
+    func testRetypingADateChangedAfterAGiftOnAnOldSaveKeepsTheBlock() throws {
+        let february10 = try XCTUnwrap(Birthday(month: 2, day: 10))
+        let december30 = try XCTUnwrap(Birthday(month: 12, day: 30))
+        let june1 = try XCTUnwrap(Birthday(month: 6, day: 1))
+        func oldSave() throws -> CompanionStore {
+            try store {
+                $0.birthday = february10
+                $0.lastBirthdayGiftYear = 2027
+                $0.lastBirthdayGiftClaimedAt = self.at(2028, 1, 2)
+                $0.birthdayChangedAfterGiftYear = 2028
+            }
+        }
+        func gift(_ s: CompanionStore, _ now: Date) -> Int? {
+            BirthdayGift.claimable(birthday: s.state.birthday, lastGiftYear: s.state.lastBirthdayGiftYear,
+                                   changedAfterGiftYear: s.state.birthdayChangedAfterGiftYear, now: now, calendar: utc)?.year
+        }
+
+        // As Settings do it: clear the date, then a month, then the day.
+        let s = try oldSave()
+        XCTAssertNil(gift(s, at(2028, 2, 10)), "blocked before the update")
+        s.setBirthday(nil)
+        XCTAssertEqual(s.state.birthdayChangedAfterGiftYear, 2028, "clearing lifts nothing")
+        s.setBirthday(Birthday(month: 2, day: 1))
+        s.setBirthday(february10)
+        XCTAssertEqual(s.state.birthdayChangedAfterGiftYear, 2028)
+        XCTAssertNil(s.state.lastBirthdayGiftDate, "the gift's date stays unknown")
+        XCTAssertNil(gift(s, at(2028, 2, 10)), "no second egg five weeks after the first")
+        XCTAssertEqual(gift(s, at(2029, 2, 10)), 2029, "next year's still comes")
+        let kept = try JSONDecoder().decode(CompanionState.self, from: JSONEncoder().encode(s.state))
+        XCTAssertEqual(kept.birthdayChangedAfterGiftYear, 2028, "kept by the save")
+
+        // No date lifts it, typed straight or after clearing, the gift's real date included.
+        for date in [february10, december30, june1] {
+            for clearsFirst in [true, false] {
+                let t = try oldSave()
+                if clearsFirst { t.setBirthday(nil) }
+                t.setBirthday(date)
+                XCTAssertEqual(t.state.birthdayChangedAfterGiftYear, 2028, "\(date), cleared first: \(clearsFirst)")
+                XCTAssertNil(gift(t, at(2028, date.month, date.day)), "\(date), cleared first: \(clearsFirst)")
+            }
+        }
+
+        // Once a gift keeps its date (every claim since #88), typing it again lifts the block, as #83 wants.
+        let next = try store {
+            $0.birthday = Birthday(month: 7, day: 1)
+            $0.lastBirthdayGiftYear = 2029
+            $0.lastBirthdayGiftDate = june1
+            $0.lastBirthdayGiftClaimedAt = self.at(2029, 6, 2)
+            $0.birthdayChangedAfterGiftYear = 2029
+        }
+        next.setBirthday(nil)
+        next.setBirthday(june1)
+        XCTAssertNil(next.state.birthdayChangedAfterGiftYear, "back to the gift's date")
+    }
+
     /// Used, it sends off the Pokémon for the Birthday Egg, which hatches a mythical while one is missing.
     private func hatch(seed: UInt64, graduated ids: [Int], also: [DexEntry] = []) async throws -> MonState {
         let s = try store(seed: seed) {

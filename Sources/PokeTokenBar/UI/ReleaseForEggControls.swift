@@ -14,12 +14,16 @@ struct ReleaseForEggControls: View {
     /// Shown instead of the button when a companion is there but the action is not available.
     let unavailableText: String
     let confirmText: String
+    /// Why the button is greyed out though a companion is there (a Fossil Egg's own Pokémon), under it.
+    var lockedHint: String? = nil
     let action: @MainActor () -> Bool
     @State private var stage: Stage = .idle
     private enum Stage { case idle, confirm, preciousConfirm }
 
     var body: some View {
         let l = store.l
+        // 알 상태: 리롤 대상이 없다. A Fossil Egg's own Pokémon: the caller's reason.
+        let locked = store.hasActive ? lockedHint : l.eggShopLockedHint
         switch stage {
         case .idle:
             VStack(alignment: .leading, spacing: 4) {
@@ -27,7 +31,7 @@ struct ReleaseForEggControls: View {
                     Text(detail)
                         .font(.caption2).foregroundStyle(.tertiary).monospacedDigit()
                     Spacer()
-                    if !store.hasActive {
+                    if locked != nil {
                         // 알 상태: 리롤 대상이 없어 실행만 막는다(canUseBagEgg/canUseStone 게이트). 항목을 숨기는 대신
                         // 비활성 버튼으로 "있긴 하다"를 보이고, 사유는 아래 한 줄로.
                         Button(actionTitle) {}
@@ -39,8 +43,8 @@ struct ReleaseForEggControls: View {
                         Text(unavailableText).font(.caption2).foregroundStyle(.tertiary)
                     }
                 }
-                if !store.hasActive {
-                    Text(l.eggShopLockedHint)
+                if let locked {
+                    Text(locked)
                         .font(.caption2).foregroundStyle(.tertiary)
                         .fixedSize(horizontal: false, vertical: true)
                 }

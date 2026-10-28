@@ -67,6 +67,28 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-28", entries: [
+            .improved("2026-10-28-rotom-catalog-graduation") { l in
+                let catalog = l.itemName(.rotomCatalog)
+                return l.t("\(catalog)의 이상한 사탕은 이제 그 진화 라인이 처음 졸업시키는 폼으로 포켓몬이 졸업할 때, 폼마다 한 번 받아요.",
+                           "The \(catalog) now gives its Rare Candy when a Pokémon graduates in a form its line had never graduated, once per form.",
+                           "\(catalog)のふしぎなアメは、その進化ラインが初めて卒業させるフォルムでポケモンが卒業したときに、フォルムごとに1回もらえるようになりました。",
+                           "El \(catalog) ahora da su Caramelo Raro cuando un Pokémon se gradúa en una forma que su línea nunca había graduado, una vez por forma.",
+                           "Le \(catalog) donne maintenant son Super Bonbon quand un Pokémon est diplômé dans une forme que sa lignée n'avait jamais diplômée, une fois par forme.",
+                           "O \(catalog) agora dá seu Doce Raro quando um Pokémon se forma numa forma que sua linha nunca tinha formado, uma vez por forma.",
+                           "Der \(catalog) gibt sein Sonderbonbon jetzt, wenn ein Pokémon in einer Form verabschiedet wird, die seine Linie noch nie verabschiedet hat, einmal pro Form.",
+                           "\"\(catalog)\" теперь даёт Редкую конфету, когда покемона выпускают в форме, которую его линия ещё не выпускала, по разу за форму.")
+            },
+            .fixed("2026-10-28-fossil-egg-in-progress") { l in
+                let egg = l.itemName(.fossilEgg)
+                return l.t("\(egg)에서 태어난 포켓몬을 키우는 동안에는 \(egg)을 쓸 수 없어요. 진화의 돌이나 다른 알로 놓아줄 수 있어요.",
+                           "The \(egg) is greyed out while a Pokémon from a \(egg) grows: a stone or another egg can still send it off.",
+                           "\(egg)から生まれたポケモンを育てているあいだは\(egg)を使えません。進化の石やほかのタマゴでなら手放せます。",
+                           "El \(egg) aparece en gris mientras crece un Pokémon de un \(egg): una piedra u otro huevo aún pueden soltarlo.",
+                           "L'\(egg) est grisé tant qu'un Pokémon issu d'un \(egg) grandit : une pierre ou un autre œuf peut toujours le relâcher.",
+                           "O \(egg) fica cinza enquanto um Pokémon de um \(egg) cresce: uma pedra ou outro ovo ainda pode soltá-lo.",
+                           "Das \(egg) ist ausgegraut, solange ein Pokémon aus einem \(egg) wächst: Ein Stein oder ein anderes Ei kann es weiterhin freilassen.",
+                           "\"\(egg)\" недоступно, пока растёт покемон из \"\(egg)\": камень или другое яйцо всё ещё могут его отпустить.")
+            },
             .improved("2026-10-28-shop-eggs-to-bag") { $0.t("상점에서 산 알은 이제 가방에 들어가요. 지금 포켓몬을 놓아줄 때를 직접 골라 가방에서 쓰면 돼요.",
                                                          "An egg bought in the Shop now goes in your Bag: use it from there when you choose to send off your current Pokémon.",
                                                          "ショップで買ったタマゴはバッグに入るようになりました。いまのポケモンを手放すタイミングを選んで、バッグから使えます。",

@@ -609,6 +609,26 @@ read_when:
   weighs a quarter in a stone's egg (half in a plain one), and no egg brings the line hatched last again
   (`lastHatchedBaseID`). Guards: `StoneEggDuplicateTests`.
 
+- **A refund rule must not refund the action that triggers it.** #77 gave a Fossil Egg back when its Pokémon is
+  sent off before graduating; a Fossil Egg sending it off took one egg and got it back, so fossil hatches rerolled for
+  free, shiny roll included (#90). The review of #77 checked the stone and the Shop egg, not the refunded item itself.
+  `canUseFossilEgg` now refuses on a Fossil Egg's own Pokémon and the Bag greys it out with the reason;
+  `testAFossilEggWaitsWhileAFossilEggsPokemonGrows`. Sweep: the Fossil Egg is the only item given back.
+
+- **Narrowing what "collected" means changes every payout that reads it.** #88 made achievements count graduated
+  Pokémon only, and `hasNewForm` with them; the Rotom Catalog paid its candy at the hatch on that flag, so a form sent
+  off before graduating paid again each time it hatched (#91). The candy is now paid at the graduation, for a form the
+  line never graduated: `testTheRotomCatalogPaysForANewFormGraduated`, `testTheRotomCatalogPaysEachFormOnce`. Sweep of
+  the payouts (`addRareCandies`, inventory grants): the others are claimed once (achievements, event and birthday
+  eggs) or paid by windows; the Prison Bottle reads `hasNewForm` for a growth bonus, which its text allows to repeat.
+
+- **A migration fallback must not take today's value for a past one the save says has moved.** Saves from before #88
+  kept no gift date, and `setBirthday` took the date set now for it, even when `birthdayChangedAfterGiftYear` said the
+  date had moved since the gift: retyping it lifted the block and brought a second Birthday Egg (#92). The fallback
+  now applies only while that block is nil; otherwise the gift's date stays unknown and no date typed, nor clearing,
+  lifts it. `testRetypingADateChangedAfterAGiftOnAnOldSaveKeepsTheBlock`; removing the `let giftDate` guard on the
+  lifting branch fails it (clearing then lifted the block).
+
 ## 외부 로그·사용량 소스
 
 - **토큰 파일 파서는 외부 도구의 실제 직렬화 구조체(중첩 객체)를 반영해야 한다.** `jetski-standalone-oauth-token`

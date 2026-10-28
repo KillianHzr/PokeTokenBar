@@ -214,7 +214,8 @@ private struct ItemCard: View {
         } else if kind == .fossilEgg {
             ReleaseForEggControls(store: store, nav: nav, detail: effectHint(l), actionTitle: l.useItem,
                                   isAvailable: store.canUseFossilEgg(), unavailableText: l.useNeedsPokemon,
-                                  confirmText: l.stoneConfirm(store.displayName, l.itemName(kind))) {
+                                  confirmText: l.stoneConfirm(store.displayName, l.itemName(kind)),
+                                  lockedHint: store.isRaisingFossilEggPokemon ? l.fossilEggInProgress : nil) {
                 store.useFossilEgg()
             }
         } else if let event = EventEgg(item: kind) {
