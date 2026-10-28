@@ -846,8 +846,20 @@ struct RaisingRecord: Codable, Sendable, Equatable {
     var tokensByModel: [String: Int] = [:]
     /// The tokens' cost, each refresh priced at its provider's cost per token that day; nil while none reported one.
     var cost: Double?
+    /// The Rare Candies used on it.
+    var candiesUsed = 0
 
     init(hatchedAt: Date) { self.hatchedAt = hatchedAt }
+
+    /// Each field but the hatch read leniently: a record written before a field existed keeps the rest.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        hatchedAt = try c.decode(Date.self, forKey: .hatchedAt)
+        tokensByProvider = (try? c.decodeIfPresent([String: Int].self, forKey: .tokensByProvider)) ?? [:]
+        tokensByModel = (try? c.decodeIfPresent([String: Int].self, forKey: .tokensByModel)) ?? [:]
+        cost = (try? c.decodeIfPresent(Double.self, forKey: .cost)) ?? nil
+        candiesUsed = (try? c.decodeIfPresent(Int.self, forKey: .candiesUsed)) ?? 0
+    }
 
     var tokens: Int { tokensByProvider.values.reduce(0, +) }
     var mainProvider: String? { tokensByProvider.max { $0.value < $1.value }?.key }

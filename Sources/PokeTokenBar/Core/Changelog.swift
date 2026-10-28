@@ -105,14 +105,14 @@ enum Changelog {
                            "Tools ohne Limit (Cursor, Gemini CLI …) geben jetzt alle 65M Tokens ein \(candy), im Tempo, in dem Claude einen Max-5x-Tarif bezahlt.",
                            "Инструменты без лимитов (Cursor, Gemini CLI…) теперь дают \"\(candy)\" за каждые 65M токенов, в темпе Claude на тарифе Max 5x.")
             },
-            .new("2026-10-28-raising-record", { $0.t("도감의 포켓몬 페이지에 육성 기록이 생겼어요: 부화와 졸업 시각, 걸린 시간, 도구별 토큰, 주로 쓴 모델, 예상 비용. 이제부터 키우는 포켓몬에 기록돼요.",
-                                                     "A raising record on each Pokémon's Pokédex page: when it hatched and graduated, how long it took, its tokens by tool, its main model and an estimated cost. It is kept for the Pokémon raised from now on.",
-                                                     "図鑑のポケモンのページに育成記録が付きました。孵化と卒業の時刻、かかった時間、ツールごとのトークン、主なモデル、推定コストです。これから育てるポケモンに記録されます。",
-                                                     "Un diario de crianza en la página de cada Pokémon de la Pokédex: cuándo eclosionó y se graduó, cuánto tardó, sus tokens por herramienta, su modelo principal y un costo estimado. Se guarda para los Pokémon criados desde ahora.",
-                                                     "Un carnet d'élevage sur la fiche de chaque Pokémon du Pokédex : quand il a éclos et a été diplômé, en combien de temps, ses jetons par outil, son modèle principal et un coût estimé. Il est tenu pour les Pokémon élevés à partir de maintenant.",
-                                                     "Um diário de criação na página de cada Pokémon da Pokédex: quando chocou e se formou, quanto tempo levou, seus tokens por ferramenta, seu modelo principal e um custo estimado. Ele é mantido para os Pokémon criados a partir de agora.",
-                                                     "Ein Aufzuchtbuch auf der Pokédex-Seite jedes Pokémon: wann es schlüpfte und verabschiedet wurde, wie lange es dauerte, seine Tokens je Tool, sein Hauptmodell und geschätzte Kosten. Es wird für die ab jetzt aufgezogenen Pokémon geführt.",
-                                                     "Дневник выращивания на странице каждого покемона в покедексе: когда вылупился и был выпущен, сколько это заняло, токены по инструментам, основная модель и оценка стоимости. Ведётся для покемонов, выращенных с этого момента.") }),
+            .new("2026-10-28-raising-record", { $0.t("도감의 포켓몬 페이지에 육성 기록이 생겼어요: 부화와 졸업 시각, 걸린 시간, 도구별 토큰, 주로 쓴 모델, 사용한 사탕 수, 예상 비용. 이제부터 키우는 포켓몬에 기록돼요.",
+                                                     "A raising record on each Pokémon's Pokédex page: when it hatched and graduated, how long it took, its tokens by tool, its main model, the candies used and an estimated cost. It is kept for the Pokémon raised from now on.",
+                                                     "図鑑のポケモンのページに育成記録が付きました。孵化と卒業の時刻、かかった時間、ツールごとのトークン、主なモデル、使ったアメの数、推定コストです。これから育てるポケモンに記録されます。",
+                                                     "Un diario de crianza en la página de cada Pokémon de la Pokédex: cuándo eclosionó y se graduó, cuánto tardó, sus tokens por herramienta, su modelo principal, los caramelos usados y un costo estimado. Se guarda para los Pokémon criados desde ahora.",
+                                                     "Un carnet d'élevage sur la fiche de chaque Pokémon du Pokédex : quand il a éclos et a été diplômé, en combien de temps, ses jetons par outil, son modèle principal, les bonbons utilisés et un coût estimé. Il est tenu pour les Pokémon élevés à partir de maintenant.",
+                                                     "Um diário de criação na página de cada Pokémon da Pokédex: quando chocou e se formou, quanto tempo levou, seus tokens por ferramenta, seu modelo principal, os doces usados e um custo estimado. Ele é mantido para os Pokémon criados a partir de agora.",
+                                                     "Ein Aufzuchtbuch auf der Pokédex-Seite jedes Pokémon: wann es schlüpfte und verabschiedet wurde, wie lange es dauerte, seine Tokens je Tool, sein Hauptmodell, die verwendeten Bonbons und geschätzte Kosten. Es wird für die ab jetzt aufgezogenen Pokémon geführt.",
+                                                     "Дневник выращивания на странице каждого покемона в покедексе: когда вылупился и был выпущен, сколько это заняло, токены по инструментам, основная модель, использованные конфеты и оценка стоимости. Ведётся для покемонов, выращенных с этого момента.") }),
             .improved("2026-10-28-egg-items-growth") { l in
                 let wing = l.itemName(.silverWing), orb = l.itemName(.teraOrb), incense = l.itemName(.seaIncense)
                 return l.t("\(KoreanParticle.subject.attach(to: wing)) 모든 포켓몬을 25% 더 빨리, \(KoreanParticle.subject.attach(to: orb)) 진화의 돌로 받은 포켓몬을, \(KoreanParticle.subject.attach(to: incense)) 등급 확정 알의 포켓몬을 30% 더 빨리 키워요.",
@@ -131,6 +131,14 @@ enum Changelog {
                            "La \(mint) n'est plus dans la boutique ni dans le sac.", "A \(mint) não está mais na loja nem na mochila.",
                            "Die \(mint) ist nicht mehr im Shop und nicht mehr im Beutel.", "\"\(mint)\" больше нет в магазине и в сумке.")
             },
+            .fixed("2026-10-28-launch-at-login", { $0.t("업데이트 뒤에도 로그인 시 실행이 계속 동작해요. 다음 로그인부터 적용돼요.",
+                                                        "Launch at login keeps working after an update, from your next login.",
+                                                        "アップデート後もログイン時の起動が動き続けます。次のログインから有効です。",
+                                                        "El inicio al iniciar sesión sigue funcionando tras actualizar, desde tu próximo inicio de sesión.",
+                                                        "Le lancement à l'ouverture de session marche de nouveau après une mise à jour, dès ta prochaine session.",
+                                                        "Abrir ao iniciar a sessão continua funcionando depois de atualizar, a partir da próxima sessão.",
+                                                        "Der Start bei der Anmeldung funktioniert auch nach einem Update, ab deiner nächsten Anmeldung.",
+                                                        "Запуск при входе снова работает после обновления, со следующего входа.") }),
             .improved("2026-10-28-shiny-charm-owned") { l in
                 let charm = l.itemName(.shinyCharm)
                 return l.t("산 \(KoreanParticle.subject.attach(to: charm)) 상점에서 사라지고 가방에만 있어요.", "A \(charm) bought leaves the Shop: it is in your Bag.",

@@ -82,7 +82,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         // the popover closes quickly. Registration domain only, so a user `defaults write` still wins.
         UserDefaults.standard.register(defaults: ["NSInitialToolTipDelay": 600])
         Self.migrateLegacyStorageIfNeeded()   // TokenMac → PokeTokenBar 리네임: 기존 companion/캐시 보존
-        LoginItem.migrateFromLegacyLoginItemIfNeeded()   // 로그인아이템 → KeepAlive 에이전트(크래시 자동 재실행)
+        // 로그인아이템·SMAppService 에이전트 → LaunchAgent plist(크래시 자동 재실행). The real app only: a `swift run`
+        // binary would point the agent at itself.
+        if AppEnv.isBundledApp {
+            LoginItem.migrateIfNeeded()
+            LoginItem.refreshIfEnabled()
+        }
         store = UsageStore()
         companion = CompanionStore()
         Task { await companion.preparePokemonProfiles() }

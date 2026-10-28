@@ -1824,12 +1824,12 @@ read_when:
   reopens the app after any failure past the quit, and the reopened app reads the error from `update-status`
   (`testAFailedUpdateIsShownAfterTheAppReopens`, `testAFailedUpdateReopensTheApp`).
 
-- **Open: an ad-hoc signed rebuild breaks the login agent.** launchd reports the agent "spawn failed", exit 78,
-  "needs LWCR update", on the owner's Mac while Settings show it on: the launch constraint recorded for the agent no
-  longer matches the rebuilt binary's ad-hoc signature. Unregistering and registering the agent again on a new build
-  was tried on 2026-10-28 and did not help (the new job failed the same way), so it was taken out. What remains: a
-  stable signing identity (`scripts/create-signing-cert.sh`), or a classic LaunchAgent plist instead of
-  `SMAppService.agent`.
+- **An `SMAppService` agent breaks at every ad-hoc rebuild.** launchd reported the agent "spawn failed", exit 78,
+  "needs LWCR update", on the owner's Mac while Settings showed it on: the launch constraint recorded for the agent no
+  longer matched the rebuilt binary's signature, and registering it again on a new build did not help (tried and taken
+  out on 2026-10-28). The app now writes a classic LaunchAgent plist in `~/Library/LaunchAgents`, which has no such
+  constraint, moves the old registration to it once and unregisters it (`LoginItem.migrateIfNeeded`), and turns it on
+  or off by writing or removing the file, for the next login, with no `launchctl` call (`LoginItemTests`).
 
 - **"나중에"는 이 버전을 다시 안 보여 주는 스킵이지, 다음에 또 물어보기가 아니다.** `skipCurrent()` 가
   `skippedUpdateVersion` 에 한 번 쓰면 `check()` 는 그 태그를 `available` 에서 빼고, Settings 의

@@ -30,6 +30,7 @@ struct RaisingRecordCard: View {
                     row(l.raisingInProgress, l.raisingSince(l.longDuration(Date().timeIntervalSince(record.hatchedAt))))
                 }
                 row(l.raisingTokens, TokenFormatter.compact(record.tokens))
+                if record.candiesUsed > 0 { row(l.itemName(.rareCandy), "×\(record.candiesUsed)") }
                 if let cost = record.cost, cost > 0 { row(l.raisingCost, l.etaAbout(TokenFormatter.cost(cost))) }
                 if let model = record.mainModel { row(l.raisingModel, l.raisingMostly(RaisingRecord.modelName(model))) }
             }

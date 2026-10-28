@@ -55,7 +55,7 @@ final class RaisingAndTokenCandyTests: XCTestCase {
     /// The raising record starts at the hatch, adds each refresh's tokens by tool, spreads them over the day's
     /// models and prices them at the day's cost, and goes with the Pokémon into the Pokédex.
     func testTheRaisingRecordFollowsThePokemon() async throws {
-        let s = try store()
+        let s = try store { $0.inventory = [ItemKind.rareCandy.rawValue: 1] }
         await s.hatch(baseID: 4)
         let hatched = try XCTUnwrap(s.state.active?.raising)
         XCTAssertEqual(hatched.tokens, 0)
@@ -71,9 +71,16 @@ final class RaisingAndTokenCandyTests: XCTestCase {
         XCTAssertEqual(RaisingRecord.modelName(try XCTUnwrap(record.mainModel)), "Opus 5.5")
         XCTAssertEqual(s.dexEntries.last?.raising, record, "the Pokédex shows the one being raised")
 
+        _ = s.useRareCandy()
+        XCTAssertEqual(s.state.active?.raising?.candiesUsed ?? s.state.dex.last?.raising?.candiesUsed, 1, "a candy used on it")
         s.applyUsage(100_000_000_000)
         XCTAssertNil(s.state.active)
         XCTAssertEqual(s.state.dex.last?.raising?.tokensByProvider, record.tokensByProvider, "kept at the graduation")
+        XCTAssertEqual(s.state.dex.last?.raising?.candiesUsed, 1)
+        // A record written before a field existed keeps the rest.
+        let old = try JSONDecoder().decode(RaisingRecord.self, from: Data(#"{"hatchedAt":0,"tokensByProvider":{"codex":5}}"#.utf8))
+        XCTAssertEqual(old.tokensByProvider, ["codex": 5])
+        XCTAssertEqual(old.candiesUsed, 0)
         XCTAssertEqual(RaisingRecord.modelName("claude-sonnet-4-5-20250929"), "Sonnet 4.5")
         XCTAssertEqual(RaisingRecord.modelName("gpt-5-codex"), "gpt-5-codex")
     }

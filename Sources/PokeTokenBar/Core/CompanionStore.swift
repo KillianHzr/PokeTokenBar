@@ -1911,6 +1911,7 @@ final class CompanionStore {
         }
         let xp = consumed * preview.xpPerCandy
         state.inventory[ItemKind.rareCandy.rawValue] = rareCandyCount - consumed
+        state.active?.raising?.candiesUsed += consumed
         let beforeStage = state.active?.stageIndex ?? 0
         // 진화 안 될 때(부분 진행)도 즉시 "+XP" 피드백 — CompanionHeader 가 연출과 별개로 표시.
         candyFeedbackAmount = xp

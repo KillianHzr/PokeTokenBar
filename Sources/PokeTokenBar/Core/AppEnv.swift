@@ -15,6 +15,12 @@ enum AppEnv {
         ProcessInfo.processInfo.environment["PTB_PARITY"] == "1"
     }
 
+    /// The launchd job that started this process (`XPC_SERVICE_NAME`): an agent's label when one did, and
+    /// "application.<bundle id>…" for an app opened through LaunchServices.
+    static var launchdJobLabel: String? {
+        ProcessInfo.processInfo.environment["XPC_SERVICE_NAME"]
+    }
+
     /// Lets a test drive a provider's real network code against a stubbed transport (URLProtocol, an
     /// injected URLSession). Set it in the test and reset it in `defer`.
     nonisolated(unsafe) static var allowLiveFetchForTesting = false
