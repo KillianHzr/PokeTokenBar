@@ -67,6 +67,14 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-28", entries: [
+            .improved("2026-10-28-shop-eggs-to-bag") { $0.t("상점에서 산 알은 이제 가방에 들어가요. 지금 포켓몬을 놓아줄 때를 직접 골라 가방에서 쓰면 돼요.",
+                                                         "An egg bought in the Shop now goes in your Bag: use it from there when you choose to send off your current Pokémon.",
+                                                         "ショップで買ったタマゴはバッグに入るようになりました。いまのポケモンを手放すタイミングを選んで、バッグから使えます。",
+                                                         "El huevo comprado en la tienda ahora va a tu mochila: úsalo desde ahí cuando decidas soltar a tu Pokémon actual.",
+                                                         "Un œuf acheté dans la boutique va maintenant dans ton sac : utilise-le depuis le sac quand tu choisis de laisser partir ton Pokémon actuel.",
+                                                         "O ovo comprado na loja agora vai para a sua mochila: use de lá quando decidir soltar seu Pokémon atual.",
+                                                         "Ein im Shop gekauftes Ei kommt jetzt in deinen Beutel: Benutze es dort, wenn du dein aktuelles Pokémon verabschieden willst.",
+                                                         "Яйцо из магазина теперь попадает в сумку: используйте его оттуда, когда решите отпустить текущего покемона.") },
             .fixed("2026-10-28-smooth-move-list") { $0.t("도감에서 포켓몬의 전체 기술 목록이 이제 끊기지 않고 부드럽게 스크롤돼요.",
                                                      "A Pokémon's full move list in the Pokédex now scrolls smoothly instead of lagging.",
                                                      "図鑑のポケモンのわざ一覧が、引っかからずになめらかにスクロールするようになりました。",

@@ -1728,6 +1728,7 @@ struct L {
                                   "Яйцо-окаменелость")
         case .unownLetters: return t("안농의 알파벳", "Unown's Alphabet", "アンノーンのアルファベット", "El alfabeto de Unown", "L'alphabet des Zarbi",
                                      "O alfabeto de Unown", "Icognitos Alphabet", "Алфавит Аноуна")
+        case .pokemonEgg: return eggName(nil)
         case .uncommonEgg: return eggName(.uncommon)
         case .rareEgg: return eggName(.rare)
         case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg:
@@ -2197,6 +2198,7 @@ struct L {
                      "Todas as formas formadas o liberam. Ao resgatá-lo, você recebe na sua bolsa: \(list).",
                      "Alle Formen verabschiedet schalten es frei. Holst du es ab, kommt in deinen Beutel: \(list).",
                      "Открывается, когда все формы выпущены. Получив его, вы найдёте в сумке: \(list).")
+        case .pokemonEgg: return eggDescription(nil)
         case .uncommonEgg: return eggDescription(.uncommon)
         case .rareEgg: return eggDescription(.rare)
         case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg:
@@ -2598,6 +2600,22 @@ struct L {
                  "Solte seu Pokémon atual e ganhe um ovo que garante \(r) ou melhor.",
                  "Verabschiede dein aktuelles Pokémon und erhalte ein Ei, aus dem garantiert ein Pokémon der Seltenheitsstufe \(r) oder höher schlüpft.",
                  "Отпустите текущего покемона и получите яйцо с гарантией: \(r) или выше.")
+    }
+    /// Under a Shop egg: bought, it waits in the Bag, and the Pokémon is sent off only when the egg is used.
+    var eggGoesToBag: String {
+        t("구매한 알은 가방에 들어가요. 원할 때 써서 지금 포켓몬을 놓아줘요.",
+          "A bought egg goes in your Bag: use it whenever you want to send off your current Pokémon.",
+          "買ったタマゴはバッグに入ります。いまのポケモンを手放したいときに使ってください。",
+          "El huevo comprado va a tu mochila: úsalo cuando quieras soltar a tu Pokémon actual.",
+          "L'œuf acheté va dans ton sac : utilise-le quand tu veux laisser partir ton Pokémon actuel.",
+          "O ovo comprado vai para a sua mochila: use quando quiser soltar seu Pokémon atual.",
+          "Ein gekauftes Ei kommt in deinen Beutel: Benutze es, wann immer du dein aktuelles Pokémon verabschieden willst.",
+          "Купленное яйцо попадает в сумку: используйте его, когда захотите отпустить текущего покемона.")
+    }
+    /// The Bag's hint under the Pokémon Egg, which guarantees no rarity.
+    var eggAnyRarityHint: String {
+        t("등급 무작위", "Any rarity", "レアリティはランダム", "Rareza al azar", "Rareté au hasard", "Raridade aleatória",
+          "Beliebige Seltenheit", "Любая редкость")
     }
     /// 알 상태의 상점 알 카드 비활성 사유 — 항목은 보이되 구매 버튼 아래에 한 줄로 붙는다(EggCard).
     var eggShopLockedHint: String {

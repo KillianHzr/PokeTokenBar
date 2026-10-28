@@ -29,6 +29,7 @@ struct ItemIconView: View {
         case .typeNullEgg: .typeNull
         case .legendaryEgg: .tier(.legendary)
         case .birthdayEgg: .birthday
+        case .pokemonEgg: .plain
         case .uncommonEgg: .tier(.uncommon)
         case .rareEgg: .tier(.rare)
         // Forms achievements with no item of their own: the egg they give.

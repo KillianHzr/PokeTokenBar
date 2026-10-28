@@ -438,7 +438,7 @@ final class UnownTests: XCTestCase {
         let s = try store(original, at: url)
         let profile = try XCTUnwrap(s.state.active?.profile)
 
-        XCTAssertTrue(s.buyFreshEgg())
+        XCTAssertTrue(s.buyAndUseEgg(nil))
         XCTAssertEqual(s.representativeSpeciesID, 201)
         XCTAssertEqual(s.representativeForm, .b)
         XCTAssertFalse(s.representativeSubject.isShiny)
@@ -578,7 +578,7 @@ final class UnownTests: XCTestCase {
         XCTAssertEqual(restarted.currentForm, expectedForm)
         XCTAssertNil(restarted.state.pendingHatchID)
         XCTAssertNil(restarted.state.pendingForm)
-        XCTAssertTrue(restarted.buyFreshEgg())
+        XCTAssertTrue(restarted.buyAndUseEgg(nil))
         XCTAssertNil(restarted.state.active)
         XCTAssertNil(restarted.state.pendingHatchID)
         XCTAssertNil(restarted.state.pendingForm, "새 알로 이전 글자가 이월되면 안 된다")

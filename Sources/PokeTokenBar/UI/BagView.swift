@@ -133,8 +133,8 @@ private struct ItemCard: View {
                     Text(l.itemDescription(kind, rareCandyXP: store.rareCandyXP))
                         .font(.caption).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    // A stone sends the companion off like a Shop egg: say what stays, as the egg card does.
-                    if kind.stoneType != nil, store.hasActive {
+                    // A stone or a Shop egg sends the companion off: say what stays.
+                    if kind.stoneType != nil || kind.isShopEgg, store.hasActive {
                         Text(l.eggReleaseNote)
                             .font(.caption2).foregroundStyle(.tertiary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -223,7 +223,7 @@ private struct ItemCard: View {
                                   confirmText: l.stoneConfirm(store.displayName, l.itemName(kind))) {
                 store.useEventEgg(event)
             }
-        } else if kind.bagEggTier != nil {
+        } else if kind.isShopEgg {
             ReleaseForEggControls(store: store, nav: nav, detail: effectHint(l), actionTitle: l.useItem,
                                   isAvailable: store.canUseBagEgg(kind), unavailableText: l.useNeedsPokemon,
                                   confirmText: l.stoneConfirm(store.displayName, l.itemName(kind))) {
@@ -344,6 +344,7 @@ extension CompanionStore {
         case .cometShard, .redNectar, .smoothRock, .sawsbuckSeasons, .fairyFeather, .furfrouTrims, .vivillonPatterns,
              .whippedDream, .unownLetters, .lightBall:
             return l.rewardsList(kind.achievementRewards)
+        case .pokemonEgg: return l.eggAnyRarityHint
         case .uncommonEgg: return l.eggGuaranteeHint(.uncommon)
         case .rareEgg: return l.eggGuaranteeHint(.rare)
         case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return l.birthdayEggHint

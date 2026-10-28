@@ -413,7 +413,7 @@ struct PopoverView: View {
             } else if nav.tab == .bag {
                 BagView(store: companion, nav: nav)
             } else if nav.tab == .shop {
-                ShopView(store: companion, nav: nav)
+                ShopView(store: companion)
             } else {
                 // 고정 높이 — 상점/가방/컬렉션과 동일(팝오버가 화면을 넘어가는 것을 방지).
                 ScrollView {

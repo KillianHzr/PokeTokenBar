@@ -80,8 +80,9 @@ final class CollectorItemsTests: XCTestCase {
 
     func testItemsHaveAppropriatePricesAndUnlockConditions() {
         for kind in ItemKind.allCases {
-            if kind == .birthdayEgg || EventEgg(item: kind) != nil || kind.bagEggTier != nil || kind == .fossilEgg {
-                // The birthday and event gifts and the Legend Plate's eggs: neither sold nor an achievement of their own.
+            if kind == .birthdayEgg || EventEgg(item: kind) != nil || kind.isShopEgg || kind == .fossilEgg {
+                // The birthday and event gifts and the Shop's eggs (sold as Shop eggs, not items): neither sold as an
+                // item nor an achievement of their own.
                 XCTAssertNil(kind.unlock)
                 XCTAssertNil(kind.shopPrice)
                 XCTAssertFalse(kind.isAchievement)

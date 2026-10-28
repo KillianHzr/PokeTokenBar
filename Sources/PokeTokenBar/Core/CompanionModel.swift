@@ -212,7 +212,9 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     case lightBall
     /// The birthday gift (`BirthdayGift`): an egg whose hatch is a surprise, a mythical Pokémon not graduated yet.
     case birthdayEgg
-    /// The Legend Plate's eggs: like the Shop's eggs of these rarities, free.
+    /// The Shop's eggs, kept in the Bag until used: no guarantee, Uncommon or better, Rare or better. The Legend
+    /// Plate and the forms achievements give the last two too.
+    case pokemonEgg
     case uncommonEgg
     case rareEgg
     /// The eggs of the year's events (`EventEgg`), claimed from a banner.
@@ -391,7 +393,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .whippedDream: return "🍰"
         case .sawsbuckSeasons, .furfrouTrims, .vivillonPatterns, .unownLetters, .fossilEgg: return "🥚"
         case .excavation: return "🦴"
-        case .typeNullEgg, .legendaryEgg, .birthdayEgg, .uncommonEgg, .rareEgg, .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return "🥚"
+        case .typeNullEgg, .legendaryEgg, .birthdayEgg, .pokemonEgg, .uncommonEgg, .rareEgg, .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return "🥚"
         case .lightBall: return "⚡"
         case .ovalCharm: return "🔶"
         case .glimmeringCharm: return "✨"
@@ -418,7 +420,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     var isPassive: Bool {
         switch self {
         case .rareCandy, .mint,
-             .typeNullEgg, .legendaryEgg, .birthdayEgg, .uncommonEgg, .rareEgg, .legendPlate, .lightBall,
+             .typeNullEgg, .legendaryEgg, .birthdayEgg, .pokemonEgg, .uncommonEgg, .rareEgg, .legendPlate, .lightBall,
              .excavation, .fossilEgg,
              .cometShard, .redNectar, .smoothRock, .sawsbuckSeasons, .fairyFeather, .furfrouTrims, .vivillonPatterns, .whippedDream, .unownLetters,
              .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg,
@@ -456,11 +458,24 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     /// candies): the Bag never holds it.
     var givesOtherItems: Bool { achievementRewards.contains { $0.kind != self } }
 
-    /// The rarity a free egg of the Bag guarantees, like the Shop's egg of that rarity. nil for any other item.
+    /// The rarity a Shop egg of the Bag guarantees. nil for the Pokémon Egg, which guarantees none, and any other item.
     var bagEggTier: Rarity? {
         switch self {
         case .uncommonEgg: return .uncommon
         case .rareEgg: return .rare
+        default: return nil
+        }
+    }
+
+    /// One of the Shop's eggs, which wait in the Bag until used.
+    var isShopEgg: Bool { self == .pokemonEgg || bagEggTier != nil }
+
+    /// The Bag item a Shop egg of `tier` becomes (`FreshEgg.shopTiers`).
+    init?(shopEgg tier: Rarity?) {
+        switch tier {
+        case nil: self = .pokemonEgg
+        case .uncommon?: self = .uncommonEgg
+        case .rare?: self = .rareEgg
         default: return nil
         }
     }
@@ -470,7 +485,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         if badgeType != nil { return .gymBadges }
         if stoneType != nil { return .evolutionStones }
         switch self {
-        case .rareCandy, .mint, .shinyCharm, .birthdayEgg, .uncommonEgg, .rareEgg, .fossilEgg: return nil
+        case .rareCandy, .mint, .shinyCharm, .birthdayEgg, .pokemonEgg, .uncommonEgg, .rareEgg, .fossilEgg: return nil
         case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return nil
         case .rotomCatalog, .cometShard, .redNectar, .smoothRock, .sawsbuckSeasons, .fairyFeather, .furfrouTrims, .vivillonPatterns, .whippedDream, .unownLetters: return .forms
         case .excavation: return .evolutionStones   // rocks and stones, side by side
@@ -482,7 +497,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     /// Each item keeps the Pokémon of the achievement that used to award it.
     var unlock: ItemUnlock? {
         switch self {
-        case .rareCandy, .mint, .shinyCharm, .birthdayEgg, .uncommonEgg, .rareEgg, .fossilEgg: return nil
+        case .rareCandy, .mint, .shinyCharm, .birthdayEgg, .pokemonEgg, .uncommonEgg, .rareEgg, .fossilEgg: return nil
         case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return nil
         // The first nine stones follow the generations: each asks for one region's final starters.
         case .leafStone:   return .species([SpeciesGoal([3, 6, 9])])            // Kanto starters
@@ -765,7 +780,7 @@ enum ShinyCharm {
     static let shinyDenominator: UInt64 = 48
 }
 
-/// 새 알(리롤) 밸런스 상수 — 상점 구매 시 현재 포켓몬을 폐기하고 새 알로 되돌린다.
+/// The Shop eggs' balance: bought into the Bag; used, an egg sends the current Pokémon off for a new egg.
 enum FreshEgg {
     /// 상점 구매가. 마음에 안 드는 부화를 리롤하는 프리미엄(쌓인 토큰의 활용처). 폐기 개체는 졸업이
     /// 아니라 그냥 사라지므로 도감·확률(collectedFinals)에 무영향 — "뽑은 적 없던 것처럼". 새 알은
@@ -791,7 +806,7 @@ enum FreshEgg {
     }
 }
 
-/// 상점 표시 한 줄 — 판매 아이템(ItemKind) 또는 알 리롤(즉시 액션이라 ItemKind 가 아님).
+/// One Shop row: an item sold (ItemKind) or an egg, bought into the Bag as `ItemKind(shopEgg:)` and drawn by its own card.
 /// `egg` 의 연관값은 **보증 등급 하한**(nil = 보증 없는 기존 알).
 /// CompanionStore.shopEntries 가 이 둘을 가격 오름차순으로 병합해 뷰가 단일 목록으로 그린다.
 enum ShopEntry: Hashable, Sendable {

@@ -598,7 +598,7 @@ final class CompanionStoreTests: XCTestCase {
         let s = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
                                fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
         XCTAssertEqual(s.representativeSpeciesID, 1)
-        XCTAssertTrue(s.buyFreshEgg())
+        XCTAssertTrue(s.buyAndUseEgg(nil))
         XCTAssertEqual(s.representativeSpeciesID, 1, "놓아준 종도 보유분이라 선택이 유지된다")
         XCTAssertEqual(s.representativeSubject.speciesID, 1, "메뉴바도 그 종을 계속 그린다")
     }
@@ -751,7 +751,7 @@ final class CompanionStoreTests: XCTestCase {
         let s = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
                                fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
         XCTAssertEqual(s.dexSpecies.map(\.id), [1, 2], "육성 중 도달분")
-        XCTAssertTrue(s.buyFreshEgg())
+        XCTAssertTrue(s.buyAndUseEgg(nil))
 
         XCTAssertEqual(s.dexSpecies.map(\.id), [1, 2], "놓아준 뒤에도 같은 두 종")
         let released = try XCTUnwrap(s.state.dex.last)
@@ -772,7 +772,7 @@ final class CompanionStoreTests: XCTestCase {
 
         let s = CompanionStore(provider: StubProvider(value: linear3), clock: { fixedNow },
                                fileURL: url, rng: SeededRNG(seed: 7), difficulty: 1)
-        XCTAssertTrue(s.buyFreshEgg())
+        XCTAssertTrue(s.buyAndUseEgg(nil))
         let released = try XCTUnwrap(s.state.dex.last)
         XCTAssertFalse(released.isShiny, "위장 중이면 리빌 전까지 숨김")
     }

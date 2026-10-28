@@ -379,7 +379,7 @@ final class DittoRevealTests: XCTestCase {
         let isSuspended = await provider.isSuspended()
         XCTAssertTrue(isSuspended)
 
-        XCTAssertTrue(s.buyFreshEgg())
+        XCTAssertTrue(s.buyAndUseEgg(nil))
         await s.hatch(baseID: 1)
         XCTAssertEqual(s.state.active?.baseID, 1)
         XCTAssertFalse(s.state.active?.dittoRevealed ?? true)

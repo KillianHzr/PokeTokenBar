@@ -1917,11 +1917,7 @@ final class CompanionStore {
 
     /// 상점 표시 순서 — 판매 아이템 + 알 3종을 하나의 가격 오름차순 목록으로 병합.
     /// 정렬 규칙은 purchasableItems 와 동일: 구매 완료한 보유형은 맨 아래, 나머지는 가격 저렴한 순.
-    /// 알은 즉시 액션이라 '보유' 개념이 없어 가격 순서에만 참여한다.
-    ///
-    /// 알은 활성 포켓몬이 없어도(알 상태) 목록에 남는다 — 구매는 `canBuyEgg` 의 `hasActive` 게이트가
-    /// 막고, EggCard 가 비활성 버튼 + 사유 한 줄로 보여준다. 목록에서 통째로 빼면 "상점에 알이 원래
-    /// 없다"로 읽혀서, 게이트는 유지하되 존재는 계속 보이게 한다.
+    /// The eggs are never "owned" passives: they only take part in the price order. Bought, they go in the Bag.
     ///
     /// 등급 알끼리 붙여 '티어 사다리'로 묶어 보이게 하는 안도 검토했으나 채택하지 않았다 — 지금의 순수
     /// 가격 오름차순은 "알이 무조건 맨 아래로 append 돼 더 비싼 부적보다 아래에 놓이던" 표시 회귀를
@@ -1940,7 +1936,7 @@ final class CompanionStore {
 
     /// 구매 완료한 보유형(이로치 부적 등)인지 — shopEntries 정렬에서 맨 아래로 보낼 판정.
     private func isPurchasedPassive(_ entry: ShopEntry) -> Bool {
-        guard case .item(let kind) = entry else { return false }   // 알은 즉시 액션 — 보유 개념 없음
+        guard case .item(let kind) = entry else { return false }   // an egg is never an owned passive
         return kind.isPassive && itemCount(kind) > 0
     }
 
@@ -2376,32 +2372,26 @@ final class CompanionStore {
     /// 현재 알이 보증하는 타입(진화의 돌 사용 UI 표시용). 활성 포켓몬이 있으면 알이 없으므로 nil.
     var eggTypeGuarantee: PokemonType? { state.active == nil ? state.eggTypeGuarantee : nil }
 
-    /// 알 구매 가능 — 폐기할 활성 포켓몬이 있고 지갑이 그 티어 가격 이상일 때만.
-    /// 알 상태에서도 살 수 있게 하는 안은 채택하지 않았다(기존 새 알과 게이트 통일) — 알끼리 교체하는
-    /// 동작을 새로 만들지 않고, 상점의 알은 언제나 "지금 개체를 놓아주고 다시 뽑는다"는 한 가지 의미만 갖는다.
-    /// 항목 자체는 알 상태에서도 상점에 남는다(shopEntries) — 이 게이트는 구매만 막는다.
+    /// A Shop egg can be bought whenever the wallet holds its price, egg or not: it waits in the Bag, and only using
+    /// it sends the current Pokémon off (`useBagEgg`).
     func canBuyEgg(_ tier: Rarity?) -> Bool {
         // 파는 티어인지 먼저 확인한다 — 만족 불가능한 보증(전설: capture_rate 로 표현 불가)을 사면
         // 두 롤 경로 모두 후보가 0개라 알이 영영 안 깨지고, 부화가 없으니 보증도 안 풀리며,
         // 새 알 구매는 `hasActive` 에 막혀 되돌릴 수단이 없다. 가격만 계산되면 값이 빠져나가므로
         // 판매 목록을 여기서 강제한다(호출부 하나가 실수하면 토큰이 통째로 사라진다).
         guard FreshEgg.shopTiers.contains(tier) else { return false }
-        return hasActive && availableTokens >= price(of: .egg(tier))
+        return availableTokens >= price(of: .egg(tier))
     }
 
-    /// 알 구매 — 현재 포켓몬을 놓아주고 처음부터 인큐베이션하는 새 알로. 지갑에서 가격 차감.
-    /// graduate() 의 알-리셋을 미러링하되, 놓아준 개체는 **도감에 남긴다**(`releasedDexEntry`).
-    /// 도감은 "쌓이기만 한다"는 약속을 주는데, 여기가 종이 사라질 수 있던 유일한 경로였다.
-    /// `collectedFinals`(최종체 완성·분기 가중)는 여전히 손대지 않는다 — 끝까지 키운 게 아니다.
-    /// 성장(usedAtStage)은 소멸(추가 비용).
-    ///
-    /// 여기서 종을 롤하지 않는다 — 롤에는 네트워크가 필요해서 오프라인이면 토큰만 사라진다. 보증만
-    /// 상태(`eggTier`)에 적고, 실제 롤은 프리패치/부화 경로가 그 보증을 읽어 수행한다.
+    /// Buys a Shop egg: its price leaves the wallet and the egg goes in the Bag (`ItemKind(shopEgg:)`). Bought, it
+    /// used to send the current Pokémon off at once; the player now picks the moment (`useBagEgg`).
     @discardableResult
     func buyEgg(_ tier: Rarity?) -> Bool {
-        guard canBuyEgg(tier) else { return false }
-        replaceActiveWithEgg(price: price(of: .egg(tier)), tier: tier, type: nil)
-        AppLog.write("egg purchased: discarded active, tier=\(tier?.rawValue ?? "none")")
+        guard canBuyEgg(tier), let kind = ItemKind(shopEgg: tier) else { return false }
+        state.spentTokens += price(of: .egg(tier))
+        state.inventory[kind.rawValue, default: 0] += 1
+        save()
+        AppLog.write("egg purchased: \(kind.rawValue) to the bag")
         return true
     }
 
@@ -2460,16 +2450,21 @@ final class CompanionStore {
         return true
     }
 
-    func canUseBagEgg(_ kind: ItemKind) -> Bool { kind.bagEggTier != nil && hasActive && itemCount(kind) > 0 }
+    func canUseBagEgg(_ kind: ItemKind) -> Bool { kind.isShopEgg && hasActive && itemCount(kind) > 0 }
 
-    /// Uses one of the Legend Plate's eggs: like the Shop's egg of its rarity, for free. The current Pokémon is sent
-    /// off for an egg that hatches a Pokémon of that rarity or better.
+    /// Uses one of the Shop's eggs from the Bag, bought or given by an achievement. The current Pokémon is sent off
+    /// for an egg that hatches anew, a Pokémon of the egg's rarity or better.
+    ///
+    /// The Pokémon sent off stays in the Pokédex (`releasedDexEntry`), its growth is lost, and `collectedFinals` is
+    /// left alone: it was not raised to the end. No species is rolled here, so offline nothing is lost: the egg's
+    /// guarantee is written in the state (`eggTier`) and the hatch reads it.
     @discardableResult
     func useBagEgg(_ kind: ItemKind) -> Bool {
-        guard canUseBagEgg(kind), let tier = kind.bagEggTier else { return false }
+        guard canUseBagEgg(kind) else { return false }
+        let tier = kind.bagEggTier
         state.inventory[kind.rawValue] = itemCount(kind) - 1   // saved with the new egg
         replaceActiveWithEgg(price: 0, tier: tier, type: nil)
-        AppLog.write("bag egg used: \(kind.rawValue), discarded active, tier=\(tier.rawValue)")
+        AppLog.write("bag egg used: \(kind.rawValue), discarded active, tier=\(tier?.rawValue ?? "none")")
         return true
     }
 
@@ -2668,11 +2663,6 @@ final class CompanionStore {
         Task { await self.ensureEggPrefetch() }   // 다음 부화 예열
         save()
     }
-
-    // 보증 없는 기본 알 래퍼 — 기존 호출부/테스트 호환.
-    var canBuyFreshEgg: Bool { canBuyEgg(nil) }
-    @discardableResult
-    func buyFreshEgg() -> Bool { buyEgg(nil) }
 
     /// Parse an epoch string into a Date, supporting Unix timestamp (seconds or ms) or ISO8601 strings.
     static func parseEpochDate(_ string: String) -> Date? {

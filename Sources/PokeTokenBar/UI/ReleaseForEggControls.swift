@@ -28,7 +28,7 @@ struct ReleaseForEggControls: View {
                         .font(.caption2).foregroundStyle(.tertiary).monospacedDigit()
                     Spacer()
                     if !store.hasActive {
-                        // 알 상태: 리롤 대상이 없어 실행만 막는다(canBuyEgg/canUseStone 게이트). 항목을 숨기는 대신
+                        // 알 상태: 리롤 대상이 없어 실행만 막는다(canUseBagEgg/canUseStone 게이트). 항목을 숨기는 대신
                         // 비활성 버튼으로 "있긴 하다"를 보이고, 사유는 아래 한 줄로.
                         Button(actionTitle) {}
                             .buttonStyle(.pill()).disabled(true)
