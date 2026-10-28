@@ -40,6 +40,12 @@ extension L {
                       "Verglichen mit dem Jahr davor", "По сравнению с предыдущим годом")
         }
     }
+    /// When a day with usage of the period has no price: why there is no cost tile.
+    var statsCostUnknown: String {
+        t("일부 날짜의 비용을 알 수 없어요", "Cost unknown for some days", "一部の日のコストは不明です",
+          "Coste desconocido para algunos días", "Coût inconnu pour certains jours", "Custo desconhecido em alguns dias",
+          "Kosten für einige Tage unbekannt", "Стоимость некоторых дней неизвестна")
+    }
     var statsCost: String { t("비용", "Cost", "コスト", "Coste", "Coût", "Custo", "Kosten", "Стоимость") }
     var statsPerActiveDay: String {
         t("활동일 평균", "Per active day", "稼働日平均", "Por día activo", "Par jour actif", "Por dia ativo",

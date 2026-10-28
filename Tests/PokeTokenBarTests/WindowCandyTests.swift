@@ -135,8 +135,34 @@ final class WindowCandyTests: XCTestCase {
 
         let s = try companion()
         s.grantCandies(from: [], limitsReady: true)
-        s.grantCandies(from: store.candyEligibleWindows, limitsReady: store.limitsReady)
+        s.grantCandiesFilling(store.candyEligibleWindows)
         XCTAssertEqual(s.rareCandyCount, 5 + 10 + 1, "a quarter of a Max 20x session, a tenth of its week, a full Codex session")
+    }
+
+    /// A window first seen after the first run, or seen at another plan, pays from then on, not what it used before
+    /// all at once (#79): a Max 20x login added at 80% of its week paid 80 candies, a Pro week at 60% read as Max 5x 12.
+    func testAWindowFirstSeenOrAtAnotherPlanPaysFromThen() throws {
+        let s = try companion()
+        s.grantCandies(from: [], limitsReady: true)
+        let window = { (key: String, u: Double, plan: Int, epoch: String) in
+            CandyWindow(key: key, name: key, kind: .weekly, utilization: u, epoch: epoch, planMultiplier: plan)
+        }
+        s.grantCandies(from: [window("max", 80, 20, "e")], limitsReady: true)
+        XCTAssertEqual(s.rareCandyCount, 0, "first seen at 80%")
+        s.grantCandies(from: [window("max", 83, 20, "e")], limitsReady: true)
+        XCTAssertEqual(s.rareCandyCount, 3, "then one every 1%")
+
+        s.grantCandiesFilling([window("pro", 60, 1, "e")])
+        XCTAssertEqual(s.rareCandyCount, 6, "a Pro week at 60%")
+        s.grantCandies(from: [window("pro", 60, 5, "e")], limitsReady: true)
+        XCTAssertEqual(s.rareCandyCount, 6, "read as Max 5x: the jump pays nothing")
+        s.grantCandies(from: [window("pro", 64, 5, "e")], limitsReady: true)
+        XCTAssertEqual(s.rareCandyCount, 7, "then a Max 5x week's pace, one every 4%")
+        s.grantCandies(from: [window("pro", 64, 1, "e")], limitsReady: true)
+        XCTAssertEqual(s.rareCandyCount, 7, "back to Pro: nothing taken back, nothing paid twice")
+        s.grantCandies(from: [window("pro", 20, 1, "e2")], limitsReady: true)
+        XCTAssertEqual(s.rareCandyCount, 8, "a new epoch at the same plan pays from its start")
+        XCTAssertEqual(s.state.candyWindowPlan, ["max": 20, "pro": 1])
     }
 
     func testThePlanOfALimitStatus() {

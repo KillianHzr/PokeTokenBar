@@ -163,6 +163,27 @@ final class BirthdayGiftTests: XCTestCase {
         XCTAssertEqual(kept.lastBirthdayGiftClaimedAt, now)
     }
 
+    /// Regression (#83): Settings clear the date, then set a month, then a day. Typing the gift's date again that way
+    /// is no change: a December 30 gift claimed on January 2, 2028 still lets December 30, 2028 bring one.
+    func testTypingTheSameDateAgainKeepsNextYearsGift() throws {
+        let december30 = try XCTUnwrap(Birthday(month: 12, day: 30))
+        let s = try store {
+            $0.birthday = december30
+            $0.lastBirthdayGiftYear = 2027
+            $0.lastBirthdayGiftClaimedAt = self.at(2028, 1, 2)
+        }
+        s.setBirthday(nil)
+        s.setBirthday(Birthday(month: 12, day: 1))
+        s.setBirthday(december30)
+        XCTAssertNil(s.state.birthdayChangedAfterGiftYear, "back to the gift's date")
+        XCTAssertEqual(s.state.lastBirthdayGiftDate, december30)
+        XCTAssertEqual(BirthdayGift.claimable(birthday: s.state.birthday, lastGiftYear: s.state.lastBirthdayGiftYear,
+                                              changedAfterGiftYear: s.state.birthdayChangedAfterGiftYear,
+                                              now: at(2028, 12, 30), calendar: utc)?.year, 2028)
+        s.setBirthday(Birthday(month: 2, day: 1))
+        XCTAssertEqual(s.state.birthdayChangedAfterGiftYear, 2028, "a really new date still waits")
+    }
+
     /// Used, it sends off the Pokémon for the Birthday Egg, which hatches a mythical while one is missing.
     private func hatch(seed: UInt64, graduated ids: [Int], also: [DexEntry] = []) async throws -> MonState {
         let s = try store(seed: seed) {

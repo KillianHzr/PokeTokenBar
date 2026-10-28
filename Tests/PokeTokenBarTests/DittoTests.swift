@@ -425,8 +425,7 @@ final class DittoRevealTests: XCTestCase {
         normal.applyUsage(100_000_000)
         for store in [s, normal] {
             store.grantCandies(from: [], limitsReady: true)
-            store.grantCandies(from: [CandyWindow(key: "batch.weekly", name: "Test", kind: .weekly,
-                                                 utilization: 100)], limitsReady: true)
+            store.grantCandiesFilling([CandyWindow(key: "batch.weekly", name: "Test", kind: .weekly, utilization: 100)])
         }
         XCTAssertEqual(s.maxRareCandyUseCount, normal.maxRareCandyUseCount)
         for count in 1...5 {
@@ -445,10 +444,10 @@ final class DittoRevealTests: XCTestCase {
         XCTAssertEqual(s.useRareCandy(count: 5), .unavailable, "Do not spend while the reveal is pending")
         await drainReveal(s)
         XCTAssertEqual(s.currentSpeciesID, PokemonOdds.dittoSpeciesID)
-        XCTAssertEqual(s.state.active?.usedAtStage, 75_000_000)
+        XCTAssertEqual(s.state.active?.usedAtStage, 50_000_000)
         XCTAssertEqual(s.maxRareCandyUseCount, 4)
         XCTAssertEqual(s.useRareCandy(count: 2), .progressed)
-        XCTAssertEqual(s.state.active?.usedAtStage, 275_000_000)
+        XCTAssertEqual(s.state.active?.usedAtStage, 200_000_000)
         XCTAssertEqual(s.rareCandyCount, 2)
     }
 
@@ -462,8 +461,7 @@ final class DittoRevealTests: XCTestCase {
                 await drainReveal(s)
                 s.grantCandies(from: [], limitsReady: true)
                 for i in 0..<4 {
-                    s.grantCandies(from: [CandyWindow(key: "batch.\(i)", name: "Test", kind: .weekly,
-                                                     utilization: 100)], limitsReady: true)
+                    s.grantCandiesFilling([CandyWindow(key: "batch.\(i)", name: "Test", kind: .weekly, utilization: 100)])
                 }
                 let revealThreshold = s.threshold
                 let preview = try XCTUnwrap(s.planRareCandyUse(count: 20))
@@ -481,11 +479,10 @@ final class DittoRevealTests: XCTestCase {
     }
 
     func testCandyBatchStopsExactlyAtRevealWithoutOverflow() async throws {
-        let s = seedDisguise(usedAtStage: 25_000_000)
+        let s = seedDisguise(usedAtStage: 50_000_000)   // one 75M candy reaches the reveal exactly
         await drainReveal(s)
         s.grantCandies(from: [], limitsReady: true)
-        s.grantCandies(from: [CandyWindow(key: "batch.exact", name: "Test", kind: .weekly,
-                                         utilization: 100)], limitsReady: true)
+        s.grantCandiesFilling([CandyWindow(key: "batch.exact", name: "Test", kind: .weekly, utilization: 100)])
         _ = s.useRareCandy(count: 5)
         await drainReveal(s)
         XCTAssertEqual(s.currentSpeciesID, PokemonOdds.dittoSpeciesID)

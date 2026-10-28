@@ -124,6 +124,9 @@ struct UnlockRequirementView: View {
                     ProgressView(value: Double(progress.count), total: Double(max(1, needed))).controlSize(.small)
                 }
             }
+            // Too many to draw: the ones still missing, named on hover, with their names loaded here.
+            .help(missingForms(progress).isEmpty ? "" : l.missingFormsHint(missingForms(progress)))
+            .loadsFormNames(goal.speciesID)
         } else {
             HStack(spacing: compact ? 2 : 3) {
                 if compact && progress.isMet { checkmark }
@@ -136,6 +139,13 @@ struct UnlockRequirementView: View {
                 Spacer(minLength: 4)
                 counter(progress.count, needed: needed)
             }
+        }
+    }
+
+    /// The forms of a goal not graduated yet, by name, in the goal's order.
+    private func missingForms(_ progress: CompanionStore.FormProgress) -> [String] {
+        progress.goal.forms.filter { !progress.graduated.contains($0) }.map {
+            PokemonForm.label(speciesID: progress.goal.speciesID, form: $0, language: store.language) ?? $0.rawValue
         }
     }
 

@@ -219,6 +219,8 @@ enum SaveTransfer {
         state.candyWindowEpoch = mergedWindowEpochs(
             imported.candyWindowEpoch, imported.candyGrantTier,
             current.candyWindowEpoch, current.candyGrantTier)
+        state.candyWindowPlan = mergedWindowPlans(imported.candyWindowPlan, imported.candyGrantTier,
+                                                  current.candyWindowPlan, current.candyGrantTier)
         state.candyFeatureSeeded = imported.candyFeatureSeeded || current.candyFeatureSeeded
         state.candyGrantsAsYouGo = imported.candyGrantsAsYouGo || current.candyGrantsAsYouGo
         let hasCurrentProviderData = hasUsageData && !todayTokensByProvider.isEmpty
@@ -237,6 +239,20 @@ enum SaveTransfer {
             state.lastDate = ""
         }
         return state
+    }
+
+    /// Each window's plan from the side whose ledger `mergedGrantTier` keeps, this device's on a tie: the count paid
+    /// and the plan it was paid at stay together.
+    static func mergedWindowPlans(
+        _ plansA: [String: Int], _ tiersA: [String: Int],
+        _ plansB: [String: Int], _ tiersB: [String: Int]
+    ) -> [String: Int] {
+        var out: [String: Int] = [:]
+        for key in Set(plansA.keys).union(plansB.keys) {
+            let fromA = (tiersA[key] ?? 0) > (tiersB[key] ?? 0) || plansB[key] == nil
+            out[key] = fromA ? plansA[key] ?? plansB[key] : plansB[key]
+        }
+        return out
     }
 
     /// 창 key 별로 더 높은 tier 를 남긴다 — 어느 쪽에서든 이미 지급했으면 지급한 것으로 본다.

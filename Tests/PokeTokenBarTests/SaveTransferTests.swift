@@ -561,7 +561,7 @@ final class SaveTransferTests: XCTestCase {
                                      // The Birthday Egg in incubation, and the gift's yearly record: moving the save
                                      // to another Mac never brings a second gift the same year.
                                      "eggFromBirthdayEgg", "pendingShiny", "birthday", "lastBirthdayGiftYear",
-                                     "lastBirthdayGiftClaimedAt", "birthdayChangedAfterGiftYear", "birthdayNotifiedYear",
+                                     "lastBirthdayGiftClaimedAt", "lastBirthdayGiftDate", "birthdayChangedAfterGiftYear", "birthdayNotifiedYear",
                                      // The event egg in incubation, and the events' eggs already taken or announced:
                                      // moving the save never brings an event's egg twice the same year.
                                      "eggEvent", "claimedEventEggs", "eventEggsNotified",
@@ -571,7 +571,8 @@ final class SaveTransferTests: XCTestCase {
                                      // The next egg's roll leaves it out: it follows the save's last hatch.
                                      "lastHatchedBaseID"]
         let deviceLedger: Set<String> = ["installBaselineSet", "claimedTodayTokensByProvider", "lastDate"]
-        let accountLedger: Set<String> = ["candyGrantTier", "candyWindowEpoch", "candyFeatureSeeded", "candyGrantsAsYouGo"]
+        let accountLedger: Set<String> = ["candyGrantTier", "candyWindowEpoch", "candyWindowPlan", "candyFeatureSeeded",
+                                          "candyGrantsAsYouGo"]
         let devicePreference: Set<String> = ["language"]
 
         let classified = progress.union(deviceLedger).union(accountLedger).union(devicePreference)
@@ -613,12 +614,14 @@ final class SaveTransferTests: XCTestCase {
         var mine = CompanionState()
         mine.installBaselineSet = true
         mine.candyGrantTier = ["five_hour|A": 100, "weekly|B": 80]
+        mine.candyWindowPlan = ["five_hour|A": 5, "weekly|B": 5]
         try JSONEncoder().encode(mine).write(to: url)
         let s = store(at: url)
 
         // 옛 세이브: A 창을 아직 못 봤고, B 는 더 낮은 tier 에서 찍혔다.
         var older = oldMacState(today: today)
         older.candyGrantTier = ["weekly|B": 50, "five_hour|C": 100]
+        older.candyWindowPlan = ["weekly|B": 1, "five_hour|C": 20]
         let data = try SaveTransfer.encode(state: older, appVersion: "2.5.0",
                                            deviceName: "Old Mac", now: transferNow)
         try s.applySave(try SaveTransfer.decode(data), todayTokensByProvider: ["test": 1],
@@ -627,6 +630,8 @@ final class SaveTransferTests: XCTestCase {
         XCTAssertEqual(s.state.candyGrantTier["five_hour|A"], 100, "이 기기가 이미 지급한 창이 사라지면 재지급된다")
         XCTAssertEqual(s.state.candyGrantTier["weekly|B"], 80, "같은 창은 더 높은 tier 를 남긴다")
         XCTAssertEqual(s.state.candyGrantTier["five_hour|C"], 100, "세이브 쪽 창도 들어와야 한다")
+        // Each count keeps the plan it was paid at (#79): a plan from the other side would re-plan the window.
+        XCTAssertEqual(s.state.candyWindowPlan, ["five_hour|A": 5, "weekly|B": 5, "five_hour|C": 20])
     }
 
     // MARK: 백업 가드레일 (딥리뷰 M-a·M-b)

@@ -117,6 +117,30 @@ read_when:
   `CompletionCharmTests.testEverySpeciesUnlocksTheOvalCharm`, `SilvallyMemoryTests.testEveryMemoryEarnsATypeNullEgg`;
   each fails when its path reads the Pokédex's set again.
 
+- **The game counts graduated Pokémon only, not only the achievements (#82).** The fix above swept the readers of
+  `registeredSpeciesIDs`, but the egg roll, the Oval Charm, a new form's badge, Prison Bottle bonus and Rotom Catalog
+  candy (`collectedLineForms`), the evolution plan's choice of a branch not had yet and Home's track
+  (`isEvolutionCollected`), and the Memories a Silvally forms goal counted (`itemUnlockedForms`) built their own sets
+  from `state.dex` and `active`: an Unown Q or a Vaporeon sent off counted as had while every goal still asked for it.
+  **Why it was missed:** the sweep followed one property name, not the class (a game decision reading the whole
+  Pokédex). Rule: a decision of the game reads `graduatedLineForms`, `collectedForms(graduatedOnly: true)` or entries
+  with `!isReleased`, without `active`; the Pokédex's own display keeps released and raised ones as seen. Guards:
+  `PokemonFormTests.testAFormSentOffOrBeingRaisedIsStillMissing`, `EvolutionTrackTests.testAnEvolutionSentOffIsStillToFind`,
+  `SilvallyMemoryTests.testMemoriesUnlockSilvallysFormsOnceSilvallyIsInThePokedex`.
+
+- **An egg that names its lines asks for them when the index is down.** The REST fallback draws 32 random numbers
+  among 1,025: a Fossil Egg seldom met one of its 15 lines (#77), and the Friendship Egg's single line, Valentine's 8
+  and Easter's 7 almost never. **Why it was missed:** the REST tests used eggs open to many species and `tryHatch`
+  accepts a kept egg. `chooseListedBaseViaREST` asks for each named line, then applies the index path's Oval Charm and
+  last-hatched rules; `EventEggTests.testTheRestFallbackOfAnEggOfFewLinesHatchesEveryTime` and
+  `FossilDigTests.testTheRestFallbackFindsAFossilLineEveryTime` hatch on every seed.
+
+- **An item that speeds one kind of egg checks the kind, not a field other eggs share (#80).** The Tera Orb (stone
+  eggs) and the Sea Incense (Shop and Legend Plate eggs) read `eggTypeGuarantee` and `eggTier`, which an event egg
+  sets too (Christmas: Ice, Rare): both halved it. They now skip an event egg;
+  `EventEggTests.testTheEggSpeedItemsLeaveAnEventEgg`. Sweep: the other readers of those fields enforce the
+  guarantee, which an event egg must keep.
+
 - **A rarity is decided by the legendary flag before the capture rate.** Tier eggs filtered bases on capture rate
   alone, on the comment's assumption that every legendary is at 45 or less. Necrozma, Eternatus and Terapagos are at
   255 (scripted catches in the games), so "Rare or better" never hatched them while their card said Legendary.
@@ -921,6 +945,14 @@ read_when:
   `fetchFilteredEventsForTesting` 으로 루프 전체를 돈다(총계 없음/있음 둘 다). 수정 전 `[1]`·100건으로 실패 확인.
   **스윕:** 이 파일의 다른 `intValue` 호출은 토큰 수라 0 이 올바른 기본값이다.
 
+- **A value the answer does not carry is read where it is (#79).** The session-key path reads limits from
+  `/api/organizations/{id}/usage`, which has no plan: `planMultiplier` fell to 1 and a Max 5x login earned a Pro
+  plan's candies. Its organization row has `rate_limit_tier` (and `capabilities`), already in the anonymized fixture
+  but never decoded. **Why it was missed:** the plan tests built a `LimitStatus` with the OAuth fields set, a path the
+  session key never takes. The provider now takes the row's plan on discovery and reads it again once a day for the
+  cached organization (an hour after a failure); `SessionKeyLimitsTests` (`testTheCachedOrganizationsPlanComesFromItsRowOnceADay`,
+  `testAFailedPlanReadKeepsTheUsageAndWaitsAnHour`, `testTheDiscoveredOrganizationCarriesItsPlan`).
+
 ## 빌드·도구체인
 
 - **새 SDK에서 통과해도 CI의 AppKit Sendable 선언을 가정하지 마라.** 동시 캐시 로드 테스트가
@@ -1103,6 +1135,15 @@ read_when:
   초록인데 #174 가 다시 산다. (#174)
 
 ## 표시·UI
+
+- **A hover that names a form loads the form's name itself.** The long forms goals' "Still missing" list and the
+  forms' sprite tooltips (achievements, the Stats page's graduates) read `PokemonForm.label`, which answers from names
+  another view loaded: until the Pokédex page of that species was opened, a French player read "Icy Snow, Tundra".
+  **Why it was missed:** the label tests filled the name store by hand, and the render used to check the hint ran
+  after a Pokédex page had loaded the names. `SpeciesNameTooltip` now loads its form's resource and `FormNamesLoader`
+  every form of a long goal; `PokemonNameLocalizationTests.testFormTooltipsLoadTheirFormNames` mounts both with an
+  empty store. Sweep: the Pokédex form picker and the hatch, evolution and graduation messages already load theirs
+  (`loadFormNames`); the other `displayName` calls pass no form label.
 
 - **Green and orange text needs its readable shade; tinted badges adapt to the appearance.** A player reported colors
   "light on light or dark on dark". The system green and orange are about 2:1 on a light card (`· active` in the Bag,
@@ -1476,8 +1517,10 @@ read_when:
   scope, now showed the whole Pokédex: each missing cell fetched its sprite, and those loads finished during the
   cache suites. That test reads the caught grid and now opens it (`dexScope = .caught`); the whole-Pokédex scale test
   searches its two species so that no missing cell shows. A first occurrence came from a hatch test holding 60
-  graduated species; shrinking its dex cleared it, by what path is not traced. Run the full suite, not only the
-  suites touched, before calling a change done.
+  graduated species; shrinking its dex cleared it, by what path is not traced. A third came with
+  `SpriteGroundTests.testGroundedSpritesShareTheirBottomLine` (skipping it cleared the 60 failures): it now renders
+  from a temporary `SpriteStore`, and both cache suites empty the shared cache in `setUp`; two full runs since pass,
+  the exact path is not traced either. Run the full suite, not only the suites touched, before calling a change done.
 
 - **A guard pinned to one screen misses the screen added beside it.** The same-scale test opened the caught grid
   (`dexScope = .caught`); the whole Pokédex, added as the default, drew each cell filled again and a Charmander stood
@@ -1600,6 +1643,15 @@ read_when:
   회귀 가드: `testRearmWhenWindowEpochAdvancesWhileStillAt100`·`testGrantAfterSeedWhenEpochAdvancesWithoutUtilDip`·
   `testLearningEpochForFirstTimeDoesNotRegrant`·`testVolatileMicrosecondEpochDoesNotRegrant`·
   `testCodexJitterEpochDoesNotRegrant`·`testRollingWindowMinorDriftDoesNotRegrant`·`testSessionFullResetWhileStillAt100Regrants`.
+
+- **A ledger of counts is only true at the size it was counted at: keep the size with it (#79).** Windows pay
+  candies as they fill, and the ledger keeps a count. A window first seen after the first launch (another login, a
+  Codex bucket) started at 0 paid and paid its whole usage so far at once (a Max 20x login added at 80%: 80 candies);
+  a plan read late or upgraded mid-window paid the jump (a Pro week at 60%, read as Max 5x: 12 at once).
+  **Why it was missed:** the first-launch seed covered the windows known then, and the tests showed each window once
+  at the level they wanted paid. `candyWindowPlan` keeps the plan each window was seen at; a window first seen, or at
+  another plan, is recorded as paid up to what it owes then, and pays from there. The test helpers now show a window
+  at 0% before filling it. Guard: `WindowCandyTests.testAWindowFirstSeenOrAtAnotherPlanPaysFromThen`.
 
 - **휘발성 필드를 dedup/identity 키에 쓰지 마라.** 매 fetch/refresh 마다 값이 변하는 필드(예: rolling
   한도 창의 `resets_at`)를 알림 중복방지 키에 넣으면 매번 새 키가 되어 dedup 이 무력화된다 — 주간 한도

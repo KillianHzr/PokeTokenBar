@@ -76,6 +76,11 @@ final class SilvallyMemoryTests: XCTestCase {
         let owned = state(legendaries: [146], extra: [entry(773, chain: [772, 773], form: normal)])
         XCTAssertEqual(owned.collectedForms(speciesID: 773), [normal, fire, flying])
         XCTAssertEqual(try store(owned).formSpecies(speciesID: 773).compactMap(\.form), [normal, flying, fire])
+        // A goal counts the Memories of graduated legendaries only: a released Moltres shows its forms, not for it.
+        let released = state(extra: [entry(146, released: true), entry(773, chain: [772, 773], form: normal)])
+        XCTAssertEqual(released.collectedForms(speciesID: 773), [normal, fire, flying])
+        XCTAssertEqual(released.collectedForms(speciesID: 773, graduatedOnly: true), [normal])
+        XCTAssertEqual(owned.collectedForms(speciesID: 773, graduatedOnly: true), [normal, fire, flying])
     }
 
     func testTypeNullHatchesNormalAndEvolvesWithItsMemories() async throws {

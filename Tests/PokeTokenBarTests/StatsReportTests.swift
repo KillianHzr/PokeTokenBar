@@ -131,6 +131,13 @@ final class StatsReportTests: XCTestCase {
                      "the ledger does not reach the week before")
     }
 
+    /// The 31st of March: 30 completed days against February's 28, so 28 on both sides; the same 100 a day is no change.
+    func testARunningMonthComparesAsManyDaysOnBothSides() throws {
+        let days = (1...28).map { (key(2, $0), 100) } + (1...30).map { (key(3, $0), 100) }
+        let change = try XCTUnwrap(report(ledger(since: key(2, 1), days), .month, now: date(3, 31)).change)
+        XCTAssertEqual(change, 0, accuracy: 0.0001, "not +7%: 3,000 against 2,800")
+    }
+
     /// The 18th of September: 17 completed days at 100 a day, 12 days left after today.
     func testAProjectionGoesOnAtTheCompletedDaysPace() throws {
         let completed = (1...17).map { (key(9, $0), 100) }
@@ -177,7 +184,7 @@ final class StatsReportTests: XCTestCase {
                      "31 August used tokens and is no longer in any series")
     }
 
-    func testABarHoldsItsGraduatesCostAndToolsAndTheReportKeepsSentOffPokemon() throws {
+    func testABarHoldsItsGraduatesCostAndToolsAndLeavesOutPokemonSentOff() throws {
         let month = (1...18).map { key(9, $0) }
         func tool(_ id: String, _ tokens: Int) -> StatsReport.ToolSeries {
             StatsReport.ToolSeries(id: id, name: id, days: month.map { usage($0, $0 == key(9, 15) ? tokens : 0) },
@@ -190,11 +197,11 @@ final class StatsReportTests: XCTestCase {
                              dex: dex)
         let bar = try XCTUnwrap(stacked.recap.buckets.first { $0.key == key(9, 15) })
         let detail = stacked.detail(bar)
-        XCTAssertEqual(detail.graduated, 2, "the one sent off since graduated that day too")
+        XCTAssertEqual(detail.graduated, 1, "the one sent off for an egg never graduated")
         XCTAssertEqual(detail.cost, 4)
         XCTAssertEqual(detail.tools.map(\.tokens), [200, 100])
         XCTAssertTrue(stacked.stacksByTool)
-        XCTAssertEqual(stacked.graduated.count, 3)
+        XCTAssertEqual(stacked.graduated.count, 2)
 
         let single = report(tokens, .week, tools: [tool("a", 300)], dex: dex)
         XCTAssertFalse(single.stacksByTool, "one tool draws plain bars")
@@ -239,6 +246,28 @@ final class StatsRecordsTests: XCTestCase {
     }
 }
 
+// MARK: Kept records
+
+final class KeptRecordsTests: XCTestCase {
+    func testKeptRecordsHoldTheBestOfEachAndSurviveAReload() throws {
+        var kept = StatsRecords.Kept()
+        kept.merge(StatsRecords(bestDay: .init(key: "2025-06-03", tokens: 40), bestWeek: nil, bestMonth: nil,
+                                longestStreak: 60, currentStreak: 2, weekdayAverages: nil))
+        kept.merge(StatsRecords(bestDay: .init(key: "2026-09-01", tokens: 30), bestWeek: .init(key: "2026-08-31", tokens: 90),
+                                bestMonth: nil, longestStreak: 12, currentStreak: 3, weekdayAverages: nil))
+        XCTAssertEqual(kept.bestDay, .init(key: "2025-06-03", tokens: 40))
+        XCTAssertEqual(kept.bestWeek, .init(key: "2026-08-31", tokens: 90))
+        XCTAssertEqual(kept.longestStreak, 60)
+        let shown = StatsRecords(bestDay: .init(key: "2026-09-01", tokens: 30), bestWeek: nil, bestMonth: nil,
+                                 longestStreak: 12, currentStreak: 3, weekdayAverages: [1, 2, 3, 4, 5, 6, 7]).keeping(kept)
+        XCTAssertEqual(shown.bestDay?.tokens, 40, "the pruned day still the best")
+        XCTAssertEqual(shown.currentStreak, 3, "the running streak is the ledger's")
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: "kept-records-\(UUID().uuidString)"))
+        kept.save(to: defaults)
+        XCTAssertEqual(StatsRecords.Kept.load(from: defaults), kept)
+    }
+}
+
 // MARK: Recording
 
 private enum StatsStubError: Error { case unavailable }
@@ -274,7 +303,7 @@ final class CostLedgerRecordingTests: XCTestCase {
     func testARefreshPricesTheDaysAndTheyOutliveARelaunch() async throws {
         let formatter = LocalUsageReader.localDayFormatter()
         let today = formatter.string(from: Date())
-        let yesterday = formatter.string(from: Date().addingTimeInterval(-86_400))
+        let yesterday = formatter.string(from: Calendar.current.date(byAdding: .day, value: -1, to: Date())!)
         let defaults = try XCTUnwrap(UserDefaults(suiteName: "cost-ledger-refresh-\(UUID().uuidString)"))
         let store = UsageStore(
             providers: [PricedProvider(series: [usage(yesterday, 900, cost: 7.5), usage(today, 300, cost: 2)])],
@@ -287,5 +316,29 @@ final class CostLedgerRecordingTests: XCTestCase {
         XCTAssertEqual(store.dailyCostLedger.cost(on: yesterday), 7.5)
         XCTAssertEqual(store.dailyCostLedger.cost(on: today), 2)
         XCTAssertEqual(CostLedger.load(from: defaults), store.dailyCostLedger)
+    }
+
+    /// The ledger keeps this year and the last: a best day before that leaves the ledger and stays the record.
+    func testARecordOutlivesTheLedgersPruning() async throws {
+        let calendar = RecapPeriod.calendar()
+        let formatter = LocalUsageReader.localDayFormatter()
+        let thisYear = RecapPeriod(scope: .year, containing: Date(), calendar: calendar)
+        let twoYearsAgo = formatter.string(from: thisYear.shifted(by: -1, calendar: calendar).start.addingTimeInterval(-12 * 3600))
+        let today = formatter.string(from: Date())
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: "kept-records-refresh-\(UUID().uuidString)"))
+        var seeded = UsageLedger()
+        seeded.merge([usage(twoYearsAgo, 9_000)])
+        seeded.save(to: defaults)
+        let store = UsageStore(
+            providers: [PricedProvider(series: [usage(today, 300, cost: 2)])],
+            claudeLimitsProvider: StatsNoClaudeLimits(), codexLimitsProvider: StatsNoCodexLimits(),
+            antigravityLimitsProvider: StatsNoAntigravityLimits(), statusProvider: StatsNoStatus(),
+            autoRefresh: false, defaults: defaults)
+
+        await store.refresh(scheduleEmptyRetry: false)
+
+        XCTAssertEqual(store.dailyLedger.tokens(on: twoYearsAgo), 0, "pruned")
+        XCTAssertEqual(store.keptRecords.bestDay, StatsRecords.Record(key: twoYearsAgo, tokens: 9_000))
+        XCTAssertEqual(StatsRecords.Kept.load(from: defaults), store.keptRecords)
     }
 }
