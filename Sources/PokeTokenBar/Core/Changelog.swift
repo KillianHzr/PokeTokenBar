@@ -66,6 +66,16 @@ enum Changelog {
     }
 
     static let days: [ChangelogDay] = [
+        ChangelogDay(date: "2026-10-28", entries: [
+            .new("2026-10-28-dex-silhouettes") { $0.t("도감에서 아직 없는 포켓몬이 검은 실루엣으로 보여요. 전체에는 이로치와 진화 라인 필터가, 미보유에는 진화 라인 필터가 생겼어요.",
+                                                      "In the Pokédex, the Pokémon you're missing show as black silhouettes. All gets the shiny and evolution family filters, Missing the family one.",
+                                                      "図鑑で、まだいないポケモンが黒いシルエットで表示されます。「すべて」に色違いと進化ラインのフィルター、「未入手」に進化ラインのフィルターが加わりました。",
+                                                      "En la Pokédex, los Pokémon que te faltan aparecen como siluetas negras. Todos gana los filtros variocolor y línea evolutiva, Faltan el de línea evolutiva.",
+                                                      "Dans le Pokédex, les Pokémon qui te manquent apparaissent en silhouette noire. « Tous » a les filtres chromatique et famille d'évolution, « Manquants » le filtre famille.",
+                                                      "Na Pokédex, os Pokémon que faltam aparecem como silhuetas pretas. Todos ganha os filtros brilhante e linha evolutiva, Faltando o de linha evolutiva.",
+                                                      "Im Pokédex erscheinen fehlende Pokémon als schwarze Silhouetten. Alle bekommt die Filter für Schillernde und Entwicklungsreihen, Fehlend den für Entwicklungsreihen.",
+                                                      "В покедексе недостающие покемоны показаны чёрными силуэтами. Во «Все» появились фильтры сияющих и линии эволюции, в «Не хватает» фильтр линии эволюции.") },
+        ]),
         ChangelogDay(date: "2026-10-27", entries: [
             .fixed("2026-10-27-dex-sprite-scale") { $0.t("도감 전체와 업적에서 포켓몬이 다시 원래 크기 비율로 보여요. 파이리가 리자몽보다 작아요.",
                                                          "In the whole Pokédex and in Achievements, Pokémon keep their sizes again: a Charmander is smaller than a Charizard.",

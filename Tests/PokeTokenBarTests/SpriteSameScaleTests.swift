@@ -87,14 +87,15 @@ final class SpriteSameScaleTests: XCTestCase {
         try JSONEncoder().encode(state).write(to: file)
         defer { try? FileManager.default.removeItem(at: file) }
         let store = CompanionStore(provider: SameScaleProvider(), fileURL: file)
-        let all = PopoverNavigation()
-        all.dexScope = .all
-        let host = NSHostingView(rootView: CollectionView(store: store, navigation: all)
+        // Searched by their name, so no missing species shows: each would fetch its sprite for a silhouette, and the
+        // load would land in the shared sprite cache during a later test.
+        let host = NSHostingView(rootView: FullDexView(store: store, searchText: "Fixture", missingOnly: false,
+                                                       scope: .constant(.all), onSelectSpecies: { _ in })
             .frame(width: PopoverMetrics.contentWidth, height: 400).background(Color.white))
         host.frame = NSRect(x: 0, y: 0, width: PopoverMetrics.contentWidth, height: 400)
         let heights = try spriteHeights(host)
         XCTAssertEqual(heights.count, 2, "two green sprites: \(heights)")
-        // Its cells' sprites are 42 pt; Charizard (#6) starts the second row, left of Charmander (#4).
+        // Its cells' sprites are 42 pt.
         XCTAssertEqual(heights.max() ?? 0, 42, accuracy: 1.5, "the Charizard fills its 42 pt sprite box")
         XCTAssertEqual(heights.min() ?? 0, 57 * 42 / SpriteFit.sameScaleReference, accuracy: 1.5,
                        "the Charmander keeps its scale")
