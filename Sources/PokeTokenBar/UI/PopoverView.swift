@@ -442,6 +442,9 @@ struct PopoverView: View {
                         if selectedProviderHasLimits {
                             limitsSection.designCard()
                         }
+                        if let id = selectedSnapshot?.providerID, companion.paysCandiesByTokens(id) {
+                            TokenCandiesCard(store: companion).designCard()
+                        }
                     }
                     .reservesScrollerLane()
                 }
@@ -712,8 +715,10 @@ struct PopoverView: View {
                             .foregroundStyle(.secondary)
                             .padding(.top, 2)
                     }
-                    codexLimitRow(name: l.codexWindow(bucket.primary?.windowDurationMins), window: bucket.primary)
-                    codexLimitRow(name: l.codexWindow(bucket.secondary?.windowDurationMins), window: bucket.secondary)
+                    codexLimitRow(name: l.codexWindow(bucket.primary?.windowDurationMins), window: bucket.primary,
+                                  candyKey: UsageStore.codexCandyKey(bucket, secondary: false))
+                    codexLimitRow(name: l.codexWindow(bucket.secondary?.windowDurationMins), window: bucket.secondary,
+                                  candyKey: UsageStore.codexCandyKey(bucket, secondary: true))
                     codexSpendLimitRow(bucket.individualLimit)
                 }
             }
@@ -800,7 +805,7 @@ struct PopoverView: View {
                             .foregroundStyle(.secondary)
 
                         ForEach(group.buckets, id: \.bucketId) { bucket in
-                            antigravityBucketRow(bucket)
+                            antigravityBucketRow(bucket, group: group)
                         }
                     }
                 }
@@ -809,10 +814,13 @@ struct PopoverView: View {
         }
     }
 
-    private func antigravityBucketRow(_ bucket: AntigravityQuotaBucket) -> some View {
-        quotaRow(name: l.antigravityWindow(window: bucket.window, bucketId: bucket.bucketId),
-                 utilization: bucket.usedPercent, reset: bucket.resetDate,
-                 span: bucket.windowSpan)
+    private func antigravityBucketRow(_ bucket: AntigravityQuotaBucket, group: AntigravityQuotaGroup) -> some View {
+        let weekly = bucket.isWeeklyWindow
+        let paysCandies = weekly || bucket.is5HourWindow
+        return quotaRow(name: l.antigravityWindow(window: bucket.window, bucketId: bucket.bucketId),
+                        utilization: bucket.usedPercent, reset: bucket.resetDate,
+                        span: bucket.windowSpan,
+                        candyKey: paysCandies ? UsageStore.antigravityCandyKey(group, weekly: weekly) : nil)
     }
 
     @ViewBuilder
@@ -916,11 +924,37 @@ struct PopoverView: View {
 
     @ViewBuilder
     private func limitRow(name: String, window: LimitWindow?, span: TimeInterval?,
-                          notStartedHint: String? = nil) -> some View {
+                          notStartedHint: String? = nil, candyKey: String? = nil) -> some View {
         if let window, let utilization = window.utilization {
             quotaRow(name: name, utilization: utilization, reset: window.resetDate, span: span,
-                     idleHint: window.hasNotStarted ? notStartedHint : nil)
+                     idleHint: window.hasNotStarted ? notStartedHint : nil, candyKey: candyKey)
         }
+    }
+
+    /// The Rare Candies a limit window paid in its epoch, of those a whole window pays (`RareCandy.windowCandies`).
+    /// Nil for a window that pays none (another account not armed yet, a window the candies do not read).
+    private func candyTally(_ key: String) -> (paid: Int, whole: Int)? {
+        guard let window = store.candyEligibleWindows.first(where: { $0.key == key }) else { return nil }
+        let whole = RareCandy.windowCandies(kind: window.kind, planMultiplier: window.planMultiplier)
+        return (min(whole, companion.state.candyGrantTier[key] ?? 0), whole)
+    }
+
+    /// "2 of 5 · next at 60%": what the window paid, and the usage that pays the next candy.
+    private func candyLine(_ tally: (paid: Int, whole: Int)) -> some View {
+        let next = tally.paid < tally.whole
+            ? l.candyNext(limitPercentText(Double(tally.paid + 1) * 100 / Double(tally.whole)))
+            : l.candyWindowComplete
+        return HStack(spacing: 5) {
+            HStack(spacing: 4) {
+                Image(systemName: "circle.fill").font(.system(size: 6)).foregroundStyle(Color.readableOrange)
+                Text(l.candyTally(tally.paid, of: tally.whole)).fontWeight(.semibold)
+            }
+            .padding(.horizontal, 6).padding(.vertical, 1)
+            .background(Capsule().fill(Color.readableOrange.opacity(0.16)))
+            Text(next).foregroundStyle(.secondary)
+        }
+        .font(.caption2).monospacedDigit()
+        .hoverTip(l.candyTallyHelp(l.itemName(.rareCandy)))
     }
 
     /// All quota types share the same trailing percentage alignment.
@@ -928,7 +962,8 @@ struct PopoverView: View {
     /// 창 길이를 모르는 행(Codex 개인 지출 한도)은 호출을 바꾸지 않아도 눈금 없이 남는다.
     private func quotaRow(name: String, utilization: Double, reset: Date?,
                           span: TimeInterval? = nil, detail: String? = nil,
-                          idleHint: String? = nil) -> some View {
+                          idleHint: String? = nil, candyKey: String? = nil) -> some View {
+        let tally = candyKey.flatMap(candyTally)
         let pace = paceFraction(reset: reset, span: span)
         // 페이스가 있으면 페이스 대비 단계색, 없거나 창 초반 보류 중이면 기존 절대 임계색.
         let tier = PaceTier.tier(utilization: utilization, pace: pace, critThreshold: store.critThreshold)
@@ -961,7 +996,10 @@ struct PopoverView: View {
                     .monospacedDigit()
                     .foregroundStyle(percentTint)
             }
-            LimitProgressBar(usedPercent: utilization, tint: tint, pace: pace)
+            // Notches only while they stay apart: five a window at most (a Pro week, a Max 5x session).
+            LimitProgressBar(usedPercent: utilization, tint: tint, pace: pace,
+                             candies: tally.flatMap { $0.whole <= 5 ? $0 : nil })
+            if let tally { candyLine(tally) }
         }
         .helpIfPresent(paceHelp(pace, tier: tier, utilization: utilization))
     }
@@ -1149,11 +1187,12 @@ struct PopoverView: View {
         // 세션 만료 시 표시값은 만료 전 기준 → 흐리게 처리해 "현재 값 아님"을 시각적으로 전달
         VStack(alignment: .leading, spacing: 8) {
             limitRow(name: l.fiveHourSession, window: limits.fiveHour,
-                     span: LimitWindowSpan.fiveHour, notStartedHint: l.fiveHourNotStarted)
+                     span: LimitWindowSpan.fiveHour, notStartedHint: l.fiveHourNotStarted,
+                     candyKey: UsageStore.claudeCandyKey(account, weekly: false))
             // The forecast follows the tracked account (it combines that account's utilization with local usage).
             if account.id == store.trackedClaudeAccount?.id { forecastRow }
             limitRow(name: l.weekly, window: limits.sevenDay,
-                     span: LimitWindowSpan.sevenDay)
+                     span: LimitWindowSpan.sevenDay, candyKey: UsageStore.claudeCandyKey(account, weekly: true))
             limitRow(name: l.weeklyOpus, window: limits.sevenDayOpus,
                      span: LimitWindowSpan.sevenDay)
             limitRow(name: l.weeklySonnet, window: limits.sevenDaySonnet,
@@ -1232,10 +1271,10 @@ struct PopoverView: View {
     }
 
     @ViewBuilder
-    private func codexLimitRow(name: String, window: CodexRateLimitWindow?) -> some View {
+    private func codexLimitRow(name: String, window: CodexRateLimitWindow?, candyKey: String? = nil) -> some View {
         if let window {
             quotaRow(name: name, utilization: Double(window.usedPercent), reset: window.resetDate,
-                     span: window.windowSpan)
+                     span: window.windowSpan, candyKey: candyKey)
         }
     }
 
@@ -1985,6 +2024,8 @@ struct LimitProgressBar: View {
     let tint: Color
     /// 창이 지난 비율(0…1) — 균등하게 썼다면 채움이 여기 있어야 한다. nil 이면 마커 없음.
     var pace: Double?
+    /// The window's Rare Candies: a notch at each one's usage, in candy orange once paid.
+    var candies: (paid: Int, whole: Int)?
     @Environment(UsageStore.self) private var store
 
     /// 마커 가로 위치(0…1). 채움과 **같은 변환**(`displayPercent`)을 거치게 해서, 잔량 모드에서
@@ -1998,7 +2039,28 @@ struct LimitProgressBar: View {
         ProgressView(value: min(100, max(0, store.limitDisplayPercent(usedPercent))), total: 100)
             .tint(tint)
             .controlSize(.small)
+            .overlay { candyNotches }
             .overlay { paceMarker }
+    }
+
+    /// The candies' notches, through the same transform as the fill (`displayPercent`), so the remaining mode
+    /// mirrors them with it. None at the bar's end: the last candy is the window's full.
+    @ViewBuilder
+    private var candyNotches: some View {
+        if let candies, candies.whole > 1 {
+            GeometryReader { geo in
+                ForEach(1..<candies.whole, id: \.self) { i in
+                    let fraction = UsageStore.displayPercent(Double(i) * 100 / Double(candies.whole),
+                                                             mode: store.limitDisplayMode) / 100
+                    RoundedRectangle(cornerRadius: 1, style: .continuous)
+                        // Candy orange, pale until paid: never the pace marker's grey.
+                        .fill(Color.readableOrange.opacity(i <= candies.paid ? 1 : 0.35))
+                        .frame(width: 2, height: Self.markerHeight)
+                        .offset(x: (geo.size.width - 2) * fraction, y: (geo.size.height - Self.markerHeight) / 2)
+                }
+            }
+            .allowsHitTesting(false)
+        }
     }
 
     /// 짧고 통통한 세로 눈금. 새 타이머를 두지 않는다 — 5시간 창에서 분당 0.33%p 라 갱신 주기

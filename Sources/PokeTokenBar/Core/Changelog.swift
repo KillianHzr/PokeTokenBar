@@ -67,6 +67,77 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-28", entries: [
+            .new("2026-10-28-hatch-odds", { $0.t("상점과 가방의 알과 진화의 돌이 지금 부화하면 나올 확률을 보여 줘요: 등급별 확률과 새 종이 나올 확률.",
+                                                 "Eggs and evolution stones in the Shop and the Bag show their odds if they hatched now: each rarity's share and the chance of a new species.",
+                                                 "ショップとバッグのタマゴと進化の石に、いま孵った場合の確率が出ます。レア度ごとの確率と、新しい種が出る確率です。",
+                                                 "Los huevos y las piedras evolutivas de la tienda y la mochila muestran sus probabilidades si eclosionaran ahora: cada rareza y la de una especie nueva.",
+                                                 "Les œufs et les pierres d'évolution de la boutique et du sac montrent leurs chances s'ils éclosaient maintenant : chaque rareté et la chance d'une nouvelle espèce.",
+                                                 "Ovos e pedras de evolução da loja e da mochila mostram suas chances se chocassem agora: cada raridade e a chance de uma espécie nova.",
+                                                 "Eier und Entwicklungssteine im Shop und im Beutel zeigen ihre Chancen, wenn sie jetzt schlüpfen würden: jede Seltenheit und die Chance auf eine neue Art.",
+                                                 "Яйца и камни эволюции в магазине и сумке показывают шансы, если бы вылупились сейчас: каждая редкость и шанс нового вида.") }),
+            .new("2026-10-28-candy-notches") { l in
+                let candy = l.itemName(.rareCandy)
+                return l.t("한도마다 이번 창에서 받은 \(KoreanParticle.object.attach(to: candy)) 보여 줘요(\"5개 중 2개 · 다음: 60%\"). 창마다 다섯 개 이하면 막대에 눈금도 생겨요.",
+                           "Each limit shows the \(candy) its window paid (\"2 of 5 · next at 60%\"), with notches on the bar for a window of five or fewer.",
+                           "上限ごとに、このウィンドウでもらった\(candy)が出ます（「5個中2個 · 次は60%」）。5個以下のウィンドウはバーに目盛りも出ます。",
+                           "Cada límite muestra los \(candy) que pagó su ventana (\"2 de 5 · siguiente al 60%\"), con marcas en la barra si son cinco o menos.",
+                           "Chaque limite montre les \(candy) gagnés sur sa fenêtre (\"2 sur 5 · prochain à 60 %\"), avec des crans sur la barre quand il y en a cinq ou moins.",
+                           "Cada limite mostra os \(candy) que sua janela pagou (\"2 de 5 · próximo em 60%\"), com marcas na barra quando são cinco ou menos.",
+                           "Jedes Limit zeigt die \(candy), die sein Fenster gezahlt hat (\"2 von 5 · nächstes bei 60%\"), mit Kerben auf dem Balken bei fünf oder weniger.",
+                           "Каждый лимит показывает \"\(candy)\", полученные за его окно (\"2 из 5 · следующая при 60%\"), с засечками на полосе, если их пять или меньше.")
+            },
+            .new("2026-10-28-time-to-evolve", { $0.t("포켓몬 아래에 지금 속도로 다음 진화까지 걸리는 시간이 보여요(지난 7일 평균).",
+                                                     "Under your Pokémon, the time to its next stage at your pace (the last seven days' average).",
+                                                     "ポケモンの下に、いまのペースで次の段階までかかる時間が出ます（過去7日の平均）。",
+                                                     "Bajo tu Pokémon, el tiempo hasta su siguiente etapa a tu ritmo (la media de los últimos siete días).",
+                                                     "Sous ton Pokémon, le temps avant sa prochaine étape à ton rythme (la moyenne des sept derniers jours).",
+                                                     "Abaixo do seu Pokémon, o tempo até a próxima etapa no seu ritmo (a média dos últimos sete dias).",
+                                                     "Unter deinem Pokémon steht die Zeit bis zur nächsten Stufe in deinem Tempo (der Schnitt der letzten sieben Tage).",
+                                                     "Под покемоном время до следующей стадии в вашем темпе (среднее за последние семь дней).") }),
+            .new("2026-10-28-token-candies") { l in
+                let candy = l.itemName(.rareCandy)
+                return l.t("한도가 없는 도구(Cursor, Gemini CLI 등)도 이제 6,500만 토큰마다 \(KoreanParticle.object.attach(to: candy)) 1개 줘요. Claude Max 5x 요금제와 같은 속도예요.",
+                           "Tools without limits (Cursor, Gemini CLI…) now pay a \(candy) every 65M tokens, the pace Claude pays a Max 5x plan.",
+                           "上限のないツール（Cursor、Gemini CLIなど）も、6500万トークンごとに\(candy)を1個くれるようになりました。ClaudeのMax 5xプランと同じペースです。",
+                           "Las herramientas sin límites (Cursor, Gemini CLI…) ahora dan un \(candy) cada 65M tokens, al ritmo con que Claude paga un plan Max 5x.",
+                           "Les outils sans limite (Cursor, Gemini CLI…) donnent maintenant un \(candy) tous les 65M jetons, au rythme où Claude paie un forfait Max 5x.",
+                           "Ferramentas sem limite (Cursor, Gemini CLI…) agora dão um \(candy) a cada 65M tokens, no ritmo em que o Claude paga um plano Max 5x.",
+                           "Tools ohne Limit (Cursor, Gemini CLI …) geben jetzt alle 65M Tokens ein \(candy), im Tempo, in dem Claude einen Max-5x-Tarif bezahlt.",
+                           "Инструменты без лимитов (Cursor, Gemini CLI…) теперь дают \"\(candy)\" за каждые 65M токенов, в темпе Claude на тарифе Max 5x.")
+            },
+            .new("2026-10-28-raising-record", { $0.t("도감의 포켓몬 페이지에 육성 기록이 생겼어요: 부화와 졸업 시각, 걸린 시간, 도구별 토큰, 주로 쓴 모델, 예상 비용. 이제부터 키우는 포켓몬에 기록돼요.",
+                                                     "A raising record on each Pokémon's Pokédex page: when it hatched and graduated, how long it took, its tokens by tool, its main model and an estimated cost. It is kept for the Pokémon raised from now on.",
+                                                     "図鑑のポケモンのページに育成記録が付きました。孵化と卒業の時刻、かかった時間、ツールごとのトークン、主なモデル、推定コストです。これから育てるポケモンに記録されます。",
+                                                     "Un diario de crianza en la página de cada Pokémon de la Pokédex: cuándo eclosionó y se graduó, cuánto tardó, sus tokens por herramienta, su modelo principal y un costo estimado. Se guarda para los Pokémon criados desde ahora.",
+                                                     "Un carnet d'élevage sur la fiche de chaque Pokémon du Pokédex : quand il a éclos et a été diplômé, en combien de temps, ses jetons par outil, son modèle principal et un coût estimé. Il est tenu pour les Pokémon élevés à partir de maintenant.",
+                                                     "Um diário de criação na página de cada Pokémon da Pokédex: quando chocou e se formou, quanto tempo levou, seus tokens por ferramenta, seu modelo principal e um custo estimado. Ele é mantido para os Pokémon criados a partir de agora.",
+                                                     "Ein Aufzuchtbuch auf der Pokédex-Seite jedes Pokémon: wann es schlüpfte und verabschiedet wurde, wie lange es dauerte, seine Tokens je Tool, sein Hauptmodell und geschätzte Kosten. Es wird für die ab jetzt aufgezogenen Pokémon geführt.",
+                                                     "Дневник выращивания на странице каждого покемона в покедексе: когда вылупился и был выпущен, сколько это заняло, токены по инструментам, основная модель и оценка стоимости. Ведётся для покемонов, выращенных с этого момента.") }),
+            .improved("2026-10-28-egg-items-growth") { l in
+                let wing = l.itemName(.silverWing), orb = l.itemName(.teraOrb), incense = l.itemName(.seaIncense)
+                return l.t("\(KoreanParticle.subject.attach(to: wing)) 모든 포켓몬을 25% 더 빨리, \(KoreanParticle.subject.attach(to: orb)) 진화의 돌로 받은 포켓몬을, \(KoreanParticle.subject.attach(to: incense)) 등급 확정 알의 포켓몬을 30% 더 빨리 키워요.",
+                           "The \(wing) now grows every Pokémon 25% faster, the \(orb) a Pokémon from a stone 30% faster, the \(incense) one from an egg of a guaranteed rarity 30% faster.",
+                           "\(wing)はすべてのポケモンを25%、\(orb)は進化の石のポケモンを、\(incense)はレア度確定のタマゴのポケモンを30%早く育てるようになりました。",
+                           "El \(wing) ahora hace crecer a todos los Pokémon un 25% más rápido; el \(orb), a los de una piedra un 30%; el \(incense), a los de un huevo de rareza garantizada un 30%.",
+                           "L'\(wing) fait maintenant grandir tous tes Pokémon 25 % plus vite, l'\(orb) ceux venus d'une pierre 30 % plus vite, l'\(incense) ceux d'un œuf à rareté garantie 30 % plus vite.",
+                           "A \(wing) agora faz todos os Pokémon crescerem 25% mais rápido; o \(orb), os de uma pedra 30%; o \(incense), os de um ovo de raridade garantida 30%.",
+                           "Der \(wing) lässt jetzt jedes Pokémon 25 % schneller wachsen, der \(orb) eines aus einem Stein 30 % und der \(incense) eines aus einem Ei mit garantierter Seltenheit 30 %.",
+                           "\"\(wing)\" теперь ускоряет рост всех покемонов на 25%, \"\(orb)\" покемонов из камня на 30%, \"\(incense)\" покемонов из яйца с гарантией редкости на 30%.")
+            },
+            .improved("2026-10-28-mint-retired") { l in
+                let mint = l.itemName(.mint)
+                return l.t("\(KoreanParticle.subject.attach(to: mint)) 상점과 가방에서 빠졌어요.", "The \(mint) is no longer in the Shop or the Bag.",
+                           "\(mint)はショップとバッグからなくなりました。", "La \(mint) ya no está en la tienda ni en la mochila.",
+                           "La \(mint) n'est plus dans la boutique ni dans le sac.", "A \(mint) não está mais na loja nem na mochila.",
+                           "Die \(mint) ist nicht mehr im Shop und nicht mehr im Beutel.", "\"\(mint)\" больше нет в магазине и в сумке.")
+            },
+            .improved("2026-10-28-shiny-charm-owned") { l in
+                let charm = l.itemName(.shinyCharm)
+                return l.t("산 \(KoreanParticle.subject.attach(to: charm)) 상점에서 사라지고 가방에만 있어요.", "A \(charm) bought leaves the Shop: it is in your Bag.",
+                           "買った\(charm)はショップから消え、バッグにだけあります。", "El \(charm) comprado sale de la tienda: está en tu mochila.",
+                           "Un \(charm) acheté quitte la boutique : il est dans ton sac.", "O \(charm) comprado sai da loja: ele está na sua mochila.",
+                           "Ein gekaufter \(charm) verschwindet aus dem Shop: Er ist in deinem Beutel.", "Купленный \"\(charm)\" пропадает из магазина: он в сумке.")
+            },
             .improved("2026-10-28-reins-not-common") { l in
                 let reins = l.itemName(.reinsOfUnity)
                 let candy = l.itemName(.rareCandy)

@@ -596,7 +596,10 @@ final class SaveTransferTests: XCTestCase {
                                      // before the digs: the digs follow the save.
                                      "eggFromFossilEgg", "fossilEggsHatched", "fossilLinesBeforeDigs",
                                      // The next egg's roll leaves it out: it follows the save's last hatch.
-                                     "lastHatchedBaseID"]
+                                     "lastHatchedBaseID",
+                                     // The tokens of tools without limits toward the next candy, and the candies
+                                     // they paid: counted already, they follow the save.
+                                     "tokenCandyTokens", "tokenCandiesEarned"]
         let deviceLedger: Set<String> = ["installBaselineSet", "claimedTodayTokensByProvider", "lastDate"]
         let accountLedger: Set<String> = ["candyGrantTier", "candyWindowEpoch", "candyWindowPlan", "candyFeatureSeeded",
                                           "candyGrantsAsYouGo"]

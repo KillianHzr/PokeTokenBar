@@ -27,6 +27,7 @@ struct ShopView: View {
             .reservesScrollerLane()
         }
         .frame(height: 520)
+        .task { await store.loadHatchIndex() }
     }
 
     private func walletHeader(_ l: L) -> some View {
@@ -188,6 +189,9 @@ private struct EggCard: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer()
+            }
+            if let odds = store.hatchOdds(for: .init(tier: tier)) {
+                HatchOddsView(odds: odds, l: l)
             }
             buyControls(l)
         }

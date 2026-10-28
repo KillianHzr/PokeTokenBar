@@ -342,6 +342,17 @@ final class UsageStore {
         }
     }
 
+    /// Each provider's usage today for the raising record: its tokens, its cost when it reports one, its models.
+    var todayUsageDetails: [String: TodayUsageDetail] {
+        let todayKey = LocalUsageReader.todayKey()
+        return snapshots.reduce(into: [:]) { result, snapshot in
+            guard let today = snapshot.today, today.date == todayKey else { return }
+            result[snapshot.providerID] = TodayUsageDetail(tokens: today.totalTokens,
+                                                           cost: snapshot.reportsCost ? today.totalCost : nil,
+                                                           models: today.models ?? [:])
+        }
+    }
+
     /// 사용량 데이터(스냅샷)가 하나라도 있는가 — companion sleep 판정용
     var hasUsageData: Bool { !snapshots.isEmpty }
 
@@ -556,6 +567,18 @@ final class UsageStore {
     /// The Stats page's records, kept past the ledger's pruning (`StatsRecords.Kept`).
     private(set) var keptRecords = StatsRecords.Kept()
 
+    /// The tokens of a day at the user's pace: the mean of the last seven days before today the ledger covers, idle
+    /// days included. Nil before a day is known or with no usage at all.
+    var dailyPace: Double? {
+        let calendar = RecapPeriod.calendar()
+        let format = LocalUsageReader.localDayFormatter()
+        let days = (1...7).compactMap { calendar.date(byAdding: .day, value: -$0, to: Date()) }
+            .map(format.string(from:)).filter(dailyLedger.covers)
+        guard !days.isEmpty else { return nil }
+        let total = days.reduce(0) { $0 + dailyLedger.tokens(on: $1) }
+        return total > 0 ? Double(total) / Double(days.count) : nil
+    }
+
     private func recordDailyLedger() {
         var ledger = dailyLedger
         ledger.merge(monthDailyTotals)
@@ -698,11 +721,10 @@ final class UsageStore {
         }
         // Codex and Antigravity publish no ratio between their plans: their windows pay as a Pro plan's.
         for bucket in codexLimits?.visibleSnapshots ?? [] {
-            let bucketKey = bucket.limitId ?? bucket.limitName ?? "codex"
             let bucketName = bucket.bucketDisplayName
             if let primary = bucket.primary {
                 windows.append(CandyWindow(
-                    key: "codex.\(bucketKey).primary",
+                    key: Self.codexCandyKey(bucket, secondary: false),
                     name: "\(bucketName) \(l.codexWindow(primary.windowDurationMins))",
                     kind: Self.windowClass(minutes: primary.windowDurationMins),
                     utilization: Double(primary.usedPercent),
@@ -710,7 +732,7 @@ final class UsageStore {
             }
             if let secondary = bucket.secondary {
                 windows.append(CandyWindow(
-                    key: "codex.\(bucketKey).secondary",
+                    key: Self.codexCandyKey(bucket, secondary: true),
                     name: "\(bucketName) \(l.codexWindow(secondary.windowDurationMins))",
                     kind: Self.windowClass(minutes: secondary.windowDurationMins),
                     utilization: Double(secondary.usedPercent),
@@ -718,12 +740,11 @@ final class UsageStore {
             }
         }
         for group in antigravityLimits?.groups ?? [] {
-            let groupKey = group.displayName.localizedCaseInsensitiveContains("gemini") ? "gemini" : "3p"
             let groupTitle = l.antigravityGroupTitle(group.displayName)
             if let fiveHour = group.fiveHourBucket {
                 let epoch = fiveHour.resetDate.map { ISO8601DateFormatter().string(from: $0) } ?? fiveHour.resetTime
                 windows.append(CandyWindow(
-                    key: "antigravity.\(groupKey).5h",
+                    key: Self.antigravityCandyKey(group, weekly: false),
                     name: "\(groupTitle) \(l.fiveHourSession)",
                     kind: .session,
                     utilization: fiveHour.usedPercent,
@@ -732,7 +753,7 @@ final class UsageStore {
             if let weekly = group.weeklyBucket {
                 let epoch = weekly.resetDate.map { ISO8601DateFormatter().string(from: $0) } ?? weekly.resetTime
                 windows.append(CandyWindow(
-                    key: "antigravity.\(groupKey).weekly",
+                    key: Self.antigravityCandyKey(group, weekly: true),
                     name: "\(groupTitle) \(l.weekly)",
                     kind: .weekly,
                     utilization: weekly.usedPercent,
@@ -740,6 +761,20 @@ final class UsageStore {
             }
         }
         return windows
+    }
+
+    /// The candy ledger's key of each limit window, for the limits list too (`PopoverView.quotaRow`).
+    static func claudeCandyKey(_ account: ClaudeAccountLimits, weekly: Bool) -> String {
+        "\(account.windowKeyPrefix).\(weekly ? "sevenDay" : "fiveHour")"
+    }
+
+    static func codexCandyKey(_ bucket: CodexRateLimitSnapshot, secondary: Bool) -> String {
+        "codex.\(bucket.limitId ?? bucket.limitName ?? "codex").\(secondary ? "secondary" : "primary")"
+    }
+
+    static func antigravityCandyKey(_ group: AntigravityQuotaGroup, weekly: Bool) -> String {
+        let groupKey = group.displayName.localizedCaseInsensitiveContains("gemini") ? "gemini" : "3p"
+        return "antigravity.\(groupKey).\(weekly ? "weekly" : "5h")"
     }
 
     /// `named`: next to other accounts, the notification says whose limit it is.
@@ -750,13 +785,13 @@ final class UsageStore {
         var windows: [CandyWindow] = []
         if let fiveHour = account.status.fiveHour, let u = fiveHour.utilization {
             let epoch = fiveHour.resetDate.map { ISO8601DateFormatter().string(from: $0) } ?? fiveHour.resetsAt
-            windows.append(CandyWindow(key: "\(account.windowKeyPrefix).fiveHour",
+            windows.append(CandyWindow(key: Self.claudeCandyKey(account, weekly: false),
                                        name: l.claudeFiveHour + suffix, kind: .session,
                                        utilization: u, epoch: epoch, planMultiplier: plan))
         }
         if let sevenDay = account.status.sevenDay, let u = sevenDay.utilization {
             let epoch = sevenDay.resetDate.map { ISO8601DateFormatter().string(from: $0) } ?? sevenDay.resetsAt
-            windows.append(CandyWindow(key: "\(account.windowKeyPrefix).sevenDay",
+            windows.append(CandyWindow(key: Self.claudeCandyKey(account, weekly: true),
                                        name: l.claudeWeekly + suffix, kind: .weekly,
                                        utilization: u, epoch: epoch, planMultiplier: plan))
         }

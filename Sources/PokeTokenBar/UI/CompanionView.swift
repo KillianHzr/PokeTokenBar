@@ -1280,7 +1280,8 @@ struct CompanionHeader: View {
                                   shiny: store.currentIsShiny, form: store.evolutionTrackForm,
                                   pikachuCostume: store.state.active?.pikachuCostume,
                                   remaining: Self.trackCaption(track, amount: amount, percent: percentText,
-                                                               names: names, l: l),
+                                                               names: names, l: l,
+                                                               eta: store.timeToNext.map { l.etaAbout(l.shortDuration($0)) }),
                                   amount: amount,
                                   detail: Self.progressDetail(used: used, total: store.threshold), l: l,
                                   names: names, dexLinks: dexLinks, onOpenDexEntry: onOpenDexEntry)
@@ -1288,8 +1289,9 @@ struct CompanionHeader: View {
 
     /// What is left before the track's next stop: that stage by name, an evolution when the line goes several ways,
     /// or the graduation. "95M to Charmeleon · 24%".
+    /// `eta`: the time it takes at the user's pace ("about 9 h"), last.
     nonisolated static func trackCaption(_ track: [CompanionStore.EvolutionTrackStop], amount: String, percent: String,
-                                         names: [Int: String], l: L) -> String {
+                                         names: [Int: String], l: L, eta: String? = nil) -> String {
         let current = track.firstIndex { if case .reached(_, true) = $0 { return true } else { return false } } ?? 0
         let toNext: String
         switch current + 1 < track.count ? track[current + 1] : .graduation {
@@ -1297,7 +1299,7 @@ struct CompanionHeader: View {
         case .branch: toNext = l.toNextEvolution(amount)
         case .graduation, .reached: toNext = l.toGraduation(amount)
         }
-        return "\(toNext) · \(percent)"
+        return "\(toNext) · \(percent)" + (eta.map { " · \($0)" } ?? "")
     }
 
     /// The mood's symbol, before its line.
@@ -2393,6 +2395,9 @@ struct PokemonDetailView: View {
                         } else {
                             baseStatsSection(details)
                         }
+                        if let individual, let record = individual.raising {
+                            RaisingRecordCard(record: record, entry: individual, store: store)
+                        }
                         speciesSection(details)
                         movesSection(details)
                     } else if store.failedToLoadPokemonDetails(speciesID: species.id, form: displayedSpecies.form) {
@@ -3006,6 +3011,9 @@ private struct DexEntryRow: View {
                         dexLinks: dexLinks, onOpenDexEntry: onOpenDexEntry, bottomAligned: true)
             if let caughtAt = entry.caughtAt {
                 Text(caughtAt, style: .relative).font(.system(size: 11)).foregroundStyle(.secondary)
+            }
+            if let record = entry.raising, let summary = RaisingRecordCard.summary(record, entry: entry, store: store) {
+                Text(summary).font(.system(size: 11)).foregroundStyle(.secondary).monospacedDigit()
             }
         }
         .padding(Self.cardPadding)

@@ -288,6 +288,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
     /// UsageStore 값 → CompanionStore (사용량 적립 + 표시 상태). 매 관찰 변경 시 호출.
     private func updateCompanion() {
+        let pace = store.dailyPace
+        if companion.usagePacePerDay != pace { companion.usagePacePerDay = pace }
+        companion.todayUsageDetails = store.todayUsageDetails
+        let names = Dictionary(store.snapshots.map { ($0.providerID, $0.displayName) }, uniquingKeysWith: { a, _ in a })
+        if companion.providerNames != names { companion.providerNames = names }
         companion.update(
             todayTokensByProvider: store.todayTokensByProvider,
             todayDate: LocalUsageReader.todayKey(),

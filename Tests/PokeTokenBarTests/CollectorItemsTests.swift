@@ -69,12 +69,12 @@ final class CollectorItemsTests: XCTestCase {
         XCTAssertEqual(Set(CompanionStore.achievementItems), Set(ItemKind.allCases.filter { $0.collectorGroup != nil }))
         XCTAssertEqual(s.totalAchievementsCount, 242,
                        "10 stones, 37 artifacts and the Legendary Egg's 9 regions, 161 badge regions, 10 forms, 15 digs")
-        XCTAssertEqual(s.purchasableItems, [.mint, .rareCandy, .shinyCharm], "the Shop sells what main sells")
+        XCTAssertEqual(s.purchasableItems, [.rareCandy, .shinyCharm], "the Shop sells what main sells, the Mint retired")
 
         // An unlocked stone is an achievement to claim, never a Shop item.
         let withFire = store(dex: entries([154, 157, 160]))
         XCTAssertTrue(withFire.isUnlocked(.fireStone))
-        XCTAssertEqual(withFire.purchasableItems, [.mint, .rareCandy, .shinyCharm])
+        XCTAssertEqual(withFire.purchasableItems, [.rareCandy, .shinyCharm])
         XCTAssertFalse(withFire.shopEntries.contains(.item(.fireStone)))
         XCTAssertEqual(withFire.unclaimedAchievementsCount, 1)
     }

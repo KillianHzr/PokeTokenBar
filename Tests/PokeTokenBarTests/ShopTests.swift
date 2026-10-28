@@ -126,7 +126,7 @@ final class ShopTests: XCTestCase {
     /// 최대 수량 = 잔액 ÷ 가격(내림). 가격 미만이면 0.
     func testMaxBuyCountIsFloorOfWalletOverPrice() {
         XCTAssertEqual(store(used: 1_200_000_000).maxBuyCount(.rareCandy), 2)
-        XCTAssertEqual(store(used: 1_200_000_000).maxBuyCount(.mint), 12)
+        XCTAssertEqual(store(used: 1_200_000_000).maxBuyCount(.mint), 0, "the Mint is retired")
         XCTAssertEqual(store(used: RareCandy.price - 1).maxBuyCount(.rareCandy), 0)
     }
 
@@ -182,33 +182,36 @@ final class ShopTests: XCTestCase {
             + "\"lastDate\":\"d\",\"dex\":[],\"collectedFinals\":[]}"
         try? json.data(using: .utf8)!.write(to: url)
         let s1 = CompanionStore(provider: ShopNoProvider(), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: 1), difficulty: 1)
-        XCTAssertTrue(s1.buy(.mint, count: 4))
+        XCTAssertTrue(s1.buy(.rareCandy, count: 2))
 
         let s2 = CompanionStore(provider: ShopNoProvider(), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: 1), difficulty: 1)
-        XCTAssertEqual(s2.itemCount(.mint), 4, "재고 영속")
-        XCTAssertEqual(s2.state.spentTokens, 4 * Mint.price, "지출 영속")
+        XCTAssertEqual(s2.itemCount(.rareCandy), 2, "재고 영속")
+        XCTAssertEqual(s2.state.spentTokens, 2 * RareCandy.price, "지출 영속")
     }
 
     // MARK: 정렬 (가격 저렴한 순 + 구매 완료 보유형 맨 아래)
 
-    /// 상점 목록은 가격 오름차순(민트 100M < 사탕 500M < 이로치 부적 3B).
+    /// 상점 목록은 가격 오름차순(사탕 500M < 이로치 부적 3B). The Mint is retired: never sold, still in the code.
     func testItemsSortedByPriceAscending() {
         let items = store(used: 0).purchasableItems
-        XCTAssertEqual(items, [.mint, .rareCandy, .shinyCharm])
+        XCTAssertEqual(items, [.rareCandy, .shinyCharm])
+        XCTAssertTrue(ItemKind.mint.isRetired)
+        XCTAssertNotNil(ItemKind.mint.shopPrice, "kept, only hidden")
         let prices = items.compactMap(\.shopPrice)
         XCTAssertEqual(prices, prices.sorted(), "shopPrice 오름차순 — 가격 상수가 바뀌어도 정렬 불변식 유지")
     }
 
-    /// 구매 완료한 보유형(이로치 부적)은 맨 아래로. 재구매 불가라 상단에 둘 이유 없음.
-    /// (현재 부적이 최고가라 가격순 결과와 일치하지만, 향후 저가 보유형이 생겨도 규칙이 유지되도록 게이트.)
-    func testOwnedPassiveSinksToBottom() {
+    /// A passive item bought (the Shiny Charm) leaves the Shop: it is in the Bag, and it cannot be bought twice.
+    func testOwnedPassiveLeavesTheShop() {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("shop-sort-\(UUID().uuidString).json")
         let json = "{\"installBaselineSet\":true,\"usedSinceInstall\":0,\"spentTokens\":0,"
             + "\"lastDate\":\"d\",\"dex\":[],\"collectedFinals\":[],\"inventory\":{\"shinyCharm\":1}}"
         try? json.data(using: .utf8)!.write(to: url)
         let s = CompanionStore(provider: ShopNoProvider(), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: 1), difficulty: 1)
         XCTAssertTrue(s.itemCount(.shinyCharm) > 0)
-        XCTAssertEqual(s.purchasableItems.last, .shinyCharm, "구매 완료 보유형은 최하단")
+        XCTAssertFalse(s.purchasableItems.contains(.shinyCharm))
+        XCTAssertFalse(s.shopEntries.contains(.item(.shinyCharm)))
+        XCTAssertTrue(s.ownedItems.contains { $0.kind == .shinyCharm }, "in the Bag")
     }
 
     // MARK: shopEntries (판매 아이템 + 알 3종을 하나의 가격 오름차순 목록으로 병합)
@@ -227,8 +230,7 @@ final class ShopTests: XCTestCase {
         let s = CompanionStore(provider: ShopNoProvider(), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: 1), difficulty: 1)
         XCTAssertTrue(s.hasActive)
         XCTAssertEqual(s.shopEntries,
-                       [.item(.mint),        // 100M
-                        .item(.rareCandy),   // 500M
+                       [.item(.rareCandy),   // 500M
                         .egg(nil),           // 1B
                         .egg(.uncommon),     // 2.5B
                         .item(.shinyCharm),  // 3B
@@ -243,8 +245,7 @@ final class ShopTests: XCTestCase {
         let s = store(used: 10_000_000_000)   // active 없음, 잔액은 세 알 가격의 합 이상
         XCTAssertFalse(s.hasActive)
         XCTAssertEqual(s.shopEntries,
-                       [.item(.mint),        // 100M
-                        .item(.rareCandy),   // 500M
+                       [.item(.rareCandy),   // 500M
                         .egg(nil),           // 1B
                         .egg(.uncommon),     // 2.5B
                         .item(.shinyCharm),  // 3B

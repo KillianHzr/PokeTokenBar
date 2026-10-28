@@ -22,6 +22,11 @@ struct BagView: View {
     }
 
     var body: some View {
+        content.task { await store.loadHatchIndex() }
+    }
+
+    @ViewBuilder
+    private var content: some View {
         let owned = store.ownedItems
         if owned.isEmpty {
             emptyState
@@ -140,6 +145,9 @@ private struct ItemCard: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
+            }
+            if let egg = CompanionStore.EggSpec(item: kind), let odds = store.hatchOdds(for: egg) {
+                HatchOddsView(odds: odds, l: l)
             }
             if kind == .rareCandy, let preview = store.planRareCandyUse(count: selectedCandyCount) {
                 if preview.graduates {

@@ -127,21 +127,17 @@ final class MintTests: XCTestCase {
 
     // MARK: 상점 구매
 
-    func testMintShopPriceAndPurchasable() {
-        XCTAssertEqual(ItemKind.mint.shopPrice, Mint.price)
-        XCTAssertEqual(ItemKind.mint.shopPrice, 100_000_000)
-        let s = store(mint: 0)
-        XCTAssertTrue(s.purchasableItems.contains(.rareCandy))
-        XCTAssertTrue(s.purchasableItems.contains(.mint))
-    }
-
-    func testBuyMintDebitsWalletAndCredits() {
-        let s = store(mint: 0, used: 300_000_000)
-        XCTAssertTrue(s.canBuy(.mint))
-        XCTAssertTrue(s.buy(.mint))
-        XCTAssertEqual(s.itemCount(.mint), 1)
-        XCTAssertEqual(s.state.spentTokens, Mint.price)
-        XCTAssertEqual(s.availableTokens, 300_000_000 - Mint.price)
+    /// The Mint is retired (2026-10-28): kept in the code and in saves, neither sold nor shown in the Bag.
+    func testTheMintIsRetired() {
+        XCTAssertEqual(ItemKind.mint.shopPrice, Mint.price, "its price is kept")
+        let s = store(mint: 2, used: 300_000_000)
+        XCTAssertFalse(s.purchasableItems.contains(.mint))
+        XCTAssertFalse(s.shopEntries.contains(.item(.mint)))
+        XCTAssertFalse(s.canBuy(.mint))
+        XCTAssertFalse(s.buy(.mint))
+        XCTAssertEqual(s.state.spentTokens, 0)
+        XCTAssertEqual(s.itemCount(.mint), 2, "a save keeps what it holds")
+        XCTAssertFalse(s.ownedItems.contains { $0.kind == .mint }, "not shown in the Bag")
     }
 
     func testCannotBuyMintBelowPrice() {

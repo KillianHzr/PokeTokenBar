@@ -1821,14 +1821,14 @@ struct L {
                      "Verdoppelt im Beutel die Chance auf ein legendäres Pokémon.",
                      "Пока она у вас, вдвое повышает шанс вылупления легендарного покемона.")
         case .silverWing:
-            return t("보유하면 알 부화에 필요한 토큰 소모량이 대폭 줄어듭니다.",
-                     "While owned, significantly reduces the token threshold needed to hatch eggs.",
-                     "持っているとタマゴの孵化に必要なトークン消費量が大幅に減少します。",
-                     "Mientras lo tengas, reduce significativamente los tokens necesarios para eclosionar huevos.",
-                     "Tant que tu la possèdes, réduit considérablement les tokens requis pour faire éclore un œuf.",
-                     "Enquanto estiver na bolsa, reduz significativamente os tokens necessários para chocar ovos.",
-                     "Verringert im Beutel die benötigten Tokens zum Ausbrüten von Eiern spürbar.",
-                     "Пока оно у вас, значительно снижает расход токенов для вылупления яиц.")
+            return t("보유하면 모든 포켓몬이 25% 더 빨리 자라고, 알이 2배 빨리 부화합니다.",
+                     "While owned, every Pokémon grows 25% faster, and eggs hatch twice as fast.",
+                     "持っているとすべてのポケモンが25%早く育ち、タマゴが2倍早くかえります。",
+                     "Mientras la tengas, todos los Pokémon crecen un 25% más rápido y los huevos eclosionan el doble de rápido.",
+                     "Tant que tu la possèdes, tous tes Pokémon grandissent 25 % plus vite, et les œufs éclosent 2 fois plus vite.",
+                     "Enquanto estiver na bolsa, todos os Pokémon crescem 25% mais rápido e os ovos chocam 2 vezes mais rápido.",
+                     "Lässt im Beutel jedes Pokémon 25 % schneller wachsen und Eier doppelt so schnell schlüpfen.",
+                     "Пока оно у вас, все покемоны растут на 25% быстрее, а яйца вылупляются в 2 раза быстрее.")
         case .oldSeaMap:
             return t("보유하면 토큰 소모를 통한 포켓몬 성장 경험치가 추가로 증가합니다.",
                      "While owned, grants bonus growth EXP from token usage.",
@@ -2013,14 +2013,14 @@ struct L {
                      "Lässt im Beutel Pokémon vom Typ \(g), \(w), \(f) und \(r) 20% schneller wachsen.",
                      "Пока она у вас, покемоны типов \(g), \(w), \(f) и \(r) растут на 20% быстрее.")
         case .teraOrb:
-            return t("보유하면 진화의 돌로 받은 알이 2배 빨리 부화합니다.",
-                     "While owned, eggs from an evolution stone hatch twice as fast.",
-                     "持っていると進化の石でもらったタマゴが2倍早くかえります。",
-                     "Mientras lo tengas, los huevos obtenidos con una piedra evolutiva eclosionan el doble de rápido.",
-                     "Tant que tu le possèdes, les œufs obtenus avec une pierre d'évolution éclosent 2 fois plus vite.",
-                     "Enquanto estiver na bolsa, ovos obtidos com uma pedra de evolução chocam 2 vezes mais rápido.",
-                     "Lässt im Beutel Eier aus Entwicklungssteinen doppelt so schnell schlüpfen.",
-                     "Пока она у вас, яйца, полученные за камень эволюции, вылупляются в 2 раза быстрее.")
+            return t("보유하면 진화의 돌로 받은 알이 2배 빨리 부화하고, 그 알에서 나온 포켓몬이 30% 더 빨리 자랍니다.",
+                     "While owned, eggs from an evolution stone hatch twice as fast, and the Pokémon from them grow 30% faster.",
+                     "持っていると進化の石でもらったタマゴが2倍早くかえり、そこから生まれたポケモンが30%早く育ちます。",
+                     "Mientras lo tengas, los huevos obtenidos con una piedra evolutiva eclosionan el doble de rápido y sus Pokémon crecen un 30% más rápido.",
+                     "Tant que tu le possèdes, les œufs obtenus avec une pierre d'évolution éclosent 2 fois plus vite, et leurs Pokémon grandissent 30 % plus vite.",
+                     "Enquanto estiver na bolsa, ovos obtidos com uma pedra de evolução chocam 2 vezes mais rápido e seus Pokémon crescem 30% mais rápido.",
+                     "Lässt im Beutel Eier aus Entwicklungssteinen doppelt so schnell schlüpfen, und ihre Pokémon wachsen 30 % schneller.",
+                     "Пока она у вас, яйца, полученные за камень эволюции, вылупляются в 2 раза быстрее, а их покемоны растут на 30% быстрее.")
         case .ovalCharm:
             return t("보유하면 아직 모으지 못한 폼이 있는 포켓몬만, 그 폼으로 알에서 태어납니다.",
                      "While owned, eggs only hatch Pokémon with a form you are missing, in a form you don't have.",
@@ -2114,15 +2114,14 @@ struct L {
                      "Lässt im Beutel die Starter-Pokémon aller Regionen in jeder Stufe 25% schneller wachsen.",
                      "Пока оно у вас, стартовые покемоны всех регионов растут на 25% быстрее на любой стадии.")
         case .seaIncense:
-            let plate = itemName(.legendPlate)
-            return t("보유하면 등급이 확정된 알(상점에서 산 알, \(plate)의 알)이 2배 빨리 부화합니다.",
-                     "While owned, eggs of a guaranteed rarity (bought in the Shop or from the \(plate)) hatch twice as fast.",
-                     "持っているとレア度が確定したタマゴ（ショップで買ったタマゴ、\(plate)のタマゴ）が2倍早くかえります。",
-                     "Mientras lo tengas, los huevos de rareza garantizada (comprados en la tienda o de la \(plate)) eclosionan el doble de rápido.",
-                     "Tant que tu le possèdes, les œufs à rareté garantie (achetés en boutique ou offerts par la \(plate)) éclosent 2 fois plus vite.",
-                     "Enquanto estiver na bolsa, ovos de raridade garantida (comprados na loja ou da \(plate)) chocam 2 vezes mais rápido.",
-                     "Lässt im Beutel Eier mit garantierter Seltenheit (aus dem Laden oder von der \(plate)) doppelt so schnell schlüpfen.",
-                     "Пока он у вас, яйца гарантированной редкости (из магазина или за «\(plate)») вылупляются в 2 раза быстрее.")
+            return t("보유하면 등급이 확정된 알(상점에서 산 알, 업적의 알)이 2배 빨리 부화하고, 그 알에서 나온 포켓몬이 30% 더 빨리 자랍니다.",
+                     "While owned, eggs of a guaranteed rarity (bought in the Shop or given by an achievement) hatch twice as fast, and the Pokémon from them grow 30% faster.",
+                     "持っているとレア度が確定したタマゴ（ショップで買ったタマゴ、実績のタマゴ）が2倍早くかえり、そこから生まれたポケモンが30%早く育ちます。",
+                     "Mientras lo tengas, los huevos de rareza garantizada (comprados en la tienda o de un logro) eclosionan el doble de rápido y sus Pokémon crecen un 30% más rápido.",
+                     "Tant que tu le possèdes, les œufs à rareté garantie (achetés en boutique ou offerts par un succès) éclosent 2 fois plus vite, et leurs Pokémon grandissent 30 % plus vite.",
+                     "Enquanto estiver na bolsa, ovos de raridade garantida (comprados na loja ou de uma conquista) chocam 2 vezes mais rápido e seus Pokémon crescem 30% mais rápido.",
+                     "Lässt im Beutel Eier mit garantierter Seltenheit (aus dem Laden oder von einem Erfolg) doppelt so schnell schlüpfen, und ihre Pokémon wachsen 30 % schneller.",
+                     "Пока он у вас, яйца гарантированной редкости (из магазина или за достижение) вылупляются в 2 раза быстрее, а их покемоны растут на 30% быстрее.")
         case .shockDrive:
             return t("보유하면 화석 포켓몬이 50% 더 빨리 성장합니다.",
                      "While owned, fossil Pokémon grow 50% faster.",
@@ -2474,7 +2473,7 @@ struct L {
     }
     var shinyCharmEffectHint: String { t("이로치 확률 ↑ · 적용 중", "Shiny rate ↑ · active", "色違い率↑ · 適用中", "Prob. variocolor ↑ · activo", "Taux chromatique ↑ · actif", "Chance shiny ↑ · ativo", "Schillerchance ↑ · aktiv", "Шанс шайни ↑ · активен") }
     var legendCharmEffectHint: String { t("전설 출현 2× · 적용 중", "Legendary rate 2× · active", "伝説出現 2× · 適用中", "Prob. legendario 2× · activo", "Taux légendaire 2× · actif", "Chance lendária 2× · ativo", "Legendäre Chance 2× · aktiv", "Шанс легендарных 2× · активен") }
-    var silverWingEffectHint: String { t("부화 임계치 ½ · 적용 중", "Egg threshold ½ · active", "タマゴ必要量½ · 適用中", "Umbral eclosión ½ · activo", "Seuil d'éclosion ½ · actif", "Meta de choque ½ · ativo", "Ei-Schwelle ½ · aktiv", "Порог вылупления ½ · активен") }
+    var silverWingEffectHint: String { t("모두 +25% · 부화 ½ · 적용 중", "All +25% · eggs ½ · active", "全員+25% · タマゴ½ · 適用中", "Todos +25% · huevos ½ · activo", "Tous +25 % · œufs ½ · actif", "Todos +25% · ovos ½ · ativo", "Alle +25 % · Eier ½ · aktiv", "Все +25% · яйца ½ · активно") }
     var oldSeaMapEffectHint: String { t("성장 경험치 +20% · 적용 중", "Growth EXP +20% · active", "育成EXP +20% · 適用中", "EXP crecimiento +20% · activo", "EXP croissance +20% · actif", "EXP crescimento +20% · ativo", "Wachstums-EP +20% · aktiv", "Опыт роста +20% · активен") }
     var clearBellEffectHint: String { t("희귀 성장 +25% · 적용 중", "Rare growth +25% · active", "レア育成 +25% · 適用中", "Crec. raros +25% · activo", "Croissance Rares +25% · actif", "Cresc. raros +25% · ativo", "Seltene wachsen +25% · aktiv", "Рост редких +25% · активен") }
     var rainbowWingEffectHint: String { t("상점 할인 25% · 적용 중", "Shop discount 25% · active", "ショップ25%引 · 適用中", "Descuento tienda 25% · activo", "Réduction boutique 25% · actif", "Desconto loja 25% · ativo", "Ladenrabatt 25% · aktiv", "Скидка в магазине 25% · активна") }
@@ -2525,7 +2524,7 @@ struct L {
         let names = CollectorBonus.tealMaskTypeList.map(typeName).joined(separator: "·")
         return t("\(names) +20% · 적용 중", "\(names) +20% · active", "\(names) +20% · 適用中", "\(names) +20% · activo", "\(names) +20% · actif", "\(names) +20% · ativo", "\(names) +20% · aktiv", "\(names) +20% · активна")
     }
-    var teraOrbEffectHint: String { t("돌의 알 부화 ½ · 적용 중", "Stone egg threshold ½ · active", "石のタマゴ必要量½ · 適用中", "Huevo de piedra ½ · activo", "Œuf de pierre ½ · actif", "Ovo de pedra ½ · ativo", "Stein-Ei-Schwelle ½ · aktiv", "Яйцо из камня ½ · активна") }
+    var teraOrbEffectHint: String { t("돌의 알 ½ · 그 포켓몬 +30% · 적용 중", "Stone egg ½ · its Pokémon +30% · active", "石のタマゴ½ · そのポケモン+30% · 適用中", "Huevo de piedra ½ · su Pokémon +30% · activo", "Œuf de pierre ½ · son Pokémon +30 % · actif", "Ovo de pedra ½ · seu Pokémon +30% · ativo", "Stein-Ei ½ · sein Pokémon +30 % · aktiv", "Яйцо из камня ½ · его покемон +30% · активна") }
     var relicStatueEffectHint: String { t("진화 없음 +25% · 적용 중", "No evolution +25% · active", "進化なし +25% · 適用中", "Sin evolución +25% · activo", "Sans évolution +25% · actif", "Sem evolução +25% · ativo", "Ohne Entwicklung +25% · aktiv", "Без эволюции +25% · активна") }
     var lunarWingEffectHint: String {
         let names = "\(typeName(.psychic))·\(typeName(.dark))"
@@ -2533,7 +2532,7 @@ struct L {
     }
     var meteoriteEffectHint: String { t("한도마다 사탕 +1 · 적용 중", "+1 candy per limit · active", "上限ごとにアメ+1 · 適用中", "+1 caramelo por límite · activo", "+1 bonbon par limite · actif", "+1 doce por limite · ativo", "+1 Bonbon pro Limit · aktiv", "+1 конфета за лимит · активен") }
     var oaksLetterEffectHint: String { t("스타팅 +25% · 적용 중", "Starters +25% · active", "御三家 +25% · 適用中", "Iniciales +25% · activo", "Pokémon de départ +25% · actif", "Iniciais +25% · ativo", "Starter +25% · aktiv", "Стартовые +25% · активно") }
-    var seaIncenseEffectHint: String { t("확정 알 부화 ½ · 적용 중", "Guaranteed egg threshold ½ · active", "確定タマゴ必要量½ · 適用中", "Huevo garantizado ½ · activo", "Œuf à rareté garantie ½ · actif", "Ovo garantido ½ · ativo", "Garantie-Ei-Schwelle ½ · aktiv", "Яйцо с гарантией ½ · активен") }
+    var seaIncenseEffectHint: String { t("확정 알 ½ · 그 포켓몬 +30% · 적용 중", "Guaranteed egg ½ · its Pokémon +30% · active", "確定タマゴ½ · そのポケモン+30% · 適用中", "Huevo garantizado ½ · su Pokémon +30% · activo", "Œuf à rareté garantie ½ · son Pokémon +30 % · actif", "Ovo garantido ½ · seu Pokémon +30% · ativo", "Garantie-Ei ½ · sein Pokémon +30 % · aktiv", "Яйцо с гарантией ½ · его покемон +30% · активен") }
     var shockDriveEffectHint: String { t("화석 +50% · 적용 중", "Fossils +50% · active", "化石 +50% · 適用中", "Fósiles +50% · activo", "Fossiles +50% · actif", "Fósseis +50% · ativo", "Fossilien +50% · aktiv", "Ископаемые +50% · активен") }
     var zRingEffectHint: String {
         let names = "\(typeName(.steel))·\(typeName(.electric))"
@@ -2618,6 +2617,134 @@ struct L {
                  "Solte seu Pokémon atual e ganhe um ovo que garante \(r) ou melhor.",
                  "Verabschiede dein aktuelles Pokémon und erhalte ein Ei, aus dem garantiert ein Pokémon der Seltenheitsstufe \(r) oder höher schlüpft.",
                  "Отпустите текущего покемона и получите яйцо с гарантией: \(r) или выше.")
+    }
+    /// A duration in its two largest units: "1 d 19 h", "6 h 12 min".
+    func longDuration(_ seconds: TimeInterval) -> String {
+        let formatter = DateComponentsFormatter()
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = lang.displayLocale
+        formatter.calendar = calendar
+        formatter.unitsStyle = .short
+        formatter.maximumUnitCount = 2
+        formatter.allowedUnits = [.day, .hour, .minute]
+        return formatter.string(from: max(60, seconds)) ?? ""
+    }
+    var raisingTitle: String { t("육성 기록", "Raising record", "育成記録", "Diario de crianza", "Carnet d'élevage", "Diário de criação", "Aufzuchtbuch", "Дневник выращивания") }
+    var raisingHatched: String { t("부화", "Hatched", "孵化", "Eclosión", "Éclos", "Chocou", "Geschlüpft", "Вылупился") }
+    var raisingGraduated: String { t("졸업", "Graduated", "卒業", "Graduado", "Diplômé", "Formado", "Verabschiedet", "Выпущен") }
+    var raisingReleased: String { t("놓아줌", "Sent off", "手放した", "Soltado", "Relâché", "Solto", "Freigelassen", "Отпущен") }
+    var raisingInProgress: String { t("키우는 중", "Raising", "育成中", "En crianza", "En cours", "Em criação", "Wird aufgezogen", "Растёт") }
+    func raisingTook(_ duration: String) -> String {
+        t("\(duration) 걸림", "in \(duration)", "\(duration)で", "en \(duration)", "en \(duration)", "em \(duration)", "in \(duration)", "за \(duration)")
+    }
+    func raisingSince(_ duration: String) -> String {
+        t("\(duration)째", "for \(duration)", "\(duration)経過", "desde hace \(duration)", "depuis \(duration)", "há \(duration)",
+          "seit \(duration)", "уже \(duration)")
+    }
+    var raisingTokens: String { t("토큰", "Tokens", "トークン", "Tokens", "Jetons", "Tokens", "Tokens", "Токены") }
+    var raisingCost: String { t("예상 비용", "Estimated cost", "推定コスト", "Costo estimado", "Coût estimé", "Custo estimado", "Geschätzte Kosten", "Оценка стоимости") }
+    var raisingModel: String { t("모델", "Model", "モデル", "Modelo", "Modèle", "Modelo", "Modell", "Модель") }
+    func raisingMostly(_ name: String) -> String {
+        t("주로 \(name)", "mostly \(name)", "主に\(name)", "sobre todo \(name)", "surtout \(name)", "principalmente \(name)",
+          "vor allem \(name)", "в основном \(name)")
+    }
+    /// A duration in its largest unit, rounded: "40 min", "9 h", "3 d", in the language's units. Under a minute: one.
+    func shortDuration(_ seconds: TimeInterval) -> String {
+        let formatter = DateComponentsFormatter()
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = lang.displayLocale
+        formatter.calendar = calendar
+        formatter.unitsStyle = .short
+        formatter.maximumUnitCount = 1
+        let rounded: TimeInterval
+        switch seconds {
+        case ..<3_600: rounded = max(60, (seconds / 60).rounded() * 60); formatter.allowedUnits = [.minute]
+        case ..<172_800: rounded = (seconds / 3_600).rounded() * 3_600; formatter.allowedUnits = [.hour]
+        default: rounded = (seconds / 86_400).rounded() * 86_400; formatter.allowedUnits = [.day]
+        }
+        return formatter.string(from: rounded) ?? ""
+    }
+    /// The time before the next stage at the user's pace, under the Pokémon.
+    func etaAbout(_ duration: String) -> String {
+        t("약 \(duration)", "about \(duration)", "約\(duration)", "unas \(duration)", "environ \(duration)",
+          "cerca de \(duration)", "etwa \(duration)", "около \(duration)")
+    }
+    /// The card of the Rare Candies a tool without limits pays by its tokens.
+    var tokenCandiesTitle: String {
+        t("토큰으로 받는 이상한 사탕", "Rare Candies from tokens", "トークンでもらうふしぎなアメ", "Caramelos Raros por tokens",
+          "Super Bonbons par jetons", "Doces Raros por tokens", "Sonderbonbons durch Tokens", "Редкие конфеты за токены")
+    }
+    /// The rule: one candy for so many tokens.
+    func tokenCandiesRule(_ tokens: String) -> String {
+        t("\(tokens) 토큰마다 1개", "1 every \(tokens) tokens", "\(tokens)トークンごとに1個", "1 cada \(tokens) tokens",
+          "1 tous les \(tokens) jetons", "1 a cada \(tokens) tokens", "1 alle \(tokens) Tokens", "1 за каждые \(tokens) токенов")
+    }
+    func tokenCandiesNext(_ remaining: String, earned: Int) -> String {
+        t("다음까지 \(remaining) · \(earned)개 받음", "next in \(remaining) · \(earned) earned", "次まで\(remaining) · \(earned)個獲得",
+          "siguiente en \(remaining) · \(earned) ganados", "prochain dans \(remaining) · \(earned) gagnés",
+          "próximo em \(remaining) · \(earned) ganhos", "nächstes in \(remaining) · \(earned) verdient",
+          "следующая через \(remaining) · получено: \(earned)")
+    }
+    var tokenCandiesHelp: String {
+        t("이 도구에는 앱이 읽을 수 있는 한도가 없어요. 그래서 토큰이 바로 이상한 사탕이 되고, Claude Max 5x 요금제와 같은 속도로 들어와요. 한도가 없는 도구들의 토큰을 모두 합산해요.",
+          "This tool has no limit the app can read, so its tokens pay Rare Candies themselves, at the pace Claude pays a Max 5x plan. The tokens of every tool without limits add up.",
+          "このツールにはアプリが読める上限がありません。そのためトークンがそのままふしぎなアメになり、ClaudeのMax 5xプランと同じペースで届きます。上限のないツールのトークンはすべて合算されます。",
+          "Esta herramienta no tiene un límite que la app pueda leer: sus tokens pagan Caramelos Raros al ritmo con que Claude paga un plan Max 5x. Se suman los tokens de todas las herramientas sin límites.",
+          "Cet outil n'a pas de limite que l'app sait lire : ses jetons rapportent des Super Bonbons, au rythme où Claude les paie sur un forfait Max 5x. Les jetons de tous les outils sans limite s'additionnent.",
+          "Esta ferramenta não tem um limite que o app consiga ler: seus tokens pagam Doces Raros no ritmo em que o Claude paga um plano Max 5x. Os tokens de todas as ferramentas sem limite se somam.",
+          "Dieses Tool hat kein Limit, das die App lesen kann: Seine Tokens bringen selbst Sonderbonbons, im Tempo, in dem Claude einen Max-5x-Tarif bezahlt. Die Tokens aller Tools ohne Limit zählen zusammen.",
+          "У этого инструмента нет лимита, который приложение может прочитать: его токены сами приносят Редкие конфеты, с той же скоростью, что Claude на тарифе Max 5x. Токены всех инструментов без лимитов суммируются.")
+    }
+    /// Where the candies came from, in their notification.
+    var tokenCandiesSource: String {
+        t("한도 없는 도구", "tools without limits", "上限のないツール", "herramientas sin límites", "outils sans limite",
+          "ferramentas sem limite", "Tools ohne Limit", "инструменты без лимитов")
+    }
+    /// The Rare Candies a limit window paid, of those a whole window pays.
+    func candyTally(_ paid: Int, of whole: Int) -> String {
+        t("\(whole)개 중 \(paid)개", "\(paid) of \(whole)", "\(whole)個中\(paid)個", "\(paid) de \(whole)", "\(paid) sur \(whole)",
+          "\(paid) de \(whole)", "\(paid) von \(whole)", "\(paid) из \(whole)")
+    }
+    /// The usage at which the window pays its next candy.
+    func candyNext(_ percent: String) -> String {
+        t("다음: \(percent)", "next at \(percent)", "次は\(percent)", "siguiente al \(percent)", "prochain à \(percent)",
+          "próximo em \(percent)", "nächstes bei \(percent)", "следующая при \(percent)")
+    }
+    var candyWindowComplete: String {
+        t("모두 받음", "all earned", "すべて獲得", "todos ganados", "tous gagnés", "todos ganhos", "alle verdient", "все получены")
+    }
+    func candyTallyHelp(_ candy: String) -> String {
+        t("이 한도 창에서 받은 \(candy)이에요. 창이 찰수록 하나씩 들어와요.",
+          "The \(candy) this limit window paid: one comes each time it fills a little more.",
+          "この上限ウィンドウでもらった\(candy)です。ウィンドウが埋まるごとに1個ずつ届きます。",
+          "Los \(candy) que pagó esta ventana de límite: llega uno cada vez que se llena un poco más.",
+          "Les \(candy) gagnés sur cette fenêtre de limite : un de plus à chaque cran rempli.",
+          "Os \(candy) que esta janela de limite pagou: chega um a cada vez que ela enche mais um pouco.",
+          "Die \(candy), die dieses Limitfenster gezahlt hat: Mit jeder Stufe, die es sich füllt, kommt eines dazu.",
+          "\"\(candy)\", полученные за это окно лимита: по одной за каждую заполненную ступень.")
+    }
+    /// A share of an egg's odds, whole: "<1%" for a share that rounds to none, ">99%" for one short of all.
+    func oddsPercent(_ value: Int, share: Double) -> String {
+        let shown = value == 0 && share > 0 ? "<1" : value >= 100 && share < 1 ? ">99" : "\(value)"
+        return lang == .fr ? shown.replacingOccurrences(of: "<", with: "< ").replacingOccurrences(of: ">", with: "> ") + " %"
+                           : shown + "%"
+    }
+    /// One rarity of an egg's odds: "Commun 78 %".
+    func hatchOddsRarity(_ rarity: Rarity, _ percent: String) -> String { "\(rarityLabel(rarity)) \(percent)" }
+    /// The share of an egg's odds that is a species never graduated.
+    func hatchOddsNewSpecies(_ percent: String) -> String {
+        t("새 종 \(percent)", "New species: \(percent)", "新しい種: \(percent)", "Especie nueva: \(percent)",
+          "Nouvelle espèce : \(percent)", "Espécie nova: \(percent)", "Neue Art: \(percent)", "Новый вид: \(percent)")
+    }
+    var hatchOddsHelp: String {
+        t("지금 부화한다면 나올 확률이에요. 도감에 따라 달라져요. 새 종: 아직 한 번도 졸업시키지 않은 포켓몬.",
+          "The odds if the egg hatched now; they follow your Pokédex. New species: a Pokémon you never graduated.",
+          "いま孵った場合の確率です。図鑑に合わせて変わります。新しい種: まだ一度も卒業させていないポケモン。",
+          "Probabilidades si el huevo eclosionara ahora; cambian con tu Pokédex. Especie nueva: un Pokémon que nunca graduaste.",
+          "Les chances si l'œuf éclosait maintenant ; elles suivent ton Pokédex. Nouvelle espèce : un Pokémon jamais diplômé.",
+          "As chances se o ovo chocasse agora; elas seguem sua Pokédex. Espécie nova: um Pokémon que você nunca formou.",
+          "Die Chancen, wenn das Ei jetzt schlüpfen würde; sie folgen deinem Pokédex. Neue Art: ein Pokémon, das du nie verabschiedet hast.",
+          "Шансы, если бы яйцо вылупилось сейчас; они зависят от покедекса. Новый вид: покемон, которого вы ещё не выпускали.")
     }
     /// Under a greyed-out Fossil Egg while a Fossil Egg's own Pokémon grows (#90).
     var fossilEggInProgress: String {
