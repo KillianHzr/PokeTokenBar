@@ -1019,7 +1019,7 @@ enum PokemonOdds {
 }
 
 /// 현재 키우는 포켓몬.
-struct MonState: Codable, Sendable {
+struct MonState: Codable, Sendable, Equatable {
     var baseID: Int
     var pathIDs: [Int]      // 실제 진화 경로(분기 선택 반영)
     var plannedPathIDs: [Int] // 사전에 선택한 전체 진화 경로
@@ -1121,7 +1121,7 @@ struct MonState: Codable, Sendable {
 }
 
 /// 도감 항목 — 라인 전체(초기→최종) 순서 보존.
-struct DexEntry: Codable, Sendable, Identifiable {
+struct DexEntry: Codable, Sendable, Identifiable, Equatable {
     /// Version 1 preserves every API language; earlier saves retained only app-supported names.
     static let currentNamesVersion = 1
     var id = UUID().uuidString
@@ -1221,7 +1221,7 @@ private extension KeyedDecodingContainer {
 }
 
 /// 영속 상태(Application Support JSON). 포켓몬 전환 — 이전 커스텀 캐릭터 상태는 폐기(새로 시작).
-struct CompanionState: Codable, Sendable {
+struct CompanionState: Codable, Sendable, Equatable {
     // 토큰: 설치 이후만 측정
     var installBaselineSet = false
     var usedSinceInstall = 0

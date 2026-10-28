@@ -67,6 +67,56 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-28", entries: [
+            .improved("2026-10-28-reins-not-common") { l in
+                let reins = l.itemName(.reinsOfUnity)
+                let candy = l.itemName(.rareCandy)
+                return l.t("\(KoreanParticle.subject.attach(to: reins)) 이제 일반 등급을 뺀 포켓몬이 졸업할 때마다 \(KoreanParticle.object.attach(to: candy)) 줘요.",
+                           "The \(reins) now give a \(candy) for every graduation but a Common's.",
+                           "\(reins)は、ノーマル以外のポケモンが卒業するたびに\(candy)をくれるようになりました。",
+                           "Las \(reins) ahora dan un \(candy) por cada graduación, salvo la de un Pokémon Común.",
+                           "Les \(reins) donnent maintenant un \(candy) à chaque diplôme, sauf pour les Communs.",
+                           "As \(reins) agora dão um \(candy) a cada formatura, exceto a de um Pokémon Comum.",
+                           "Die \(reins) geben jetzt für jeden Abschluss ein \(candy), außer für gewöhnliche Pokémon.",
+                           "\"\(reins)\" теперь дают \"\(candy)\" за каждый выпуск, кроме обычных покемонов.")
+            },
+            .fixed("2026-10-28-friendship-egg-ditto") { l in
+                let egg = l.eventEggName(.companion)
+                return l.t("첫 포켓몬이 메타몽이었어도 \(KoreanParticle.subject.attach(to: egg)) 부화해요. 다음에 잡은 포켓몬의 라인이 나와요.",
+                           "The \(egg) hatches even when your first Pokémon was a Ditto: it brings back your next catch's line.",
+                           "最初のポケモンがメタモンでも\(egg)が孵ります。次に捕まえたポケモンの系統が出ます。",
+                           "El \(egg) eclosiona aunque tu primer Pokémon fuera un Ditto: trae la línea de tu siguiente captura.",
+                           "L'\(egg) éclot même si ton premier Pokémon était un Métamorph : il ramène la lignée de ta capture suivante.",
+                           "O \(egg) choca mesmo que seu primeiro Pokémon tenha sido um Ditto: ele traz a linha da sua captura seguinte.",
+                           "Das \(egg) schlüpft, auch wenn dein erstes Pokémon ein Ditto war: Es bringt die Linie deines nächsten Fangs.",
+                           "\"\(egg)\" вылупляется, даже если первым покемоном был Дитто: оно приносит линию следующей поимки.")
+            },
+            .fixed("2026-10-28-safe-update", { $0.t("업데이트가 실패해도 지금 앱은 그대로 남고 다시 열리며, 이유를 알려 줘요. 업데이트 뒤에도 로그인 시 실행이 계속 동작해요.",
+                                                    "A failed update now leaves your app as it was, reopens it and tells you why. Launch at login keeps working after an update.",
+                                                    "アップデートに失敗しても、いまのアプリはそのまま残って再び開き、理由を表示します。アップデート後もログイン時の起動が動き続けます。",
+                                                    "Si una actualización falla, tu app queda como estaba, se vuelve a abrir y te dice por qué. El inicio al iniciar sesión sigue funcionando tras actualizar.",
+                                                    "Une mise à jour ratée laisse maintenant ton app intacte, la rouvre et te dit pourquoi. Le lancement à l'ouverture de session marche toujours après une mise à jour.",
+                                                    "Uma atualização que falha agora deixa seu app como estava, reabre e diz por quê. Abrir ao iniciar a sessão continua funcionando depois de atualizar.",
+                                                    "Ein fehlgeschlagenes Update lässt deine App jetzt unverändert, öffnet sie wieder und sagt dir, warum. Der Start bei der Anmeldung funktioniert auch nach einem Update.",
+                                                    "Неудачное обновление теперь оставляет приложение как было, снова открывает его и объясняет причину. Запуск при входе продолжает работать после обновления.") }),
+            .fixed("2026-10-28-candy-accounts") { l in
+                let candy = l.itemName(.rareCandy)
+                return l.t("같은 폴더에서 계정을 바꾸거나, 백업을 복원하거나, 자정 뒤 서쪽 시간대로 이동해도 토큰과 \(candy) 개수가 바르게 계산돼요.",
+                           "Tokens and \(candy) counts are now right when you switch accounts in the same folder, restore a backup, or move to a time zone to the west after midnight.",
+                           "同じフォルダでアカウントを切り替えても、バックアップを復元しても、深夜0時すぎに西の時間帯へ移っても、\(candy)とトークンが正しく数えられます。",
+                           "Los tokens y la cuenta de \(candy) ahora son correctos al cambiar de cuenta en la misma carpeta, al restaurar una copia o al pasar a una zona horaria al oeste después de medianoche.",
+                           "Les jetons et le nombre de \(candy) sont maintenant justes quand tu changes de compte dans le même dossier, restaures une sauvegarde ou passes à un fuseau plus à l'ouest après minuit.",
+                           "Os tokens e a contagem de \(candy) agora ficam certos ao trocar de conta na mesma pasta, restaurar um backup ou passar para um fuso a oeste depois da meia-noite.",
+                           "Tokens und der Zähler für \(candy) stimmen jetzt, wenn du im selben Ordner das Konto wechselst, ein Backup wiederherstellst oder nach Mitternacht in eine Zeitzone weiter westlich wechselst.",
+                           "Токены и счёт \"\(candy)\" теперь верны при смене аккаунта в той же папке, восстановлении копии или переходе после полуночи в часовой пояс западнее.")
+            },
+            .improved("2026-10-28-lighter-saves", { $0.t("앱이 바뀐 게 있을 때만 저장해서 디스크를 덜 쓰고, 설정도 더 빨리 열려요.",
+                                                         "The app saves only when something changed, writing far less to disk, and Settings open faster.",
+                                                         "変化があったときだけ保存するので、ディスクへの書き込みがずっと減り、設定も速く開きます。",
+                                                         "La app solo guarda cuando algo cambió, escribe mucho menos en disco y los Ajustes se abren más rápido.",
+                                                         "L'app ne sauvegarde plus que quand quelque chose change, écrit bien moins sur le disque, et les Réglages s'ouvrent plus vite.",
+                                                         "O app só salva quando algo mudou, grava bem menos no disco e os Ajustes abrem mais rápido.",
+                                                         "Die App speichert nur noch, wenn sich etwas geändert hat, schreibt viel weniger auf die Festplatte, und die Einstellungen öffnen sich schneller.",
+                                                         "Приложение сохраняет данные только при изменениях, гораздо меньше пишет на диск, а настройки открываются быстрее.") }),
             .improved("2026-10-28-rotom-catalog-graduation") { l in
                 let catalog = l.itemName(.rotomCatalog)
                 return l.t("\(catalog)의 이상한 사탕은 이제 그 진화 라인이 처음 졸업시키는 폼으로 포켓몬이 졸업할 때, 폼마다 한 번 받아요.",

@@ -1572,6 +1572,17 @@ struct L {
           "Вы пропустили \(prefix)\(version)")
     }
     var showSkippedAgain: String { t("다시 알리기", "Show again", "もう一度表示", "Mostrar de nuevo", "Afficher à nouveau", "Mostrar de novo", "Wieder anzeigen", "Показать снова") }
+    /// A failed in-app update, in the banner and Settings: the app was put back as it was (`build-app.sh`).
+    var updateFailed: String {
+        t("업데이트에 실패했어요. 지금 앱은 그대로예요. 자세한 내용: ~/Library/Logs/PokeTokenLBI-update.log",
+          "The update failed. Your current app is unchanged. Details: ~/Library/Logs/PokeTokenLBI-update.log",
+          "アップデートに失敗しました。いまのアプリはそのままです。詳細: ~/Library/Logs/PokeTokenLBI-update.log",
+          "La actualización falló. Tu app actual no cambió. Detalles: ~/Library/Logs/PokeTokenLBI-update.log",
+          "La mise à jour a échoué. Ton app actuelle est intacte. Détails : ~/Library/Logs/PokeTokenLBI-update.log",
+          "A atualização falhou. Seu app atual continua igual. Detalhes: ~/Library/Logs/PokeTokenLBI-update.log",
+          "Das Update ist fehlgeschlagen. Deine aktuelle App ist unverändert. Details: ~/Library/Logs/PokeTokenLBI-update.log",
+          "Обновление не удалось. Текущее приложение не изменилось. Подробности: ~/Library/Logs/PokeTokenLBI-update.log")
+    }
     var updating: String { t("업데이트 중…", "Updating…", "更新中…", "Actualizando…", "Mise à jour…", "Atualizando…", "Wird aktualisiert…", "Обновление…") }
     var updatingToolTip: String { t("업데이트 진행 중… (재빌드)", "Update in progress… (rebuilding)", "アップデート進行中… (再ビルド)", "Actualización en curso… (recompilando)", "Mise à jour en cours… (recompilation)", "Atualização em andamento… (recompilando)", "Aktualisierung läuft… (Neukompilierung)", "Идет обновление… (пересборка)") }
     var updateSectionTitle: String { t("업데이트", "Updates", "アップデート", "Actualizaciones", "Mises à jour", "Atualizações", "Aktualisierungen", "Обновления") }
@@ -1973,14 +1984,14 @@ struct L {
                      "Lässt im Beutel legendäre Pokémon 25% schneller wachsen.",
                      "Пока он у вас, легендарные покемоны растут на 25% быстрее.")
         case .reinsOfUnity:
-            return t("보유하면 포켓몬이 졸업할 때마다 이상한 사탕을 1개 받습니다.",
-                     "While owned, every Pokémon that graduates gives you a Rare Candy.",
-                     "持っているとポケモンが卒業するたびにふしぎなアメを1個もらえます。",
-                     "Mientras las tengas, recibes un Caramelo Raro cada vez que un Pokémon se gradúa.",
-                     "Tant que tu les possèdes, chaque Pokémon diplômé te donne un Super Bonbon.",
-                     "Enquanto estiverem na bolsa, você recebe um Doce Raro sempre que um Pokémon se forma.",
-                     "Gibt im Beutel für jedes verabschiedete Pokémon ein Sonderbonbon.",
-                     "Пока они у вас, за каждого выпущенного покемона вы получаете Редкую конфету.")
+            return t("보유하면 일반 등급을 뺀 포켓몬이 졸업할 때마다 이상한 사탕을 1개 받습니다.",
+                     "While owned, every Pokémon that graduates gives you a Rare Candy, Common ones apart.",
+                     "持っていると、ノーマル以外のポケモンが卒業するたびにふしぎなアメを1個もらえます。",
+                     "Mientras las tengas, recibes un Caramelo Raro cada vez que se gradúa un Pokémon que no sea Común.",
+                     "Tant que tu les possèdes, chaque Pokémon diplômé te donne un Super Bonbon, sauf les Communs.",
+                     "Enquanto estiverem na bolsa, você recebe um Doce Raro sempre que se forma um Pokémon que não seja Comum.",
+                     "Gibt im Beutel für jedes verabschiedete Pokémon ein Sonderbonbon, außer für gewöhnliche.",
+                     "Пока они у вас, за каждого выпущенного покемона, кроме обычных, вы получаете Редкую конфету.")
         case .boosterEnergy:
             return t("보유하면 패러독스 포켓몬이 50% 더 빨리 성장합니다.",
                      "While owned, Paradox Pokémon grow 50% faster.",
@@ -2503,7 +2514,12 @@ struct L {
     var sunFluteEffectHint: String { t("최종 단계 +25% · 적용 중", "Final stage +25% · active", "最終段階 +25% · 適用中", "Última etapa +25% · activo", "Dernier stade +25% · actif", "Último estágio +25% · ativo", "Letzte Stufe +25% · aktiv", "Последняя стадия +25% · активна") }
     var beastBallEffectHint: String { t("울트라비스트 +50% · 적용 중", "Ultra Beasts +50% · active", "ウルトラビースト +50% · 適用中", "Ultraentes +50% · activo", "Ultra-Chimères +50% · actif", "Ultracriaturas +50% · ativo", "Ultrabestien +50% · aktiv", "Ультрачудовища +50% · активен") }
     var rustedSwordEffectHint: String { t("전설 성장 +25% · 적용 중", "Legendary growth +25% · active", "伝説育成 +25% · 適用中", "Crec. legendarios +25% · activo", "Croissance légendaires +25% · actif", "Cresc. lendários +25% · ativo", "Legendäre +25% · aktiv", "Рост легендарных +25% · активен") }
-    var reinsOfUnityEffectHint: String { t("졸업마다 사탕 +1 · 적용 중", "+1 candy per graduation · active", "卒業ごとにアメ+1 · 適用中", "+1 caramelo por graduación · activo", "+1 bonbon par diplômé · actif", "+1 doce por formatura · ativo", "+1 Bonbon pro Abschluss · aktiv", "+1 конфета за выпуск · активны") }
+    var reinsOfUnityEffectHint: String {
+        t("일반 제외 졸업마다 사탕 +1 · 적용 중", "+1 candy per graduation but Common · active", "ノーマル以外の卒業ごとにアメ+1 · 適用中",
+          "+1 caramelo por graduación salvo Común · activo", "+1 bonbon par diplômé hors Communs · actif",
+          "+1 doce por formatura exceto Comum · ativo", "+1 Bonbon pro Abschluss außer gewöhnlich · aktiv",
+          "+1 конфета за выпуск, кроме обычных · активны")
+    }
     var boosterEnergyEffectHint: String { t("패러독스 +50% · 적용 중", "Paradox +50% · active", "パラドックス +50% · 適用中", "Paradójicos +50% · activo", "Paradoxe +50% · actif", "Paradoxo +50% · ativo", "Paradox +50% · aktiv", "Парадоксы +50% · активна") }
     var tealMaskEffectHint: String {
         let names = CollectorBonus.tealMaskTypeList.map(typeName).joined(separator: "·")

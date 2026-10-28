@@ -58,6 +58,17 @@ enum SaveSnapshotManager {
         return f.date(from: raw)
     }
 
+    /// The summary of each snapshot file already read, by its path, its modification date and its size: listing
+    /// decoded every snapshot in full (about 1.2 MB each, ten of them) on each Settings opening and twice per new
+    /// snapshot, on the main thread.
+    private struct SummaryKey: Hashable {
+        let path: String
+        let modified: Date?
+        let size: Int?
+    }
+    nonisolated(unsafe) private static var summaries: [SummaryKey: SaveSnapshot] = [:]
+    private static let summariesLock = NSLock()
+
     /// Lists all available snapshots in chronological order (newest first).
     static func listSnapshots(for stateFileURL: URL) -> [SaveSnapshot] {
         let dir = snapshotsDirectory(for: stateFileURL)
@@ -68,38 +79,41 @@ enum SaveSnapshotManager {
         var results: [SaveSnapshot] = []
         for file in files where file.hasPrefix(snapshotPrefix) && file.hasSuffix(".json") {
             let url = dir.appendingPathComponent(file)
-            guard let data = try? Data(contentsOf: url) else { continue }
-            if let envelope = try? SaveTransfer.decode(data) {
-                let st = envelope.state
-                results.append(SaveSnapshot(
-                    id: file,
-                    fileURL: url,
-                    date: envelope.exportedAt,
-                    dexCount: st.dex.count,
-                    lifetimeTokens: st.usedSinceInstall,
-                    currentSpeciesID: st.active?.currentID,
-                    currentIsShiny: st.active?.displaysShiny ?? false,
-                    currentForm: st.active?.spriteForm
-                ))
-            } else if let st = try? JSONDecoder().decode(CompanionState.self, from: data) {
-                let date = parseStamp(file) ?? (try? url.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? Date()
-                results.append(SaveSnapshot(
-                    id: file,
-                    fileURL: url,
-                    date: date,
-                    dexCount: st.dex.count,
-                    lifetimeTokens: st.usedSinceInstall,
-                    currentSpeciesID: st.active?.currentID,
-                    currentIsShiny: st.active?.displaysShiny ?? false,
-                    currentForm: st.active?.spriteForm
-                ))
+            let attributes = try? FileManager.default.attributesOfItem(atPath: url.path)
+            let key = SummaryKey(path: url.path, modified: attributes?[.modificationDate] as? Date,
+                                 size: (attributes?[.size] as? NSNumber)?.intValue)
+            if let known = summariesLock.withLock({ summaries[key] }) {
+                results.append(known)
+                continue
             }
+            guard let summary = readSummary(file: file, url: url) else { continue }
+            summariesLock.withLock { summaries[key] = summary }
+            results.append(summary)
         }
 
         return results.sorted {
             if $0.date != $1.date { return $0.date > $1.date }
             return $0.id > $1.id
         }
+    }
+
+    /// One snapshot's summary, read from its envelope, or from a bare state for an older snapshot.
+    private static func readSummary(file: String, url: URL) -> SaveSnapshot? {
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        let st: CompanionState
+        let date: Date
+        if let envelope = try? SaveTransfer.decode(data) {
+            st = envelope.state
+            date = envelope.exportedAt
+        } else if let bare = try? JSONDecoder().decode(CompanionState.self, from: data) {
+            st = bare
+            date = parseStamp(file) ?? (try? url.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? Date()
+        } else {
+            return nil
+        }
+        return SaveSnapshot(id: file, fileURL: url, date: date, dexCount: st.dex.count,
+                            lifetimeTokens: st.usedSinceInstall, currentSpeciesID: st.active?.currentID,
+                            currentIsShiny: st.active?.displaysShiny ?? false, currentForm: st.active?.spriteForm)
     }
 
     /// Loads and returns the SaveEnvelope from a snapshot file.

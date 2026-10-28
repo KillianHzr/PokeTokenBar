@@ -419,6 +419,18 @@ struct SettingsView: View {
     private func updateGroup(_ store: UsageStore) -> some View {
         @Bindable var store = store
         settingsSection(l.updateSectionTitle) {
+            if let error = updater.updateError, !updater.isUpdating {
+                groupRow {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(l.updateFailed).font(.caption).foregroundStyle(Color.readableOrange)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(error).font(.caption2).foregroundStyle(.secondary).textSelection(.enabled)
+                    }
+                    Spacer()
+                    Button(l.close) { updater.dismissUpdateError() }.controlSize(.small)
+                }
+                Divider()
+            }
             if updater.isUpdating {
                 groupRow {
                     HStack(spacing: 8) {

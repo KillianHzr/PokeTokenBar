@@ -122,6 +122,25 @@ final class FormAchievementsTests: XCTestCase {
         XCTAssertEqual(without.itemCount(.rareCandy), 0, "no Catalog, no candy")
     }
 
+    /// On a line whose species branch (Slowpoke into Slowbro or Slowking, Burmy into Mothim or Wormadam), a form the
+    /// line graduated once pays nothing again: it read "every species of the line in this form", and a Kanto Slowking
+    /// paid after a Kanto Slowbro.
+    func testTheRotomCatalogPaysOncePerFormOnBranchedLines() async throws {
+        for (chain, known) in [([79, 80], "normal"), ([412, 414], "plant")] {
+            var paid = Set<Bool>()
+            for seed: UInt64 in 1...16 {
+                let s = try store(dex: [graduated(chain, known)], inventory: [.rotomCatalog: 1], seed: seed)
+                await s.hatch(baseID: chain[0])
+                let form = try XCTUnwrap(s.state.active?.form, "\(chain[0]), seed \(seed)")
+                s.applyUsage(100_000_000_000)
+                XCTAssertNil(s.state.active)
+                XCTAssertEqual(s.itemCount(.rareCandy), form == PokemonForm(known) ? 0 : 1, "\(chain[0]) \(form), seed \(seed)")
+                paid.insert(s.itemCount(.rareCandy) > 0)
+            }
+            XCTAssertEqual(paid, [true, false], "\(chain[0])")
+        }
+    }
+
     /// Graduated again, a form pays nothing: ten Rotom for six forms, so one comes twice.
     func testTheRotomCatalogPaysEachFormOnce() async throws {
         let s = try store(inventory: [.rotomCatalog: 1], seed: 3)

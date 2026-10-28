@@ -94,6 +94,33 @@ final class SaveTransferTests: XCTestCase {
         return s
     }
 
+    /// Restoring last week's snapshot kept the larger count paid (80) under this week's epoch: nothing was paid until
+    /// the week passed 80%. The window of the later epoch keeps its count, epoch and plan; the same window on both
+    /// sides still keeps the larger count.
+    func testRestoringAnOlderWeekKeepsThisWeeksCandyCount() {
+        let key = "claude.sevenDay"
+        func ledger(_ tier: Int, _ epoch: String, plan: Int = 20) -> CompanionState {
+            var s = CompanionState()
+            s.candyGrantTier = [key: tier]
+            s.candyWindowEpoch = [key: epoch]
+            s.candyWindowPlan = [key: plan]
+            return s
+        }
+        let lastWeek = ledger(80, "2026-10-21T00:00:00Z", plan: 5)
+        let thisWeek = ledger(10, "2026-10-28T00:00:00Z")
+        for (imported, current) in [(lastWeek, thisWeek), (thisWeek, lastWeek)] {
+            let merged = SaveTransfer.rebasedForThisDevice(imported, current: current, todayTokensByProvider: [:],
+                                                           todayDate: "2026-10-28", hasUsageData: false)
+            XCTAssertEqual(merged.candyGrantTier[key], 10)
+            XCTAssertEqual(merged.candyWindowEpoch[key], "2026-10-28T00:00:00Z")
+            XCTAssertEqual(merged.candyWindowPlan[key], 20)
+        }
+        let sameWeek = SaveTransfer.rebasedForThisDevice(ledger(30, "2026-10-28T00:00:00Z"), current: thisWeek,
+                                                         todayTokensByProvider: [:], todayDate: "2026-10-28",
+                                                         hasUsageData: false)
+        XCTAssertEqual(sameWeek.candyGrantTier[key], 30, "the same week: what either side paid")
+    }
+
     // MARK: 봉투
 
     func testRoundTripPreservesProgress() throws {

@@ -7,8 +7,9 @@ private func collectorNode(_ id: Int, _ children: [EvoNode] = []) -> EvoNode {
     EvoNode(speciesID: id, children: children)
 }
 
+/// Dratini (147) is the one rare line, for the Reins of Unity.
 private func collectorLine(base: Int) -> EvoLine {
-    EvoLine(baseID: base, tree: collectorNode(base), rarity: .common,
+    EvoLine(baseID: base, tree: collectorNode(base), rarity: base == 147 ? .rare : .common,
             names: [base: ["en": "P\(base)", "ko": "포\(base)", "fr": "P\(base)"]])
 }
 
@@ -462,13 +463,16 @@ final class CollectorItemsTests: XCTestCase {
         XCTAssertEqual(stoneEgg.eggHatchThreshold, plain.eggHatchThreshold / 2)
     }
 
-    func testReinsOfUnityAddACandyToEachGraduation() async {
-        for owned in [false, true] {
+    /// A candy for each graduation but a Common's: one candy is a whole Common line's XP, so each Common graduated
+    /// paid the next one, and Commons graduated for free one egg apart.
+    func testReinsOfUnityAddACandyToEachGraduationButACommons() async {
+        for (owned, base, expected) in [(false, 147, 0), (true, 147, CollectorBonus.reinsOfUnityCandies), (true, 4, 0)] {
             let s = store(inventory: owned ? [ItemKind.reinsOfUnity.rawValue: 1] : [:])
-            await s.hatch(baseID: 4)
+            await s.hatch(baseID: base)
+            XCTAssertEqual(s.state.active?.rarity, base == 147 ? .rare : .common)
             s.applyUsage(s.threshold)
             XCTAssertEqual(s.state.dex.count, 1, "graduated")
-            XCTAssertEqual(s.rareCandyCount, owned ? CollectorBonus.reinsOfUnityCandies : 0)
+            XCTAssertEqual(s.rareCandyCount, expected, "owned \(owned), base \(base)")
         }
     }
 

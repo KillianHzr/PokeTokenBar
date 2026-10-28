@@ -262,6 +262,23 @@ struct PopoverView: View {
             .padding(8)
             .background(Color.accentColor.opacity(0.12))
             .clipShape(RoundedRectangle(cornerRadius: 8))
+        } else if let error = updater.updateError {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(l.updateFailed).font(.caption).fixedSize(horizontal: false, vertical: true)
+                Text(error).font(.caption2).foregroundStyle(.secondary).textSelection(.enabled)
+                HStack(spacing: 8) {
+                    Spacer()
+                    Button(l.close) { updater.dismissUpdateError() }
+                        .buttonStyle(.borderless).controlSize(.small).foregroundStyle(.secondary)
+                    if updater.updateTarget != nil {
+                        Button(l.retry) { updater.applyUpdate() }
+                            .buttonStyle(.borderedProminent).controlSize(.small)
+                    }
+                }
+            }
+            .padding(8)
+            .background(Color.readableOrange.opacity(0.14))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
         } else if let update = updater.available, store.updateNotificationsEnabled {
             VStack(alignment: .leading, spacing: 6) {
                 Text(l.updateAvailable(update.version, current: updater.currentVersion))

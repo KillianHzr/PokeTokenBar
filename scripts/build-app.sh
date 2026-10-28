@@ -109,9 +109,29 @@ else
 fi
 
 echo "==> 기존 인스턴스 종료 + /Applications 설치"
+# Copied and checked next to the installed app before anything is quit, then swapped in: a full disk or a
+# permission error used to leave the player with the app quit and deleted, and no message.
+DEST="/Applications/$APP_NAME.app"
+STAGED="/Applications/.$APP_NAME.app.new"
+PREVIOUS="/Applications/.$APP_NAME.app.old"
+rm -rf "$STAGED" "$PREVIOUS"
+if ! cp -R "$APP" "$STAGED" || ! codesign --verify "$STAGED"; then
+    rm -rf "$STAGED"
+    echo "   ✗ copy to /Applications failed, the installed app is untouched" >&2
+    exit 1
+fi
 pkill -x "$APP_NAME" 2>/dev/null || true
 pkill -x "PokeTokenBar" 2>/dev/null || true
-rm -rf "/Applications/$APP_NAME.app"
-cp -R "$APP" /Applications/
+if [[ -d "$DEST" ]] && ! mv "$DEST" "$PREVIOUS"; then
+    rm -rf "$STAGED"
+    echo "   ✗ could not move the installed app aside, left as it was" >&2
+    exit 1
+fi
+if ! mv "$STAGED" "$DEST"; then
+    [[ -d "$PREVIOUS" ]] && mv "$PREVIOUS" "$DEST"
+    echo "   ✗ install failed, the previous app is back" >&2
+    exit 1
+fi
+rm -rf "$PREVIOUS"
 
 echo "완료: open /Applications/$APP_NAME.app"

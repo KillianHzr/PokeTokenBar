@@ -1415,6 +1415,11 @@ final class CompanionStore {
                     state.claimedTodayTokensByProvider = todayTokensByProvider
                     state.lastDate = todayDate
                     AppLog.write("companion provider ledger seeded date=\(todayDate) providers=\(todayTokensByProvider.keys.sorted().joined(separator: ","))")
+                } else if Self.isEarlierDay(todayDate, than: state.lastDate) {
+                    // The day went back (a time zone to the west after midnight, the clock set back): that day was
+                    // credited already, and crediting its whole total as a new day counted it twice. Nothing is
+                    // credited until the date is past again; the ledger waits as it is.
+                    AppLog.write("companion usage: date went back \(state.lastDate) → \(todayDate), nothing credited")
                 } else if dateChanged {
                     // 일자별 snapshot은 서로 비교할 수 없다. 새 날짜에는 이전 날짜의 ledger를
                     // 기준으로 삼지 않고, 현재 날짜의 누적값 전체를 새 날짜 사용량으로 적립한다.
@@ -1684,8 +1689,12 @@ final class CompanionStore {
         if let details = pokemonDetails(speciesID: a.currentID, form: a.form) { a.profile?.enrich(with: details) }
         let finalID = a.currentID
         // The Rotom Catalog pays for a form the line never graduated, when it graduates: paid at the hatch, a form
-        // sent off before graduating paid again each time it hatched (#91). A revealed Ditto has no form.
-        if let form = a.form, itemCount(.rotomCatalog) > 0, !state.graduatedLineForms(baseID: a.baseID).contains(form) {
+        // sent off before graduating paid again each time it hatched (#91). Any graduated record of the line in that
+        // form counts: `graduatedLineForms` wants every species of the line in it, and a Kanto Slowking paid after a
+        // Kanto Slowbro. A revealed Ditto has no form.
+        if itemCount(.rotomCatalog) > 0, let form = PokemonForm.resolved(baseID: a.baseID, form: a.form),
+           !state.dex.contains(where: { !$0.isReleased && $0.baseID == a.baseID
+               && PokemonForm.resolved(baseID: $0.baseID, form: $0.form) == form }) {
             let received = addRareCandies(CollectorBonus.rotomCatalogNewFormCandies)
             AppLog.write("graduate: rotom catalog +\(received) candy for a new form")
         }
@@ -1699,7 +1708,9 @@ final class CompanionStore {
                                       Dictionary(uniqueKeysWithValues:
                                           a.pathIDs.compactMap { id in line.names[id].map { (id, $0) } })
                                   }, form: a.form, hasNewForm: a.hasNewForm))
-        if ownsReinsOfUnity {
+        // Not for a Common: one candy is a whole Common line's XP (`RareCandy.xp`), so each one graduated paid the next
+        // and Commons graduated for free, one egg apart.
+        if ownsReinsOfUnity, a.rarity != .common {
             let received = addRareCandies(CollectorBonus.reinsOfUnityCandies)
             AppLog.write("graduate: reins of unity +\(received) rare candy")
         }
@@ -2531,6 +2542,15 @@ final class CompanionStore {
         state.dex.compactMap { e in e.caughtAt.map { (date: $0, baseID: e.baseID) } }.min { $0.date < $1.date }
     }
 
+    /// The line the Friendship Egg brings back: the first catch's, unless it was a Ditto, which no egg hatches (its
+    /// record carries Ditto's number once revealed, left out of every egg's pool): then the next catch's. A Ditto
+    /// first kept the egg waiting for a candidate forever, and with no Pokémon raised nothing else could be used.
+    var companionLineID: Int? {
+        state.dex.filter { $0.baseID != PokemonOdds.dittoSpeciesID }
+            .compactMap { e in e.caughtAt.map { (date: $0, baseID: e.baseID) } }
+            .min { $0.date < $1.date }?.baseID
+    }
+
     /// The event eggs waiting now, earliest event first (`EventEgg.claimable`).
     var eventEggs: [(egg: EventEgg, year: Int)] {
         EventEgg.claimable(now: clock(), claimed: state.claimedEventEggs, firstCatch: firstCatch?.date, calendar: .current)
@@ -2678,7 +2698,7 @@ final class CompanionStore {
     }
 
     /// Parse an epoch string into a Date, supporting Unix timestamp (seconds or ms) or ISO8601 strings.
-    static func parseEpochDate(_ string: String) -> Date? {
+    nonisolated static func parseEpochDate(_ string: String) -> Date? {
         if let ts = Double(string) {
             if ts > 1_000_000_000_000 {
                 return Date(timeIntervalSince1970: ts / 1000.0)
@@ -2689,19 +2709,30 @@ final class CompanionStore {
         return ISO8601Parser.date(from: string)
     }
 
-    /// Determines if a new epoch represents an actual window advancement (reset) rather than
-    /// volatile network jitter (e.g. Codex ±1s) or fractional-second differences (Claude microseconds).
-    /// For session windows (≈5h), requires advancing forward by at least 30 minutes.
-    /// For weekly windows (7d), requires advancing forward by at least 24 hours.
-    /// Non-date strings (used in synthetic unit tests) fall back to string inequality.
-    static func isNewEpoch(previous: String, current: String, kind: WindowClass) -> Bool {
-        guard previous != current else { return false }
-        guard let dPrev = parseEpochDate(previous), let dCurr = parseEpochDate(current) else {
-            return true
+    /// Whether `day` comes before `other`, both `yyyy-MM-dd`; false for anything else (an empty or test date).
+    nonisolated static func isEarlierDay(_ day: String, than other: String) -> Bool {
+        func isDay(_ s: String) -> Bool {
+            s.count == 10 && s.enumerated().allSatisfy { i, c in i == 4 || i == 7 ? c == "-" : c.isASCII && c.isNumber }
         }
+        return isDay(day) && isDay(other) && day < other
+    }
+
+    /// How a window's epoch moved since the last poll.
+    enum EpochChange: Equatable { case same, reset, otherWindow }
+
+    /// Less than 30 minutes (a day for a week) is the same window: network jitter (Codex ±1 s), fractional seconds
+    /// (Claude), a rolling window's drift. Non-date strings (synthetic tests) differ as a reset.
+    /// A window resets once its epoch is past: one that moves by a window's worth while the previous one still
+    /// runs is another window under the same key (`/login` to another account in the same folder, `codex login`,
+    /// another organization answering). Paid as a reset, it paid that account's whole usage at once, and switching
+    /// back paid the gap again. A few minutes of slack for the Mac's clock.
+    static func epochChange(previous: String, current: String, kind: WindowClass, now: Date) -> EpochChange {
+        guard previous != current else { return .same }
+        guard let dPrev = parseEpochDate(previous), let dCurr = parseEpochDate(current) else { return .reset }
         let delta = dCurr.timeIntervalSince(dPrev)
         let minAdvance: TimeInterval = kind == .weekly ? 86400 : 1800
-        return delta >= minAdvance
+        guard abs(delta) >= minAdvance else { return .same }
+        return delta > 0 && now >= dPrev.addingTimeInterval(-300) ? .reset : .otherWindow
     }
 
     /// The candies each window owes now (`RareCandy.candiesDue`), less those it already paid in its epoch. Pure, so
@@ -2711,24 +2742,33 @@ final class CompanionStore {
     /// - Without an epoch, a window back to nothing owed is a new one.
     /// - What a window paid is never taken back: a utilization that goes down a little pays nothing until it is past
     ///   it again.
+    /// - Another window under the key (`epochChange`) pays from now on, as a window first seen does (#79).
     static func evaluateCandyGrants(
         windows: [CandyWindow],
         grantTier: inout [String: Int],
-        windowEpoch: inout [String: String]
+        windowEpoch: inout [String: String],
+        now: Date = .distantFuture
     ) -> [CandyGrant] {
         var grants: [CandyGrant] = []
         for w in windows {
+            let due = RareCandy.candiesDue(utilization: w.utilization, kind: w.kind, planMultiplier: w.planMultiplier)
             if let epoch = w.epoch {
                 if let previousEpoch = windowEpoch[w.key] {
-                    if isNewEpoch(previous: previousEpoch, current: epoch, kind: w.kind) {
+                    switch epochChange(previous: previousEpoch, current: epoch, kind: w.kind, now: now) {
+                    case .same:
+                        break
+                    case .reset:
                         grantTier[w.key] = nil
                         windowEpoch[w.key] = epoch
+                    case .otherWindow:
+                        grantTier[w.key] = due > 0 ? due : nil
+                        windowEpoch[w.key] = epoch
+                        continue
                     }
                 } else {
                     windowEpoch[w.key] = epoch
                 }
             }
-            let due = RareCandy.candiesDue(utilization: w.utilization, kind: w.kind, planMultiplier: w.planMultiplier)
             var paid = grantTier[w.key] ?? 0
             if w.epoch == nil, due == 0 { paid = 0 }
             if due > paid {
@@ -2782,7 +2822,8 @@ final class CompanionStore {
         let grants = Self.evaluateCandyGrants(
             windows: windows,
             grantTier: &grantTier,
-            windowEpoch: &windowEpoch)
+            windowEpoch: &windowEpoch,
+            now: clock())
         state.candyGrantTier = grantTier
         state.candyWindowEpoch = windowEpoch
         let meteorite = itemCount(.meteorite) > 0 ? CollectorBonus.meteoriteWindowCandies : 0
@@ -3304,7 +3345,7 @@ final class CompanionStore {
             // every other species: shiny, twice, with another nature.
             let graduated = graduatedSpeciesIDs
             // The Friendship Egg keeps its promise even then: the line is the player's own first Pokémon.
-            let friendship = event == .companion ? firstCatch?.baseID : nil
+            let friendship = event == .companion ? companionLineID : nil
             let admitted = full.filter { !FossilDig.isFossilLine($0.id) || graduated.contains($0.id) || $0.id == friendship }
             var index = tier.map { t in admitted.filter(t.admits) } ?? admitted
             // A Legendary Egg hatches a legendary or mythical Pokémon, any of them.
@@ -3312,10 +3353,17 @@ final class CompanionStore {
             if let targetType = typeGuarantee {
                 index = index.filter { PokemonTypeData.canHatch(baseID: $0.id, as: targetType) }
             }
-            // An event egg hatches the event's Pokémon (`EventEgg.admits`).
+            // An event egg hatches the event's Pokémon (`EventEgg.admits`). None of them in the pool (a first catch
+            // the index leaves out), it hatches as a plain egg would rather than wait forever: no other egg can be
+            // used while it incubates.
             if let event {
-                let companionLine = firstCatch?.baseID
-                index = index.filter { event.admits($0, companionLine: companionLine) }
+                let companionLine = companionLineID
+                let eventIndex = index.filter { event.admits($0, companionLine: companionLine) }
+                if eventIndex.isEmpty {
+                    AppLog.write("hatch: no \(event.rawValue) Pokémon in the pool, hatched as a plain egg")
+                } else {
+                    index = eventIndex
+                }
             }
             guard !index.isEmpty else {
                 AppLog.write("hatch: no candidate for guaranteed tier=\(tier?.rawValue ?? "none") type=\(typeGuarantee?.rawValue ?? "none") legendary=\(state.eggFromLegendaryEgg), egg kept; retry next tick")
@@ -3405,7 +3453,7 @@ final class CompanionStore {
         // A Fossil Egg asks for its candidates themselves: 32 random numbers seldom meet one of 15 lines, one in 1,025
         // even less. So does an event egg of a few lines, the Friendship Egg's one above all.
         if state.eggFromFossilEgg { return await chooseListedBaseViaREST(fossilCandidates, charm: false) }
-        if let lines = state.eggEvent?.lines(companionLine: firstCatch?.baseID) {
+        if let lines = state.eggEvent?.lines(companionLine: companionLineID) {
             return await chooseListedBaseViaREST(lines, charm: ownsOvalCharm)
         }
         let tier = state.eggTier
@@ -3427,7 +3475,7 @@ final class CompanionStore {
                         continue
                     }
                     if let typeGuarantee, !PokemonTypeData.canHatch(baseID: bs.id, as: typeGuarantee) { continue }
-                    if let event = state.eggEvent, !event.admits(bs, companionLine: firstCatch?.baseID) { continue }
+                    if let event = state.eggEvent, !event.admits(bs, companionLine: companionLineID) { continue }
                     // Not the line hatched last again; the index path keeps it when it is the only one, this one
                     // retries.
                     if bs.id == state.lastHatchedBaseID { continue }
@@ -3819,10 +3867,20 @@ final class CompanionStore {
         // (디코드는 *성공*하므로 위의 .corrupt 복구도 발동하지 않는다). 여기서 걸면 자가 복구된다.
         state = SaveTransfer.sanitized(s)
     }
+    /// What the file holds, as last written. Every refresh ends with a save: a refresh that changed nothing rewrote
+    /// the whole file all the same (660 KB for 571 Pokédex entries, twice a minute while tokens flow).
+    private var savedState: CompanionState?
+
     private func save() {
         refreshRepresentativeSubject()
+        guard state != savedState else { return }
         guard let data = try? JSONEncoder().encode(state) else { return }
-        try? data.write(to: fileURL, options: .atomic)   // 부분 쓰기 손상 방지(펫 상태)
+        do {
+            try data.write(to: fileURL, options: .atomic)   // 부분 쓰기 손상 방지(펫 상태)
+            savedState = state
+        } catch {
+            AppLog.write("save failed: \(error.localizedDescription)")
+        }
     }
 }
 

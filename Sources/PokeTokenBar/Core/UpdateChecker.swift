@@ -51,7 +51,10 @@ final class UpdateChecker {
     /// Newer commit the user chose to skip. Hidden from the banner, still shown in Settings.
     private(set) var skipped: Available?
     private(set) var isUpdating = false
+    /// The last update's failure ("error: build failed"), shown until dismissed. Read at launch too: the update quits
+    /// the app before installing, and the app reopened after a failure knew nothing of it.
     private(set) var updateError: String?
+    private let updateStatusURL: URL
     private var updateStatusTask: Task<Void, Never>?
 
     let currentCommit: String
@@ -66,6 +69,7 @@ final class UpdateChecker {
     static let skippedVersionKey = "skippedUpdateVersion"
 
     init(currentCommit: String? = nil, currentVersion: String? = nil, clock: @escaping () -> Date = Date.init, defaults: UserDefaults = .standard,
+         updateStatusURL: URL = AppStatePaths.directory().appendingPathComponent("update-status"),
          fetchLatest: (() async -> LatestCommit?)? = nil) {
         let embeddedCommit = Bundle.main.object(forInfoDictionaryKey: "PTBCommitSHA") as? String
         let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
@@ -75,6 +79,23 @@ final class UpdateChecker {
         self.clock = clock
         self.defaults = defaults
         self.fetchLatest = fetchLatest ?? { await Self.liveLatestCommit(repo: "KillianHzr/PokeTokenLBI") }
+        self.updateStatusURL = updateStatusURL
+        updateError = Self.recentUpdateError(at: updateStatusURL, now: clock())
+    }
+
+    /// The error the update script left, if it wrote it within the last hour: an older one is no news.
+    nonisolated static func recentUpdateError(at url: URL, now: Date) -> String? {
+        guard let content = try? String(contentsOf: url, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
+              content.hasPrefix("error"),
+              let written = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.modificationDate] as? Date,
+              now.timeIntervalSince(written) < 3600 else { return nil }
+        return content
+    }
+
+    /// Hides the failure, for this launch and the next ones.
+    func dismissUpdateError() {
+        updateError = nil
+        try? "dismissed".write(to: updateStatusURL, atomically: true, encoding: .utf8)
     }
 
     var settingsNotice: SettingsNotice {
@@ -202,7 +223,7 @@ final class UpdateChecker {
     func startMonitoringUpdateStatus() {
         updateStatusTask?.cancel()
         updateStatusTask = Task { @MainActor [weak self] in
-            let statusURL = AppStatePaths.directory().appendingPathComponent("update-status")
+            guard let statusURL = self?.updateStatusURL else { return }
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
                 guard let self, self.isUpdating else { break }
@@ -243,6 +264,8 @@ final class UpdateChecker {
     /// 백그라운드에서 repo fetch + build-app.sh + reopen을 수행하는 분리(detached) 스크립트.
     nonisolated static let detachedUpgradeScript = """
     export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+    APP_PID="$1"
+    APP_BUNDLE="$2"
 
     APP_SUPPORT="$HOME/Library/Application Support/PokeTokenBar"
     SRC_DIR="$APP_SUPPORT/src"
@@ -253,9 +276,14 @@ final class UpdateChecker {
     echo "running" > "$STATUS_FILE"
     echo "=== Update started at $(date) ===" >> "$LOG_FILE"
 
+    # The build quits the app before installing: a failure after that must reopen it, or the player is left
+    # without one. The reopened app reads the error from the status file.
     fail() {
       echo "error: $1" > "$STATUS_FILE"
       echo "Update failed: $1" >> "$LOG_FILE"
+      if ! kill -0 "$APP_PID" 2>/dev/null; then
+        open "/Applications/PokeTokenLBI.app" 2>/dev/null || open "$APP_BUNDLE" 2>/dev/null
+      fi
       exit 1
     }
 
