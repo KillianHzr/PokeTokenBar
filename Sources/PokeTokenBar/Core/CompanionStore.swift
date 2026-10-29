@@ -534,7 +534,7 @@ final class CompanionStore {
                 let branchItems = branches.map { ch in
                     BranchEvolutionItem(
                         speciesID: ch.speciesID,
-                        isCollected: isEvolutionCollected(speciesID: ch.speciesID, baseID: a.baseID)
+                        isCollected: isEvolutionCollected(speciesID: ch.speciesID, baseID: a.baseID, form: a.form)
                     )
                 }
                 out.append(EvoLineItem(.branch(branchItems), .future))
@@ -567,7 +567,7 @@ final class CompanionStore {
         var stops = a.pathIDs.prefix(a.stageIndex + 1).enumerated().map { index, id in
             EvolutionTrackStop.reached(id, isCurrent: index == a.stageIndex)
         }
-        func caught(_ id: Int) -> Bool { isEvolutionCollected(speciesID: id, baseID: a.baseID) }
+        func caught(_ id: Int) -> Bool { isEvolutionCollected(speciesID: id, baseID: a.baseID, form: a.form) }
         func paths(from node: EvoNode) -> [[BranchEvolutionItem]] {
             let open = Self.openChildren(node, form: a.form)
             guard !open.isEmpty else { return [[]] }
@@ -1629,14 +1629,21 @@ final class CompanionStore {
 
     /// Whether this evolution graduated already, what the evolution plan avoids and Home's track shows as had: neither
     /// a Pokémon sent off nor the one being raised, as the goals count (a Vaporeon sent off leaves Vaporeon to find).
-    func isEvolutionCollected(speciesID: Int, baseID: Int) -> Bool {
-        if state.collectedFinals.contains("\(baseID):\(speciesID)") { return true }
-        return state.dex.contains { !$0.isReleased && ($0.finalID == speciesID || $0.chainOrder.contains(speciesID)) }
+    /// A species with forms is had in this individual's form only (`form`, its line form): a Kanto Slowbro made a
+    /// Galarian Slowpoke's Slowbro had, so the plan made a Galarian Slowbro again while Galarian Slowking was missing,
+    /// and Home showed it caught. `collectedFinals` keeps no form, so it only answers for a species without forms.
+    func isEvolutionCollected(speciesID: Int, baseID: Int, form: PokemonForm? = nil) -> Bool {
+        let speciesForm = PokemonForm.resolved(speciesID: speciesID, form: form)
+        if speciesForm == nil, state.collectedFinals.contains("\(baseID):\(speciesID)") { return true }
+        return state.dex.contains {
+            !$0.isReleased && ($0.finalID == speciesID || $0.chainOrder.contains(speciesID))
+                && (speciesForm == nil || PokemonForm.resolved(speciesID: speciesID, form: $0.form) == speciesForm)
+        }
     }
 
     /// 분기 노드의 모든 최종체가 이미 수집되었는지 여부. (단일 진화 종인 경우 해당 종 자체의 수집 여부)
     func isBranchNodeCollected(_ node: EvoNode, baseID: Int, form: PokemonForm?) -> Bool {
-        Self.openFinals(node, form: form).allSatisfy { isEvolutionCollected(speciesID: $0, baseID: baseID) }
+        Self.openFinals(node, form: form).allSatisfy { isEvolutionCollected(speciesID: $0, baseID: baseID, form: form) }
     }
 
     /// The evolutions of a node open to an individual of this form (`PokemonEvolutionData.formGates`).
@@ -2165,13 +2172,16 @@ final class CompanionStore {
                                   linesGraduated: FossilDig.lines.filter(graduatedSpeciesIDs.contains).count)
     }
 
-    /// Species graduated in a Rock-type form: their usual one, or one of their forms (Hisuian Arcanine).
+    /// Species graduated in a Rock-type form: their usual one, or one of their forms (Hisuian Arcanine). A species with
+    /// forms counts by the forms it graduated in only: a Galarian Corsola (Ghost) counted as Rock, Corsola's usual type.
     var rockSpeciesGraduated: Set<Int> {
         Set(graduatedSpeciesIDs.filter { id in
-            PokemonTypeData.types(forSpeciesID: id, form: nil).contains(.rock)
-                || state.collectedForms(speciesID: id, graduatedOnly: true).contains {
-                    PokemonTypeData.types(forSpeciesID: id, form: $0).contains(.rock)
-                }
+            guard PokemonForm.hasForms(speciesID: id) else {
+                return PokemonTypeData.types(forSpeciesID: id, form: nil).contains(.rock)
+            }
+            return state.collectedForms(speciesID: id, graduatedOnly: true).contains {
+                PokemonTypeData.types(forSpeciesID: id, form: $0).contains(.rock)
+            }
         })
     }
 
@@ -2416,10 +2426,8 @@ final class CompanionStore {
     /// A Shop egg can be bought whenever the wallet holds its price, egg or not: it waits in the Bag, and only using
     /// it sends the current Pokémon off (`useBagEgg`).
     func canBuyEgg(_ tier: Rarity?) -> Bool {
-        // 파는 티어인지 먼저 확인한다 — 만족 불가능한 보증(전설: capture_rate 로 표현 불가)을 사면
-        // 두 롤 경로 모두 후보가 0개라 알이 영영 안 깨지고, 부화가 없으니 보증도 안 풀리며,
-        // 새 알 구매는 `hasActive` 에 막혀 되돌릴 수단이 없다. 가격만 계산되면 값이 빠져나가므로
-        // 판매 목록을 여기서 강제한다(호출부 하나가 실수하면 토큰이 통째로 사라진다).
+        // The tiers on sale only: an egg of a guarantee no roll can meet (legendary, which no capture rate gives) would
+        // never hatch, and its price would be gone. The list is enforced here, where one caller's mistake costs tokens.
         guard FreshEgg.shopTiers.contains(tier) else { return false }
         return availableTokens >= price(of: .egg(tier))
     }
@@ -3448,9 +3456,23 @@ final class CompanionStore {
             return index.last.map { ($0.id, event?.alwaysShiny ?? false) }   // 도달 불가(방어)
         }
         // GraphQL base 인덱스 엔드포인트 장애 → REST 폴백. 부화가 한 엔드포인트에 묶이지 않게.
-        AppLog.write("hatch: base index unavailable — REST fallback")
+        AppLog.write("hatch: base index unavailable, REST fallback")
+        if state.eggFromBirthdayEgg { return await chooseBirthdayBaseViaREST() }
         // An event's egg keeps its shiny promise there too.
         return await chooseBaseViaREST().map { ($0, state.eggEvent?.alwaysShiny ?? false) }
+    }
+
+    /// The Birthday Egg's roll without the index, its rule kept (`chooseBirthdayBase`): a mythical line not graduated,
+    /// else a legendary one, from the lists of both; once all graduated, any of them, shiny. A random legendary of the
+    /// REST fallback could be one graduated while a mythical was missing, and was never shiny.
+    private func chooseBirthdayBaseViaREST() async -> (id: Int, shiny: Bool)? {
+        let graduated = graduatedSpeciesIDs
+        let mythicals = Set(SpeciesGoal.mythicals).subtracting(graduated)
+        if !mythicals.isEmpty { return await chooseListedBaseViaREST(mythicals, charm: false).map { ($0, false) } }
+        let legendaries = Set(SpeciesGoal.legendaries).subtracting(graduated)
+        if !legendaries.isEmpty { return await chooseListedBaseViaREST(legendaries, charm: false).map { ($0, false) } }
+        return await chooseListedBaseViaREST(Set(SpeciesGoal.mythicals + SpeciesGoal.legendaries), charm: false)
+            .map { ($0, true) }
     }
 
     // MARK: Hatch pool and odds

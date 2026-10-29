@@ -12,6 +12,19 @@ private struct BirthdayProvider: PokeProviding {
     func baseSpecies(id: Int) async throws -> BaseSpecies? { entries.first { $0.id == id } }
 }
 
+/// The base index unavailable: only the REST answers, for any species asked.
+private struct NoIndexProvider: PokeProviding {
+    func line(baseSpeciesID: Int) async throws -> EvoLine {
+        EvoLine(baseID: baseSpeciesID, tree: EvoNode(speciesID: baseSpeciesID, children: []), rarity: .legendary, names: [:])
+    }
+    func baseSpeciesIndex() async throws -> [BaseSpecies] { throw URLError(.badServerResponse) }
+    func baseSpecies(id: Int) async throws -> BaseSpecies? {
+        let legendary = SpeciesGoal.mythicals.contains(id) || SpeciesGoal.legendaries.contains(id)
+        return BaseSpecies(id: id, captureRate: legendary ? 3 : 45, isUnbreedableLegendary: legendary,
+                           isLegendary: legendary)
+    }
+}
+
 /// The birthday gift (#65): the Birthday Egg, claimable for a week from the birthday, or for three months by a save
 /// that never got one, once a year; it hatches a mythical not graduated yet, then a legendary, then a shiny one.
 @MainActor
@@ -281,6 +294,37 @@ final class BirthdayGiftTests: XCTestCase {
             every.insert(mon.baseID)
         }
         XCTAssertGreaterThan(every.count, 1)
+    }
+
+    /// [Regression] Without the base index the egg keeps its rule: the REST fallback took any legendary it met, one
+    /// graduated while another was missing, and never kept the shiny promised once all are graduated.
+    func testWithoutTheIndexTheEggKeepsItsRule() async throws {
+        func hatch(seed: UInt64, graduated ids: [Int]) async throws -> MonState {
+            var st = CompanionState()
+            st.installBaselineSet = true
+            st.lastDate = "2026-10-26"
+            st.dex = graduated(ids)
+            st.active = MonState(baseID: 1, pathIDs: [1], stageIndex: 0, usedAtStage: 0, rarity: .common, totalForms: 1)
+            st.inventory = [ItemKind.birthdayEgg.rawValue: 1]
+            let url = FileManager.default.temporaryDirectory.appendingPathComponent("birthday-rest-\(UUID().uuidString).json")
+            try JSONEncoder().encode(st).write(to: url)
+            addTeardownBlock { try? FileManager.default.removeItem(at: url) }
+            let s = CompanionStore(provider: NoIndexProvider(), clock: { self.now }, fileURL: url, rng: SeededRNG(seed: seed))
+            XCTAssertTrue(s.useBirthdayEgg())
+            s.setEggUsageForTesting(s.eggHatchThreshold)
+            await s.hatchIfNeeded()
+            return try XCTUnwrap(s.state.active, "seed \(seed)")
+        }
+        let mythicalMissing = try await hatch(seed: 1, graduated: SpeciesGoal.mythicals.filter { $0 != 494 })
+        XCTAssertEqual(mythicalMissing.baseID, 494, "the mythical still missing")
+        let legendaryMissing = try await hatch(seed: 2, graduated: SpeciesGoal.mythicals + SpeciesGoal.legendaries.filter { $0 != 150 })
+        XCTAssertEqual(legendaryMissing.baseID, 150, "then the legendary still missing")
+        XCTAssertFalse(legendaryMissing.isShiny)
+        let all = try await hatch(seed: 3, graduated: SpeciesGoal.mythicals + SpeciesGoal.legendaries)
+        XCTAssertTrue(all.isShiny, "all graduated: a shiny one")
+        XCTAssertTrue((SpeciesGoal.mythicals + SpeciesGoal.legendaries).contains(all.baseID))
+        XCTAssertTrue(Set(SpeciesGoal.mythicals).isDisjoint(with: SpeciesGoal.legendaries))
+        XCTAssertEqual(SpeciesGoal.legendaries.count, 66)
     }
 
     /// A released mythical is not graduated: it can still come from the egg.

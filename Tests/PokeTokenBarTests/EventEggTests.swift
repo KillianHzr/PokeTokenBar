@@ -215,6 +215,19 @@ final class EventEggTests: XCTestCase {
     }
 
     /// The friendship egg hatches the first catch's line again, shiny.
+    /// [Regression] Pokémon Day's egg admits the lines that grow into Kanto Pokémon from a later baby: taking number
+    /// 151 or lower only, it could never hatch Pikachu, Clefairy, Jigglypuff, the Hitmons, Jynx, Electabuzz, Magmar,
+    /// Mr. Mime, Chansey or Snorlax.
+    func testPokemonDaysEggAdmitsKantoLinesFromALaterBaby() {
+        func admits(_ id: Int) -> Bool { EventEgg.pokemonDay.admits(BaseSpecies(id: id, captureRate: 45), companionLine: nil) }
+        for baby in [172, 173, 174, 236, 238, 239, 240, 439, 440, 446] { XCTAssertTrue(admits(baby), "\(baby)") }
+        XCTAssertTrue(admits(1))
+        XCTAssertTrue(admits(151))
+        XCTAssertFalse(admits(175), "Togepi grows into Johto and Sinnoh Pokémon only")
+        XCTAssertFalse(admits(298), "Azurill grows into Marill, a Johto Pokémon")
+        XCTAssertFalse(admits(152))
+    }
+
     func testTheFriendshipEggBringsTheFirstCatchBack() async throws {
         let long = Date(timeIntervalSince1970: 1_700_000_000)
         for seed: UInt64 in 1...4 {

@@ -2022,14 +2022,14 @@ struct L {
                      "Lässt im Beutel Eier aus Entwicklungssteinen doppelt so schnell schlüpfen, und ihre Pokémon wachsen 30 % schneller.",
                      "Пока она у вас, яйца, полученные за камень эволюции, вылупляются в 2 раза быстрее, а их покемоны растут на 30% быстрее.")
         case .ovalCharm:
-            return t("보유하면 아직 모으지 못한 폼이 있는 포켓몬만, 그 폼으로 알에서 태어납니다.",
-                     "While owned, eggs only hatch Pokémon with a form you are missing, in a form you don't have.",
-                     "持っているとまだ集めていないフォルムがあるポケモンだけが、そのフォルムでタマゴから生まれます。",
-                     "Mientras lo tengas, de los huevos solo salen Pokémon con una forma que te falta, en una forma que no tienes.",
-                     "Tant que tu le possèdes, les œufs ne font éclore que des Pokémon dont il te manque une forme, dans une forme que tu n'as pas.",
-                     "Enquanto estiver na bolsa, dos ovos só nascem Pokémon com uma forma que falta, numa forma que você não tem.",
-                     "Lässt im Beutel nur Pokémon schlüpfen, denen dir noch eine Form fehlt, in einer Form, die du nicht hast.",
-                     "Пока он у вас, из яиц вылупляются только покемоны с недостающей формой, в форме, которой у вас нет.")
+            return t("보유하면 아직 모으지 못한 폼이 있는 포켓몬이 그 폼으로 알에서 태어나요. 그런 계열이 없으면 다른 계열이 태어나요. 생일 알과 화석 알에는 적용되지 않아요.",
+                     "While owned, eggs hatch Pokémon with a form you are missing, in a form you don't have; when no line misses one, any other. Birthday and Fossil Eggs keep their own rules.",
+                     "持っていると、まだ集めていないフォルムがあるポケモンが、そのフォルムでタマゴから生まれます。そういう系統がなければほかの系統が生まれます。誕生日と化石のタマゴには効きません。",
+                     "Mientras lo tengas, de los huevos salen Pokémon con una forma que te falta, en una forma que no tienes; si a ninguna línea le falta una, cualquier otra. No actúa en los huevos de cumpleaños ni fósiles.",
+                     "Tant que tu le possèdes, les œufs font éclore des Pokémon dont il te manque une forme, dans une forme que tu n'as pas ; quand aucune lignée n'en manque, n'importe quelle autre. Il ne joue pas sur les œufs d'anniversaire et fossiles.",
+                     "Enquanto estiver na bolsa, dos ovos nascem Pokémon com uma forma que falta, numa forma que você não tem; se nenhuma linha tiver forma faltando, qualquer outra. Não vale para os ovos de aniversário e fósseis.",
+                     "Lässt im Beutel Pokémon schlüpfen, denen dir noch eine Form fehlt, in einer Form, die du nicht hast; fehlt keiner Linie eine, dann jedes andere. Bei Geburtstags- und Fossil-Eiern wirkt es nicht.",
+                     "Пока он у вас, из яиц вылупляются покемоны с недостающей формой, в форме, которой у вас нет; если ни одной линии форма не нужна, то любые другие. На яйца дня рождения и окаменелостей не действует.")
         case .glimmeringCharm:
             return t("보유하면 알에서 태어나는 포켓몬이 모두 이로치입니다.",
                      "While owned, every Pokémon that hatches is shiny.",
@@ -2171,14 +2171,14 @@ struct L {
                      "Arceus' Belohnung: Holst du sie ab, kommen ein \(rare) und ein \(uncommon) in deinen Beutel.",
                      "Награда Арсеуса: получив её, вы найдёте в сумке «\(rare)» и «\(uncommon)».")
         case .excavation:
-            return t("바위 타입 포켓몬을 4마리 졸업시킬 때마다 화석 알을 하나 발굴해요. 알에서는 아직 졸업하지 않은 화석 계열이 태어나요. 화석 계열은 이 알에서만 태어나고, 졸업한 뒤에는 모든 알에서 나올 수 있어요.",
-                     "Every 4 Rock-type Pokémon you graduate dig up a Fossil Egg. It hatches a fossil line you haven't graduated yet: a fossil line hatches from these eggs only, then from any egg once graduated.",
-                     "いわタイプのポケモンを4匹卒業させるたびに化石のタマゴを1つ発掘します。まだ卒業していない化石の系統が生まれます。化石の系統はこのタマゴからしか生まれず、卒業したあとはどのタマゴからも生まれます。",
-                     "Cada 4 Pokémon de tipo Roca que gradúas desentierran un Huevo Fósil. De él nace una línea fósil que aún no has graduado: una línea fósil solo nace de estos huevos y, una vez graduada, de cualquier huevo.",
-                     "Tous les 4 Pokémon de type Roche que tu diplômes, tu déterres un Œuf fossile. Il fait éclore une lignée fossile pas encore diplômée : une lignée fossile n'éclot que de ces œufs, puis de tous les œufs une fois diplômée.",
-                     "A cada 4 Pokémon do tipo Pedra que você forma, você desenterra um Ovo Fóssil. Dele nasce uma linha fóssil que você ainda não formou: uma linha fóssil só nasce desses ovos e, depois de formada, de qualquer ovo.",
-                     "Alle 4 Gestein-Pokémon, die du verabschiedest, gräbst du ein Fossil-Ei aus. Daraus schlüpft eine Fossil-Linie, die du noch nicht verabschiedet hast: Eine Fossil-Linie schlüpft nur aus diesen Eiern, nach ihrem Abschied dann aus jedem Ei.",
-                     "Каждые 4 выпущенных покемона каменного типа приносят Яйцо-окаменелость. Из него вылупляется ещё не выпущенная линия окаменелостей: такая линия вылупляется только из этих яиц, а после выпуска из любых яиц.")
+            return t("바위 타입 포켓몬을 4종 졸업시킬 때마다 화석 알을 하나 발굴해요(진화 단계마다 한 종으로 세요). 알에서는 아직 졸업하지 않은 화석 계열이 태어나요. 화석 계열은 이 알과 우정 기념 알에서만 태어나고, 졸업한 뒤에는 모든 알에서 나올 수 있어요.",
+                     "Every 4 Rock-type species you graduate dig up a Fossil Egg (each stage of a line counts as a species). It hatches a fossil line you haven't graduated yet: a fossil line hatches only from these eggs and the Friendship Egg, then from any egg once graduated.",
+                     "いわタイプのポケモンを4種卒業させるたびに化石のタマゴを1つ発掘します（進化の段階ごとに1種と数えます）。まだ卒業していない化石の系統が生まれます。化石の系統はこのタマゴとなかよし記念のタマゴからしか生まれず、卒業したあとはどのタマゴからも生まれます。",
+                     "Cada 4 especies de tipo Roca que gradúas desentierran un Huevo Fósil (cada etapa de una línea cuenta como una especie). De él nace una línea fósil que aún no has graduado: una línea fósil solo nace de estos huevos y del Huevo de la Amistad y, una vez graduada, de cualquier huevo.",
+                     "Toutes les 4 espèces de type Roche que tu diplômes, tu déterres un Œuf fossile (chaque stade d'une lignée compte comme une espèce). Il fait éclore une lignée fossile pas encore diplômée : une lignée fossile n'éclot que de ces œufs et de l'Œuf de l'amitié, puis de tous les œufs une fois diplômée.",
+                     "A cada 4 espécies do tipo Pedra que você forma, você desenterra um Ovo Fóssil (cada estágio de uma linha conta como uma espécie). Dele nasce uma linha fóssil que você ainda não formou: uma linha fóssil só nasce desses ovos e do Ovo da Amizade e, depois de formada, de qualquer ovo.",
+                     "Alle 4 Gestein-Arten, die du verabschiedest, gräbst du ein Fossil-Ei aus (jede Stufe einer Linie zählt als eine Art). Daraus schlüpft eine Fossil-Linie, die du noch nicht verabschiedet hast: Eine Fossil-Linie schlüpft nur aus diesen Eiern und dem Freundschafts-Ei, nach ihrem Abschied dann aus jedem Ei.",
+                     "Каждые 4 выпущенных вида каменного типа приносят Яйцо-окаменелость (каждая стадия линии считается видом). Из него вылупляется ещё не выпущенная линия окаменелостей: такая линия вылупляется только из этих яиц и Яйца дружбы, а после выпуска из любых яиц.")
         case .fossilEgg:
             return t("지금 포켓몬을 놓아주고 이 알을 받아요. 아직 졸업하지 않은 화석 계열의 포켓몬이 무작위로 태어나고, 모든 계열을 졸업했다면 아무 화석 계열이나 태어나요.",
                      "Send off your current Pokémon for it: it hatches, at random, a fossil Pokémon of a line you haven't graduated yet, or of any fossil line once all are graduated.",
@@ -2569,10 +2569,10 @@ struct L {
         t("앞으로 받을 알", "To earn", "これから", "Por ganar", "À gagner", "A ganhar", "Noch zu verdienen", "Впереди")
     }
     func excavationNextEgg(_ count: Int, of needed: Int) -> String {
-        t("다음 알: 바위 타입 \(count)/\(needed)", "Next egg: \(count)/\(needed) Rock-type Pokémon",
-          "次のタマゴ: いわタイプ \(count)/\(needed)", "Próximo huevo: \(count)/\(needed) Pokémon de tipo Roca",
-          "Prochain œuf : \(count)/\(needed) Pokémon de type Roche", "Próximo ovo: \(count)/\(needed) Pokémon do tipo Pedra",
-          "Nächstes Ei: \(count)/\(needed) Gestein-Pokémon", "Следующее яйцо: \(count)/\(needed) каменного типа")
+        t("다음 알: 바위 타입 \(count)/\(needed)종", "Next egg: \(count)/\(needed) Rock-type species",
+          "次のタマゴ: いわタイプ \(count)/\(needed)種", "Próximo huevo: \(count)/\(needed) especies de tipo Roca",
+          "Prochain œuf : \(count)/\(needed) espèces de type Roche", "Próximo ovo: \(count)/\(needed) espécies do tipo Pedra",
+          "Nächstes Ei: \(count)/\(needed) Gestein-Arten", "Следующее яйцо: \(count)/\(needed) видов каменного типа")
     }
     func excavationLines(_ owned: Int, of total: Int) -> String {
         t("졸업한 화석 계열: \(owned)/\(total)", "Fossil lines graduated: \(owned)/\(total)", "卒業した化石の系統: \(owned)/\(total)",

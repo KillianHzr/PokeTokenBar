@@ -692,6 +692,25 @@ read_when:
   `LocalUsageReader.gregorianCalendar()`; `testOnlyDayLevelCodeReadsTheSystemCalendar` allows `Calendar.current` only
   for what is the same in every calendar (start of day, today, first weekday, weekday).
 
+- **"Had" is per form for a species with forms.** `isEvolutionCollected` checked the species only, and
+  `collectedFinals` keeps no form: a Kanto Slowbro made a Galarian Slowpoke's Slowbro had, so Home showed Galarian
+  Slowbro caught and the plan could make it again while Galarian Slowking was missing. It now takes the individual's
+  form and compares the species' own form (`testABranchIsHadInTheIndividualsFormOnly`). Same class as the Rotom
+  Catalog's form rule and the Galarian Corsola below.
+
+- **A species' usual type is not the type of every form it graduated in.** The digs counted a species as Rock if its
+  usual form was, so a Galarian Corsola (Ghost) counted. A species with forms counts by the forms it graduated in
+  (`testAFormThatIsNotRockDoesNotCount`).
+
+- **A fallback must keep the rule of the path it replaces.** The Birthday Egg's REST fallback (base index down) took
+  any legendary it met, one graduated while a mythical was missing, and never the shiny promised once all graduated.
+  It reads the mythical then legendary lists (`SpeciesGoal.legendaries`, from the index of 2026-10-29) and keeps the
+  shiny: `testWithoutTheIndexTheEggKeepsItsRule`.
+
+- **A number range is not a region's lines.** Pokémon Day's egg took number 151 or lower, which left out every Kanto
+  Pokémon whose line starts with a later baby (Pikachu, Snorlax, the Hitmons...): `EventEgg.kantoBabyLines`,
+  `testPokemonDaysEggAdmitsKantoLinesFromALaterBaby`.
+
 ## 외부 로그·사용량 소스
 
 - **토큰 파일 파서는 외부 도구의 실제 직렬화 구조체(중첩 객체)를 반영해야 한다.** `jetski-standalone-oauth-token`

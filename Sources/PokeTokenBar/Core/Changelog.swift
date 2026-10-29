@@ -67,6 +67,58 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-29", entries: [
+            .fixed("2026-10-29-branch-form", { $0.t("지역 폼 포켓몬을 키울 때, 다른 폼으로만 가진 진화형을 홈에서 잡은 것으로 보여 주지 않고, 진화도 아직 없는 쪽을 노려요.",
+                                                    "Raising a regional form, Home no longer shows as caught an evolution you only have in another form, and the evolution aims at the one you miss.",
+                                                    "リージョンフォームのポケモンを育てるとき、別のフォルムでしか持っていない進化形をホームで捕まえた扱いにせず、進化もまだ持っていない方をねらいます。",
+                                                    "Al criar una forma regional, el Inicio ya no muestra como capturada una evolución que solo tienes en otra forma, y la evolución apunta a la que te falta.",
+                                                    "Avec un Pokémon d'une forme régionale, l'accueil ne montre plus comme attrapée une évolution que tu n'as que dans une autre forme, et l'évolution vise celle qui te manque.",
+                                                    "Criando uma forma regional, o Início não mostra mais como capturada uma evolução que você só tem em outra forma, e a evolução mira a que falta.",
+                                                    "Bei einer Regionalform zeigt die Startseite eine Entwicklung, die du nur in einer anderen Form hast, nicht mehr als gefangen, und die Entwicklung zielt auf die fehlende.",
+                                                    "При выращивании региональной формы главная больше не показывает пойманной эволюцию, которая у вас есть только в другой форме, а эволюция идёт к недостающей.") }),
+            .fixed("2026-10-29-birthday-egg-rule") { l in
+                let egg = l.itemName(.birthdayEgg)
+                return l.t("포켓몬 목록을 불러오지 못해도 \(KoreanParticle.subject.attach(to: egg)) 규칙을 지켜요: 아직 없는 환상이나 전설 포켓몬, 모두 졸업한 뒤에는 이로치.",
+                           "When the Pokémon list doesn't load, the \(egg) keeps its rule: a mythical or legendary you're missing, and a shiny once all are graduated.",
+                           "ポケモンの一覧が読み込めなくても、\(egg)はルールを守ります。まだいない幻や伝説のポケモン、すべて卒業したあとは色違いです。",
+                           "Cuando la lista de Pokémon no carga, el \(egg) mantiene su regla: un singular o legendario que te falte, y uno variocolor cuando todos están graduados.",
+                           "Quand la liste des Pokémon ne charge pas, l'\(egg) garde sa règle : un fabuleux ou un légendaire qui te manque, et un chromatique une fois tout diplômé.",
+                           "Quando a lista de Pokémon não carrega, o \(egg) mantém sua regra: um mítico ou lendário que falta, e um brilhante quando todos estão formados.",
+                           "Lädt die Pokémon-Liste nicht, hält sich das \(egg) an seine Regel: ein fehlendes mysteriöses oder legendäres Pokémon, und ein schillerndes, wenn alle verabschiedet sind.",
+                           "Когда список покемонов не загружается, \"\(egg)\" соблюдает своё правило: мифический или легендарный, которого у вас нет, а когда выпущены все, сияющий.")
+            },
+            .fixed("2026-10-29-dig-forms") { l in
+                let dig = l.itemName(.excavation)
+                return l.t("\(KoreanParticle.subject.attach(to: dig)) 바위 타입이 아닌 폼(가라르 코산호)을 더는 세지 않아요.",
+                           "The \(dig) no longer counts a form that isn't Rock-type (Galarian Corsola).",
+                           "\(dig)は、いわタイプではないフォルム（ガラルのすがたのサニーゴ）を数えなくなりました。",
+                           "La \(dig) ya no cuenta una forma que no es de tipo Roca (Corsola de Galar).",
+                           "Les \(dig) ne comptent plus une forme qui n'est pas de type Roche (Corayon de Galar).",
+                           "A \(dig) não conta mais uma forma que não é do tipo Pedra (Corsola de Galar).",
+                           "Die \(dig) zählt keine Form mehr, die kein Gestein-Typ ist (Galar-Corasonn).",
+                           "\"\(dig)\" больше не учитывают форму не каменного типа (галарская Корсола).")
+            },
+            .improved("2026-10-29-pokemon-day-babies") { l in
+                let egg = l.itemName(.pokemonDayEgg)
+                return l.t("\(KoreanParticle.subject.attach(to: egg)) 피카츄와 잠만보처럼 아기 포켓몬에서 시작하는 관동 포켓몬도 태어나게 해요.",
+                           "The \(egg) can also hatch Kanto Pokémon whose line starts with a baby, such as Pikachu and Snorlax.",
+                           "\(egg)から、ピカチュウやカビゴンのようにベビィポケモンから始まるカントーのポケモンも生まれます。",
+                           "Del \(egg) también pueden salir Pokémon de Kanto cuya línea empieza con un bebé, como Pikachu y Snorlax.",
+                           "L'\(egg) peut aussi faire éclore les Pokémon de Kanto dont la lignée commence par un bébé, comme Pikachu et Ronflex.",
+                           "Do \(egg) também podem nascer Pokémon de Kanto cuja linha começa com um bebê, como Pikachu e Snorlax.",
+                           "Aus dem \(egg) können jetzt auch Kanto-Pokémon schlüpfen, deren Linie mit einem Baby beginnt, etwa Pikachu und Relaxo.",
+                           "Из \"\(egg)\" теперь могут вылупиться и покемоны Канто, чья линия начинается с малыша, например Пикачу и Снорлакс.")
+            },
+            .improved("2026-10-29-dig-oval-texts") { l in
+                let dig = l.itemName(.excavation), charm = l.itemName(.ovalCharm)
+                return l.t("\(KoreanParticle.subject.attach(to: dig)) 발굴마다 바위 타입 4종(진화 단계마다 한 종)이라고, \(KoreanParticle.subject.attach(to: charm)) 폼이 빠진 계열이 없으면 다른 계열을 준다고 설명해요.",
+                           "The \(dig) now says it counts 4 Rock-type species per dig, each stage a species, and the \(charm) that it falls back on other lines when none misses a form.",
+                           "\(dig)は発掘ごとにいわタイプ4種（進化の段階ごとに1種）と、\(charm)はフォルムが足りない系統がなければほかの系統になると説明するようになりました。",
+                           "La \(dig) ahora dice que cuenta 4 especies de tipo Roca por excavación, cada etapa una especie, y el \(charm), que pasa a otras líneas cuando a ninguna le falta una forma.",
+                           "Les \(dig) disent maintenant compter 4 espèces de type Roche par fouille, chaque stade une espèce, et le \(charm) qu'il retombe sur les autres lignées quand aucune ne manque de forme.",
+                           "A \(dig) agora diz que conta 4 espécies do tipo Pedra por escavação, cada estágio uma espécie, e o \(charm), que passa a outras linhas quando nenhuma tem forma faltando.",
+                           "Die \(dig) sagt jetzt, dass sie 4 Gestein-Arten je Grabung zählt, jede Stufe eine Art, und der \(charm), dass er auf andere Linien ausweicht, wenn keiner eine Form fehlt.",
+                           "\"\(dig)\" теперь говорят, что считают 4 вида каменного типа на раскопку, каждая стадия отдельно, а \"\(charm)\", что переходит на другие линии, когда ни одной не нужна форма.")
+            },
             .fixed("2026-10-29-limit-candies-once") { l in
                 let candy = l.itemName(.rareCandy)
                 return l.t("초기화 시각이 조금씩 밀리거나 한도가 100% 근처에서 오르내려도 한도가 \(KoreanParticle.object.attach(to: candy)) 두 번 주지 않고, 요금제가 잠깐 잘못 읽혀도 빠뜨리지 않아요.",

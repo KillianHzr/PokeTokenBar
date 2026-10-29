@@ -626,6 +626,13 @@ struct SpeciesGoal: Equatable, Sendable {
     /// The mythical Pokémon, one per line (Meltan for Melmetal): what the Birthday Egg hatches first.
     static let mythicals = [151, 251, 385, 386, 489, 490, 491, 492, 493, 494, 647, 648, 649, 719, 720, 721, 801, 802, 807,
                             808, 893, 1025]
+    /// The legendary Pokémon that are not mythical, one per line (Cosmog for Solgaleo, Type: Null for Silvally): with
+    /// `mythicals`, the bases PokéAPI flags `is_legendary` or `is_mythical` (the base index of 2026-10-29). The Birthday
+    /// Egg's roll reads them when the index is unavailable.
+    static let legendaries = [144, 145, 146, 150, 243, 244, 245, 249, 250, 377, 378, 379, 380, 381, 382, 383, 384, 480, 481,
+                              482, 483, 484, 485, 486, 487, 488, 638, 639, 640, 641, 642, 643, 644, 645, 646, 716, 717, 718,
+                              772, 785, 786, 787, 788, 789, 800, 888, 889, 890, 891, 894, 895, 896, 897, 898, 905, 1001,
+                              1002, 1003, 1004, 1007, 1008, 1014, 1015, 1016, 1017, 1024]
     /// Paradox Pokémon of Scarlet and Violet and their DLC, ancient then future.
     static let paradoxes = Array(984...995) + [1005, 1006, 1009, 1010] + Array(1020...1023)
 
@@ -718,7 +725,7 @@ enum CollectorBonus {
     static let lunarWingPsychicDark = 1.3
     /// Rare Candies the Meteorite adds to each usage window filled: Jirachi's wish.
     static let meteoriteWindowCandies = 1
-    /// Rare Candies the Rotom Catalog gives for each Pokémon hatched in a form its line never had.
+    /// Rare Candies the Rotom Catalog gives for each Pokémon graduated in a form its line never graduated in.
     static let rotomCatalogNewFormCandies = 1
     /// Oak's Letter: the starters of every region, at every stage.
     static let oaksLetterStarter = 1.25

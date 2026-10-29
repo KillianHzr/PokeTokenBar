@@ -21,7 +21,7 @@ private struct TrackLineProvider: PokeProviding {
 @MainActor
 final class EvolutionTrackTests: XCTestCase {
     private func store(_ path: [Int], stage: Int, caught: [[Int]] = [], released: [[Int]] = [],
-                       form: PokemonForm? = nil) async throws -> CompanionStore {
+                       form: PokemonForm? = nil, caughtForm: PokemonForm? = nil) async throws -> CompanionStore {
         let suite = "Track-\(UUID())"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
         addTeardownBlock { defaults.removePersistentDomain(forName: suite) }
@@ -35,7 +35,7 @@ final class EvolutionTrackTests: XCTestCase {
                                 nature: .hardy, form: form)
         state.dex = caught.enumerated().map { index, chain in
             DexEntry(baseID: chain[0], finalID: chain.last!, chainOrder: chain, rarity: .common,
-                     caughtAt: Date(timeIntervalSince1970: 1_790_000_000 + Double(index)))
+                     caughtAt: Date(timeIntervalSince1970: 1_790_000_000 + Double(index)), form: caughtForm)
         } + released.map { chain in
             DexEntry(baseID: chain[0], finalID: chain.last!, chainOrder: chain, rarity: .common,
                      caughtAt: Date(timeIntervalSince1970: 1_789_000_000), releasedAt: Date(timeIntervalSince1970: 1_789_500_000))
@@ -120,6 +120,23 @@ final class EvolutionTrackTests: XCTestCase {
         XCTAssertFalse(eevee.isEvolutionCollected(speciesID: 134, baseID: 133))
         XCTAssertTrue(eevee.isEvolutionCollected(speciesID: 136, baseID: 133))
         XCTAssertFalse(eevee.isEvolutionCollected(speciesID: 197, baseID: 133), "nor the one being raised")
+    }
+
+    /// [Regression] A branch is had in the individual's form only: a Kanto Slowbro graduated made a Galarian
+    /// Slowpoke's Slowbro had, so Home showed Galarian Slowbro caught and the plan (with the Oval Charm too) could make
+    /// it again while Galarian Slowking was missing.
+    func testABranchIsHadInTheIndividualsFormOnly() async throws {
+        let galar = PokemonForm("galar")
+        let slowpoke = try await store([79], stage: 0, caught: [[79, 80]], form: galar)
+        guard case .branch(let paths)? = slowpoke.evolutionTrack.last else { return XCTFail("\(slowpoke.evolutionTrack)") }
+        XCTAssertEqual(paths.flatMap { $0 }.filter(\.isCollected).map(\.speciesID), [], "a Kanto Slowbro is not a Galarian one")
+        XCTAssertFalse(slowpoke.isEvolutionCollected(speciesID: 80, baseID: 79, form: galar))
+        XCTAssertTrue(slowpoke.isEvolutionCollected(speciesID: 80, baseID: 79), "in its own form, Slowbro is had")
+        XCTAssertFalse(slowpoke.isBranchNodeCollected(EvoNode(speciesID: 80, children: []), baseID: 79, form: galar))
+
+        let galarSlowbro = try await store([79], stage: 0, caught: [[79, 80]], form: galar, caughtForm: galar)
+        XCTAssertTrue(galarSlowbro.isEvolutionCollected(speciesID: 80, baseID: 79, form: galar))
+        XCTAssertFalse(galarSlowbro.isEvolutionCollected(speciesID: 80, baseID: 79), "nor a Galarian one a Kanto one")
     }
 
     func testTheCaptionNamesTheNextStop() async throws {
