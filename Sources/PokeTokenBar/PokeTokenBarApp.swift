@@ -94,6 +94,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         updater = UpdateChecker()
         store.localizationLanguage = companion.language   // 알림 현지화용 미러 시드
         store.onRefresh = { [weak self] in self?.onStoreRefreshed() }   // 한도 로드 후 companion·사탕 지급
+        store.onLimitsRefresh = { [weak self] in   // the limits read while the screens sleep pay their candies too
+            guard let self else { return }
+            self.companion.grantCandies(from: self.store.candyEligibleWindows, limitsReady: self.store.limitsReady)
+        }
         floatingPet = FloatingPetController(
             store: store, companion: companion,
             onOpenPopover: { [weak self] in self?.openPopover() },

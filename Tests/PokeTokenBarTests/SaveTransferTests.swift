@@ -591,7 +591,7 @@ final class SaveTransferTests: XCTestCase {
                                      "lastBirthdayGiftClaimedAt", "lastBirthdayGiftDate", "birthdayChangedAfterGiftYear", "birthdayNotifiedYear",
                                      // The event egg in incubation, and the events' eggs already taken or announced:
                                      // moving the save never brings an event's egg twice the same year.
-                                     "eggEvent", "claimedEventEggs", "eventEggsNotified",
+                                     "eggEvent", "claimedEventEggs", "eventEggsNotified", "eggEventKey", "eventEggHatches",
                                      // The Fossil Egg in incubation, how many hatched, and the fossil lines had
                                      // before the digs: the digs follow the save.
                                      "eggFromFossilEgg", "fossilEggsHatched", "fossilLinesBeforeDigs",
@@ -599,11 +599,16 @@ final class SaveTransferTests: XCTestCase {
                                      "lastHatchedBaseID",
                                      // The tokens of tools without limits toward the next candy, and the candies
                                      // they paid: counted already, they follow the save.
-                                     "tokenCandyTokens", "tokenCandiesEarned"]
+                                     "tokenCandyTokens", "tokenCandiesEarned",
+                                     // What the Old Amber kept for the egg incubating, the graduations toward the
+                                     // Explorer Kit's next treasure and the treasures not seen yet: they follow the egg,
+                                     // the count and the Bag they belong to.
+                                     "amberCarry", "graduationsTowardTreasure", "unseenTreasures"]
         let deviceLedger: Set<String> = ["installBaselineSet", "claimedTodayTokensByProvider", "lastDate"]
         let accountLedger: Set<String> = ["candyGrantTier", "candyWindowEpoch", "candyWindowPlan", "candyFeatureSeeded",
                                           "candyGrantsAsYouGo"]
-        let devicePreference: Set<String> = ["language"]
+        // The build that wrote the save: this Mac's, stamped at its next write.
+        let devicePreference: Set<String> = ["language", "writer"]
 
         let classified = progress.union(deviceLedger).union(accountLedger).union(devicePreference)
         let actual = Set(Mirror(reflecting: CompanionState()).children.compactMap(\.label))

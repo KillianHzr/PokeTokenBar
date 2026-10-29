@@ -167,6 +167,16 @@ actor LocalAdditionalUsageCache {
     /// Bumped by `invalidate()` so a scan that started on old roots cannot republish.
     private var epoch = 0
 
+    /// How far back an OpenCode scan reads before the newest message cached. A message is dated when it is created and
+    /// filled when it ends: with two sessions at once, one still running was created before the other's newest
+    /// message, and a watermark a second before that newest one never read it again.
+    static let openCodeOverlap: TimeInterval = 3600
+
+    static func openCodeScanStart(newest: Date?, periodStart: Date) -> Date {
+        guard let newest else { return periodStart }
+        return max(periodStart, newest.addingTimeInterval(-openCodeOverlap))
+    }
+
     func invalidate() {
         epoch += 1
         cached = [:]
@@ -187,17 +197,13 @@ actor LocalAdditionalUsageCache {
         // (Claude/Codex/Gemini 경로와 이 단일 소스를 공유해 과거의 window 드리프트를 원천 차단.)
         let periodStart = LocalUsageReader.enrichmentScanStart(now: now)
         // OpenCode messages / Cursor bubbles are append-only. After the cold monthly read,
-        // only query records past the newest cached watermark (with a small OpenCode overlap).
+        // only query records past the newest cached watermark (with an OpenCode overlap).
         // This keeps minute-by-minute refreshes cheap even for large databases.
         let since: Date
         let afterRowIDByPath: [String: Int64]
         switch source {
         case .opencode:
-            if let newest = previous?.entries.map(\.date).max() {
-                since = max(periodStart, newest.addingTimeInterval(-1))
-            } else {
-                since = periodStart
-            }
+            since = Self.openCodeScanStart(newest: previous?.entries.map(\.date).max(), periodStart: periodStart)
             afterRowIDByPath = [:]
         case .cursor:
             since = periodStart
@@ -1560,7 +1566,7 @@ enum LocalAdditionalUsageReader {
         return LocalUsageReader.Entry(
             id: id,
             date: date,
-            localDay: LocalUsageReader.localDayFormatter().string(from: date),
+            localDay: LocalUsageReader.localDayKey(date),
             model: model,
             input: safeInput,
             output: safeOutput,

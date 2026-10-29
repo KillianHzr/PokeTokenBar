@@ -14,6 +14,9 @@ struct DailyUsage: Decodable, Sendable {
     var usageCost: UsageCost { UsageCost(amount: totalCost, coverage: costCoverage) }
     /// totalTokens per source model when the provider reports it (nil otherwise).
     var models: [String: Int]?
+    /// Each model's tokens by kind and cost, from a local read (`LocalUsageReader.monthDailySeries`): the Stats page's
+    /// split by model and what the cache saved. Nil when the source does not give it.
+    var modelUsage: [String: ModelUsage]?
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -37,7 +40,9 @@ struct DailyUsage: Decodable, Sendable {
 
     init(date: String, inputTokens: Int, outputTokens: Int,
          cacheCreationTokens: Int, cacheReadTokens: Int, totalTokens: Int, totalCost: Double,
-         models: [String: Int]? = nil, costCoverage: CostCoverage = .source) {
+         models: [String: Int]? = nil, costCoverage: CostCoverage = .source,
+         modelUsage: [String: ModelUsage]? = nil) {
+        self.modelUsage = modelUsage
         self.date = date
         self.inputTokens = inputTokens
         self.outputTokens = outputTokens
@@ -53,6 +58,19 @@ struct DailyUsage: Decodable, Sendable {
         case costCoverage
         case date, period, inputTokens, outputTokens, cacheCreationTokens, cacheReadTokens
         case cachedInputTokens, totalTokens, totalCost, costUSD, models
+    }
+}
+
+/// One model's share of a day: its tokens by kind, and their cost (nil when a part of it is not priced).
+struct ModelUsage: Equatable, Sendable {
+    var input = 0, output = 0, cacheWrite = 0, cacheRead = 0
+    var cost: Double?
+    var total: Int { input + output + cacheWrite + cacheRead }
+
+    /// Two shares of one model added up: a cost unknown on either side is unknown.
+    static func + (a: ModelUsage, b: ModelUsage) -> ModelUsage {
+        ModelUsage(input: a.input + b.input, output: a.output + b.output, cacheWrite: a.cacheWrite + b.cacheWrite,
+                   cacheRead: a.cacheRead + b.cacheRead, cost: a.cost.flatMap { x in b.cost.map { x + $0 } })
     }
 }
 
@@ -360,6 +378,34 @@ struct CodexRateLimitWindow: Decodable, Sendable {
     var windowDurationMins: Int?
     var resetsAt: Int?
 
+    init(usedPercent: Int, windowDurationMins: Int? = nil, resetsAt: Int? = nil) {
+        self.usedPercent = usedPercent
+        self.windowDurationMins = windowDurationMins
+        self.resetsAt = resetsAt
+    }
+
+    private enum CodingKeys: String, CodingKey { case usedPercent, windowDurationMins, resetsAt }
+
+    /// Only the percentage is required: a duration or reset time of another shape (a float, a string) is unknown,
+    /// not a reason to drop the window.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        usedPercent = try Self.integer(c, .usedPercent) ?? {
+            throw DecodingError.keyNotFound(CodingKeys.usedPercent, .init(codingPath: c.codingPath,
+                                                                         debugDescription: "no usedPercent"))
+        }()
+        windowDurationMins = (try? Self.integer(c, .windowDurationMins)) ?? nil
+        resetsAt = (try? Self.integer(c, .resetsAt)) ?? nil
+    }
+
+    /// An integer, or a number with a fraction rounded to one.
+    private static func integer(_ c: KeyedDecodingContainer<CodingKeys>, _ key: CodingKeys) throws -> Int? {
+        if let int = try? c.decodeIfPresent(Int.self, forKey: key) { return int }
+        guard let double = try c.decodeIfPresent(Double.self, forKey: key), double.isFinite,
+              abs(double) < 1e15 else { return nil }
+        return Int(double.rounded())
+    }
+
     var resetDate: Date? {
         guard let resetsAt else { return nil }
         return Date(timeIntervalSince1970: TimeInterval(resetsAt))
@@ -404,6 +450,38 @@ struct CodexRateLimitSnapshot: Decodable, Sendable {
     var planType: String?
     var rateLimitReachedType: String?
 
+    init(limitId: String? = nil, limitName: String? = nil, primary: CodexRateLimitWindow? = nil,
+         secondary: CodexRateLimitWindow? = nil, credits: CodexCreditsSnapshot? = nil,
+         individualLimit: CodexSpendControlLimit? = nil, planType: String? = nil,
+         rateLimitReachedType: String? = nil) {
+        self.limitId = limitId
+        self.limitName = limitName
+        self.primary = primary
+        self.secondary = secondary
+        self.credits = credits
+        self.individualLimit = individualLimit
+        self.planType = planType
+        self.rateLimitReachedType = rateLimitReachedType
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case limitId, limitName, primary, secondary, credits, individualLimit, planType, rateLimitReachedType
+    }
+
+    /// Each part on its own: one field Codex adds, drops or reshapes leaves the others. Decoded as a whole, a single
+    /// one failed the response, which froze every Codex bar and stopped its candies.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        limitId = (try? c.decodeIfPresent(String.self, forKey: .limitId)) ?? nil
+        limitName = (try? c.decodeIfPresent(String.self, forKey: .limitName)) ?? nil
+        primary = (try? c.decodeIfPresent(CodexRateLimitWindow.self, forKey: .primary)) ?? nil
+        secondary = (try? c.decodeIfPresent(CodexRateLimitWindow.self, forKey: .secondary)) ?? nil
+        credits = (try? c.decodeIfPresent(CodexCreditsSnapshot.self, forKey: .credits)) ?? nil
+        individualLimit = (try? c.decodeIfPresent(CodexSpendControlLimit.self, forKey: .individualLimit)) ?? nil
+        planType = (try? c.decodeIfPresent(String.self, forKey: .planType)) ?? nil
+        rateLimitReachedType = (try? c.decodeIfPresent(String.self, forKey: .rateLimitReachedType)) ?? nil
+    }
+
     var hasVisibleLimit: Bool {
         primary != nil || secondary != nil || individualLimit != nil
     }
@@ -419,6 +497,26 @@ struct CodexRateLimitSnapshot: Decodable, Sendable {
 struct CodexRateLimitStatus: Decodable, Sendable {
     var rateLimits: CodexRateLimitSnapshot
     var rateLimitsByLimitId: [String: CodexRateLimitSnapshot]?
+
+    init(rateLimits: CodexRateLimitSnapshot, rateLimitsByLimitId: [String: CodexRateLimitSnapshot]? = nil) {
+        self.rateLimits = rateLimits
+        self.rateLimitsByLimitId = rateLimitsByLimitId
+    }
+
+    private enum CodingKeys: String, CodingKey { case rateLimits, rateLimitsByLimitId }
+
+    /// A bucket of the map that does not decode is left out, not the whole response.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        rateLimits = try c.decode(CodexRateLimitSnapshot.self, forKey: .rateLimits)
+        rateLimitsByLimitId = ((try? c.decodeIfPresent([String: LossySnapshot].self, forKey: .rateLimitsByLimitId))
+            ?? nil)?.compactMapValues(\.snapshot)
+    }
+
+    private struct LossySnapshot: Decodable {
+        let snapshot: CodexRateLimitSnapshot?
+        init(from decoder: Decoder) throws { snapshot = try? CodexRateLimitSnapshot(from: decoder) }
+    }
 
     /// 전체 bucket 목록 — codex TUI `app_server_rate_limit_snapshots` 미러링.
     /// 서버 top-level(rateLimits)은 "codex" bucket 우선이라 codex_other 등 나머지 bucket은

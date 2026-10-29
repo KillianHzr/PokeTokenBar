@@ -6,9 +6,9 @@ import Foundation
 /// 세 겹의 방어:
 /// 1) **정상종료 마커** — 잡을 수 없는 OOM/SIGKILL/watchdog kill 까지 포함해 *모든* 비정상 종료를
 ///    **다음 실행 때 감지**한다. 정상 종료(willTerminate) 때만 마커를 지우므로, 다음 실행에 마커가
-///    남아 있으면 직전 세션이 비정상 종료된 것. (감지 recall 우선 설계 — SIGTERM(raw `pkill`) 도
-///    마커 잔존→비정상으로 잡히지만, 정상 quit·logout·업데이트는 Apple Event→willTerminate 로 clean
-///    처리되므로 실사용 오탐 경로는 개발용 pkill 정도라 수용.)
+///    남아 있으면 직전 세션이 비정상 종료된 것. A SIGTERM (`pkill`, the update's `build-app.sh`) asks the app to
+///    quit and ends through `terminate`, as a Quit: before, every update left the marker and the next launch read
+///    it as a crash, which buried the real ones. SIGKILL (OOM, watchdog) still leaves it.
 /// 2) **시그널 핸들러** — SIGSEGV/SIGABRT 등 잡을 수 있는 치명 시그널을 *발생 시점*에 기록
 ///    (async-signal-safe: write()·StaticString 만). 기록 후 기본 핸들러로 재발생시켜 macOS
 ///    크래시 리포트(.ips)도 생성되게 한다. 기록 대상은 **회전되지 않는 crash.log** — 메인 로그의
@@ -25,6 +25,8 @@ enum CrashReporter {
     private static var crashLogURL: URL { logsDir.appendingPathComponent("PokeTokenBar.crash.log") }
     /// 위 crash.log 로 미리 연 fd(설치 시 1회 open). 회전 대상이 아니라 세션 내내 유효.
     nonisolated(unsafe) fileprivate static var logFD: Int32 = -1
+    /// Kept for the session: released, the SIGTERM handler would be gone.
+    nonisolated(unsafe) private static var terminationSource: DispatchSourceSignal?
 
     /// 앱 기동 최초에 1회 호출(가능한 한 이르게 — 런치 초기 크래시도 잡히게).
     static func install(version: String) {
@@ -45,6 +47,15 @@ enum CrashReporter {
         NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification, object: nil, queue: .main
         ) { _ in markClean() }
+
+        // A polite termination request quits as a Quit does (`willTerminate`, the marker removed).
+        signal(SIGTERM, SIG_IGN)
+        let terminate = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
+        // Run on the main queue, so on the main actor, said so: the macOS 15 SDK's handler is not isolated, and CI's
+        // Xcode 16.4 refused the call that a later SDK lets through.
+        terminate.setEventHandler { MainActor.assumeIsolated { NSApplication.shared.terminate(nil) } }
+        terminate.resume()
+        terminationSource = terminate
 
         // 2) 치명 시그널 → crash.log 에 발생 시점 기록(async-signal-safe).
         logFD = open(crashLogURL.path, O_WRONLY | O_APPEND | O_CREAT, 0o644)

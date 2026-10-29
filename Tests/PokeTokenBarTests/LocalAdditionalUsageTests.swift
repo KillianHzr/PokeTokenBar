@@ -48,6 +48,33 @@ final class LocalAdditionalUsageTests: XCTestCase {
         XCTAssertEqual(daily.totalCost, 0.25, accuracy: 0.000_001)
     }
 
+    /// [Regression] Two sessions at once: a message still running was created before the other session's newest one,
+    /// and filled after it. A rescan from a second before that newest message never read it again; the overlap does.
+    func testOpenCodeRescanReadsAMessageFilledAfterANewerOne() throws {
+        let database = temporaryDirectory.appendingPathComponent("opencode.db")
+        func message(_ id: String, created: Int64, output: Int) -> String {
+            """
+            ('\(id)', 's-\(id)', \(created), '{"id":"\(id)","providerID":"anthropic","modelID":"claude-sonnet-4-20250514","time":{"created":\(created)},"tokens":{"input":0,"output":\(output),"cache":{"read":0,"write":0}}}')
+            """
+        }
+        let running: Int64 = 1_767_312_000_000          // 2026-01-02 00:00
+        let newer = running + 20 * 60_000                // 20 minutes later
+        try execute(database, sql: """
+        CREATE TABLE message (id TEXT PRIMARY KEY, session_id TEXT NOT NULL, time_created INTEGER NOT NULL, data TEXT NOT NULL);
+        INSERT INTO message VALUES \(message("a", created: running, output: 1)), \(message("b", created: newer, output: 40));
+        """)
+        let periodStart = try date("2026-01-01T00:00:00Z")
+        let first = LocalAdditionalUsageReader.openCodeEntries(modifiedSince: periodStart, roots: [temporaryDirectory])
+        XCTAssertEqual(first.map(\.total).reduce(0, +), 41)
+
+        try execute(database, sql: "UPDATE message SET data = replace(data, '\"output\":1,', '\"output\":500,') WHERE id = 'a';")
+        let since = LocalAdditionalUsageCache.openCodeScanStart(newest: first.map(\.date).max(), periodStart: periodStart)
+        let rescan = LocalAdditionalUsageReader.openCodeEntries(modifiedSince: since, roots: [temporaryDirectory])
+        let merged = LocalUsageReader.dedupKeepMax(first + rescan)
+        XCTAssertEqual(merged.map(\.total).reduce(0, +), 540, "the running message is read again once filled")
+        XCTAssertEqual(LocalAdditionalUsageCache.openCodeScanStart(newest: nil, periodStart: periodStart), periodStart)
+    }
+
     func testOpenCodeFallsBackToLegacyDatabaseWithoutTimeCreatedColumn() throws {
         let database = temporaryDirectory.appendingPathComponent("opencode.db")
         try execute(database, sql: """

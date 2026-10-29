@@ -120,7 +120,7 @@ extension L {
         t("피카츄가 \(name) 옷을 가져왔어요. 도감에서 입혀 보세요.", "Pikachu brought the \(name) costume. Dress it up in the Pokédex.",
           "ピカチュウが「\(name)」の衣装を持ってきました。図鑑で着せてみましょう。",
           "Pikachu trajo el traje \(name). Pónselo en la Pokédex.", "Pikachu a apporté le costume \(name). Habille-le dans le Pokédex.",
-          "O Pikachu trouxe a fantasia \(name). Vista-o na Pokédex.", "Pikachu hat das Kostüm „\(name)“ mitgebracht. Zieh es ihm im Pokédex an.",
-          "Пикачу принёс костюм «\(name)». Наденьте его в покедексе.")
+          "O Pikachu trouxe a fantasia \(name). Vista-o na Pokédex.", "Pikachu hat das Kostüm \"\(name)\" mitgebracht. Zieh es ihm im Pokédex an.",
+          "Пикачу принёс костюм \"\(name)\". Наденьте его в покедексе.")
     }
 }

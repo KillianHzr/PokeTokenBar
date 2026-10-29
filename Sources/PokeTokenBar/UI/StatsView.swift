@@ -11,11 +11,10 @@ struct StatsScreen: View {
     @State private var scope: RecapScope = .month
     /// 0 is the running period, -1 the one before it. Never positive: the future has no usage.
     @State private var offset = 0
-    /// The bar under the pointer, by bucket key.
-    @State private var hovered: String?
-
+    /// "Where the tokens went" split by model rather than by tool.
+    @State private var splitByModel = false
     /// Today's bar, as on Home.
-    private static let accent = Design.actionColor
+    fileprivate static let accent = Design.actionColor
     private static let kindColors: [Color] = [
         Color(red: 0.36, green: 0.62, blue: 0.95),   // cache read
         Color(red: 0.62, green: 0.47, blue: 0.92),   // cache write
@@ -51,7 +50,11 @@ struct StatsScreen: View {
                 VStack(alignment: .leading, spacing: 12) {
                     periodControls(content, l)
                     summary(report, content, l)
-                    if report.recap.total > 0 { chart(report, content, l) }
+                    if report.recap.total > 0 {
+                        // The pointer's bar is the chart's own state: kept here, every hover rebuilt the whole report.
+                        StatsChart(store: store, report: report, content: content, scope: scope, l: l)
+                            .id("\(scope)-\(offset)")
+                    }
                     if let breakdown = report.breakdown { whereTokensWent(breakdown, l) }
                     graduates(report, l)
                     sinceInstall(StatsRecords.make(ledger: store.dailyLedger, now: Date(), calendar: calendar)
@@ -62,8 +65,7 @@ struct StatsScreen: View {
             .frame(height: 540)
         }
         .padding(PopoverMetrics.padding)
-        .onChange(of: scope) { offset = 0; hovered = nil }
-        .onChange(of: offset) { hovered = nil }
+        .onChange(of: scope) { offset = 0 }
     }
 
     // MARK: The period
@@ -170,141 +172,9 @@ struct StatsScreen: View {
         .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 8))
     }
 
-    // MARK: Day by day
-
-    private static let track: CGFloat = 96
-
-    private func chart(_ report: StatsReport, _ content: RecapContent, _ l: L) -> some View {
-        let buckets = report.recap.buckets
-        let peak = buckets.filter(\.hasData).max { $0.tokens < $1.tokens }
-        let labels = content.bucketLabels()
-        let colors = DailyTrendStack.colorIndices(for: report.breakdown?.tools.map(\.id) ?? [],
-                                                  registry: store.registeredProviderIDs,
-                                                  paletteCount: MonthDailyTrend.providerPalette.count)
-        let spacing: CGFloat = switch scope {
-        case .week: 10
-        case .month: 2
-        case .year: 6
-        }
-        return VStack(alignment: .leading, spacing: 8) {
-            SectionTitle(text: scope == .year ? l.statsMonthByMonth : l.statsDayByDay, systemImage: "chart.bar.fill")
-            readout(report, content, focus: buckets.first { $0.key == hovered } ?? peak, isPeak: hovered == nil,
-                    colors: colors, l)
-            VStack(spacing: 4) {
-                HStack(alignment: .bottom, spacing: spacing) {
-                    ForEach(buckets, id: \.key) { bucket in
-                        bar(bucket, report: report, peak: max(1, peak?.tokens ?? 1), colors: colors)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: Self.track, alignment: .bottom)
-                            .contentShape(Rectangle())
-                            .onHover { inside in
-                                if inside, bucket.hasData { hovered = bucket.key } else if hovered == bucket.key { hovered = nil }
-                            }
-                            .accessibilityElement(children: .ignore)
-                            .accessibilityLabel(content.accessibilityLabel(bucket))
-                    }
-                }
-                .background(alignment: .bottom) { Rectangle().fill(Color.primary.opacity(0.10)).frame(height: 1) }
-                HStack(spacing: spacing) {
-                    ForEach(Array(buckets.enumerated()), id: \.element.key) { index, bucket in
-                        // Zero-width frame: a month's "15" is wider than its column and must not widen it.
-                        Text(labels.indices.contains(index) ? labels[index] : "")
-                            .font(.system(size: 9, weight: bucket.isCurrent ? .bold : .medium, design: .rounded))
-                            .foregroundStyle(bucket.isCurrent ? AnyShapeStyle(Self.accent) : AnyShapeStyle(.secondary))
-                            .fixedSize()
-                            .frame(width: 0, height: 11)
-                            .frame(maxWidth: .infinity)
-                    }
-                }
-            }
-            if report.stacksByTool, let tools = report.breakdown?.tools {
-                WrappingHStack(spacing: 10, lineSpacing: 4) {
-                    ForEach(tools, id: \.id) { tool in
-                        HStack(spacing: 4) {
-                            Circle().fill(toolColor(tool.id, colors)).frame(width: 7, height: 7)
-                            Text(tool.name).foregroundStyle(.secondary)
-                        }
-                        .font(.caption2)
-                        .fixedSize()
-                    }
-                }
-            }
-        }
-        .designCard()
-    }
-
-    /// The bar under the pointer, or the period's peak when there is none: its day, tokens, cost, the tools' share
-    /// and the Pokémon graduated that day. Two lines, kept whatever it holds so the bars never move.
-    private func readout(_ report: StatsReport, _ content: RecapContent, focus: UsageRecap.Bucket?, isPeak: Bool,
-                         colors: [String: Int], _ l: L) -> some View {
-        let detail = focus.map(report.detail)
-        return VStack(alignment: .leading, spacing: 3) {
-            if let focus, let detail {
-                HStack(spacing: 5) {
-                    if isPeak { Text(l.peakDay).foregroundStyle(.secondary) }
-                    Text(content.bucketName(focus)).fontWeight(.semibold).lineLimit(1).minimumScaleFactor(0.8)
-                    Spacer(minLength: 4)
-                    Text(TokenFormatter.compact(detail.tokens)).fontWeight(.bold).monospacedDigit()
-                    if store.showsCost, let cost = detail.cost {
-                        Text(TokenFormatter.costCompact(cost)).foregroundStyle(.secondary).monospacedDigit()
-                    }
-                }
-                .font(.system(.callout, design: .rounded))
-                HStack(spacing: 8) {
-                    if report.stacksByTool {
-                        ForEach(detail.tools, id: \.id) { tool in
-                            HStack(spacing: 3) {
-                                Circle().fill(toolColor(tool.id, colors)).frame(width: 6, height: 6)
-                                Text(TokenFormatter.compact(tool.tokens)).monospacedDigit()
-                            }
-                        }
-                    }
-                    if detail.graduated > 0 {
-                        Label("\(detail.graduated)", systemImage: "graduationcap.fill")
-                    }
-                    Spacer(minLength: 0)
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
-        }
-        .frame(height: 38, alignment: .top)
-    }
-
-    @ViewBuilder
-    private func bar(_ bucket: UsageRecap.Bucket, report: StatsReport, peak: Int, colors: [String: Int]) -> some View {
-        let isHovered = hovered == bucket.key
-        if !bucket.hasData {
-            // The future, or before the app was counting: a place, not a zero.
-            Circle().fill(Color.primary.opacity(0.07)).frame(width: 3, height: 3)
-        } else if bucket.tokens == 0 {
-            Circle().fill(Color.secondary.opacity(0.35)).frame(width: 3, height: 3)
-        } else {
-            let height = max(3, Self.track * CGFloat(bucket.tokens) / CGFloat(peak))
-            let tools = report.stacksByTool ? report.detail(bucket).tools : []
-            let shape = UnevenRoundedRectangle(topLeadingRadius: 3, topTrailingRadius: 3, style: .continuous)
-            if tools.isEmpty {
-                let base = bucket.isCurrent ? Self.accent : Color.primary.opacity(isHovered ? 0.6 : 0.3)
-                shape.fill(LinearGradient(colors: [base, base.opacity(0.6)], startPoint: .top, endPoint: .bottom))
-                    .frame(height: height)
-            } else {
-                let total = max(1, tools.reduce(0) { $0 + $1.tokens })
-                VStack(spacing: 0) {
-                    // `tools` runs largest first, which sits at the bottom.
-                    ForEach(tools.reversed(), id: \.id) { tool in
-                        toolColor(tool.id, colors)
-                            .opacity(bucket.isCurrent || isHovered ? 1 : 0.65)
-                            .frame(height: height * CGFloat(tool.tokens) / CGFloat(total))
-                    }
-                }
-                .frame(height: height)
-                .clipShape(shape)
-            }
-        }
-    }
-
-    private func toolColor(_ id: String, _ colors: [String: Int]) -> Color {
-        MonthDailyTrend.providerPalette[(colors[id] ?? 0) % MonthDailyTrend.providerPalette.count]
+    /// A tool's color in the period's stacks and the breakdown, shared with `StatsChart`.
+    fileprivate static func toolColor(_ id: String, _ colors: [String: Int]) -> Color {
+        DailyTrendStack.palette[(colors[id] ?? 0) % DailyTrendStack.palette.count]
     }
 
     // MARK: Where the tokens went
@@ -317,7 +187,7 @@ struct StatsScreen: View {
         let shown = kinds.enumerated().filter { $0.element.1 > 0 }
         let total = max(1, breakdown.total)
         let colors = DailyTrendStack.colorIndices(for: breakdown.tools.map(\.id), registry: store.registeredProviderIDs,
-                                                  paletteCount: MonthDailyTrend.providerPalette.count)
+                                                  paletteCount: DailyTrendStack.palette.count)
         return VStack(alignment: .leading, spacing: 8) {
             SectionTitle(text: l.statsWhereTokensWent, systemImage: "chart.pie.fill")
             GeometryReader { geometry in
@@ -345,12 +215,23 @@ struct StatsScreen: View {
                     .hoverTip(TokenFormatter.grouped(kind.1))
                 }
             }
-            if breakdown.tools.count > 1 {
+            let byModel = splitByModel && !breakdown.models.isEmpty
+            if breakdown.tools.count > 1 || !breakdown.models.isEmpty {
                 Divider()
-                Text(l.statsByTool).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                ForEach(breakdown.tools, id: \.id) { tool in
+                if breakdown.models.isEmpty {
+                    Text(l.statsByTool).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                } else {
+                    Picker(l.statsByTool, selection: $splitByModel) {
+                        Text(l.statsByTool).tag(false)
+                        Text(l.statsByModel).tag(true)
+                    }
+                    .pickerStyle(.segmented).labelsHidden().controlSize(.small)
+                }
+                ForEach(Array((byModel ? breakdown.models : breakdown.tools).enumerated()), id: \.element.id) { index, tool in
                     HStack(spacing: 6) {
-                        Circle().fill(toolColor(tool.id, colors)).frame(width: 7, height: 7)
+                        Circle().fill(byModel ? DailyTrendStack.palette[index % DailyTrendStack.palette.count]
+                                              : Self.toolColor(tool.id, colors))
+                            .frame(width: 7, height: 7)
                         Text(tool.name).lineLimit(1)
                         Spacer(minLength: 4)
                         Text(TokenFormatter.compact(tool.tokens)).fontWeight(.semibold).monospacedDigit()
@@ -365,6 +246,11 @@ struct StatsScreen: View {
                     }
                     .font(.caption)
                 }
+            }
+            if store.showsCost, let saved = breakdown.cacheSavings, saved > 0.5 {
+                Label(l.statsCacheSaved(TokenFormatter.costCompact(saved)), systemImage: "arrow.down.circle")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .hoverTip(l.statsCacheSavedHint)
             }
         }
         .designCard()
@@ -512,4 +398,150 @@ struct StatsScreen: View {
         formatter.setLocalizedDateFormatFromTemplate(template)
         return formatter.string(from: date)
     }
+}
+
+/// The period's bars and the readout of the one under the pointer. The hover lives here: on the page, each bar entered
+/// recomputed the page's whole report (its date formatters, the recap, every day since install).
+@MainActor
+private struct StatsChart: View {
+    let store: UsageStore
+    let report: StatsReport
+    let content: RecapContent
+    let scope: RecapScope
+    let l: L
+    /// The bar under the pointer, by bucket key.
+    @State private var hovered: String?
+
+    private static let track: CGFloat = 96
+
+    var body: some View {
+        let buckets = report.recap.buckets
+        let peak = buckets.filter(\.hasData).max { $0.tokens < $1.tokens }
+        let labels = content.bucketLabels()
+        let colors = DailyTrendStack.colorIndices(for: report.breakdown?.tools.map(\.id) ?? [],
+                                                  registry: store.registeredProviderIDs,
+                                                  paletteCount: DailyTrendStack.palette.count)
+        let spacing: CGFloat = switch scope {
+        case .week: 10
+        case .month: 2
+        case .year: 6
+        }
+        return VStack(alignment: .leading, spacing: 8) {
+            SectionTitle(text: scope == .year ? l.statsMonthByMonth : l.statsDayByDay, systemImage: "chart.bar.fill")
+            readout(report, content, focus: buckets.first { $0.key == hovered } ?? peak, isPeak: hovered == nil,
+                    colors: colors, l)
+            VStack(spacing: 4) {
+                HStack(alignment: .bottom, spacing: spacing) {
+                    ForEach(buckets, id: \.key) { bucket in
+                        bar(bucket, report: report, peak: max(1, peak?.tokens ?? 1), colors: colors)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: Self.track, alignment: .bottom)
+                            .contentShape(Rectangle())
+                            .onHover { inside in
+                                if inside, bucket.hasData { hovered = bucket.key } else if hovered == bucket.key { hovered = nil }
+                            }
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel(content.accessibilityLabel(bucket))
+                    }
+                }
+                .background(alignment: .bottom) { Rectangle().fill(Color.primary.opacity(0.10)).frame(height: 1) }
+                HStack(spacing: spacing) {
+                    ForEach(Array(buckets.enumerated()), id: \.element.key) { index, bucket in
+                        // Zero-width frame: a month's "15" is wider than its column and must not widen it.
+                        Text(labels.indices.contains(index) ? labels[index] : "")
+                            .font(.system(size: 9, weight: bucket.isCurrent ? .bold : .medium, design: .rounded))
+                            .foregroundStyle(bucket.isCurrent ? AnyShapeStyle(StatsScreen.accent) : AnyShapeStyle(.secondary))
+                            .fixedSize()
+                            .frame(width: 0, height: 11)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+            }
+            if report.stacksByTool, let tools = report.breakdown?.tools {
+                WrappingHStack(spacing: 10, lineSpacing: 4) {
+                    ForEach(tools, id: \.id) { tool in
+                        HStack(spacing: 4) {
+                            Circle().fill(toolColor(tool.id, colors)).frame(width: 7, height: 7)
+                            Text(tool.name).foregroundStyle(.secondary)
+                        }
+                        .font(.caption2)
+                        .fixedSize()
+                    }
+                }
+            }
+        }
+        .designCard()
+    }
+
+    /// The bar under the pointer, or the period's peak when there is none: its day, tokens, cost, the tools' share
+    /// and the Pokémon graduated that day. Two lines, kept whatever it holds so the bars never move.
+    private func readout(_ report: StatsReport, _ content: RecapContent, focus: UsageRecap.Bucket?, isPeak: Bool,
+                         colors: [String: Int], _ l: L) -> some View {
+        let detail = focus.map(report.detail)
+        return VStack(alignment: .leading, spacing: 3) {
+            if let focus, let detail {
+                HStack(spacing: 5) {
+                    if isPeak { Text(l.peakDay).foregroundStyle(.secondary) }
+                    Text(content.bucketName(focus)).fontWeight(.semibold).lineLimit(1).minimumScaleFactor(0.8)
+                    Spacer(minLength: 4)
+                    Text(TokenFormatter.compact(detail.tokens)).fontWeight(.bold).monospacedDigit()
+                    if store.showsCost, let cost = detail.cost {
+                        Text(TokenFormatter.costCompact(cost)).foregroundStyle(.secondary).monospacedDigit()
+                    }
+                }
+                .font(.system(.callout, design: .rounded))
+                HStack(spacing: 8) {
+                    if report.stacksByTool {
+                        ForEach(detail.tools, id: \.id) { tool in
+                            HStack(spacing: 3) {
+                                Circle().fill(toolColor(tool.id, colors)).frame(width: 6, height: 6)
+                                Text(TokenFormatter.compact(tool.tokens)).monospacedDigit()
+                            }
+                        }
+                    }
+                    if detail.graduated > 0 {
+                        Label("\(detail.graduated)", systemImage: "graduationcap.fill")
+                    }
+                    Spacer(minLength: 0)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+        }
+        .frame(height: 38, alignment: .top)
+    }
+
+    @ViewBuilder
+    private func bar(_ bucket: UsageRecap.Bucket, report: StatsReport, peak: Int, colors: [String: Int]) -> some View {
+        let isHovered = hovered == bucket.key
+        if !bucket.hasData {
+            // The future, or before the app was counting: a place, not a zero.
+            Circle().fill(Color.primary.opacity(0.07)).frame(width: 3, height: 3)
+        } else if bucket.tokens == 0 {
+            Circle().fill(Color.secondary.opacity(0.35)).frame(width: 3, height: 3)
+        } else {
+            let height = max(3, Self.track * CGFloat(bucket.tokens) / CGFloat(peak))
+            let tools = report.stacksByTool ? report.detail(bucket).tools : []
+            let shape = UnevenRoundedRectangle(topLeadingRadius: 3, topTrailingRadius: 3, style: .continuous)
+            if tools.isEmpty {
+                let base = bucket.isCurrent ? StatsScreen.accent : Color.primary.opacity(isHovered ? 0.6 : 0.3)
+                shape.fill(LinearGradient(colors: [base, base.opacity(0.6)], startPoint: .top, endPoint: .bottom))
+                    .frame(height: height)
+            } else {
+                let total = max(1, tools.reduce(0) { $0 + $1.tokens })
+                VStack(spacing: 0) {
+                    // `tools` runs largest first, which sits at the bottom.
+                    ForEach(tools.reversed(), id: \.id) { tool in
+                        toolColor(tool.id, colors)
+                            .opacity(bucket.isCurrent || isHovered ? 1 : 0.65)
+                            .frame(height: height * CGFloat(tool.tokens) / CGFloat(total))
+                    }
+                }
+                .frame(height: height)
+                .clipShape(shape)
+            }
+        }
+    }
+
+    private func toolColor(_ id: String, _ colors: [String: Int]) -> Color { StatsScreen.toolColor(id, colors) }
 }

@@ -76,6 +76,23 @@ final class CostLedgerTests: XCTestCase {
         XCTAssertNil(ledger.cost(on: "2026-09-10"), "a day that gains an unpriced part is no longer known")
     }
 
+    /// [Regression] A read of a priced day with a part unpriced and no more tokens (a price list not loaded yet, one
+    /// provider's read failing) is the same day read worse: it erased the day's cost, and the period showed none.
+    func testAWorseReadOfAPricedDayKeepsItsCost() throws {
+        var ledger = CostLedger()
+        ledger.merge([usage("2026-09-10", 100, cost: 4)])
+        ledger.merge([usage("2026-09-10", 100, cost: 1, coverage: CostCoverage(reported: true, unknown: true))])
+        ledger.merge([usage("2026-09-10", 60, cost: 0, coverage: .unavailable)])
+        XCTAssertEqual(ledger.cost(on: "2026-09-10"), 4)
+
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: "cost-ledger-tokens-\(UUID().uuidString)"))
+        ledger.save(to: defaults)
+        var reloaded = CostLedger.load(from: defaults)
+        XCTAssertEqual(reloaded, ledger, "the priced tokens outlive a relaunch")
+        reloaded.merge([usage("2026-09-10", 101, cost: 4, coverage: .unavailable)])
+        XCTAssertNil(reloaded.cost(on: "2026-09-10"), "more tokens, unpriced: no longer known")
+    }
+
     func testItSurvivesARelaunchWithoutJunkAndPrunesLikeTheTokens() throws {
         let defaults = try XCTUnwrap(UserDefaults(suiteName: "cost-ledger-\(UUID().uuidString)"))
         var ledger = costs([("2026-01-02", 1.5), ("2026-09-10", 2)])

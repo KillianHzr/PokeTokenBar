@@ -91,7 +91,7 @@ struct SettingsView: View {
 
     /// 현재 앱 버전 — 업데이트 적용 여부 확인용으로 설정창 하단에 표기.
     private static var appVersion: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "-"
     }
 
     // MARK: 레이아웃 — 헤더 고정 / 본문 스크롤 / 푸터 고정
@@ -1174,7 +1174,7 @@ struct SettingsView: View {
             presentAlert(title: l.createSnapshotButton, message: l.snapshotCreatedToast, style: .informational)
         } catch {
             AppLog.write("manual snapshot creation failed: \(error)")
-            presentAlert(title: l.createSnapshotButton, message: l.userFacingError(error), style: .warning)
+            presentAlert(title: l.createSnapshotButton, message: l.importErrorMessage(error), style: .warning)
         }
     }
 

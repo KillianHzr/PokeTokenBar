@@ -141,6 +141,19 @@ private final class DisplayState: @unchecked Sendable {
     init(asleep: Bool) { self.asleep = asleep }
 }
 
+/// Counts its reads, for the polls that must not read (the screens asleep, an idle Codex).
+private final class CountingCodexLimits: CodexLimitsProviding, @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+    let status: CodexRateLimitStatus?
+    init(status: CodexRateLimitStatus?) { self.status = status }
+    var reads: Int { lock.withLock { count } }
+    func fetch() async throws -> CodexRateLimitStatus? {
+        lock.withLock { count += 1 }
+        return status
+    }
+}
+
 private final class FakeStatusProvider: ProviderStatusProviding, @unchecked Sendable {
     nonisolated(unsafe) var result: [String: ProviderStatus]
     init(_ result: [String: ProviderStatus] = [:]) { self.result = result }
@@ -317,7 +330,8 @@ final class UsageStoreTests: XCTestCase {
         XCTAssertFalse(store.isSuspendedProbeScheduled)
     }
 
-    /// 화면이 꺼진 채 도는 refresh(자정 NSCalendarDayChanged 등)는 정지를 풀지 않는다.
+    /// 화면이 꺼진 채 도는 refresh(자정 NSCalendarDayChanged 등)는 정지를 풀지 않는다. Nor does it scan the logs: a day
+    /// change or a network back at night waits for the screens, which refresh at once.
     func testRefreshWhileDisplaysAsleepKeepsPollingSuspended() async {
         let displays = DisplayState(asleep: true)
         let store = makeSleepStore(displays: displays)
@@ -325,6 +339,56 @@ final class UsageStoreTests: XCTestCase {
         await store.refresh(scheduleEmptyRetry: false)
         XCTAssertTrue(store.isPollingSuspended)
         XCTAssertFalse(store.isPollingTimerScheduled)
+        XCTAssertEqual(store.todayTotalTokens, 0, "no log scan while the screens sleep")
+    }
+
+    /// [Regression] The screens asleep, a limit window could fill and reset in the night with no poll, and its
+    /// candies were never paid. The sleep probe reads the limits alone (no log scan) every half hour, then pays.
+    func testSleepProbeReadsTheLimitsAloneEveryHalfHour() async {
+        let displays = DisplayState(asleep: true)
+        let codex = CountingCodexLimits(status: codexLimits(primaryUsed: 40))
+        let store = UsageStore(providers: [FakeUsageProvider(id: "claude_code", displayName: "Claude Code",
+                                                             daily: todayDaily(1_000))],
+                               claudeLimitsProvider: FakeClaudeLimits(status: nil),
+                               codexLimitsProvider: codex,
+                               antigravityLimitsProvider: FakeAntigravityLimits(status: nil),
+                               statusProvider: FakeStatusProvider([:]),
+                               autoRefresh: false, defaults: testDefaults,
+                               displaysAsleep: { displays.asleep })
+        var paid = 0
+        store.onLimitsRefresh = { paid += 1 }
+        store.suspendPolling()
+        await store.runSuspendedPollingProbe()
+        XCTAssertEqual(codex.reads, 1, "the limits are read")
+        XCTAssertEqual(paid, 1, "and their candies paid")
+        XCTAssertEqual(store.codexLimits?.maxPrimaryUsedPercent, 40)
+        XCTAssertEqual(store.todayTotalTokens, 0, "the logs are not scanned")
+        await store.runSuspendedPollingProbe()
+        XCTAssertEqual(codex.reads, 1, "not again before half an hour")
+        XCTAssertEqual(paid, 1)
+        XCTAssertTrue(store.isPollingSuspended)
+    }
+
+    /// `codex app-server` is a process: with no Codex use this month and its limits at 0%, it is not launched at
+    /// every poll (the CLI ChatGPT.app bundles, never run). Limits that move read it at each poll again.
+    func testIdleCodexLimitsAreNotReadAtEveryPoll() async {
+        let idle = CountingCodexLimits(status: codexLimits(primaryUsed: 0, secondaryUsed: 0))
+        let claude = FakeUsageProvider(id: "claude_code", displayName: "Claude Code", daily: todayDaily(1_000))
+        func store(_ codex: CountingCodexLimits) -> UsageStore {
+            UsageStore(providers: [claude], claudeLimitsProvider: FakeClaudeLimits(status: nil),
+                       codexLimitsProvider: codex, antigravityLimitsProvider: FakeAntigravityLimits(status: nil),
+                       statusProvider: FakeStatusProvider([:]), autoRefresh: false, defaults: testDefaults)
+        }
+        let quiet = store(idle)
+        await quiet.refresh(scheduleEmptyRetry: false)
+        await quiet.refresh(scheduleEmptyRetry: false)
+        XCTAssertEqual(idle.reads, 1)
+
+        let used = CountingCodexLimits(status: codexLimits(primaryUsed: 3))
+        let cloud = store(used)
+        await cloud.refresh(scheduleEmptyRetry: false)
+        await cloud.refresh(scheduleEmptyRetry: false)
+        XCTAssertEqual(used.reads, 2, "used in the cloud: read at each poll")
     }
 
     // MARK: Keychain 프롬프트 경로 분리 (회귀)

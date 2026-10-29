@@ -159,10 +159,50 @@ final class WindowCandyTests: XCTestCase {
         s.grantCandies(from: [window("pro", 64, 5, "e")], limitsReady: true)
         XCTAssertEqual(s.rareCandyCount, 7, "then a Max 5x week's pace, one every 4%")
         s.grantCandies(from: [window("pro", 64, 1, "e")], limitsReady: true)
-        XCTAssertEqual(s.rareCandyCount, 7, "back to Pro: nothing taken back, nothing paid twice")
+        XCTAssertEqual(s.rareCandyCount, 7, "read as 1 in the same window: the plan known stays, nothing paid twice")
         s.grantCandies(from: [window("pro", 20, 1, "e2")], limitsReady: true)
         XCTAssertEqual(s.rareCandyCount, 8, "a new epoch at the same plan pays from its start")
         XCTAssertEqual(s.state.candyWindowPlan, ["max": 20, "pro": 1])
+    }
+
+    /// [Regression] A plan read as 1 for one poll (unknown: the session key answers without it) while a bigger plan is
+    /// known for the same window keeps the known one: re-seeded at 1 and back, the window lost what it owed between.
+    func testAPlanReadAsOneForAPollLosesNothing() throws {
+        let s = try companion()
+        s.grantCandies(from: [], limitsReady: true)
+        let end = ISO8601DateFormatter().string(from: Date().addingTimeInterval(3 * 86_400))
+        let window = { (u: Double, plan: Int) in
+            CandyWindow(key: "max", name: "M", kind: .weekly, utilization: u, epoch: end, planMultiplier: plan)
+        }
+        s.grantCandies(from: [window(60, 5)], limitsReady: true)
+        XCTAssertEqual(s.rareCandyCount, 0, "first seen at 60%")
+        s.grantCandies(from: [window(64, 1)], limitsReady: true)
+        XCTAssertEqual(s.rareCandyCount, 1, "read as 1: paid at the plan known, one every 4%")
+        s.grantCandies(from: [window(68, 5)], limitsReady: true)
+        XCTAssertEqual(s.rareCandyCount, 2, "back to 5: nothing lost in between")
+        XCTAssertEqual(s.state.candyWindowPlan["max"], 5)
+    }
+
+    /// [Regression] A window whose stored one has ended starts from nothing even at another plan, or first seen at a
+    /// plan: an old save opened after the reset carried last week's count over, and paid nothing until past it.
+    func testANewWindowAtAnotherPlanDoesNotKeepTheEndedOnesCount() throws {
+        let ended = Date().addingTimeInterval(-2 * 86_400)
+        let iso = ISO8601DateFormatter()
+        let s = try companion {
+            $0.candyFeatureSeeded = true
+            $0.candyGrantsAsYouGo = true
+            $0.candyGrantTier = ["w": 20, "old": 4]
+            $0.candyWindowEpoch = ["w": iso.string(from: ended), "old": iso.string(from: ended)]
+            $0.candyWindowPlan = ["w": 5]
+        }
+        let next = iso.string(from: ended.addingTimeInterval(7 * 86_400))
+        s.grantCandies(from: [
+            CandyWindow(key: "w", name: "W", kind: .weekly, utilization: 10, epoch: next, planMultiplier: 20),
+            CandyWindow(key: "old", name: "O", kind: .weekly, utilization: 40, epoch: next, planMultiplier: 1),
+        ], limitsReady: true)
+        XCTAssertEqual(s.rareCandyCount, 10 + 2, "a tenth of a Max 20x week, two fifths of a Pro one")
+        XCTAssertEqual(s.state.candyWindowPlan, ["w": 20, "old": 1])
+        XCTAssertEqual(s.state.candyWindowEpoch["w"], next)
     }
 
     func testThePlanOfALimitStatus() {

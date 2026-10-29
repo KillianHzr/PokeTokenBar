@@ -4,25 +4,34 @@ import Foundation
 /// without it the Stats page could not price last month or the year.
 struct CostLedger: Equatable, Sendable {
     static let defaultsKey = "dailyCostLedger"
+    static let tokensKey = "dailyCostLedgerTokens"
 
     private(set) var costByDay: [String: Double] = [:]
+    /// The tokens each priced day had when it was priced.
+    private(set) var pricedTokensByDay: [String: Int] = [:]
 
     func cost(on day: String) -> Double? { costByDay[day] }
 
-    /// Records the days whose whole cost is known, and never lowers one, like the token ledger. A day with an unpriced
-    /// part is dropped rather than priced low: a period over it shows no cost.
+    /// Records the days whose whole cost is known, and never lowers one, like the token ledger. A day that gains an
+    /// unpriced part is dropped rather than priced low: a period over it shows no cost. A read of no more tokens than
+    /// the day was priced at, with a part unpriced (a price list not loaded yet, one provider's read failing), is the
+    /// same day read worse: it keeps its cost, which such a read erased.
     mutating func merge(_ series: [DailyUsage]) {
         for day in series where day.totalTokens > 0 {
             if day.costCoverage.unknown || !day.costCoverage.hasKnown {
+                if let priced = pricedTokensByDay[day.date], day.totalTokens <= priced { continue }
                 costByDay[day.date] = nil
+                pricedTokensByDay[day.date] = nil
             } else {
                 costByDay[day.date] = max(costByDay[day.date] ?? 0, day.totalCost)
+                pricedTokensByDay[day.date] = max(pricedTokensByDay[day.date] ?? 0, day.totalTokens)
             }
         }
     }
 
     mutating func prune(before cutoff: String) {
         costByDay = costByDay.filter { $0.key >= cutoff }
+        pricedTokensByDay = pricedTokensByDay.filter { $0.key >= cutoff }
     }
 
     static func load(from defaults: UserDefaults) -> CostLedger {
@@ -32,11 +41,15 @@ struct CostLedger: Equatable, Sendable {
         if let stored = defaults.dictionary(forKey: defaultsKey) as? [String: Double] {
             ledger.costByDay = stored.filter { formatter.date(from: $0.key) != nil && $0.value.isFinite && $0.value >= 0 }
         }
+        if let stored = defaults.dictionary(forKey: tokensKey) as? [String: Int] {
+            ledger.pricedTokensByDay = stored.filter { ledger.costByDay[$0.key] != nil && $0.value > 0 }
+        }
         return ledger
     }
 
     func save(to defaults: UserDefaults) {
         defaults.set(costByDay, forKey: Self.defaultsKey)
+        defaults.set(pricedTokensByDay, forKey: Self.tokensKey)
     }
 }
 
@@ -69,7 +82,36 @@ struct StatsReport {
         let unsplit: Int
         /// Largest first, tools that used nothing left out.
         let tools: [Tool]
+        /// The same split by model, largest first: empty when a day of the period has no split by model.
+        var models: [Tool] = []
+        /// What reading the cache saved at the API's public prices: its tokens at the input price less the read
+        /// price, less what writing the cache cost over the input price (net). Nil when no model is priced.
+        var cacheSavings: Double?
         var total: Int { input + output + cacheWrite + cacheRead + unsplit }
+    }
+
+    /// The models of these days, largest first, with what reading the cache saved (`Breakdown.cacheSavings`). Empty
+    /// as soon as a day with usage has no split by model.
+    static func modelSplit(_ days: [DailyUsage]) -> (models: [Tool], savings: Double?) {
+        var usage: [String: ModelUsage] = [:]
+        for day in days where day.totalTokens > 0 {
+            guard let models = day.modelUsage, !models.isEmpty else { return ([], nil) }
+            for (model, share) in models { usage[model] = usage[model].map { $0 + share } ?? share }
+        }
+        var savings: Double?
+        for (model, share) in usage {
+            let rate = ModelPricing.rate(for: model)
+            guard rate.input > 0 else { continue }
+            let saved = Double(share.cacheRead) * (rate.input - rate.cacheRead)
+                - Double(share.cacheWrite) * max(0, rate.cacheWrite - rate.input)
+            savings = (savings ?? 0) + saved
+        }
+        let models = usage.map { model, share in
+            Tool(id: model, name: RaisingRecord.modelName(model), tokens: share.total, cost: share.cost)
+        }
+        .filter { $0.tokens > 0 }
+        .sorted { $0.tokens != $1.tokens ? $0.tokens > $1.tokens : $0.id < $1.id }
+        return (models, savings)
     }
 
     struct Projection: Equatable {
@@ -208,8 +250,10 @@ struct StatsReport {
             let total = days.reduce(0) { $0 + $1.totalTokens }
             let split = toolSplit(active)
             if total > 0 {
+                let byModel = modelSplit(days)
                 breakdown = Breakdown(input: input, output: output, cacheWrite: cacheWrite, cacheRead: cacheRead,
-                                      unsplit: max(0, total - input - output - cacheWrite - cacheRead), tools: split)
+                                      unsplit: max(0, total - input - output - cacheWrite - cacheRead), tools: split,
+                                      models: byModel.models, cacheSavings: byModel.savings)
             }
         }
 

@@ -117,8 +117,15 @@ enum EventEgg: String, CaseIterable, Codable, Sendable {
     }
 
     /// The guarantees the egg keeps like the Shop's and the stones' (`CompanionStore.chooseBase`): Christmas, an Ice
-    /// Pokémon rare or better; Halloween, a Ghost one.
-    var tier: Rarity? { self == .christmas ? .rare : nil }
+    /// Pokémon rare or better; Halloween, a Ghost one; a season's, Uncommon or better (asked on 2026-10-29), its
+    /// Deerling of the season, a Common, kept as the exception (`CompanionStore.chooseBase` rolls it first).
+    var tier: Rarity? {
+        switch self {
+        case .christmas: return .rare
+        case .spring, .summer, .autumn, .winter: return .uncommon
+        default: return nil
+        }
+    }
     var type: PokemonType? {
         switch self {
         case .christmas: return .ice
@@ -130,6 +137,10 @@ enum EventEgg: String, CaseIterable, Codable, Sendable {
     /// The lines of the Pokémon of love and of Easter's eggs and rabbits.
     static let valentineLines: Set<Int> = [370, 594, 682, 527, 440, 856, 669, 905]
     static let easterLines: Set<Int> = [102, 175, 440, 427, 659, 813, 298]
+    /// The baby bases of later generations whose lines grow into Kanto Pokémon: Pichu, Cleffa, Igglybuff, Tyrogue,
+    /// Smoochum, Elekid, Magby, Mime Jr., Happiny and Munchlax. Pokémon Day's egg took number 151 or lower only, which
+    /// left out Pikachu, Clefairy, Jigglypuff, the Hitmons, Jynx, Electabuzz, Magmar, Mr. Mime, Chansey and Snorlax.
+    static let kantoBabyLines: Set<Int> = [172, 173, 174, 236, 238, 239, 240, 439, 440, 446]
     static let deerlingID = 585
 
     /// The types of a season's Pokémon.
@@ -174,7 +185,7 @@ enum EventEgg: String, CaseIterable, Codable, Sendable {
         switch self {
         case .newYear: return base.isLegendary
         case .valentine: return Self.valentineLines.contains(base.id)
-        case .pokemonDay: return base.id <= 151
+        case .pokemonDay: return base.id <= 151 || Self.kantoBabyLines.contains(base.id)
         case .easter: return Self.easterLines.contains(base.id)
         case .halloween, .christmas: return true
         case .companion: return base.id == companionLine

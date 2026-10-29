@@ -441,7 +441,11 @@ actor LocalUsageCache {
                 }
                 return blob.rollout
             }
-            let rollout = LocalUsageReader.parseCodexRollout(file.url, fmt: fmt)
+            guard let rollout = LocalUsageReader.readCodexRollout(file.url, fmt: fmt) else {
+                // A failed read is not cached under the current signature: the previous blob (or nothing) stands in,
+                // under its old signature, and the next refresh reads the file again (Antigravity's rule).
+                return codexCache[file.path]?.rollout ?? LocalUsageReader.emptyCodexRollout(file.url)
+            }
             codexCache[file.path] = CodexBlob(
                 mtime: file.mtime,
                 size: file.size,

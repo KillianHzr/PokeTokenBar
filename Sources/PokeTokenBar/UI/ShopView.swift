@@ -51,6 +51,7 @@ private struct ShopItemCard: View {
     let store: CompanionStore
     let kind: ItemKind
     @State private var confirming = false
+    @State private var failed = false
     @State private var quantity = 1
 
     private var price: Int { store.price(of: kind) ?? 0 }
@@ -86,11 +87,17 @@ private struct ShopItemCard: View {
                     Text(l.itemDescription(kind, rareCandyXP: store.rareCandyXP))
                         .font(.caption).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                    if kind == .shinyCharm, store.itemCount(kind) == 0 {
+                        let odds = store.shinyCharmOdds
+                        Text(l.shinyOddsChange(from: odds.now, to: odds.withCharm))
+                            .font(.caption.weight(.semibold)).monospacedDigit()
+                    }
                 }
                 // 바깥 Spacer 없음 — 이름 줄의 Spacer 가 남는 폭을 전부 받아 Stepper 를 카드 오른쪽 끝에
                 // 붙인다(가방 ItemCard 와 같은 구조). 둘 다 두면 남는 폭을 나눠 가져 Stepper 가 가운데에 뜬다.
             }
             buyControls(l)
+            ActionFailedNote(failed: $failed, text: l.actionFailed)
         }
         .padding(12)
         .designSurface(cornerRadius: Design.cornerRadius)
@@ -114,27 +121,18 @@ private struct ShopItemCard: View {
                 Spacer()
             }
         } else if confirming {
-            HStack(spacing: 8) {
-                Text(l.buyConfirm(quantityName(l)))
-                    .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
-                Spacer()
-                Button(selectedQuantity > 1 ? "\(l.buy) ×\(selectedQuantity)" : l.buy) { buyNow() }
-                    .buttonStyle(.pill(prominent: true))
-                Button(l.cancel) { confirming = false }
-                    .buttonStyle(.borderless).controlSize(.small)
-            }
+            ShopConfirmation(store: store, name: quantityName(l), total: price * selectedQuantity,
+                             quantity: selectedQuantity, toBag: false, onBuy: buyNow, onCancel: { confirming = false })
         } else {
-            HStack {
+            HStack(alignment: .firstTextBaseline) {
                 // 가격은 선택 수량의 합계 — 확인 전에 총 지출을 보여준다.
-                Text("\(l.shopPriceLabel) \(TokenFormatter.compact(price * selectedQuantity))")
-                    .font(.caption2).foregroundStyle(.tertiary).monospacedDigit()
+                ShopPrice(store: store, entry: .item(kind), quantity: selectedQuantity)
                 Spacer()
                 if store.canBuy(kind) {
                     Button(l.buy) { confirming = true }
                         .buttonStyle(.pill())
                 } else {
-                    Text(l.notEnoughTokens)
-                        .font(.caption2).foregroundStyle(.tertiary)
+                    ShopMissing(store: store, total: price)
                 }
             }
         }
@@ -142,7 +140,7 @@ private struct ShopItemCard: View {
 
     private func buyNow() {
         confirming = false
-        if store.buy(kind, count: selectedQuantity) { quantity = 1 }
+        if store.buy(kind, count: selectedQuantity) { quantity = 1 } else { failed = true }
     }
 }
 
@@ -157,9 +155,14 @@ private struct EggCard: View {
     let store: CompanionStore
     let tier: Rarity?
     @State private var confirming = false
+    @State private var failed = false
+
+    @State private var quantity = 1
 
     private var price: Int { store.price(of: .egg(tier)) }
     private var owned: Int { ItemKind(shopEgg: tier).map(store.itemCount) ?? 0 }
+    private var maxQuantity: Int { max(1, store.maxEggBuyCount(tier)) }
+    private var selectedQuantity: Int { min(quantity, maxQuantity) }
 
     var body: some View {
         let l = store.l
@@ -180,6 +183,16 @@ private struct EggCard: View {
                             Text(l.ownedCount(owned)).font(.caption2.weight(.bold))
                                 .foregroundStyle(.secondary).monospacedDigit()
                         }
+                        Spacer(minLength: 4)
+                        // They wait in the Bag now, so several can be bought at once.
+                        if store.maxEggBuyCount(tier) > 1 {
+                            Stepper(value: $quantity, in: 1...maxQuantity) {
+                                Text("×\(selectedQuantity)").font(.callout.weight(.semibold)).monospacedDigit()
+                            }
+                            .fixedSize()
+                            .accessibilityLabel(l.eggName(tier))
+                            .accessibilityValue("\(selectedQuantity)")
+                        }
                     }
                     Text(l.eggDescription(tier))
                         .font(.caption).foregroundStyle(.secondary)
@@ -188,46 +201,117 @@ private struct EggCard: View {
                         .font(.caption2).foregroundStyle(.tertiary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                Spacer()
             }
             if let odds = store.hatchOdds(for: .init(tier: tier)) {
                 HatchOddsView(odds: odds, l: l)
             }
             buyControls(l)
+            ActionFailedNote(failed: $failed, text: l.actionFailed)
         }
         .padding(12)
         .designSurface(cornerRadius: Design.cornerRadius)
+        .onChange(of: store.maxEggBuyCount(tier)) { _, _ in quantity = selectedQuantity }
     }
 
     /// The same inline confirmation as the other items' (`ShopItemCard`).
     @ViewBuilder
     private func buyControls(_ l: L) -> some View {
         if confirming {
-            HStack(spacing: 8) {
-                Text(l.buyConfirm(l.eggName(tier)))
-                    .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
-                Spacer()
-                Button(l.buy) {
-                    confirming = false
-                    store.buyEgg(tier)
-                }
-                .buttonStyle(.pill(prominent: true))
-                Button(l.cancel) { confirming = false }
-                    .buttonStyle(.borderless).controlSize(.small)
-            }
+            let name = selectedQuantity > 1 ? "\(l.eggName(tier)) ×\(selectedQuantity)" : l.eggName(tier)
+            ShopConfirmation(store: store, name: name, total: price * selectedQuantity, quantity: selectedQuantity,
+                             toBag: true, onBuy: {
+                                 confirming = false
+                                 if store.buyEgg(tier, count: selectedQuantity) { quantity = 1 } else { failed = true }
+                             }, onCancel: { confirming = false })
         } else {
-            HStack {
-                Text("\(l.shopPriceLabel) \(TokenFormatter.compact(price))")
-                    .font(.caption2).foregroundStyle(.tertiary).monospacedDigit()
+            HStack(alignment: .firstTextBaseline) {
+                ShopPrice(store: store, entry: .egg(tier), quantity: selectedQuantity)
                 Spacer()
                 if store.canBuyEgg(tier) {
                     Button(l.buy) { confirming = true }
                         .buttonStyle(.pill())
                 } else {
-                    Text(l.notEnoughTokens)
-                        .font(.caption2).foregroundStyle(.tertiary)
+                    ShopMissing(store: store, total: price)
                 }
             }
+        }
+    }
+}
+
+/// A Shop price: what the selected quantity costs, its base price struck beside it when an item lowers it, and why.
+@MainActor
+private struct ShopPrice: View {
+    let store: CompanionStore
+    let entry: ShopEntry
+    let quantity: Int
+
+    var body: some View {
+        let l = store.l
+        let paid = store.price(of: entry) * quantity
+        let base = store.basePrice(of: entry) * quantity
+        let discounts = store.discounts(of: entry)
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 4) {
+                Text(l.shopPriceLabel).foregroundStyle(.tertiary)
+                if base > paid {
+                    Text(TokenFormatter.compact(base)).strikethrough().foregroundStyle(.tertiary)
+                    Text(TokenFormatter.compact(paid)).fontWeight(.semibold).foregroundStyle(.secondary)
+                } else {
+                    Text(TokenFormatter.compact(paid)).foregroundStyle(.tertiary)
+                }
+            }
+            .font(.caption2).monospacedDigit()
+            if base > paid, !discounts.isEmpty {
+                Text(discounts.map(l.discountLine).joined(separator: " · "))
+                    .font(.caption2).foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+}
+
+/// What the wallet lacks, in place of the Buy button: "Not enough tokens" said nothing of how many.
+@MainActor
+private struct ShopMissing: View {
+    let store: CompanionStore
+    let total: Int
+
+    var body: some View {
+        Label(store.l.shopMissing(TokenFormatter.compact(max(0, total - store.availableTokens))),
+              systemImage: "exclamationmark.circle.fill")
+            .font(.caption2.weight(.semibold)).monospacedDigit()
+            .foregroundStyle(Color.readableOrange)
+    }
+}
+
+/// The inline confirmation of a purchase: its total in the question, what the wallet keeps after it, and for eggs
+/// that they go in the Bag. The total used to give way to the question at the moment of paying.
+@MainActor
+private struct ShopConfirmation: View {
+    let store: CompanionStore
+    let name: String
+    let total: Int
+    let quantity: Int
+    let toBag: Bool
+    let onBuy: () -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        let l = store.l
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                Text(l.buyConfirm(name, total: TokenFormatter.compact(total)))
+                    .font(.caption2).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 4)
+                Button(quantity > 1 ? "\(l.buy) ×\(quantity)" : l.buy) { onBuy() }
+                    .buttonStyle(.pill(prominent: true))
+                Button(l.cancel) { onCancel() }
+                    .buttonStyle(.borderless).controlSize(.small)
+            }
+            let left = l.remainingAfterPurchase(TokenFormatter.compact(max(0, store.availableTokens - total)))
+            Text(toBag ? "\(l.eggsGoToBag(quantity)) \(left)" : left)
+                .font(.caption2).foregroundStyle(.tertiary).monospacedDigit()
         }
     }
 }

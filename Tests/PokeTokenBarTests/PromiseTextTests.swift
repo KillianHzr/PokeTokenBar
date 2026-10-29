@@ -18,6 +18,8 @@ final class PromiseTextTests: XCTestCase {
     func testTheTextsSayWhatCounts() {
         let l = L(.en)
         XCTAssertEqual(l.fossilsGoal(4), "Any 4 fully evolved fossil Pokémon")
+        // The Old Amber asks for every one: "any" read as a choice.
+        XCTAssertEqual(l.allFossilsGoal(15), "All 15 fully evolved fossil Pokémon")
         XCTAssertTrue(l.itemDescription(.magmaStone).hasSuffix("already graduated in this form."))
         XCTAssertTrue(l.itemDescription(.libertyPass).hasSuffix("never graduated in this form."))
         XCTAssertTrue(l.libertyPassEffectHint.hasPrefix("Not graduated yet"))

@@ -37,39 +37,57 @@ struct AchievementsView: View {
         store.achievementTally(in: category.collectorGroup).ready
     }
 
+    /// Each section's rewards ready to claim, from one count of them all.
+    static func readyCounts(_ tallies: [CollectorGroup: CompanionStore.AchievementTally]) -> [AchievementCategory: Int] {
+        Dictionary(uniqueKeysWithValues: AchievementCategory.allCases.map { ($0, tallies[$0.collectorGroup]?.ready ?? 0) })
+    }
+
     /// The first section, in tab order, with a reward ready to claim.
     static func firstCategoryWithRewards(_ store: CompanionStore) -> AchievementCategory? {
-        AchievementCategory.allCases.first { readyCount($0, store) > 0 }
+        let ready = readyCounts(store.achievementTallies().byGroup)
+        return AchievementCategory.allCases.first { (ready[$0] ?? 0) > 0 }
     }
 
     /// Where the claim banner leads: the next section after `current` with a reward ready, wrapping around,
     /// so tapping it again walks through every section that has one.
     static func nextCategoryWithRewards(after current: AchievementCategory, _ store: CompanionStore) -> AchievementCategory? {
+        nextCategoryWithRewards(after: current, ready: readyCounts(store.achievementTallies().byGroup))
+    }
+
+    static func nextCategoryWithRewards(after current: AchievementCategory,
+                                        ready: [AchievementCategory: Int]) -> AchievementCategory? {
         let all = AchievementCategory.allCases
         let start = all.firstIndex(of: current) ?? 0
-        return (1...all.count).lazy.map { all[(start + $0) % all.count] }.first { readyCount($0, store) > 0 }
+        return (1...all.count).lazy.map { all[(start + $0) % all.count] }.first { (ready[$0] ?? 0) > 0 }
     }
 
     /// Segment label: the section and the rewards waiting there ("Stones ●2"). Never claimed/total, which
     /// read as a number to claim; the section's progress has its own line under the picker.
     static func tabTitle(_ category: AchievementCategory, _ store: CompanionStore) -> String {
-        let title = store.l.collectorGroupTitle(category.collectorGroup)
-        let ready = readyCount(category, store)
+        tabTitle(category, ready: readyCount(category, store), store.l)
+    }
+
+    static func tabTitle(_ category: AchievementCategory, ready: Int, _ l: L) -> String {
+        let title = l.collectorGroupTitle(category.collectorGroup)
         return ready > 0 ? "\(title) ●\(ready)" : title
     }
 
     var body: some View {
         let l = store.l
+        // Counted once per draw, for the header, the tabs, the banner and the progress line.
+        let tallies = store.achievementTallies()
+        let ready = Self.readyCounts(tallies.byGroup)
         VStack(alignment: .leading, spacing: 10) {
-            header
+            header(tallies.all, ready: ready)
 
             PillPicker(selection: $selectedCategory,
-                       options: AchievementCategory.allCases.map { ($0, Self.tabTitle($0, store)) })
+                       options: AchievementCategory.allCases.map { ($0, Self.tabTitle($0, ready: ready[$0] ?? 0, l)) })
 
-            categoryProgress(l)
+            categoryProgress(tallies.byGroup[selectedCategory.collectorGroup] ?? .init(), l)
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
+                // Lazy: a section mounts the cards it shows, not its ninety sprites at each change of section.
+                LazyVStack(alignment: .leading, spacing: 8) {
                     let items = store.achievementItems(in: selectedCategory.collectorGroup)
                     ForEach(items, id: \.self) { kind in
                         AchievementCard(store: store, nav: nav, kind: kind)
@@ -84,27 +102,26 @@ struct AchievementsView: View {
 
     /// Progress of the section on screen ("1 of 10 completed"), and what counts: graduated Pokémon, not the one
     /// being raised nor those sent off, which stay in the Pokédex.
-    private func categoryProgress(_ l: L) -> some View {
-        let tally = store.achievementTally(in: selectedCategory.collectorGroup)
-        return Text("\(l.achievementsProgress(tally.claimed, tally.total)) · \(l.achievementsGraduatedOnly)")
+    private func categoryProgress(_ tally: CompanionStore.AchievementTally, _ l: L) -> some View {
+        Text("\(l.achievementsProgress(tally.claimed, tally.total)) · \(l.achievementsGraduatedOnly)")
             .font(.caption2)
             .foregroundStyle(.secondary)
             .monospacedDigit()
     }
 
     /// "Stones 1, Artifacts 2": the sections holding a reward, in tab order.
-    private func readyBreakdown(_ l: L) -> String {
+    private func readyBreakdown(_ ready: [AchievementCategory: Int], _ l: L) -> String {
         AchievementCategory.allCases.compactMap { category in
-            let ready = Self.readyCount(category, store)
-            return ready > 0 ? "\(l.collectorGroupTitle(category.collectorGroup)) \(ready)" : nil
+            let count = ready[category] ?? 0
+            return count > 0 ? "\(l.collectorGroupTitle(category.collectorGroup)) \(count)" : nil
         }.joined(separator: ", ")
     }
 
-    private var header: some View {
+    private func header(_ all: CompanionStore.AchievementTally, ready: [AchievementCategory: Int]) -> some View {
         let l = store.l
-        let claimed = store.claimedAchievementsCount
-        let total = store.totalAchievementsCount
-        let unclaimed = store.unclaimedAchievementsCount
+        let claimed = all.claimed
+        let total = all.total
+        let unclaimed = all.ready
 
         return VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
@@ -121,14 +138,14 @@ struct AchievementsView: View {
                 HStack(spacing: 8) {
                     // Says where the rewards wait and takes you there: each tap opens the next section with one.
                     Button {
-                        if let next = Self.nextCategoryWithRewards(after: selectedCategory, store) {
+                        if let next = Self.nextCategoryWithRewards(after: selectedCategory, ready: ready) {
                             selectedCategory = next
                         }
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "gift.fill")
                                 .font(.caption)
-                            Text(l.readyToClaimSummary(unclaimed, readyBreakdown(l)))
+                            Text(l.readyToClaimSummary(unclaimed, readyBreakdown(ready, l)))
                                 .font(.caption.weight(.semibold))
                                 .multilineTextAlignment(.leading)
                                 .fixedSize(horizontal: false, vertical: true)

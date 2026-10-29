@@ -192,6 +192,9 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     case zRing
     case scrollOfDarkness
     case relicVase
+    /// Every species of the explorers of the depths graduated (`SpeciesGoal.explorers`): every few Pokémon graduated
+    /// dig up a treasure (`ExplorerKit`).
+    case explorerKit
     /// Arceus's achievement: claiming it puts a Rare Egg and an Uncommon Egg in the Bag, not the Plate itself.
     case legendPlate
     /// The forms achievements (`ItemUnlock.forms`): every form of one species graduated. The Rotom Catalog stays and
@@ -201,6 +204,9 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     case vivillonPatterns, whippedDream, unownLetters
     /// The excavation (`FossilDig`): a Fossil Egg for every few Rock-type Pokémon graduated, one dig per fossil line.
     case excavation
+    /// Every fossil line graduated: a Pokémon sent off for an egg gives part of its stage's EXP to the one that hatches
+    /// (`CollectorBonus.oldAmberKeptPercent`).
+    case oldAmber
     /// What a dig gives: it hatches a fossil line not graduated yet, at random.
     case fossilEgg
     case typeNullEgg
@@ -321,6 +327,8 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .zRing: return "z-ring"
         case .scrollOfDarkness: return "scroll-of-darkness"
         case .relicVase: return "relic-vase"
+        case .explorerKit: return "explorer-kit"
+        case .oldAmber: return "old-amber"
         case .legendPlate: return "legend-plate"
         case .rotomCatalog: return "rotom-catalog"
         case .cometShard: return "comet-shard"
@@ -384,6 +392,8 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .zRing: return "💍"
         case .scrollOfDarkness: return "📜"
         case .relicVase: return "⚱️"
+        case .explorerKit: return "🧰"
+        case .oldAmber: return "🟠"
         case .legendPlate: return "🌌"
         case .rotomCatalog: return "📖"
         case .cometShard: return "☄️"
@@ -492,7 +502,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .rareCandy, .mint, .shinyCharm, .birthdayEgg, .pokemonEgg, .uncommonEgg, .rareEgg, .fossilEgg: return nil
         case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return nil
         case .rotomCatalog, .cometShard, .redNectar, .smoothRock, .sawsbuckSeasons, .fairyFeather, .furfrouTrims, .vivillonPatterns, .whippedDream, .unownLetters: return .forms
-        case .excavation: return .evolutionStones   // rocks and stones, side by side
+        case .excavation, .oldAmber: return .evolutionStones   // rocks and stones, side by side
         default: return .legendaryArtifacts
         }
     }
@@ -554,6 +564,8 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .relicVase:   return .species([SpeciesGoal([1001, 1002, 1003, 1004])]) // Treasures of Ruin
         case .legendPlate: return .species([SpeciesGoal([493])])                // Arceus
         case .excavation: return regionGoals.map { .species($0.map(\.goal)) }
+        case .oldAmber: return .species([SpeciesGoal(SpeciesGoal.fossils)])           // every fossil line
+        case .explorerKit: return .species([SpeciesGoal(SpeciesGoal.explorers)])      // the explorers of the depths
         case .rotomCatalog: return .forms(FormGoal(479))                        // Rotom's six appliances
         case .cometShard: return .forms(FormGoal(774, excluding: ["meteor"]))   // Minior's seven cores
         case .redNectar: return .forms(FormGoal(741))                           // Oricorio's four styles
@@ -626,6 +638,17 @@ struct SpeciesGoal: Equatable, Sendable {
     /// The mythical Pokémon, one per line (Meltan for Melmetal): what the Birthday Egg hatches first.
     static let mythicals = [151, 251, 385, 386, 489, 490, 491, 492, 493, 494, 647, 648, 649, 719, 720, 721, 801, 802, 807,
                             808, 893, 1025]
+    /// The legendary Pokémon that are not mythical, one per line (Cosmog for Solgaleo, Type: Null for Silvally): with
+    /// `mythicals`, the bases PokéAPI flags `is_legendary` or `is_mythical` (the base index of 2026-10-29). The Birthday
+    /// Egg's roll reads them when the index is unavailable.
+    static let legendaries = [144, 145, 146, 150, 243, 244, 245, 249, 250, 377, 378, 379, 380, 381, 382, 383, 384, 480, 481,
+                              482, 483, 484, 485, 486, 487, 488, 638, 639, 640, 641, 642, 643, 644, 645, 646, 716, 717, 718,
+                              772, 785, 786, 787, 788, 789, 800, 888, 889, 890, 891, 894, 895, 896, 897, 898, 905, 1001,
+                              1002, 1003, 1004, 1007, 1008, 1014, 1015, 1016, 1017, 1024]
+    /// The explorers of the depths: Steelix digs through the earth, Larvitar is born underground, Gible lives in caves,
+    /// Sableye digs them for gems, Orthworm burrows (all Rare), and Heatran, from the depths of Sinnoh's volcano like the
+    /// Kit: a legendary, so that the treasures every few graduations are earned. The Explorer Kit asks for every one.
+    static let explorers = [208, 248, 445, 302, 968, 485]
     /// Paradox Pokémon of Scarlet and Violet and their DLC, ancient then future.
     static let paradoxes = Array(984...995) + [1005, 1006, 1009, 1010] + Array(1020...1023)
 
@@ -648,12 +671,13 @@ enum BonusTheme: CaseIterable, Sendable {
         switch kind {
         case .oldSeaMap, .dnaSplicers, .zygardeCube, .clearBell, .griseousOrb, .prisonBottle, .sparklingStone,
              .sunFlute, .gracidea, .relicStatue, .beastBall, .rustedSword, .boosterEnergy, .tealMask,
-             .magmaStone, .libertyPass, .lunarWing, .oaksLetter, .shockDrive, .zRing, .scrollOfDarkness, .relicVase:
+             .magmaStone, .libertyPass, .lunarWing, .oaksLetter, .shockDrive, .zRing, .scrollOfDarkness, .relicVase,
+             .oldAmber:
             return .growth
         case .silverWing, .teraOrb, .seaIncense, .legendCharm, .ovalCharm: return .eggs
         case .shinyCharm, .revealGlass, .glimmeringCharm: return .shiny
         case .rainbowWing, .jadeOrb: return .shop
-        case .soulDew, .reinsOfUnity, .meteorite, .rotomCatalog: return .candies
+        case .soulDew, .reinsOfUnity, .meteorite, .rotomCatalog, .explorerKit: return .candies
         default: return nil
         }
     }
@@ -718,8 +742,11 @@ enum CollectorBonus {
     static let lunarWingPsychicDark = 1.3
     /// Rare Candies the Meteorite adds to each usage window filled: Jirachi's wish.
     static let meteoriteWindowCandies = 1
-    /// Rare Candies the Rotom Catalog gives for each Pokémon hatched in a form its line never had.
+    /// Rare Candies the Rotom Catalog gives for each Pokémon graduated in a form its line never graduated in.
     static let rotomCatalogNewFormCandies = 1
+    /// Old Amber: the share of its stage's EXP a Pokémon sent off for an egg gives the one that hatches, short of its
+    /// first evolution.
+    static let oldAmberKeptPercent = 50
     /// Oak's Letter: the starters of every region, at every stage.
     static let oaksLetterStarter = 1.25
     static let starterLines: Set<Int> = Set([1, 152, 252, 387, 495, 650, 722, 810, 906].flatMap { $0...($0 + 8) })
@@ -735,6 +762,26 @@ enum CollectorBonus {
     /// Growth bonus of one regional tier of a gym badge, for Pokémon weak to its type: 2.5% per region, so
     /// 22.5% with the nine regions (20% for Dark, which has no Kanto tier).
     static let badgeRegionBonus = 0.025
+}
+
+/// The Explorer Kit's treasures: one for every `graduationsPerTreasure` Pokémon graduated while it is owned.
+enum ExplorerKit {
+    static let graduationsPerTreasure = 5
+    /// Out of `rollRange`: 1 Legendary Egg (0.01%), 500 Rare Eggs (5%), 2,000 Uncommon Eggs (20%), and the rest, 3
+    /// Rare Candies (74.99%). Pure bonuses: nothing here changes what hatches.
+    static let rollRange = 10_000
+    static let legendaryEggRolls = 1
+    static let rareEggRolls = 500
+    static let uncommonEggRolls = 2_000
+    static let candies = 3
+
+    /// The treasure of one roll in `0..<rollRange`.
+    static func treasure(roll: Int) -> (kind: ItemKind, count: Int) {
+        if roll < legendaryEggRolls { return (.legendaryEgg, 1) }
+        if roll < legendaryEggRolls + rareEggRolls { return (.rareEgg, 1) }
+        if roll < legendaryEggRolls + rareEggRolls + uncommonEggRolls { return (.uncommonEgg, 1) }
+        return (.rareCandy, candies)
+    }
 }
 
 /// Azure Flute balance constant (passive collector item).
@@ -927,6 +974,10 @@ struct CandyWindow: Sendable {
         self.utilization = utilization
         self.epoch = epoch
         self.planMultiplier = max(1, planMultiplier)
+    }
+
+    func withPlanMultiplier(_ plan: Int) -> CandyWindow {
+        CandyWindow(key: key, name: name, kind: kind, utilization: utilization, epoch: epoch, planMultiplier: plan)
     }
 }
 
@@ -1195,7 +1246,8 @@ struct MonState: Codable, Sendable, Equatable {
         rarity = try c.decode(Rarity.self, forKey: .rarity)
         totalForms = try c.decode(Int.self, forKey: .totalForms)
         isShiny = try c.decodeIfPresent(Bool.self, forKey: .isShiny) ?? false
-        nature = try c.decodeIfPresent(PokemonNature.self, forKey: .nature)
+        // A nature this version cannot read is dropped, not the whole individual (the Pokémon raised was lost).
+        nature = c.lenientOptional(PokemonNature.self, forKey: .nature)
         // 손상된 신규 프로필 하나 때문에 기존 성장 상태 전체를 잃지 않는다. nil이면 스토어가 재마이그레이션한다.
         profile = (try? c.decodeIfPresent(PokemonProfile.self, forKey: .profile)) ?? nil
         hasGrowthBoost = try c.decodeIfPresent(Bool.self, forKey: .hasGrowthBoost) ?? false
@@ -1288,7 +1340,8 @@ struct DexEntry: Codable, Sendable, Identifiable, Equatable {
         rarity = try c.decode(Rarity.self, forKey: .rarity)
         caughtAt = try c.decodeIfPresent(Date.self, forKey: .caughtAt)
         isShiny = try c.decodeIfPresent(Bool.self, forKey: .isShiny) ?? false
-        nature = try c.decodeIfPresent(PokemonNature.self, forKey: .nature)
+        // A nature this version cannot read is dropped, not the whole individual (the Pokémon raised was lost).
+        nature = c.lenientOptional(PokemonNature.self, forKey: .nature)
         // 프로필만 손상되면 개체 기록은 보존하고 프로필을 다시 생성한다.
         profile = (try? c.decodeIfPresent(PokemonProfile.self, forKey: .profile)) ?? nil
         // try? — 구버전(최종체 단일 [String:String]) 형식이 남아 있어도 종별 맵 디코딩 실패 시 nil 로
@@ -1303,21 +1356,83 @@ struct DexEntry: Codable, Sendable, Identifiable, Equatable {
     }
 }
 
+/// A build of the app: its commit, that commit's date ("yyyy-MM-dd HH:mm" in the committer's time zone, for people)
+/// and its time in seconds since 1970 (to order builds), from its Info.plist (`scripts/build-app.sh`). Nil for a build
+/// without them (`swift run`, the tests).
+struct SaveWriter: Codable, Equatable, Sendable {
+    var commit: String
+    var date: String
+    /// nil in a save the first builds that stamped it wrote.
+    var time: Int?
+
+    static let current: SaveWriter? = {
+        guard let commit = Bundle.main.object(forInfoDictionaryKey: "PTBCommitSHA") as? String,
+              !commit.isEmpty, commit != "unknown",
+              let date = Bundle.main.object(forInfoDictionaryKey: "PTBCommitDate") as? String, !date.isEmpty
+        else { return nil }
+        let time = (Bundle.main.object(forInfoDictionaryKey: "PTBCommitTime") as? String).flatMap { Int($0) }
+        return SaveWriter(commit: commit, date: date, time: time)
+    }()
+
+    /// Whether a save this writer wrote comes from a build later than `build`. By time only: the dates are each in
+    /// their committer's zone, and a commit made in Seoul read as later than one made after it in Paris. Without both
+    /// times, not newer: the save is written, as it was before the stamp.
+    func isNewer(than build: SaveWriter) -> Bool {
+        guard let time, let other = build.time else { return false }
+        return commit != build.commit && time > other
+    }
+}
+
 /// 배열 항목별 격리 디코딩 래퍼 — 손상된 한 항목이 배열 전체(및 상위 상태) 디코드를 실패시키지 않게.
 /// 각 항목을 `try?` 로 감싸므로 실패 항목은 `value == nil` 이 되고 배열 디코드 자체는 성공한다.
 private struct Lossy<T: Decodable>: Decodable {
     let value: T?
-    init(from decoder: Decoder) throws { value = try? decoder.singleValueContainer().decode(T.self) }
+    init(from decoder: Decoder) throws {
+        value = try? decoder.singleValueContainer().decode(T.self)
+        if value == nil { LenientDecoding.lost(decoder.codingPath.map(\.stringValue).joined(separator: ".")) }
+    }
+}
+
+/// What the lenient decoding left out while a load records it: a field of another shape (a save a newer version wrote,
+/// a broken one) falls back to its default, and the load copies the file aside before writing over it. Kept per
+/// thread, so a decode elsewhere (a snapshot's summary) is not counted.
+enum LenientDecoding {
+    private static let key = "PokeTokenBar.LenientDecoding.losses"
+
+    static func recordingLosses<T>(_ body: () throws -> T) rethrows -> (value: T, losses: [String]) {
+        let thread = Thread.current
+        let outer = thread.threadDictionary[key]
+        let losses = NSMutableArray()
+        thread.threadDictionary[key] = losses
+        defer { thread.threadDictionary[key] = outer }
+        let value = try body()
+        return (value, losses.compactMap { $0 as? String })
+    }
+
+    static func lost(_ path: String) {
+        (Thread.current.threadDictionary[key] as? NSMutableArray)?.add(path.isEmpty ? "?" : path)
+    }
 }
 
 private extension KeyedDecodingContainer {
     /// 관대 디코드 — 키 없음/null/타입 불일치를 모두 기본값으로 흡수한다. 한 필드 손상이 상태 전체
     /// (도감·인벤토리)를 날리지 않게(부분 복원 > 전면 리셋). 최상위가 JSON 객체가 아닌 전면 손상은 여전히 throw.
+    /// A value present but of another shape is a loss (`LenientDecoding`); a key absent or null is not.
     func lenient<T: Decodable>(_ type: T.Type, forKey key: Key, default def: T) -> T {
-        (try? decode(type, forKey: key)) ?? def
+        do { return try decode(type, forKey: key) } catch {
+            noteLoss(key)
+            return def
+        }
     }
     func lenientOptional<T: Decodable>(_ type: T.Type, forKey key: Key) -> T? {
-        try? decode(type, forKey: key)
+        do { return try decode(type, forKey: key) } catch {
+            noteLoss(key)
+            return nil
+        }
+    }
+    func noteLoss(_ key: Key) {
+        guard contains(key), (try? decodeNil(forKey: key)) != true else { return }
+        LenientDecoding.lost((codingPath + [key]).map(\.stringValue).joined(separator: "."))
     }
 }
 
@@ -1359,6 +1474,9 @@ struct CompanionState: Codable, Sendable, Equatable {
     var lastHatchedBaseID: Int?
     /// The player's birthday, without the year; nil until they enter it in Settings.
     var birthday: Birthday?
+    /// The build that wrote the save last (`SaveWriter.current`): a build older than it does not write over what it
+    /// may not understand.
+    var writer: SaveWriter?
     /// The year of the last birthday whose gift was claimed; nil for a save that never got one.
     var lastBirthdayGiftYear: Int?
     /// When that gift was claimed: a December birthday's gift claimed in January counts for the year before.
@@ -1374,6 +1492,16 @@ struct CompanionState: Codable, Sendable, Equatable {
     var eventEggsNotified: Set<String> = []
     /// The egg came from an event egg: it hatches that event's Pokémon (`CompanionStore.chooseBase`).
     var eggEvent: EventEgg?
+    /// The claim of the event egg incubating (`EventEgg.key`), and the base each claimed one hatched, from 2026-10-29:
+    /// the calendar says what came out of each egg taken.
+    var eggEventKey: String?
+    var eventEggHatches: [String: Int] = [:]
+    /// The EXP the Old Amber kept of the Pokémon sent off for the egg incubating, given to the one that hatches.
+    var amberCarry = 0
+    /// Pokémon graduated toward the Explorer Kit's next treasure, and the treasures not seen yet (item, count), which
+    /// the news strip shows until the player opens the Bag or closes it.
+    var graduationsTowardTreasure = 0
+    var unseenTreasures: [String: Int] = [:]
     /// The year of the last birthday the gift was announced for, so the notification comes once.
     var birthdayNotifiedYear: Int?
     // 알 상태에서 미리 롤해둔 부화 종(프리패칭) — 부화 순간 네트워크 딜레이 제거. 재시작에도 유지.
@@ -1499,6 +1627,12 @@ struct CompanionState: Codable, Sendable, Equatable {
         eventEggsNotified = c.lenient(Set<String>.self, forKey: .eventEggsNotified, default: [])
         eggEvent = c.lenientOptional(EventEgg.self, forKey: .eggEvent)
         birthdayNotifiedYear = c.lenientOptional(Int.self, forKey: .birthdayNotifiedYear)
+        writer = c.lenientOptional(SaveWriter.self, forKey: .writer)
+        eggEventKey = c.lenientOptional(String.self, forKey: .eggEventKey)
+        eventEggHatches = c.lenient([String: Int].self, forKey: .eventEggHatches, default: [:])
+        amberCarry = c.lenient(Int.self, forKey: .amberCarry, default: 0)
+        graduationsTowardTreasure = c.lenient(Int.self, forKey: .graduationsTowardTreasure, default: 0)
+        unseenTreasures = c.lenient([String: Int].self, forKey: .unseenTreasures, default: [:])
     }
 
     /// 졸업 기록 또는 현재 개체가 실제로 도달한 단계에 이 종이 포함되는가.
@@ -1721,6 +1855,32 @@ struct CompanionState: Codable, Sendable, Equatable {
             representativeSpeciesID = nil
             representativeForm = nil
         }
+    }
+
+    /// The years kept before the events and the birthday were counted in the Gregorian calendar were the system
+    /// calendar's: 2569 on a Mac in the Buddhist calendar held the birthday gift back 543 years, 8 in the Japanese one
+    /// gave it and the season's eggs twice. A year that no Gregorian year of the app can be (the gift came on 2026-10-26,
+    /// the events the day after: never before 2026) is read in `recorded`, the calendar it was most likely counted in, at
+    /// the middle of that year, and is never after this one: a claim is past.
+    mutating func convertCalendarYears(recordedIn recorded: Calendar, now: Date) {
+        guard recorded.identifier != .gregorian else { return }
+        let gregorian = LocalUsageReader.gregorianCalendar(timeZone: recorded.timeZone)
+        let thisYear = gregorian.component(.year, from: now)
+        let era = recorded.component(.era, from: now)
+        // Bounded both ways: a clock set years back made `2026...thisYear + 1` an empty range, which traps.
+        let plausible = 2026...max(2026, thisYear + 1)
+        func converted(_ year: Int) -> Int {
+            guard !plausible.contains(year),
+                  let middle = recorded.date(from: DateComponents(era: era, year: year, month: 6, day: 1))
+            else { return year }
+            return min(gregorian.component(.year, from: middle), thisYear)
+        }
+        if let year = lastBirthdayGiftYear { lastBirthdayGiftYear = converted(year) }
+        if let year = birthdayChangedAfterGiftYear { birthdayChangedAfterGiftYear = converted(year) }
+        claimedEventEggs = Set(claimedEventEggs.map { key in
+            guard let at = key.lastIndex(of: "@"), let year = Int(key[key.index(after: at)...]) else { return key }
+            return "\(key[..<at])@\(converted(year))"
+        })
     }
 }
 

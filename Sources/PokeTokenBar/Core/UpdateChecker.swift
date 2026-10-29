@@ -10,11 +10,15 @@ final class UpdateChecker {
         let version: String
         let url: String
         let message: String
+        /// The full commit to build, the one offered: built from `main` as it is when the update runs, a commit pushed
+        /// meanwhile (red or not) was installed instead. Nil for a release tag.
+        let sha: String?
 
-        init(version: String, url: String, message: String = "") {
+        init(version: String, url: String, message: String = "", sha: String? = nil) {
             self.version = version
             self.url = url
             self.message = message
+            self.sha = sha
         }
     }
 
@@ -64,7 +68,15 @@ final class UpdateChecker {
     /// Injected so tests can fail or succeed without hitting the network.
     private let fetchLatest: () async -> LatestCommit?
     private var lastChecked: Date?
+    /// The last check that found nothing (offline, rate limited): the next waits `failedCheckInterval`, not the next
+    /// popover opening. Unauthenticated, GitHub allows 60 calls an hour.
+    private var lastFailedCheck: Date?
+    static let failedCheckInterval: TimeInterval = 600
     private var checkInFlight = false
+    /// When the running update started: one whose script never wrote a result is given up after `updateTimeout`,
+    /// or "updating" stayed for good.
+    private var updateStartedAt: Date?
+    static let updateTimeout: TimeInterval = 20 * 60
 
     static let skippedVersionKey = "skippedUpdateVersion"
 
@@ -78,7 +90,8 @@ final class UpdateChecker {
         self.currentVersion = currentVersion ?? (embeddedCommit != nil && !embeddedCommit!.isEmpty && embeddedCommit != "unknown" ? String(embeddedCommit!.prefix(7)) : (shortVersion ?? "2.5.5"))
         self.clock = clock
         self.defaults = defaults
-        self.fetchLatest = fetchLatest ?? { await Self.liveLatestCommit(repo: "KillianHzr/PokeTokenLBI") }
+        let installed = self.currentCommit
+        self.fetchLatest = fetchLatest ?? { await Self.liveLatestGreenCommit(repo: "KillianHzr/PokeTokenLBI", current: installed) }
         self.updateStatusURL = updateStatusURL
         updateError = Self.recentUpdateError(at: updateStatusURL, now: clock())
     }
@@ -111,13 +124,20 @@ final class UpdateChecker {
     func check(minInterval: TimeInterval = 1800) async {
         if checkInFlight { return }
         if let last = lastChecked, clock().timeIntervalSince(last) < minInterval { return }
+        if let failed = lastFailedCheck, clock().timeIntervalSince(failed) < min(minInterval, Self.failedCheckInterval) {
+            return
+        }
         checkInFlight = true
         defer { checkInFlight = false }
 
         guard let commit = await fetchLatest(),
               Self.isTrustedReleaseURL(commit.url),
-              let validated = Self.validatedVersionOrCommit(commit.sha) else { return }
+              let validated = Self.validatedVersionOrCommit(commit.sha) else {
+            lastFailedCheck = clock()
+            return
+        }
         lastChecked = clock()
+        lastFailedCheck = nil
         consider(latest: validated, message: commit.message, url: commit.url)
     }
 
@@ -151,20 +171,66 @@ final class UpdateChecker {
         return parts.map { String(Int($0)!) }.joined(separator: ".")
     }
 
-    /// Live GitHub latest commit fetch.
-    private nonisolated static func liveLatestCommit(repo: String) async -> LatestCommit? {
-        guard let url = URL(string: "https://api.github.com/repos/\(repo)/commits/main") else { return nil }
+    /// The newest commit of `main` whose CI passed: a commit whose checks failed, or still run, was offered and
+    /// installed all the same (a red one on 15/10). The installed commit stops the walk: nothing older is offered.
+    private nonisolated static func liveLatestGreenCommit(repo: String, current: String) async -> LatestCommit? {
+        guard let json = await githubJSON("https://api.github.com/repos/\(repo)/commits?sha=main&per_page=10"),
+              let list = json as? [[String: Any]] else { return nil }
+        let commits = list.compactMap { item -> LatestCommit? in
+            guard let sha = item["sha"] as? String, let html = item["html_url"] as? String else { return nil }
+            let message = ((item["commit"] as? [String: Any])?["message"] as? String)?
+                .components(separatedBy: .newlines).first ?? ""
+            return LatestCommit(sha: sha, message: message, url: html)
+        }
+        let green = await firstGreen(commits, current: current) { sha in
+            (await githubJSON("https://api.github.com/repos/\(repo)/commits/\(sha)/check-runs") as? [String: Any])?["check_runs"]
+                as? [[String: Any]]
+        }
+        guard let green else { return nil }
+        return await offered(green, current: current) { base, head in
+            (await githubJSON("https://api.github.com/repos/\(repo)/compare/\(base)...\(head)") as? [String: Any])?["status"]
+                as? String
+        }
+    }
+
+    /// `green` when the installed commit leads to it (GitHub's "ahead"), else the installed one: the same, older, or on
+    /// another line (a build of `release` and a merge made on `main` alone, newer but without `release`, whose build
+    /// knows nothing of the save `release` wrote). nil when the comparison could not be read: nothing is offered rather
+    /// than a commit not known to follow. A build without its commit (`dev`) compares nothing.
+    nonisolated static func offered(_ green: LatestCommit, current: String,
+                                    compareStatus: (String, String) async -> String?) async -> LatestCommit? {
+        guard current.count >= 7, !green.sha.hasPrefix(current) else { return green }
+        guard let status = await compareStatus(current, green.sha) else { return nil }
+        return status == "ahead" ? green : LatestCommit(sha: current, message: green.message, url: green.url)
+    }
+
+    /// The first of `commits` (newest first) whose check runs all passed, or the installed one when it comes first.
+    /// `checkRuns` nil: the request failed, so nothing is offered rather than a commit not known to pass.
+    nonisolated static func firstGreen(_ commits: [LatestCommit], current: String,
+                                       checkRuns: (String) async -> [[String: Any]]?) async -> LatestCommit? {
+        for commit in commits {
+            if current.count >= 7, commit.sha.hasPrefix(current) { return commit }
+            guard let runs = await checkRuns(commit.sha) else { return nil }
+            if isGreen(runs) { return commit }
+        }
+        return nil
+    }
+
+    /// Every check run completed and passed (or was skipped or neutral), and there is at least one.
+    nonisolated static func isGreen(_ runs: [[String: Any]]) -> Bool {
+        !runs.isEmpty && runs.allSatisfy { run in
+            run["status"] as? String == "completed"
+                && ["success", "skipped", "neutral"].contains(run["conclusion"] as? String ?? "")
+        }
+    }
+
+    private nonisolated static func githubJSON(_ address: String) async -> Any? {
+        guard let url = URL(string: address) else { return nil }
         var req = URLRequest(url: url, timeoutInterval: 15)
         req.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         guard let (data, resp) = try? await URLSession.shared.data(for: req),
-              (resp as? HTTPURLResponse)?.statusCode == 200,
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let sha = json["sha"] as? String,
-              let html = json["html_url"] as? String else { return nil }
-        let commitObj = json["commit"] as? [String: Any]
-        let message = (commitObj?["message"] as? String)?
-            .components(separatedBy: .newlines).first ?? ""
-        return LatestCommit(sha: sha, message: message, url: html)
+              (resp as? HTTPURLResponse)?.statusCode == 200 else { return nil }
+        return try? JSONSerialization.jsonObject(with: data)
     }
 
     /// Apply one fetched release/commit.
@@ -193,7 +259,7 @@ final class UpdateChecker {
         }
 
         let skippedVersion = defaults.string(forKey: Self.skippedVersionKey)
-        let release = Available(version: short, url: url, message: message)
+        let release = Available(version: short, url: url, message: message, sha: isSemVer ? nil : trimmed)
         if short == skippedVersion || trimmed == skippedVersion {
             available = nil
             skipped = release
@@ -234,17 +300,27 @@ final class UpdateChecker {
                         break
                     }
                 }
+                if let started = self.updateStartedAt, self.clock().timeIntervalSince(started) > Self.updateTimeout {
+                    self.isUpdating = false
+                    self.updateError = "error: the update did not finish"
+                    break
+                }
             }
         }
     }
 
     /// 업데이트 적용: 분리(detached) 스크립트로 git pull/reset + rebuild + reopen.
     func applyUpdate() {
-        guard updateTarget != nil, !isUpdating else { return }
+        guard let target = updateTarget, !isUpdating else { return }
         isUpdating = true
         updateError = nil
+        updateStartedAt = clock()
         Task { @MainActor in
-            Self.launchDetachedUpgrade()
+            guard Self.launchDetachedUpgrade(target: target.sha ?? "") else {
+                self.isUpdating = false
+                self.updateError = "error: the update could not start"
+                return
+            }
             self.startMonitoringUpdateStatus()
         }
     }
@@ -266,6 +342,7 @@ final class UpdateChecker {
     export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
     APP_PID="$1"
     APP_BUNDLE="$2"
+    TARGET="$3"
 
     APP_SUPPORT="$HOME/Library/Application Support/PokeTokenBar"
     SRC_DIR="$APP_SUPPORT/src"
@@ -295,14 +372,15 @@ final class UpdateChecker {
     cd "$SRC_DIR" || fail "cd failed"
     echo "Fetching and resetting to origin/main..." >> "$LOG_FILE"
     git fetch origin main >> "$LOG_FILE" 2>&1 || fail "fetch failed"
-    git reset --hard origin/main >> "$LOG_FILE" 2>&1 || fail "reset failed"
-    git clean -fd >> "$LOG_FILE" 2>&1 || fail "clean failed"
-
-    PATCH_FILE="$APP_SUPPORT/local.patch"
-    if [ -f "$PATCH_FILE" ]; then
-      echo "Applying local private patch..." >> "$LOG_FILE"
-      git apply "$PATCH_FILE" >> "$LOG_FILE" 2>&1 || true
+    # The commit offered, not main as it is now: one pushed meanwhile was built in its place.
+    if [ -n "$TARGET" ]; then
+      git cat-file -e "$TARGET^{commit}" 2>/dev/null || fail "commit $TARGET not found"
+      git reset --hard "$TARGET" >> "$LOG_FILE" 2>&1 || fail "reset failed"
+    else
+      git reset --hard origin/main >> "$LOG_FILE" 2>&1 || fail "reset failed"
     fi
+    git clean -fd >> "$LOG_FILE" 2>&1 || fail "clean failed"
+    # The local patch is applied by build-app.sh: applied here too, it ran twice.
 
     echo "Building app..." >> "$LOG_FILE"
     PTB_NATIVE_ARCH_ONLY=1 ./scripts/build-app.sh >> "$LOG_FILE" 2>&1 || fail "build failed"
@@ -313,22 +391,37 @@ final class UpdateChecker {
 
     echo "Re-opening app..." >> "$LOG_FILE"
     TARGET_APP="/Applications/PokeTokenLBI.app"
+    OPENED=0
     for i in $(seq 1 15); do
-      open "$TARGET_APP" 2>/dev/null && break
-      open "$2" 2>/dev/null && break
+      if open "$TARGET_APP" 2>/dev/null || open "$2" 2>/dev/null; then OPENED=1; break; fi
       sleep 1
     done
+    # Success only once the new app opened: "success" was written whether it reopened or not.
+    if [ "$OPENED" != "1" ]; then
+      echo "error: installed, but the app did not reopen" > "$STATUS_FILE"
+      echo "Update installed, reopening failed" >> "$LOG_FILE"
+      exit 1
+    fi
     echo "success" > "$STATUS_FILE"
     echo "=== Update finished at $(date) ===" >> "$LOG_FILE"
     """
 
+    /// Whether the script started. `target`: the commit to build, empty for `main` as it is.
+    @discardableResult
     nonisolated static func launchDetachedUpgrade(
+        target: String,
         pid: pid_t = ProcessInfo.processInfo.processIdentifier,
         bundlePath: String = Bundle.main.bundlePath
-    ) {
+    ) -> Bool {
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/bin/sh")
-        task.arguments = ["-c", detachedUpgradeScript, "sh", String(pid), bundlePath]
-        try? task.run()
+        task.arguments = ["-c", detachedUpgradeScript, "sh", String(pid), bundlePath, target]
+        do {
+            try task.run()
+            return true
+        } catch {
+            AppLog.write("update: the script did not start: \(error)")
+            return false
+        }
     }
 }

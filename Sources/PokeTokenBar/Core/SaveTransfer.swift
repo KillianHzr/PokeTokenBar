@@ -49,6 +49,8 @@ enum SaveTransferError: Error, Equatable {
     case fileTooLarge(bytes: Int, limit: Int)
     /// 덮어쓰기 전 백업을 못 남겼다 — 확인창이 약속한 복구 수단이 없으므로 불러오기를 중단한다.
     case backupFailed
+    /// The save is locked (`CompanionStore.SaveLock`): nothing is written, snapshots included, until it reads.
+    case saveLocked
 }
 
 /// 불러오기 확인창의 버튼 배치 규칙. AppKit 밖으로 빼둔 이유는 이 규칙이 **데이터 손실과 직결**되는데
@@ -72,6 +74,8 @@ enum SaveTransfer {
     /// 세이브에 들어올 수 있는 수치의 상한 — 실사용(수십억)의 10만 배라 정상 진행을 자르지 않으면서,
     /// 이 값끼리 더하고 빼도 Int64 범위 안에 머문다.
     static let maxTokenValue = 1_000_000_000_000_000
+    /// The most of one item a save holds: far above any real count, far below an add's overflow.
+    static let maxItemCount = 1_000_000_000
 
     /// 내보내기 파일명 — 날짜가 들어가야 여러 번 내보내도 덮어쓰지 않는다.
     static func suggestedFileName(date: Date) -> String {
@@ -96,7 +100,9 @@ enum SaveTransfer {
     private static func dayStamp(_ date: Date) -> String { stamp(date, "yyyy-MM-dd") }
     private static func secondStamp(_ date: Date) -> String { stamp(date, "yyyy-MM-dd-HHmmss") }
 
-    static func encode(state: CompanionState, appVersion: String, deviceName: String, now: Date) throws -> Data {
+    /// `pretty`: indented for a person to read (an export); the app's own snapshots are written compact.
+    static func encode(state: CompanionState, appVersion: String, deviceName: String, now: Date,
+                       pretty: Bool = true) throws -> Data {
         let envelope = SaveEnvelope(format: SaveEnvelope.formatID,
                                     schema: SaveEnvelope.schemaVersion,
                                     appVersion: appVersion,
@@ -105,14 +111,23 @@ enum SaveTransfer {
                                     state: state)
         let encoder = JSONEncoder()
         // 사람이 열어봤을 때 읽히도록(무엇이 옮겨가는지 확인 가능) — 4KB 라 크기는 무의미.
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.outputFormatting = pretty ? [.prettyPrinted, .sortedKeys] : [.sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
         return try encoder.encode(envelope)
     }
 
-    static func decode(_ data: Data) throws -> SaveEnvelope {
-        guard data.count <= maxFileBytes else {
-            throw SaveTransferError.fileTooLarge(bytes: data.count, limit: maxFileBytes)
+    /// Whether the file is an envelope (it has a `format`), whatever its schema, size or state: such a file is never
+    /// read as a bare state, which the lenient decoding turned into an empty game.
+    static func isEnvelope(_ data: Data) -> Bool {
+        struct Probe: Decodable { let format: String }
+        return (try? JSONDecoder().decode(Probe.self, from: data)) != nil
+    }
+
+    /// `maxBytes`: the limit of a file picked by the player; the app's own snapshots have none (they grow by about
+    /// 21 KB a day, and refused past 8 MB they were restored as an empty game).
+    static func decode(_ data: Data, maxBytes: Int = maxFileBytes) throws -> SaveEnvelope {
+        guard data.count <= maxBytes else {
+            throw SaveTransferError.fileTooLarge(bytes: data.count, limit: maxBytes)
         }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -146,6 +161,11 @@ enum SaveTransfer {
         s.usedSinceInstall = clampToken(s.usedSinceInstall)
         s.spentTokens = clampToken(s.spentTokens)
         s.eggUsage = clampToken(s.eggUsage)
+        s.amberCarry = clampToken(s.amberCarry)
+        // Counts are added to (a treasure, a claim, a purchase): one near Int.max trapped at its next add, at every
+        // launch. Capped far above any real count: no item is dropped.
+        s.inventory = s.inventory.mapValues { min(max(0, $0), maxItemCount) }
+        s.unseenTreasures = s.unseenTreasures.mapValues { min(max(0, $0), maxItemCount) }
         s.claimedTodayTokensByProvider = s.claimedTodayTokensByProvider?.reduce(into: [:]) { result, entry in
             result[entry.key] = clampToken(entry.value)
         }
@@ -215,6 +235,8 @@ enum SaveTransfer {
                                      hasUsageData: Bool) -> CompanionState {
         var state = imported
         state.language = current.language
+        // The build that writes is this Mac's, not the exporting one's (`CompanionState.writer`).
+        state.writer = current.writer
         let (importedLedger, currentLedger) = withoutEndedWindows(imported, current)
         state.candyGrantTier = mergedGrantTier(importedLedger.candyGrantTier, currentLedger.candyGrantTier)
         state.candyWindowEpoch = mergedWindowEpochs(

@@ -371,6 +371,35 @@ struct SessionKeyLimitsProvider: ClaudeLimitsProviding, SessionKeyManaging {
 struct ChainedLimitsProvider: ClaudeLimitsProviding {
     let primary: any ClaudeLimitsProviding
     let fallback: any ClaudeLimitsProviding
+    /// A 429 of the session key: the fallback answering, it was swallowed and the key asked again at every poll, which
+    /// kept it rate limited. The key then waits (its `retryAfter`, else 5 minutes doubling to an hour), the fallback
+    /// answering meanwhile.
+    let primaryBackoff = PrimaryBackoff()
+
+    init(primary: any ClaudeLimitsProviding, fallback: any ClaudeLimitsProviding) {
+        self.primary = primary
+        self.fallback = fallback
+    }
+
+    /// When the session key is asked again after a 429, shared by the copies of one chain.
+    final class PrimaryBackoff: @unchecked Sendable {
+        private let lock = NSLock()
+        private var until: Date?
+        private var interval: TimeInterval = 0
+
+        func isWaiting(now: Date = Date()) -> Bool { lock.withLock { until.map { now < $0 } ?? false } }
+
+        func rateLimited(retryAfter: TimeInterval?, now: Date = Date()) -> TimeInterval {
+            lock.withLock {
+                interval = UsageStore.nextLimitsBackoff(after: interval)
+                let delay = retryAfter ?? interval
+                until = now.addingTimeInterval(delay)
+                return delay
+            }
+        }
+
+        func answered() { lock.withLock { until = nil; interval = 0 } }
+    }
 
     /// An additional Claude folder: its own session key first, so automatic polls keep it fresh
     /// without the Keychain, then the folder's Claude Code token as before.
@@ -386,13 +415,25 @@ struct ChainedLimitsProvider: ClaudeLimitsProviding {
             fallback: fallback ?? OAuthLimitsProvider(accessTokenCache: .forConfigRoot(root)))
     }
 
+    /// A new key, or none, is not the one the 429 answered: saved, it was skipped for up to an hour; cleared, the wait
+    /// read as a key there and kept the manual refresh from the Keychain.
+    func sessionKeyChanged() { primaryBackoff.answered() }
+
     func fetch(allowKeychainPrompt: Bool) async throws -> LimitStatus {
         do {
-            return try await primary.fetch(allowKeychainPrompt: allowKeychainPrompt)
+            if primaryBackoff.isWaiting() { throw LimitsError.rateLimited(retryAfter: nil) }
+            let status = try await primary.fetch(allowKeychainPrompt: allowKeychainPrompt)
+            primaryBackoff.answered()
+            return status
         } catch {
             // 키를 안 넣은 사용자는 이게 정상 흐름이라 로그를 남기지 않는다.
             let configured = (error as? LimitsError) != .sessionKeyMissing
-            if configured { AppLog.write("session key limits failed: \(error)") }
+            if case LimitsError.rateLimited(let retryAfter) = error, !primaryBackoff.isWaiting() {
+                let delay = primaryBackoff.rateLimited(retryAfter: retryAfter)
+                AppLog.write("session key limits rate-limited: the key waits \(Int(delay))s, the fallback answers")
+            } else if configured, !primaryBackoff.isWaiting() {
+                AppLog.write("session key limits failed: \(error)")
+            }
             do {
                 // 키를 넣어 둔 사용자에겐 폴백이 Keychain 을 열지 못하게 막는다. 이 기능의 존재
                 // 이유가 그 프롬프트를 없애는 것이라, 키가 죽었다고 수동 갱신에서 다시 띄우면

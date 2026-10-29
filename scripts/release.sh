@@ -12,6 +12,15 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# PokeTokenLBI ships through its in-app update (a merge into the fork's main), not through releases, Homebrew or
+# Pages, and this script releases the upstream project (its repository, cask and `git push origin`). It only checks the
+# docs here, unless PTB_UPSTREAM_RELEASE=1 says the release is upstream's.
+if [[ "${1:-}" != "--check-only" && "${PTB_UPSTREAM_RELEASE:-0}" != "1" ]]; then
+  echo "release.sh releases upstream PokeTokenBar; PokeTokenLBI updates through the app (merge release into main)." >&2
+  echo "Run with --check-only, or PTB_UPSTREAM_RELEASE=1 for an upstream release." >&2
+  exit 1
+fi
+
 REPO="chattymin/PokeTokenBar"
 TAP_REPO="chattymin/homebrew-tap"
 CASK_PATH="Casks/poke-token-bar.rb"

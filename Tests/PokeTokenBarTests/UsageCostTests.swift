@@ -52,7 +52,7 @@ final class UsageCostTests: XCTestCase {
         XCTAssertEqual(unavailable.totalTokens, unknown.total)
         XCTAssertEqual(unavailable.costCoverage, .unavailable)
         XCTAssertEqual(unavailable.usageCost.text(L(.ko)), "계산 불가")
-        XCTAssertEqual(unavailable.usageCost.text(L(.en), compact: true), "$—")
+        XCTAssertEqual(unavailable.usageCost.text(L(.en), compact: true), "$-")
         let luna = entry("gpt-6-luna")
         XCTAssertEqual(LocalUsageReader.daily(entries: [luna], localDay: luna.localDay)?.costCoverage, .estimate)
         let entries = [known, unknown, entry(cost: 0)]

@@ -62,13 +62,13 @@ final class CollectorItemsTests: XCTestCase {
 
     func testCollectorItemsAndAchievements() {
         let s = store()
-        XCTAssertEqual(s.collectorItems(in: .evolutionStones).count, 11, "10 stones and the excavation")
-        XCTAssertEqual(s.collectorItems(in: .legendaryArtifacts).count, 38)
+        XCTAssertEqual(s.collectorItems(in: .evolutionStones).count, 12, "10 stones, the excavation and the Old Amber")
+        XCTAssertEqual(s.collectorItems(in: .legendaryArtifacts).count, 39)
         XCTAssertEqual(s.collectorItems(in: .gymBadges).count, 18)
         XCTAssertEqual(s.collectorItems(in: .forms).count, 10)
         XCTAssertEqual(Set(CompanionStore.achievementItems), Set(ItemKind.allCases.filter { $0.collectorGroup != nil }))
-        XCTAssertEqual(s.totalAchievementsCount, 242,
-                       "10 stones, 37 artifacts and the Legendary Egg's 9 regions, 161 badge regions, 10 forms, 15 digs")
+        XCTAssertEqual(s.totalAchievementsCount, 244,
+                       "10 stones, the Old Amber, 38 artifacts and the Legendary Egg's 9 regions, 161 badge regions, 10 forms, 15 digs")
         XCTAssertEqual(s.purchasableItems, [.rareCandy, .shinyCharm], "the Shop sells what main sells, the Mint retired")
 
         // An unlocked stone is an achievement to claim, never a Shop item.
@@ -334,7 +334,7 @@ final class CollectorItemsTests: XCTestCase {
         let artifacts = s.collectorItems(in: .legendaryArtifacts)
         XCTAssertEqual(artifacts.first, .clearBell, "unlocked and not owned comes first")
         XCTAssertEqual(artifacts.last, .soulDew, "owned passives sink to the bottom")
-        XCTAssertEqual(artifacts.count, 38)
+        XCTAssertEqual(artifacts.count, 39)
     }
 
     // MARK: Effects

@@ -94,6 +94,16 @@ final class FossilDigTests: XCTestCase {
 
     /// Fossil lines graduated some other way count as dug: the last digs are done with nothing to claim, so the eggs
     /// to claim match the lines missing. Lines hatched from Fossil Eggs do not.
+    /// [Regression] A species with forms counts by the forms it graduated in: a Galarian Corsola (Ghost) counted as
+    /// Rock, Corsola's usual type. A Corsola of the usual form still counts.
+    func testAFormThatIsNotRockDoesNotCount() throws {
+        let galar = try store(dex: [DexEntry(baseID: 222, finalID: 864, chainOrder: [222, 864], rarity: .common,
+                                             caughtAt: nil, form: PokemonForm("galar"))])
+        XCTAssertFalse(galar.rockSpeciesGraduated.contains(222), "Galarian Corsola is Ghost")
+        let usual = try store(dex: [DexEntry(baseID: 222, finalID: 222, chainOrder: [222], rarity: .common, caughtAt: nil)])
+        XCTAssertTrue(usual.rockSpeciesGraduated.contains(222), "Corsola is Water and Rock")
+    }
+
     func testLinesAlreadyGraduatedCountAsDug() throws {
         let owned = [138, 140, 142].map { graduated($0) }
         let s = try store(dex: owned + rocks.prefix(60).map { graduated($0) })

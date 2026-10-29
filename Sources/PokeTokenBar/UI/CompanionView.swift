@@ -133,6 +133,9 @@ struct SpriteView: View {
     @State private var up = false
     @State private var frames: [(image: NSImage, delay: TimeInterval)] = []
     @State private var frameIndex = 0
+    /// The lowest bottom margin of `frames`, measured once per animation: measured at each frame shown, it measured
+    /// and kept every frame image of the GIF (`SpriteFit.bottomMargin`).
+    @State private var framesMargin: (count: Int, first: ObjectIdentifier?, margin: CGFloat)?
 
     init(speciesID: Int?, size: CGFloat = 84, bob: Bool = false, animated: Bool = false,
          shiny: Bool = false, minFrameDelay: TimeInterval = 0, spriteStore: SpriteStore = .shared,
@@ -255,8 +258,7 @@ struct SpriteView: View {
                 // GIF 애니메이션 경로 — 현재 프레임만 렌더. Gen-V GIF 캔버스는 종마다 비정사각이라
                 // (잭키 36×66) 정사각으로 늘리면 뚱뚱해진다 → fitted 로 비율 유지.
                 // One margin for the whole animation, its lowest: a frame of its own would make the Pokémon hop.
-                fitted(frames[frameIndex % frames.count].image,
-                       margin: bottomAligned ? frames.map { SpriteFit.bottomMargin(of: $0.image) }.min() : nil)
+                fitted(frames[frameIndex % frames.count].image, margin: bottomAligned ? animationMargin : nil)
             } else if let img = subject.image {
                 fitted(animated && speciesID != nil ? SpriteLoader.animationPlaceholder(img) : img)
             } else {
@@ -315,8 +317,22 @@ struct SpriteView: View {
         }
     }
 
+    /// `framesMargin` for the frames shown, measured when they change.
+    private var animationMargin: CGFloat? {
+        let identity = frames.first.map { ObjectIdentifier($0.image) }
+        if let known = framesMargin, known.count == frames.count, known.first == identity { return known.margin }
+        return frames.map { SpriteFit.bottomMargin(of: $0.image) }.min()
+    }
+
+    private func measureAnimationMargin() {
+        guard bottomAligned, !frames.isEmpty else { return }
+        let margin = frames.map { SpriteFit.bottomMargin(of: $0.image) }.min() ?? 0
+        framesMargin = (frames.count, frames.first.map { ObjectIdentifier($0.image) }, margin)
+    }
+
     /// Plays `frames` until the task ends (another subject, the view gone). Nothing to play: returns.
     private func playFrames() async {
+        measureAnimationMargin()
         guard !frames.isEmpty, !Task.isCancelled else { return }
         // delay 기반 프레임 advance. .task 취소 시(speciesID 변경/뷰 소멸) 루프 종료 — 누수 없음
         while !Task.isCancelled {
@@ -1164,6 +1180,7 @@ struct CompanionHeader: View {
             if store.hasActive, !track.isEmpty {
                 evolutionTrack(track, dexLinks: dexLinks)
             }
+            ActiveGoalsList(store: store)
             if let g = store.justGraduated {
                 Text(store.l.graduated(g))
                     .font(.caption2).foregroundStyle(Color.readableOrange)
@@ -1637,22 +1654,27 @@ struct CollectionView: View {
     /// 포획 로그 — 개체 단위 기록. 필터(요약 헤더)는 고정, 목록만 스크롤한다
     private var catchLog: some View {
         let dexLinks = store.dexLinkTargets   // once for all rows, not per row
+        // Once for the list too: each row sorted and walked the whole Pokédex for its own badge (n² to scroll it).
+        let duplicates = store.duplicateCatchEntryIDs
+        // Filtered and sorted once: the empty check and the list each did it.
+        let entries = visibleEntries
         return VStack(alignment: .leading, spacing: 6) {
             DexSummaryHeader(store: store, selected: selectedRarity) { r in
                 withAnimation(.easeInOut(duration: 0.15)) {
                     selectedRarity = (selectedRarity == r) ? nil : r
                 }
             }
-            if visibleEntries.isEmpty {
+            if entries.isEmpty {
                 emptySearchResults
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 8) {
                             Color.clear.frame(height: 0).id("dexTop")
-                            ForEach(visibleEntries) { entry in
+                            ForEach(entries) { entry in
                                 // Keeps the segment, so Back from the detail page returns to the log.
-                                DexEntryRow(store: store, entry: entry, dexLinks: dexLinks) {
+                                DexEntryRow(store: store, entry: entry, dexLinks: dexLinks,
+                                            isDuplicate: duplicates.contains(entry.id)) {
                                     logReturnAnchor = entry.id
                                     navigation.dexDetailCollectionID = $0
                                 }
@@ -1818,15 +1840,13 @@ struct DexScrollPager {
         return result
     }
 
-    /// Cell indices in the order their stills are made ahead: the next page, the previous one, then the pages
-    /// after, then the ones before. The current page loads its own cells.
+    /// Cell indices in the order their stills are made ahead: the next page, then the previous one. The current page
+    /// loads its own cells, and turning a page prefetches the new one's neighbors. Every page ahead, on an empty cache,
+    /// downloaded a GIF for each species of the Pokédex at its first opening.
     static func prefetchOrder(count: Int, current: Int, pageSize: Int) -> [Int] {
         let pageCount = max(1, (count + pageSize - 1) / pageSize)
-        let after = Array(stride(from: current + 2, to: pageCount, by: 1))
-        let before = Array(stride(from: current - 2, through: 0, by: -1))
-        var seen: Set<Int> = [current]
-        return ([current + 1, current - 1] + after + before)
-            .filter { (0..<pageCount).contains($0) && seen.insert($0).inserted }
+        return [current + 1, current - 1]
+            .filter { $0 != current && (0..<pageCount).contains($0) }
             .flatMap { page in (page * pageSize)..<min(count, (page + 1) * pageSize) }
     }
 
@@ -2078,9 +2098,19 @@ struct FullDexView: View {
             }
             .frame(maxWidth: .infinity).padding(.vertical, 4)
             .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
-            .hoverTip(store.l.dexMissingHint(id))
+            // How to get it, rather than only that it is missing.
+            .hoverTip(howToGet(id))
             .accessibilityLabel(store.l.dexMissingHint(id))
         }
+    }
+
+    /// The tip of a species not caught (`L.dexHowToGet`): a species owned is named, one not caught keeps its number.
+    private func howToGet(_ id: Int) -> String {
+        let source = CompanionStore.source(of: id)
+        let nextDig = source == .fossil ? store.excavationProgress.towardNext.map { ($0, FossilDig.rockPerDig) } : nil
+        return store.l.dexHowToGet(id, source: source, name: { other in
+            store.dexSpecies.first { $0.id == other }.map { "\($0.name) (#\(other))" } ?? "#\(other)"
+        }, goals: store.goals(counting: id), nextDig: nextDig)
     }
 }
 
@@ -2653,7 +2683,7 @@ struct PokemonDetailView: View {
         let date = entry.caughtAt.map {
             $0.formatted(Date.FormatStyle(date: .numeric, time: .omitted)
                 .locale(Locale(identifier: store.language.rawValue)))
-        } ?? (store.isActiveDexEntry(entry) ? store.l.dexRaising : "—")
+        } ?? (store.isActiveDexEntry(entry) ? store.l.dexRaising : "-")
         return "#\(index + 1) · \(appearance) · Lv. \(entry.profile?.level ?? 5) · \(date)"
     }
 
@@ -2664,7 +2694,7 @@ struct PokemonDetailView: View {
             HStack(spacing: 12) {
                 valuePair(store.l.level, "\(profile.level)")
                 valuePair(store.l.gender, store.l.genderLabel(profile.gender))
-                valuePair(store.l.nature, entry.nature?.name(store.language) ?? "—")
+                valuePair(store.l.nature, entry.nature?.name(store.language) ?? "-")
             }
             VStack(alignment: .leading, spacing: 1) {
                 Text(store.l.ability).font(.system(size: 11)).foregroundStyle(.secondary)
@@ -2673,7 +2703,7 @@ struct PokemonDetailView: View {
                                      suffix: profile.abilityIsHidden ? " · " + store.l.hiddenAbility : "")
                         .font(.callout.weight(.semibold))
                 } else {
-                    Text("—").font(.callout.weight(.semibold))
+                    Text("-").font(.callout.weight(.semibold))
                 }
             }
             statsSection(PokemonStatCalculator.stats(details: details, profile: profile, nature: entry.nature))
@@ -2957,6 +2987,8 @@ private struct DexEntryRow: View {
     let store: CompanionStore
     let entry: DexEntry
     let dexLinks: [Int: String]
+    /// `CompanionStore.duplicateCatchEntryIDs`, read once by the list.
+    let isDuplicate: Bool
     let onOpenDexEntry: (String) -> Void
     @State private var resolved: [Int: String] = [:]
 
@@ -2982,7 +3014,7 @@ private struct DexEntryRow: View {
                     if entry.hasNewForm {
                         Badge(store.l.newFormBadge.uppercased(), tint: .blue, style: .tinted, size: 10)
                     }
-                    if store.isDuplicateCatch(entry) {
+                    if isDuplicate {
                         Text(store.l.dexDuplicate.uppercased())
                             .font(.system(size: 10, weight: .bold))
                             .padding(.horizontal, 5).padding(.vertical, 1)
@@ -3020,7 +3052,10 @@ private struct DexEntryRow: View {
         .background(Color.secondary.opacity(0.06))
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .task(id: "\(entry.id)-\(store.language.rawValue)") {
-            resolved = await store.dexResolveChainNames(entry)
+            // Stored names need no lookup: the row draws them already, and an unchanged write would draw it again.
+            guard entry.needsNamesRefresh || store.dexStoredChainNames(entry) == nil else { return }
+            let names = await store.dexResolveChainNames(entry)
+            if names != resolved { resolved = names }
         }
     }
 }
@@ -3059,5 +3094,50 @@ struct FormUnlockToast: View {
             try? await Task.sleep(for: .seconds(5))
             if !Task.isCancelled { store.dismissFormUnlockNews() }
         }
+    }
+}
+
+/// What graduating the Pokémon raised would advance (`CompanionStore.activeGoals`), under its track: three goals at
+/// most, the others on one line. Nothing when it brings nothing.
+@MainActor
+struct ActiveGoalsList: View {
+    let store: CompanionStore
+    static let shown = 3
+
+    var body: some View {
+        let goals = store.activeGoals
+        if !goals.isEmpty {
+            let l = store.l
+            VStack(alignment: .leading, spacing: 4) {
+                Text(l.countsFor).font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+                ForEach(Array(goals.prefix(Self.shown).enumerated()), id: \.offset) { _, goal in
+                    HStack(spacing: 6) {
+                        ItemIconView(kind: goal.item, size: 16)
+                        Text(l.activeGoalName(goal)).lineLimit(1).truncationMode(.tail)
+                        Spacer(minLength: 4)
+                        Text("+\(goal.gain)").fontWeight(.bold)
+                        Text("\(goal.count)/\(goal.needed)").foregroundStyle(.secondary)
+                    }
+                    .font(.caption).monospacedDigit()
+                }
+                if goals.count > Self.shown {
+                    Text(l.moreGoals(goals.count - Self.shown, goals.dropFirst(Self.shown)
+                        .map { "\(l.activeGoalName($0)) (+\($0.gain))" }.joined(separator: " · ")))
+                        .font(.caption2).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    /// The confirmation's sentence: the goals, each with what it adds.
+    static func sentence(_ store: CompanionStore) -> String? {
+        let goals = store.activeGoals
+        guard !goals.isEmpty else { return nil }
+        let l = store.l
+        let list = goals.prefix(shown).map { "\(l.activeGoalName($0)) (+\($0.gain))" }.joined(separator: ", ")
+            + (goals.count > shown ? ", …" : "")
+        return l.stillCountsFor(store.displayName, list)
     }
 }

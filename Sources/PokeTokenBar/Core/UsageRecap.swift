@@ -99,10 +99,7 @@ struct RecapPeriod: Equatable, Sendable {
     /// Gregorian whatever the system calendar, so a year runs January to December and the day keys
     /// match `LocalUsageReader.localDayFormatter`. The week still starts on the user's first weekday.
     static func calendar(timeZone: TimeZone = .current) -> Calendar {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = timeZone
-        calendar.firstWeekday = Calendar.current.firstWeekday
-        return calendar
+        LocalUsageReader.gregorianCalendar(timeZone: timeZone)
     }
 }
 

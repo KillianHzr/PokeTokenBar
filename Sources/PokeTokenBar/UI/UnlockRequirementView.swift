@@ -159,7 +159,8 @@ struct UnlockRequirementView: View {
             return l.badgeGoal(type, generation: PokemonTypeData.badgeGeneration(for: type))
         }
         switch goal.species {
-        case SpeciesGoal.fossils: return l.fossilsGoal(goal.needed)
+        case SpeciesGoal.fossils:
+            return goal.needed < goal.species.count ? l.fossilsGoal(goal.needed) : l.allFossilsGoal(goal.needed)
         case SpeciesGoal.ultraBeasts: return l.ultraBeastsGoal(goal.needed)
         case SpeciesGoal.paradoxes: return l.paradoxesGoal(goal.needed)
         default: return l.anyOfGoal(goal.needed)

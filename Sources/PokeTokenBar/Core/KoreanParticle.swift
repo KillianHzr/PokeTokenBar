@@ -31,9 +31,30 @@ enum KoreanParticle {
     private static let syllables: ClosedRange<UInt32> = 0xAC00...0xD7A3
     private static let rieul: UInt32 = 8
 
-    /// 마지막 글자의 종성 인덱스(0 = 받침 없음). 한글 음절이 아니면 nil.
+    /// 마지막 글자의 종성 인덱스(0 = 받침 없음). 한글 음절이 아니면 nil. A commit id or a version ("abc1234",
+    /// "v2.5.5") is read character by character, so its last one decides: it took a fixed particle ("abc1234을").
     private static func coda(of word: String) -> UInt32? {
-        guard let last = word.unicodeScalars.last, syllables.contains(last.value) else { return nil }
-        return (last.value - syllables.lowerBound) % 28
+        guard let last = word.unicodeScalars.last else { return nil }
+        if syllables.contains(last.value) { return (last.value - syllables.lowerBound) % 28 }
+        guard isIdentifier(word), let ch = Character(String(last)).lowercased().first else { return nil }
+        return idCodas[ch]
     }
+
+    /// A commit id (7 to 40 hex characters) or a version (digits and dots, a "v" first).
+    private static func isIdentifier(_ word: String) -> Bool {
+        let hex = word.count >= 7 && word.count <= 40 && word.allSatisfy(\.isHexDigit)
+        let version = word.drop { $0 == "v" }
+        return hex || (!version.isEmpty && version.allSatisfy { $0.isASCII && ($0.isNumber || $0 == ".") })
+    }
+
+    /// The final consonant of a digit or a hex letter read alone: 영 (ㅇ 21), 일 칠 팔 (ㄹ 8), 삼 (ㅁ 16), 육 (ㄱ 1);
+    /// the others (이 사 오 구, 에이 비 씨 디 이 에프) end on a vowel.
+    private static let idCodas: [Character: UInt32] = {
+        var codas: [Character: UInt32] = [:]
+        for c in "0123456789abcdef" { codas[c] = 0 }
+        for (c, coda) in [("0", 21), ("1", 8), ("3", 16), ("6", 1), ("7", 8), ("8", 8)] as [(Character, UInt32)] {
+            codas[c] = coda
+        }
+        return codas
+    }()
 }

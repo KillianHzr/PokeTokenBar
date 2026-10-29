@@ -790,19 +790,19 @@ enum LocalUsageReader {
         return resolveCodexRollouts([rollout], includedPaths: [rollout.path])
     }
 
-    /// 파일 내부 정보만 파싱. fork replay 여부는 다른 rollout과 대조.
+    /// 파일 내부 정보만 파싱. fork replay 여부는 다른 rollout과 대조. A file that cannot be read is an empty rollout.
     static func parseCodexRollout(_ url: URL, fmt: DateFormatter) -> CodexParsedRollout {
-        func emptyRollout() -> CodexParsedRollout {
-            return CodexParsedRollout(
-                path: url.path,
-                sessionID: nil,
-                parentSessionID: nil,
-                forkedAt: nil,
-                isSubagent: false,
-                events: []
-            )
-        }
+        readCodexRollout(url, fmt: fmt) ?? emptyCodexRollout(url)
+    }
 
+    static func emptyCodexRollout(_ url: URL) -> CodexParsedRollout {
+        CodexParsedRollout(path: url.path, sessionID: nil, parentSessionID: nil, forkedAt: nil, isSubagent: false,
+                           events: [])
+    }
+
+    /// `parseCodexRollout`, nil when the file cannot be read: a cache must not store that failure as an empty file
+    /// under the file's current signature, which kept its tokens out until the file changed again.
+    static func readCodexRollout(_ url: URL, fmt: DateFormatter) -> CodexParsedRollout? {
         var events: [CodexUsageEvent] = []
         var turn = 0
         var sessionID: String?
@@ -861,7 +861,7 @@ enum LocalUsageReader {
                 }
             }
         } catch {
-            return emptyRollout()
+            return nil
         }
         return CodexParsedRollout(
             path: url.path,
@@ -1947,8 +1947,7 @@ enum LocalUsageReader {
     static func monthDailySeries(entries: [Entry], now: Date,
                                  timeZone: TimeZone = .current) -> [DailyUsage]
     {
-        var calendar = Calendar.current
-        calendar.timeZone = timeZone
+        let calendar = gregorianCalendar(timeZone: timeZone)
         let fmt = localDayFormatter(timeZone: timeZone)
 
         var days: [String] = []
@@ -1970,15 +1969,24 @@ enum LocalUsageReader {
         // 에게 "빌 수 있다"는 잘못된 신호를 준다). 아래 `Set`·`map` 은 빈 배열에서도 안전하다.
         let inMonth = Set(days)
         var buckets: [String: Bucket] = [:]
+        var byModel: [String: [String: Bucket]] = [:]
         for e in entries where inMonth.contains(e.localDay) {
             buckets[e.localDay, default: Bucket()].add(e)
+            byModel[e.localDay, default: [:]][e.model, default: Bucket()].add(e)
         }
 
         return days.map { day in
             let b = buckets[day] ?? Bucket()
+            let models = byModel[day]?.compactMapValues { m -> ModelUsage? in
+                guard m.total > 0 else { return nil }
+                let priced = m.costCoverage.hasKnown && !m.costCoverage.unknown
+                return ModelUsage(input: m.input, output: m.output, cacheWrite: m.cacheWrite, cacheRead: m.cacheRead,
+                                  cost: priced ? m.cost : nil)
+            }
             return DailyUsage(date: day, inputTokens: b.input, outputTokens: b.output,
                               cacheCreationTokens: b.cacheWrite, cacheReadTokens: b.cacheRead,
-                              totalTokens: b.total, totalCost: b.cost, costCoverage: b.costCoverage)
+                              totalTokens: b.total, totalCost: b.cost, costCoverage: b.costCoverage,
+                              modelUsage: models ?? [:])
         }
     }
 
@@ -2005,13 +2013,23 @@ enum LocalUsageReader {
 
     // MARK: 유틸
 
-    /// `calendar` 는 테스트가 시간대를 주입하기 위한 구멍이다 — 기본값은 프로덕션과 동일한 현지 달력.
-    static func startOfMonth(_ date: Date, calendar: Calendar = .current) -> Date {
+    /// Gregorian whatever the system calendar (Persian, Hebrew, Islamic), in the local time zone: months match the
+    /// "yyyy-MM" of `monthKey` and the day keys, which are Gregorian. With the system calendar, a Persian month started
+    /// on the 22nd or 23rd and the month's totals mixed two months. The week still starts on the user's first weekday.
+    static func gregorianCalendar(timeZone: TimeZone = .current) -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        calendar.firstWeekday = Calendar.current.firstWeekday
+        return calendar
+    }
+
+    /// `calendar` 는 테스트가 시간대를 주입하기 위한 구멍이다: 기본값은 현지 시간대의 그레고리력.
+    static func startOfMonth(_ date: Date, calendar: Calendar = gregorianCalendar()) -> Date {
         calendar.date(from: calendar.dateComponents([.year, .month], from: date)) ?? date
     }
 
     static func startOfWeek(_ date: Date) -> Date {
-        Calendar.current.dateInterval(of: .weekOfYear, for: date)?.start ?? date
+        gregorianCalendar().dateInterval(of: .weekOfYear, for: date)?.start ?? date
     }
 
     /// enrichment(활성 블록·이번 주·이번 달)를 한 번의 스캔에서 모두 도출하므로, mtime 하한은
@@ -2034,7 +2052,23 @@ enum LocalUsageReader {
         return f.string(from: date)
     }
 
-    static func todayKey() -> String { localDayFormatter().string(from: Date()) }
+    static func todayKey() -> String { localDayKey(Date()) }
+
+    private static let sharedDayLock = NSLock()
+    // DateFormatter is not Sendable; access is serialized by `sharedDayLock`.
+    nonisolated(unsafe) private static var sharedDayFormatter: DateFormatter?
+
+    /// The local day of one date, from a formatter made once per time zone: the readers that build an entry at a time
+    /// made one for each of thousands of entries every 30 seconds.
+    static func localDayKey(_ date: Date) -> String {
+        sharedDayLock.lock()
+        defer { sharedDayLock.unlock() }
+        let zone = TimeZone.current
+        if let formatter = sharedDayFormatter, formatter.timeZone == zone { return formatter.string(from: date) }
+        let formatter = localDayFormatter(timeZone: zone)
+        sharedDayFormatter = formatter
+        return formatter.string(from: date)
+    }
 
     static func localDayFormatter(timeZone: TimeZone = .current) -> DateFormatter {
         let f = DateFormatter()

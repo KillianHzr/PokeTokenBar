@@ -7,9 +7,18 @@ import UserNotifications
 @MainActor
 @Observable
 final class CompanionStore {
-    private(set) var state = CompanionState()
+    private(set) var state = CompanionState() { didSet { dexSpeciesCache = [:]; goalsBySpecies = nil } }
     private(set) var displayState: CompanionStateKind = .egg
-    private(set) var currentLine: EvoLine?
+    private(set) var currentLine: EvoLine? { didSet { dexSpeciesCache = [:] } }
+    /// `collectedDexSpecies` by `groupForms`, until the state or the line changes: a form species' page read it some
+    /// 25 times per draw (`formSpecies`, `dexCover`, the picker), each folding and sorting the whole Pokédex.
+    @ObservationIgnored private var dexSpeciesCache: [Bool: [DexSpecies]] = [:]
+    /// `goals(counting:)` for every species, until the state changes.
+    @ObservationIgnored private var goalsBySpecies: [Int: [ActiveGoal]]?
+    /// How many times the Pokédex was folded: the tests check the cache with it.
+    @ObservationIgnored private(set) var dexSpeciesFolds = 0
+    /// Writes of the save file, for the tests of what writes it.
+    @ObservationIgnored private(set) var savesWritten = 0
     private(set) var representativeSubject = RepresentativeSubject(speciesID: nil, isShiny: false)
     private(set) var isHatching = false
     private var isRevealingDitto = false   // 메타몽 리빌 비동기 중복 방지(isHatching 자매)
@@ -73,7 +82,9 @@ final class CompanionStore {
          rng: any RandomNumberGenerator = SystemRandomNumberGenerator(),
          dittoDisguiseRollingEnabled: Bool = AppEnv.isBundledApp,
          defaults: UserDefaults = .standard,
-         difficulty: Double = PokemonBalance.difficulty) {
+         difficulty: Double = PokemonBalance.difficulty,
+         writer: SaveWriter? = SaveWriter.current) {
+        self.writer = writer
         self.provider = provider
         self.detailProvider = detailProvider ?? (provider as? any PokemonDetailProviding)
         self.clock = clock
@@ -95,6 +106,19 @@ final class CompanionStore {
         refreshSnapshots()
         if state.active != nil { displayState = .idle }
     }
+
+    /// Why the save is not written: it could not be read, or a later build wrote it. Shown above the tabs; nothing is
+    /// written meanwhile, so nothing of it is lost.
+    enum SaveLock: Equatable, Sendable {
+        /// The file is there but cannot be read (permissions, a disk error): it read as a new install, then was
+        /// written over.
+        case unreadable
+        /// A later build wrote it (its commit): this one would drop what it does not know.
+        case newerBuild(commit: String)
+    }
+    private(set) var saveLock: SaveLock?
+    /// This build, stamped in the save at each write (`CompanionState.writer`).
+    @ObservationIgnored private let writer: SaveWriter?
 
     static func defaultURL() -> URL {
         // 상태 파일 위치. 기본은 Application Support/PokeTokenBar. `PTB_STATE_DIR` 환경변수가 있으면
@@ -372,6 +396,24 @@ final class CompanionStore {
         }
     }
 
+    /// The Shop's price before the discounts the player's items give (`price(of:)`): struck beside the price paid.
+    func basePrice(of entry: ShopEntry) -> Int { PokemonBalance.scaled(entry.price, by: shopDifficulty) }
+
+    /// The items that lower an entry's price, in the order they apply: the Rainbow Wing on everything, the Jade Orb on
+    /// eggs again.
+    func discounts(of entry: ShopEntry) -> [ItemKind] {
+        var items: [ItemKind] = []
+        if ownsRainbowWing { items.append(.rainbowWing) }
+        if case .egg = entry, ownsJadeOrb { items.append(.jadeOrb) }
+        return items
+    }
+
+    /// The shiny odds now and with the Shiny Charm, for its Shop card: 1 in 64 to 1 in 48, or with the Reveal Glass 1
+    /// in 32 to 1 in 24.
+    var shinyCharmOdds: (now: UInt64, withCharm: UInt64) {
+        (shinyDenominator, Self.shinyDenominator(charmOwned: true, revealGlassOwned: ownsRevealGlass))
+    }
+
     /// 알을 포함한 상점 한 줄의 실제 가격.
     func price(of entry: ShopEntry) -> Int {
         var p = PokemonBalance.scaled(entry.price, by: shopDifficulty)
@@ -534,7 +576,7 @@ final class CompanionStore {
                 let branchItems = branches.map { ch in
                     BranchEvolutionItem(
                         speciesID: ch.speciesID,
-                        isCollected: isEvolutionCollected(speciesID: ch.speciesID, baseID: a.baseID)
+                        isCollected: isEvolutionCollected(speciesID: ch.speciesID, baseID: a.baseID, form: a.form)
                     )
                 }
                 out.append(EvoLineItem(.branch(branchItems), .future))
@@ -567,7 +609,7 @@ final class CompanionStore {
         var stops = a.pathIDs.prefix(a.stageIndex + 1).enumerated().map { index, id in
             EvolutionTrackStop.reached(id, isCurrent: index == a.stageIndex)
         }
-        func caught(_ id: Int) -> Bool { isEvolutionCollected(speciesID: id, baseID: a.baseID) }
+        func caught(_ id: Int) -> Bool { isEvolutionCollected(speciesID: id, baseID: a.baseID, form: a.form) }
         func paths(from node: EvoNode) -> [[BranchEvolutionItem]] {
             let open = Self.openChildren(node, form: a.form)
             guard !open.isEmpty else { return [[]] }
@@ -720,6 +762,134 @@ final class CompanionStore {
             && !a.pathIDs.prefix(a.stageIndex + 1).contains(PikachuCostume.speciesID)
             && PikachuCostume.next(owned: state.pikachuCostumes, seed: 0) != nil
         return ActiveNews(newSpecies: newSpecies, firstShiny: firstShiny, costume: costume)
+    }
+
+    /// A goal the Pokémon raised advances: graduated, it adds `gain` species to it, which stands at `count` of `needed`.
+    /// `generation`: a regional achievement's region, or a dig's number.
+    struct ActiveGoal: Equatable, Sendable {
+        let item: ItemKind
+        let generation: Int?
+        let gain: Int
+        let count: Int
+        let needed: Int
+    }
+
+    /// The goals not claimed yet that graduating the Pokémon raised would advance, the ones it advances most first: a
+    /// gym badge's or the Legendary Egg's region, the next dig (its Rock species in this form), a stone or an artifact
+    /// still locked, a species' forms. Empty when it brings nothing new. Helps to choose whether to keep it.
+    var activeGoals: [ActiveGoal] {
+        guard let a = state.active, let news = activeNews, !news.newSpecies.isEmpty else { return [] }
+        let new = Set(news.newSpecies)
+        // Graduated, it keeps one branch of its line: an Eevee counted Vaporeon, Jolteon and Flareon at once (+4 for
+        // Kanto, where it brings 2). A goal counts the branch that advances it most.
+        var branches: [Set<Int>] = []
+        func walk(_ id: Int, _ path: [Int]) {
+            let children = PokemonEvolutionData.children(of: id, form: a.form).filter { !path.contains($0) }
+            if children.isEmpty { branches.append(Set(path).intersection(new)) }
+            for child in children { walk(child, path + [child]) }
+        }
+        walk(a.currentID, Array(a.pathIDs.prefix(a.stageIndex + 1)))
+        let registered = graduatedSpeciesIDs
+        var goals: [ActiveGoal] = []
+        func consider(_ item: ItemKind, _ generation: Int?, _ progress: GoalProgress, counted: [Set<Int>]) {
+            guard !progress.isMet else { return }
+            let missing = Set(progress.goal.species).subtracting(progress.registered)
+            let gain = min(counted.map { missing.intersection($0).count }.max() ?? 0, progress.goal.needed - progress.count)
+            guard gain > 0 else { return }
+            goals.append(ActiveGoal(item: item, generation: generation, gain: gain, count: progress.count,
+                                    needed: progress.goal.needed))
+        }
+        for kind in Self.achievementItems {
+            if kind == .excavation {
+                // The digs add up: only the next one counts, with the species that are Rock in this form.
+                let rock = branches.map { $0.filter { PokemonTypeData.types(forSpeciesID: $0, form: a.form).contains(.rock) } }
+                if let next = regionTiers(.excavation).first(where: { !$0.isDone && !$0.progress.isMet }) {
+                    consider(kind, next.generation, next.progress, counted: rock)
+                }
+            } else if kind.isRegional {
+                for tier in regionTiers(kind, registered: registered) where !tier.isDone {
+                    consider(kind, tier.generation, tier.progress, counted: branches)
+                }
+            } else if !isClaimed(kind), !isUnlocked(kind, registered: registered) {
+                if case .forms(let goal)? = kind.unlock, new.contains(goal.speciesID) {
+                    let have = state.collectedForms(speciesID: goal.speciesID, graduatedOnly: true)
+                        .intersection(goal.forms).count
+                    goals.append(ActiveGoal(item: kind, generation: nil, gain: 1, count: have, needed: goal.forms.count))
+                    continue
+                }
+                // Any one goal unlocks it: the one this Pokémon advances most.
+                let before = goals.count
+                for progress in unlockProgress(of: kind, registered: registered) {
+                    consider(kind, nil, progress, counted: branches)
+                }
+                if goals.count - before > 1 {
+                    let best = goals[before...].max { $0.gain < $1.gain || ($0.gain == $1.gain && $0.count < $1.count) }!
+                    goals.removeSubrange(before...)
+                    goals.append(best)
+                }
+            }
+        }
+        // The most species first, then the closest to done.
+        return goals.sorted {
+            if $0.gain != $1.gain { return $0.gain > $1.gain }
+            return Double($0.count + $0.gain) / Double(max(1, $0.needed)) > Double($1.count + $1.gain) / Double(max(1, $1.needed))
+        }
+    }
+
+    /// How a species not caught yet comes (7.5): from the species it evolves from (`base`: its line's first), a fossil
+    /// line's egg, a legendary's or a mythical's eggs, else any egg.
+    enum SpeciesSource: Equatable, Sendable {
+        case evolves(from: Int, base: Int)
+        case fossil, legendary, mythical, egg
+    }
+
+    nonisolated static func source(of speciesID: Int) -> SpeciesSource {
+        if let parent = PokemonEvolutionData.parents[speciesID] {
+            var base = parent
+            while let up = PokemonEvolutionData.parents[base] { base = up }
+            return .evolves(from: parent, base: base)
+        }
+        if FossilDig.isFossilLine(speciesID) { return .fossil }
+        if SpeciesGoal.mythicals.contains(speciesID) { return .mythical }
+        if SpeciesGoal.legendaries.contains(speciesID) { return .legendary }
+        return .egg
+    }
+
+    /// The goals not claimed yet a species not graduated counts for, the closest to done first: a gym badge's or the
+    /// Legendary Egg's region, a stone or an artifact still locked.
+    func goals(counting speciesID: Int) -> [ActiveGoal] {
+        _ = state.dex.count   // observed even from the cache
+        if goalsBySpecies == nil { goalsBySpecies = indexGoalsBySpecies() }
+        return goalsBySpecies?[speciesID] ?? []
+    }
+
+    /// Every species not graduated with the goals it counts for, made once per state: a Pokédex page asks it for each
+    /// of its silhouettes.
+    private func indexGoalsBySpecies() -> [Int: [ActiveGoal]] {
+        let registered = graduatedSpeciesIDs
+        var index: [Int: [ActiveGoal]] = [:]
+        func add(_ item: ItemKind, _ generation: Int?, _ progress: GoalProgress) {
+            guard !progress.isMet else { return }
+            let goal = ActiveGoal(item: item, generation: generation, gain: 1, count: progress.count,
+                                  needed: progress.goal.needed)
+            for id in progress.goal.species where !registered.contains(id) {
+                // Any one goal unlocks a non-regional item: one entry per item.
+                if generation == nil, index[id]?.contains(where: { $0.item == item }) == true { continue }
+                index[id, default: []].append(goal)
+            }
+        }
+        for kind in Self.achievementItems where kind != .excavation {
+            if kind.isRegional {
+                for tier in regionTiers(kind, registered: registered) where !tier.isDone {
+                    add(kind, tier.generation, tier.progress)
+                }
+            } else if !isClaimed(kind), !isUnlocked(kind, registered: registered) {
+                for progress in unlockProgress(of: kind, registered: registered) { add(kind, nil, progress) }
+            }
+        }
+        return index.mapValues { goals in
+            goals.sorted { Double($0.count) / Double(max(1, $0.needed)) > Double($1.count) / Double(max(1, $1.needed)) }
+        }
     }
 
     /// The hint of the Home badge saying it brings something: what graduating it adds, and a costume it brings.
@@ -1000,9 +1170,20 @@ final class CompanionStore {
     }
 
     private func collectedDexSpecies(groupForms: Bool) -> [DexSpecies] {
-        // 종별 누적을 한 번에 훑는다(뷰가 body 에서 1회 소비 — 메모이즈 없이 충분).
+        // Read what the result depends on even from the cache, so a view drawing it still observes them.
+        let dex = state.dex
+        let line = currentLine
+        if let cached = dexSpeciesCache[groupForms] { return cached }
+        let species = foldDexSpecies(dex, line: line, groupForms: groupForms)
+        dexSpeciesCache[groupForms] = species
+        return species
+    }
+
+    private func foldDexSpecies(_ dex: [DexEntry], line currentLine: EvoLine?, groupForms: Bool) -> [DexSpecies] {
+        dexSpeciesFolds += 1
+        // 종별 누적을 한 번에 훑는다.
         var acc: [DexKey: DexAccumulator] = [:]
-        for entry in state.dex {
+        for entry in dex {
             for id in entry.chainOrder {
                 let key = DexKey(id, form: entry.form, groupForms: groupForms)
                 var a = acc[key] ?? DexAccumulator(rarity: entry.rarity, baseID: entry.baseID)
@@ -1344,9 +1525,13 @@ final class CompanionStore {
     /// 라인 조회는 `PokeAPIClient` 가 base 단위로 캐시하므로 같은 라인이 여러 항목이어도 네트워크는 1회.
     /// 오프라인이면 `dexResolveChainNames` 가 저장 없이 폴백만 돌려주므로 다음 진입에서 다시 시도한다.
     func backfillMissingDexNames() async {
+        var refreshed = false
         for entry in state.dex where entry.needsNamesRefresh {
-            _ = await dexResolveChainNames(entry)   // 성공분만 내부에서 state.dex 에 저장
+            // 성공분만 내부에서 state.dex 에 반영. One save for the whole fill: a names upgrade wrote the whole save
+            // once per line of the Pokédex.
+            refreshed = await resolveChainNames(entry, saving: false).refreshed || refreshed
         }
+        if refreshed { save() }
     }
 
     /// 도감 항목 진화 체인 각 종의 이름(speciesID → 현재 언어 이름). 저장돼 있으면 즉시(네트워크 0),
@@ -1369,12 +1554,17 @@ final class CompanionStore {
     }
 
     func dexResolveChainNames(_ entry: DexEntry) async -> [Int: String] {
+        await resolveChainNames(entry, saving: true).names
+    }
+
+    /// `refreshed`: the stored entries changed (and were saved when `saving`).
+    private func resolveChainNames(_ entry: DexEntry, saving: Bool) async -> (names: [Int: String], refreshed: Bool) {
         // Another row of this evolution line may already have refreshed the stored entry.
         let entry = state.dex.first { $0.id == entry.id } ?? entry
-        if !entry.needsNamesRefresh, let stored = dexStoredChainNames(entry) { return stored }
+        if !entry.needsNamesRefresh, let stored = dexStoredChainNames(entry) { return (stored, false) }
         let oldNames = dexStoredChainNames(entry) ?? [:]
         guard let line = try? await dexNameLine(baseID: entry.baseID) else {
-            return Dictionary(uniqueKeysWithValues: entry.chainOrder.map { ($0, oldNames[$0] ?? "#\($0)") })
+            return (Dictionary(uniqueKeysWithValues: entry.chainOrder.map { ($0, oldNames[$0] ?? "#\($0)") }), false)
         }
         // Preserve usable older names if a response is partial. Only a complete chain gets
         // the new version, so partial/offline responses remain eligible for retry.
@@ -1393,18 +1583,22 @@ final class CompanionStore {
             return result
         }
         // One successful lookup also refreshes duplicate catches of the same evolution line.
-        for index in state.dex.indices where state.dex[index].baseID == entry.baseID
-            && state.dex[index].needsNamesRefresh {
-            state.dex[index] = refreshed(state.dex[index])
+        var dex = state.dex
+        for index in dex.indices where dex[index].baseID == entry.baseID && dex[index].needsNamesRefresh {
+            dex[index] = refreshed(dex[index])
         }
-        save()
+        state.dex = dex   // one write for the line's entries, not one per entry
+        if saving { save() }
         let chainNames = refreshed(entry).names ?? [:]
-        return Dictionary(uniqueKeysWithValues: entry.chainOrder.map { id in
+        return (Dictionary(uniqueKeysWithValues: entry.chainOrder.map { id in
             (id, chainNames[id].flatMap { state.language.resolveName($0) } ?? "#\(id)")
-        })
+        }), true)
     }
 
     // MARK: 갱신 (AppDelegate 가 UsageStore 값으로 호출)
+
+    /// One log line per provider and day's high, not one per refresh while a provider reads below it.
+    @ObservationIgnored private var usageDropLog = LogRepeatSuppressor()
 
     func update(todayTokensByProvider: [String: Int], todayDate: String, monthTotal: Int,
                 burnTier: BurnTier, limitWarning: Bool, hasUsageData: Bool) {
@@ -1487,18 +1681,23 @@ final class CompanionStore {
                             continue
                         }
                         if current < previous {
-                            // 전체 합계가 아니라 해당 프로바이더의 line만 rebase한다. 다른 프로바이더가
-                            // 이번 refresh에서 보고하지 않았거나 carrier snapshot만 남은 경우에는 map에
-                            // line 자체가 없으므로 기존 기준값을 건드리지 않는다.
-                            ledger[providerID] = current
-                            AppLog.write("companion usage regression provider=\(providerID) date=\(todayDate) previous=\(previous) current=\(current) drop=\(previous - current) — rebased provider ledger")
+                            // The ledger keeps the day's high: only what goes past it is credited. Rebased on the
+                            // lower total, a dip and its recovery were credited twice (Cursor falls back from its
+                            // API to a lower local estimate, then back). Only this provider's line is concerned.
+                            if usageDropLog.shouldWrite(key: "usage-drop-\(providerID)",
+                                                        message: "\(todayDate) \(previous)",
+                                                        now: clock(), repeatAfter: 3600) {
+                                AppLog.write("companion usage: provider=\(providerID) date=\(todayDate) below the day's high (\(current) < \(previous)), credited past the high only")
+                            }
                             continue
                         }
                         delta += current - previous
                         deltas[providerID] = current - previous
                         ledger[providerID] = current
                     }
-                    state.claimedTodayTokensByProvider = ledger
+                    // Only a change is written: `state` is observed whole, and an equal write still redrew every
+                    // screen open at each refresh.
+                    if state.claimedTodayTokensByProvider != ledger { state.claimedTodayTokensByProvider = ledger }
                     earnTokenCandies(deltas)
                     recordRaising(deltas)
                     if delta > 0 {
@@ -1538,8 +1737,9 @@ final class CompanionStore {
            a.usedAtStage >= stageThreshold(for: a) {
             Task { await revealDitto() }
         }
-        displayState = computeState(burnTier: burnTier, limitWarning: limitWarning,
-                                    hasUsageData: hasUsageData, today: todayTokens)
+        let nextDisplayState = computeState(burnTier: burnTier, limitWarning: limitWarning,
+                                            hasUsageData: hasUsageData, today: todayTokens)
+        if displayState != nextDisplayState { displayState = nextDisplayState }
         announceBirthdayGiftIfNeeded()
         announceEventEggsIfNeeded()
         save()
@@ -1623,14 +1823,21 @@ final class CompanionStore {
 
     /// Whether this evolution graduated already, what the evolution plan avoids and Home's track shows as had: neither
     /// a Pokémon sent off nor the one being raised, as the goals count (a Vaporeon sent off leaves Vaporeon to find).
-    func isEvolutionCollected(speciesID: Int, baseID: Int) -> Bool {
-        if state.collectedFinals.contains("\(baseID):\(speciesID)") { return true }
-        return state.dex.contains { !$0.isReleased && ($0.finalID == speciesID || $0.chainOrder.contains(speciesID)) }
+    /// A species with forms is had in this individual's form only (`form`, its line form): a Kanto Slowbro made a
+    /// Galarian Slowpoke's Slowbro had, so the plan made a Galarian Slowbro again while Galarian Slowking was missing,
+    /// and Home showed it caught. `collectedFinals` keeps no form, so it only answers for a species without forms.
+    func isEvolutionCollected(speciesID: Int, baseID: Int, form: PokemonForm? = nil) -> Bool {
+        let speciesForm = PokemonForm.resolved(speciesID: speciesID, form: form)
+        if speciesForm == nil, state.collectedFinals.contains("\(baseID):\(speciesID)") { return true }
+        return state.dex.contains {
+            !$0.isReleased && ($0.finalID == speciesID || $0.chainOrder.contains(speciesID))
+                && (speciesForm == nil || PokemonForm.resolved(speciesID: speciesID, form: $0.form) == speciesForm)
+        }
     }
 
     /// 분기 노드의 모든 최종체가 이미 수집되었는지 여부. (단일 진화 종인 경우 해당 종 자체의 수집 여부)
     func isBranchNodeCollected(_ node: EvoNode, baseID: Int, form: PokemonForm?) -> Bool {
-        Self.openFinals(node, form: form).allSatisfy { isEvolutionCollected(speciesID: $0, baseID: baseID) }
+        Self.openFinals(node, form: form).allSatisfy { isEvolutionCollected(speciesID: $0, baseID: baseID, form: form) }
     }
 
     /// The evolutions of a node open to an individual of this form (`PokemonEvolutionData.formGates`).
@@ -1746,6 +1953,7 @@ final class CompanionStore {
             let received = addRareCandies(CollectorBonus.reinsOfUnityCandies)
             AppLog.write("graduate: reins of unity +\(received) rare candy")
         }
+        if itemCount(.explorerKit) > 0 { digTreasureIfDue() }
         let name = formDisplayName(currentLine?.localizedName(finalID, state.language) ?? "",
                                    speciesID: finalID, form: a.form)
         justGraduated = name
@@ -2004,6 +2212,37 @@ final class CompanionStore {
         return true
     }
 
+    /// The Explorer Kit counts the graduations: every `ExplorerKit.graduationsPerTreasure` dig up a treasure, put in the
+    /// Bag and shown in the news strip until seen.
+    private func digTreasureIfDue() {
+        // Bounded: a hand-edited count would pay a treasure at every graduation until it ran down.
+        let counted = min(max(0, state.graduationsTowardTreasure), ExplorerKit.graduationsPerTreasure - 1)
+        state.graduationsTowardTreasure = counted + 1
+        guard state.graduationsTowardTreasure >= ExplorerKit.graduationsPerTreasure else { return }
+        state.graduationsTowardTreasure -= ExplorerKit.graduationsPerTreasure
+        let treasure = ExplorerKit.treasure(roll: Int(rng.next() % UInt64(ExplorerKit.rollRange)))
+        state.inventory[treasure.kind.rawValue, default: 0] += treasure.count
+        state.unseenTreasures[treasure.kind.rawValue, default: 0] += treasure.count
+        AppLog.write("graduate: explorer kit dug up \(treasure.count) \(treasure.kind.rawValue)")
+        notifyCompanionEvent(treasure.kind == .legendaryEgg ? l.treasureJackpotTitle : l.treasureTitle,
+                             l.treasureBody([(treasure.kind, treasure.count)]))
+    }
+
+    /// The treasures not seen yet, the rarest first.
+    var unseenTreasures: [(kind: ItemKind, count: Int)] {
+        let order: [ItemKind] = [.legendaryEgg, .rareEgg, .uncommonEgg, .rareCandy]
+        return state.unseenTreasures.compactMap { key, count in ItemKind(rawValue: key).map { ($0, count) } }
+            .filter { $0.count > 0 }
+            .sorted { (order.firstIndex(of: $0.kind) ?? order.count) < (order.firstIndex(of: $1.kind) ?? order.count) }
+    }
+
+    /// The treasures were seen: the Bag opened, or the strip's page closed.
+    func markTreasuresSeen() {
+        guard !state.unseenTreasures.isEmpty else { return }
+        state.unseenTreasures = [:]
+        save()
+    }
+
     /// Adds Rare Candies from any source. Returns how many landed in the bag.
     @discardableResult
     private func addRareCandies(_ count: Int) -> Int {
@@ -2159,13 +2398,16 @@ final class CompanionStore {
                                   linesGraduated: FossilDig.lines.filter(graduatedSpeciesIDs.contains).count)
     }
 
-    /// Species graduated in a Rock-type form: their usual one, or one of their forms (Hisuian Arcanine).
+    /// Species graduated in a Rock-type form: their usual one, or one of their forms (Hisuian Arcanine). A species with
+    /// forms counts by the forms it graduated in only: a Galarian Corsola (Ghost) counted as Rock, Corsola's usual type.
     var rockSpeciesGraduated: Set<Int> {
         Set(graduatedSpeciesIDs.filter { id in
-            PokemonTypeData.types(forSpeciesID: id, form: nil).contains(.rock)
-                || state.collectedForms(speciesID: id, graduatedOnly: true).contains {
-                    PokemonTypeData.types(forSpeciesID: id, form: $0).contains(.rock)
-                }
+            guard PokemonForm.hasForms(speciesID: id) else {
+                return PokemonTypeData.types(forSpeciesID: id, form: nil).contains(.rock)
+            }
+            return state.collectedForms(speciesID: id, graduatedOnly: true).contains {
+                PokemonTypeData.types(forSpeciesID: id, form: $0).contains(.rock)
+            }
         })
     }
 
@@ -2229,19 +2471,42 @@ final class CompanionStore {
         let registered = graduatedSpeciesIDs
         var tally = AchievementTally()
         for kind in Self.achievementItems where group == nil || kind.collectorGroup == group {
-            if kind.isRegional {
-                let tiers = regionTiers(kind, registered: registered)
-                tally.ready += tiers.filter(\.isReady).count
-                tally.claimed += tiers.filter(\.isDone).count
-                tally.total += tiers.count
-            } else {
-                let claimed = isClaimed(kind)
-                tally.ready += !claimed && isUnlocked(kind, registered: registered) ? 1 : 0
-                tally.claimed += claimed ? 1 : 0
-                tally.total += 1
-            }
+            count(kind, into: &tally, registered: registered)
         }
         return tally
+    }
+
+    /// Every section's tally and the whole one in one pass, which the Achievements tab reads once per draw: its
+    /// header, tabs, banner and progress line counted them some 17 times.
+    func achievementTallies() -> (all: AchievementTally, byGroup: [CollectorGroup: AchievementTally]) {
+        let registered = graduatedSpeciesIDs
+        var all = AchievementTally()
+        var byGroup: [CollectorGroup: AchievementTally] = [:]
+        for kind in Self.achievementItems {
+            var one = AchievementTally()
+            count(kind, into: &one, registered: registered)
+            all.ready += one.ready; all.claimed += one.claimed; all.total += one.total
+            if let group = kind.collectorGroup {
+                var tally = byGroup[group] ?? AchievementTally()
+                tally.ready += one.ready; tally.claimed += one.claimed; tally.total += one.total
+                byGroup[group] = tally
+            }
+        }
+        return (all, byGroup)
+    }
+
+    private func count(_ kind: ItemKind, into tally: inout AchievementTally, registered: Set<Int>) {
+        if kind.isRegional {
+            let tiers = regionTiers(kind, registered: registered)
+            tally.ready += tiers.filter(\.isReady).count
+            tally.claimed += tiers.filter(\.isDone).count
+            tally.total += tiers.count
+        } else {
+            let claimed = isClaimed(kind)
+            tally.ready += !claimed && isUnlocked(kind, registered: registered) ? 1 : 0
+            tally.claimed += claimed ? 1 : 0
+            tally.total += 1
+        }
     }
 
     /// Number of achievements ready to be claimed (each regional tier counts).
@@ -2410,10 +2675,8 @@ final class CompanionStore {
     /// A Shop egg can be bought whenever the wallet holds its price, egg or not: it waits in the Bag, and only using
     /// it sends the current Pokémon off (`useBagEgg`).
     func canBuyEgg(_ tier: Rarity?) -> Bool {
-        // 파는 티어인지 먼저 확인한다 — 만족 불가능한 보증(전설: capture_rate 로 표현 불가)을 사면
-        // 두 롤 경로 모두 후보가 0개라 알이 영영 안 깨지고, 부화가 없으니 보증도 안 풀리며,
-        // 새 알 구매는 `hasActive` 에 막혀 되돌릴 수단이 없다. 가격만 계산되면 값이 빠져나가므로
-        // 판매 목록을 여기서 강제한다(호출부 하나가 실수하면 토큰이 통째로 사라진다).
+        // The tiers on sale only: an egg of a guarantee no roll can meet (legendary, which no capture rate gives) would
+        // never hatch, and its price would be gone. The list is enforced here, where one caller's mistake costs tokens.
         guard FreshEgg.shopTiers.contains(tier) else { return false }
         return availableTokens >= price(of: .egg(tier))
     }
@@ -2421,13 +2684,20 @@ final class CompanionStore {
     /// Buys a Shop egg: its price leaves the wallet and the egg goes in the Bag (`ItemKind(shopEgg:)`). Bought, it
     /// used to send the current Pokémon off at once; the player now picks the moment (`useBagEgg`).
     @discardableResult
-    func buyEgg(_ tier: Rarity?) -> Bool {
-        guard canBuyEgg(tier), let kind = ItemKind(shopEgg: tier) else { return false }
-        state.spentTokens += price(of: .egg(tier))
-        state.inventory[kind.rawValue, default: 0] += 1
+    func buyEgg(_ tier: Rarity?, count: Int = 1) -> Bool {
+        guard count >= 1, count <= maxEggBuyCount(tier), let kind = ItemKind(shopEgg: tier) else { return false }
+        state.spentTokens += price(of: .egg(tier)) * count
+        state.inventory[kind.rawValue, default: 0] += count
         save()
-        AppLog.write("egg purchased: \(kind.rawValue) to the bag")
+        AppLog.write("egg purchased: \(kind.rawValue) ×\(count) to the bag")
         return true
+    }
+
+    /// How many eggs of a tier the wallet buys at once: they wait in the Bag.
+    func maxEggBuyCount(_ tier: Rarity?) -> Int {
+        guard canBuyEgg(tier) else { return 0 }
+        let price = price(of: .egg(tier))
+        return price > 0 ? availableTokens / price : 0
     }
 
     /// Evolution stone use gate: a stone in the Bag and, like an egg purchase, a companion to send off.
@@ -2571,12 +2841,68 @@ final class CompanionStore {
 
     /// The event eggs waiting now, earliest event first (`EventEgg.claimable`).
     var eventEggs: [(egg: EventEgg, year: Int)] {
-        EventEgg.claimable(now: clock(), claimed: state.claimedEventEggs, firstCatch: firstCatch?.date, calendar: .current)
+        EventEgg.claimable(now: clock(), claimed: state.claimedEventEggs, firstCatch: firstCatch?.date, calendar: LocalUsageReader.gregorianCalendar())
+    }
+
+    /// One line of the events' calendar (7.6): an event egg in one year, or the birthday.
+    struct CalendarItem: Equatable, Sendable {
+        enum Source: Equatable, Sendable { case event(EventEgg), birthday }
+        enum Status: Equatable, Sendable {
+            case toTake
+            /// `hatched`: the base it hatched, once used (recorded from 2026-10-29).
+            case taken(hatched: Int?)
+            case upcoming
+        }
+        let source: Source
+        let year: Int
+        let start: Date
+        /// The start of the day after the last one.
+        let end: Date
+        let status: Status
+    }
+
+    /// The calendar: the eggs on now (to take or taken), the next ones within a year, earliest first, and those taken
+    /// this year that are over.
+    func eventCalendar() -> (now: [CalendarItem], upcoming: [CalendarItem], taken: [CalendarItem]) {
+        let calendar = LocalUsageReader.gregorianCalendar()
+        let today = clock()
+        let year = calendar.component(.year, from: today)
+        let horizon = calendar.date(byAdding: .year, value: 1, to: today) ?? today
+        var now: [CalendarItem] = [], upcoming: [CalendarItem] = [], taken: [CalendarItem] = []
+        for egg in EventEgg.allCases {
+            // Within a year from now, a yearly event comes once at most.
+            for y in [year - 1, year, year + 1, year + 2] {
+                guard let days = egg.days(in: y, firstCatch: firstCatch?.date, calendar: calendar) else { continue }
+                let key = egg.key(year: y)
+                let claimEnd = calendar.date(byAdding: .day, value: egg.claimDays, to: days.end) ?? days.end
+                let status: CalendarItem.Status = state.claimedEventEggs.contains(key)
+                    ? .taken(hatched: state.eventEggHatches[key]) : .toTake
+                let item = CalendarItem(source: .event(egg), year: y, start: days.start, end: days.end, status: status)
+                if today >= days.start && today < claimEnd {
+                    now.append(item)
+                } else if days.start > today, days.start < horizon {
+                    upcoming.append(CalendarItem(source: .event(egg), year: y, start: days.start, end: days.end,
+                                                 status: .upcoming))
+                } else if case .taken = status, calendar.component(.year, from: days.start) == year
+                            || calendar.component(.year, from: days.end) == year, today >= claimEnd {
+                    taken.append(item)
+                }
+            }
+        }
+        if let birthday = state.birthday {
+            let thisYear = birthday.date(in: year, calendar: calendar)
+            let next = thisYear >= calendar.startOfDay(for: today) ? thisYear : birthday.date(in: year + 1, calendar: calendar)
+            let end = calendar.date(byAdding: .day, value: 1, to: next) ?? next
+            upcoming.append(CalendarItem(source: .birthday, year: calendar.component(.year, from: next), start: next,
+                                         end: end, status: .upcoming))
+        }
+        return (now.sorted { $0.start < $1.start }, upcoming.sorted { $0.start < $1.start },
+                taken.sorted { $0.start > $1.start })
     }
 
     /// Whether this waiting egg's event is on, rather than in the two weeks after it.
     func isEventOn(_ egg: EventEgg, year: Int) -> Bool {
-        egg.isOn(year: year, now: clock(), firstCatch: firstCatch?.date, calendar: .current)
+        egg.isOn(year: year, now: clock(), firstCatch: firstCatch?.date, calendar: LocalUsageReader.gregorianCalendar())
     }
 
     /// Puts a waiting event egg in the Bag, once for its year.
@@ -2599,6 +2925,9 @@ final class CompanionStore {
         state.inventory[egg.item.rawValue] = itemCount(egg.item) - 1
         replaceActiveWithEgg(price: 0, tier: egg.tier, type: egg.type)
         state.eggEvent = egg
+        // The latest claim of this event not hatched yet: what comes out is its.
+        state.eggEventKey = state.claimedEventEggs
+            .filter { $0.hasPrefix(egg.rawValue + "@") && state.eventEggHatches[$0] == nil }.max()
         save()
         AppLog.write("event egg used: \(egg.rawValue), discarded active")
         return true
@@ -2631,7 +2960,7 @@ final class CompanionStore {
     /// The birthday gift claimable now, and whether it is the birthday's week or a catch-up (`BirthdayGift`).
     var birthdayGift: (year: Int, occasion: BirthdayGift.Occasion)? {
         BirthdayGift.claimable(birthday: state.birthday, lastGiftYear: state.lastBirthdayGiftYear,
-                               changedAfterGiftYear: state.birthdayChangedAfterGiftYear, now: clock(), calendar: .current)
+                               changedAfterGiftYear: state.birthdayChangedAfterGiftYear, now: clock(), calendar: LocalUsageReader.gregorianCalendar())
     }
 
     /// Sets the player's birthday, or clears it with nil. Changing it never brings a second gift within a year: after
@@ -2648,7 +2977,7 @@ final class CompanionStore {
             if let giftDate { state.lastBirthdayGiftDate = giftDate }
             if let birthday, birthday != giftDate {
                 // A save that claimed before the claim date was kept: its gift's birthday year, at least.
-                let claimedIn = state.lastBirthdayGiftClaimedAt.map { Calendar.current.component(.year, from: $0) } ?? lastGift
+                let claimedIn = state.lastBirthdayGiftClaimedAt.map { LocalUsageReader.gregorianCalendar().component(.year, from: $0) } ?? lastGift
                 state.birthdayChangedAfterGiftYear = max(state.birthdayChangedAfterGiftYear ?? claimedIn, claimedIn)
             } else if let giftDate, birthday == giftDate {
                 state.birthdayChangedAfterGiftYear = nil
@@ -2683,6 +3012,11 @@ final class CompanionStore {
     /// (kept in the Pokédex) and starts a new egg carrying the guarantee.
     private func replaceActiveWithEgg(price: Int, tier: Rarity?, type: PokemonType?) {
         state.spentTokens += price
+        // The Old Amber keeps part of what the Pokémon sent off grew at its stage, for the one that hatches. Read
+        // before the write: `state` is not read inside its own assignment.
+        let kept = itemCount(.oldAmber) > 0
+            ? (state.active.map { max(0, $0.usedAtStage) / 100 * CollectorBonus.oldAmberKeptPercent } ?? 0) : 0
+        state.amberCarry = kept
         if let a = state.active {
             state.dex.append(releasedDexEntry(from: a))   // 놓아줌 기록 — 도감에서 종이 사라지지 않게
             // A Fossil Egg's Pokémon sent off before it graduates gives its egg back: its line has no other egg.
@@ -2706,6 +3040,7 @@ final class CompanionStore {
         state.eggFromBirthdayEgg = false
         state.eggFromFossilEgg = false
         state.eggEvent = nil
+        state.eggEventKey = nil
         state.pendingHatchID = nil    // 새 보증으로 처음부터 롤(활성 포켓몬이 있는 동안엔 원래 비어 있다)
         state.pendingForm = nil
         state.pendingShiny = false
@@ -2735,6 +3070,9 @@ final class CompanionStore {
         return isDay(day) && isDay(other) && day < other
     }
 
+    /// Below this, a window without an epoch has gone down for real and starts again (`evaluateCandyGrants`).
+    static let epochlessRearmUtilization: Double = 50
+
     /// How a window's epoch moved since the last poll.
     enum EpochChange: Equatable { case same, reset, otherWindow }
 
@@ -2757,7 +3095,7 @@ final class CompanionStore {
     /// it is tested apart from the Bag and the notifications (evaluateLimitAlerts 자매).
     /// - The ledger (`grantTier`) keeps what each window paid. A new epoch (`resets_at`) starts it again, even when the
     ///   app never saw the window go down (#326); the key never holds the epoch.
-    /// - Without an epoch, a window back to nothing owed is a new one.
+    /// - Without an epoch, a window back to nothing owed, and under half full, is a new one.
     /// - What a window paid is never taken back: a utilization that goes down a little pays nothing until it is past
     ///   it again.
     /// - Another window under the key (`epochChange`) pays from now on, as a window first seen does (#79).
@@ -2774,7 +3112,14 @@ final class CompanionStore {
                 if let previousEpoch = windowEpoch[w.key] {
                     switch epochChange(previous: previousEpoch, current: epoch, kind: w.kind, now: now) {
                     case .same:
-                        break
+                        // A reset time that slides (Antigravity's moves a little at each poll) is followed, so a poll
+                        // is compared to the last one seen: compared to the first, the slides added up once the
+                        // window's end was past and passed for a reset. Under a minute it stays, so a jitter
+                        // (Claude's fractional seconds, Codex's 1 s) changes nothing to save.
+                        if let p = parseEpochDate(previousEpoch), let c = parseEpochDate(epoch),
+                           abs(c.timeIntervalSince(p)) >= 60 {
+                            windowEpoch[w.key] = epoch
+                        }
                     case .reset:
                         grantTier[w.key] = nil
                         windowEpoch[w.key] = epoch
@@ -2788,7 +3133,9 @@ final class CompanionStore {
                 }
             }
             var paid = grantTier[w.key] ?? 0
-            if w.epoch == nil, due == 0 { paid = 0 }
+            // Without an epoch, only a real drop starts a window again: a Pro session hovering around its limit
+            // (100%, 99.6%, 100%) owes nothing at each dip and paid its candy again at each return.
+            if w.epoch == nil, due == 0, w.utilization < Self.epochlessRearmUtilization { paid = 0 }
             if due > paid {
                 let whole = RareCandy.windowCandies(kind: w.kind, planMultiplier: w.planMultiplier)
                 grants.append(CandyGrant(windowKey: w.key, windowName: w.name, count: due - paid,
@@ -2808,8 +3155,18 @@ final class CompanionStore {
     /// - A window first seen later (another login, a Codex bucket), or seen at another plan, pays from then on too:
     ///   a Max 20x login added at 80% of its week would pay 80 candies at once, a Pro week at 60% read as Max 5x 12
     ///   (#79).
-    func grantCandies(from windows: [CandyWindow], limitsReady: Bool) {
+    func grantCandies(from polled: [CandyWindow], limitsReady: Bool) {
         guard limitsReady else { return }
+        let now = clock()
+        // A plan read as 1 is a plan unknown for that poll (`LimitStatus.planMultiplier`) when a bigger one is known for
+        // the same window: re-seeded at 1 and back, the window lost what it owed between the two polls.
+        let windows = polled.map { w -> CandyWindow in
+            guard w.planMultiplier == 1, let known = state.candyWindowPlan[w.key], known > 1,
+                  let previous = state.candyWindowEpoch[w.key], let epoch = w.epoch,
+                  Self.epochChange(previous: previous, current: epoch, kind: w.kind, now: now) == .same
+            else { return w }
+            return w.withPlanMultiplier(known)
+        }
         if !state.candyFeatureSeeded {
             // 한계(수용): 첫 refresh 에 한 프로바이더 한도만 로드되면 그 프로바이더 창만 시드된다. refresh() 는 전
             // 프로바이더 fetch 를 await 후 onRefresh 하므로 정상 경로에선 원자적 시드다.
@@ -2830,6 +3187,14 @@ final class CompanionStore {
         for w in windows where state.candyWindowPlan[w.key] != w.planMultiplier {
             let firstSeen = state.candyWindowPlan[w.key] == nil
             let paid = state.candyGrantTier[w.key] ?? 0
+            // A window whose stored one has ended is new whatever its plan: what the ended one paid is not carried
+            // over (an old save opened after a reset kept last week's count), it starts from nothing as any reset.
+            if let previous = state.candyWindowEpoch[w.key], let epoch = w.epoch,
+               Self.epochChange(previous: previous, current: epoch, kind: w.kind, now: now) == .reset {
+                state.candyWindowPlan[w.key] = w.planMultiplier
+                AppLog.write("candies: \(w.key) plan ×\(w.planMultiplier) in a new window, pays from nothing")
+                continue
+            }
             seedCandyLedger(w, paid: true)
             // Seen for the first time, what it paid already stays paid; at another plan, it paid that plan's share.
             if firstSeen, paid > (state.candyGrantTier[w.key] ?? 0) { state.candyGrantTier[w.key] = paid }
@@ -2841,9 +3206,9 @@ final class CompanionStore {
             windows: windows,
             grantTier: &grantTier,
             windowEpoch: &windowEpoch,
-            now: clock())
-        state.candyGrantTier = grantTier
-        state.candyWindowEpoch = windowEpoch
+            now: now)
+        if state.candyGrantTier != grantTier { state.candyGrantTier = grantTier }
+        if state.candyWindowEpoch != windowEpoch { state.candyWindowEpoch = windowEpoch }
         let meteorite = itemCount(.meteorite) > 0 ? CollectorBonus.meteoriteWindowCandies : 0
         for g in grants {
             let received = addRareCandies(g.count + (g.completesWindow ? meteorite : 0))
@@ -3152,7 +3517,9 @@ final class CompanionStore {
         // 산 보증을 지키는 마지막 관문 — 진짜 등급을 아는 건 여기뿐이다(후보 인덱스엔 capture_rate 만
         // 있고 is_legendary 가 없다). 필터가 어긋났으면(인덱스 stale 등) 낮은 등급을 그냥 내주지 말고
         // 알을 유지한 채 pre-roll 만 버려 다음 틱에 다시 뽑는다 — 사용자는 산 보증을 계속 들고 있는다.
-        if let tier = state.eggTier, line.rarity.sortRank < tier.sortRank {
+        // A season's Deerling is the exception to its egg's Uncommon guarantee (`EventEgg.tier`).
+        let seasonDeerling = state.eggEvent?.seasonForm != nil && line.baseID == EventEgg.deerlingID
+        if let tier = state.eggTier, line.rarity.sortRank < tier.sortRank, !seasonDeerling {
             AppLog.write("hatch: rolled \(line.rarity) below guaranteed \(tier) — discarded, re-roll next tick")
             state.pendingHatchID = nil
             state.pendingForm = nil
@@ -3195,7 +3562,9 @@ final class CompanionStore {
         state.eggFromLegendaryEgg = false
         state.eggFromBirthdayEgg = false
         state.eggFromFossilEgg = false
+        if event != nil, let key = state.eggEventKey { state.eventEggHatches[key] = line.baseID }
         state.eggEvent = nil
+        state.eggEventKey = nil
         state.pendingShiny = false
         // 개체 롤: shiny(1/64, 부적 1/48, Reveal Glass halves it)·성격(25종)은 부화 순간 확정, 진화해도 유지.
         // 알림 문구는 이 판정과 같은 분모를 보여준다.
@@ -3246,6 +3615,13 @@ final class CompanionStore {
         state.active?.raising = RaisingRecord(hatchedAt: clock())
         state.active?.fromStoneEgg = typeGuarantee != nil && event == nil
         state.active?.fromRarityEgg = fromRarityEgg
+        // What the Old Amber kept, short of the first evolution: the amber alone never evolves it as it hatches.
+        if state.amberCarry > 0, let mon = state.active {
+            let given = min(state.amberCarry, max(0, stageThreshold(for: mon) - 1))
+            state.active?.usedAtStage = given
+            AppLog.write("hatch: old amber gave \(given) of \(state.amberCarry)")
+        }
+        state.amberCarry = 0
         state.lastHatchedBaseID = line.baseID
         // A disguised Ditto is not the species it shows: nothing unlocks until it is revealed.
         if dittoDisguise == nil { announceFormUnlocks(since: unlockedForms) }
@@ -3412,9 +3788,23 @@ final class CompanionStore {
             return index.last.map { ($0.id, event?.alwaysShiny ?? false) }   // 도달 불가(방어)
         }
         // GraphQL base 인덱스 엔드포인트 장애 → REST 폴백. 부화가 한 엔드포인트에 묶이지 않게.
-        AppLog.write("hatch: base index unavailable — REST fallback")
+        AppLog.write("hatch: base index unavailable, REST fallback")
+        if state.eggFromBirthdayEgg { return await chooseBirthdayBaseViaREST() }
         // An event's egg keeps its shiny promise there too.
         return await chooseBaseViaREST().map { ($0, state.eggEvent?.alwaysShiny ?? false) }
+    }
+
+    /// The Birthday Egg's roll without the index, its rule kept (`chooseBirthdayBase`): a mythical line not graduated,
+    /// else a legendary one, from the lists of both; once all graduated, any of them, shiny. A random legendary of the
+    /// REST fallback could be one graduated while a mythical was missing, and was never shiny.
+    private func chooseBirthdayBaseViaREST() async -> (id: Int, shiny: Bool)? {
+        let graduated = graduatedSpeciesIDs
+        let mythicals = Set(SpeciesGoal.mythicals).subtracting(graduated)
+        if !mythicals.isEmpty { return await chooseListedBaseViaREST(mythicals, charm: false).map { ($0, false) } }
+        let legendaries = Set(SpeciesGoal.legendaries).subtracting(graduated)
+        if !legendaries.isEmpty { return await chooseListedBaseViaREST(legendaries, charm: false).map { ($0, false) } }
+        return await chooseListedBaseViaREST(Set(SpeciesGoal.mythicals + SpeciesGoal.legendaries), charm: false)
+            .map { ($0, true) }
     }
 
     // MARK: Hatch pool and odds
@@ -3705,9 +4095,15 @@ final class CompanionStore {
     /// 검증된 세이브를 이 기기에 적용 — 기존 상태 백업 → 기기 기준 재정렬 → 저장 → 라인 재로딩.
     /// 백업을 못 남기면 **적용하지 않고** throw 한다 — 확인창이 "직전 상태가 남는다"고 약속하므로,
     /// 그 약속을 못 지키는 채로 덮어쓰면 사용자는 되돌릴 수단 없이 진행을 잃는다.
+    /// `snapshotFirst`: an import keeps the state it replaces as a snapshot too, which Settings lists and restores: the
+    /// copy beside the save (`backupStateBeforeImport`) is a bare state the import refuses. A restore made its own.
     func applySave(_ envelope: SaveEnvelope, todayTokensByProvider: [String: Int], todayDate: String,
-                   hasUsageData: Bool) throws {
+                   hasUsageData: Bool, snapshotFirst: Bool = true) throws {
+        guard saveLock == nil else { throw SaveTransferError.saveLocked }
         try backupStateBeforeImport()
+        if snapshotFirst {
+            do { try createManualSnapshot() } catch { AppLog.write("save import: no snapshot of the state replaced: \(error)") }
+        }
         state = SaveTransfer.rebasedForThisDevice(envelope.state,
                                                   current: state,
                                                   todayTokensByProvider: todayTokensByProvider,
@@ -3774,7 +4170,10 @@ final class CompanionStore {
     }
 
     @discardableResult
+    /// Refused while the save is locked (`saveLock`): the state then is a fresh or a lossy one, and each snapshot of it
+    /// pushed one of the real ones out of the ten kept.
     func createManualSnapshot(now: Date? = nil) throws -> SaveSnapshot {
+        guard saveLock == nil else { throw SaveTransferError.saveLocked }
         let timestamp = now ?? clock()
         let snapshot = try SaveSnapshotManager.createSnapshot(
             state: state,
@@ -3794,7 +4193,9 @@ final class CompanionStore {
 
     func autoSnapshotIfNeeded(now: Date? = nil) {
         let timestamp = now ?? clock()
-        let newest = availableSnapshots.first
+        // A snapshot dated after now (the Mac's clock set ahead to try an event) is not the newest: counted, it held
+        // the automatic snapshots back until that date.
+        let newest = availableSnapshots.first { $0.date <= timestamp }
 
         guard newest == nil ||
               timestamp.timeIntervalSince(newest!.date) >= automaticSnapshotInterval
@@ -3816,12 +4217,14 @@ final class CompanionStore {
         // Read and validate the selected snapshot before taking the safety snapshot: at the retention
         // limit, that extra file prunes the oldest one, which may be the snapshot being restored.
         // A snapshot that no longer decodes also fails here, before anything is written or pruned.
+        guard saveLock == nil else { throw SaveTransferError.saveLocked }
         let envelope = try SaveSnapshotManager.loadEnvelope(from: snapshot.fileURL)
         _ = try? createManualSnapshot()
         try applySave(envelope,
                       todayTokensByProvider: todayTokensByProvider,
                       todayDate: todayDate,
-                      hasUsageData: hasUsageData)
+                      hasUsageData: hasUsageData,
+                      snapshotFirst: false)
         refreshSnapshots()
         AppLog.write("snapshot restored: \(snapshot.id)")
     }
@@ -3986,8 +4389,19 @@ final class CompanionStore {
 
     // MARK: 영속
     private func load() {
-        guard let data = try? Data(contentsOf: fileURL) else { return }   // 파일 없음 = 신규 설치
-        guard let s = try? JSONDecoder().decode(CompanionState.self, from: data) else {
+        let data: Data
+        do {
+            data = try Data(contentsOf: fileURL)
+        } catch {
+            // 파일 없음 = 신규 설치. A file there but unreadable is no new install: it was written over.
+            if FileManager.default.fileExists(atPath: fileURL.path) {
+                saveLock = .unreadable
+                AppLog.write("companion state unreadable, nothing is written until it reads: \(error)")
+            }
+            return
+        }
+        let decoded = LenientDecoding.recordingLosses { try? JSONDecoder().decode(CompanionState.self, from: data) }
+        guard let s = decoded.value else {
             // 디코드 실패(전면 손상/미래 스키마) → 원본을 .corrupt 로 백업 후 유효한 스냅샷으로 복구 시도.
             let backup = fileURL.appendingPathExtension("corrupt")
             try? FileManager.default.removeItem(at: backup)
@@ -4000,6 +4414,7 @@ final class CompanionStore {
 
             if let recovered = SaveSnapshotManager.loadLatestValidSnapshot(for: fileURL) {
                 state = SaveTransfer.sanitized(recovered)
+                state.convertCalendarYears(recordedIn: Calendar.current, now: clock())
                 AppLog.write("automatically recovered companion state from snapshot")
                 save()
             } else {
@@ -4012,18 +4427,50 @@ final class CompanionStore {
         // 극단값은 그대로 남아, 앱이 매 기동마다 같은 값을 읽어 산술 트랩으로 죽는 상태를 못 벗어난다
         // (디코드는 *성공*하므로 위의 .corrupt 복구도 발동하지 않는다). 여기서 걸면 자가 복구된다.
         state = SaveTransfer.sanitized(s)
+        state.convertCalendarYears(recordedIn: Calendar.current, now: clock())
+        if let saved = s.writer, let writer, saved.isNewer(than: writer) {
+            saveLock = .newerBuild(commit: String(saved.commit.prefix(7)))
+            AppLog.write("companion state written by a later build \(saved.commit.prefix(7)) (\(saved.date)), this one "
+                + "(\(writer.commit.prefix(7)), \(writer.date)) writes nothing")
+        } else if !decoded.losses.isEmpty {
+            keepLossyCopy(of: data, losses: decoded.losses)
+        }
     }
+
+    /// The file as it was, beside it, before a write drops what the decoding left out: written by a version that knew
+    /// more, it held fields this one cannot read. The last three are kept.
+    private func keepLossyCopy(of data: Data, losses: [String]) {
+        let dir = fileURL.deletingLastPathComponent()
+        let stamp = SaveSnapshotManager.snapshotFileName(date: clock())
+            .replacingOccurrences(of: SaveSnapshotManager.snapshotPrefix, with: "")
+        let copy = dir.appendingPathComponent(Self.lossyCopyPrefix + stamp)
+        do {
+            try data.write(to: copy, options: .atomic)
+            AppLog.write("companion state read with \(losses.count) field(s) left out (\(losses.prefix(5).joined(separator: ", "))), "
+                + "original kept as \(copy.lastPathComponent)")
+        } catch {
+            AppLog.write("companion state: could not keep the lossy original: \(error)")
+        }
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? []
+        for stale in names.filter({ $0.hasPrefix(Self.lossyCopyPrefix) }).sorted().dropLast(3) {
+            try? FileManager.default.removeItem(at: dir.appendingPathComponent(stale))
+        }
+    }
+    static let lossyCopyPrefix = "companion-state.lossy-"
     /// What the file holds, as last written. Every refresh ends with a save: a refresh that changed nothing rewrote
     /// the whole file all the same (660 KB for 571 Pokédex entries, twice a minute while tokens flow).
     private var savedState: CompanionState?
 
     private func save() {
         refreshRepresentativeSubject()
+        guard saveLock == nil else { return }
+        if let writer, state.writer != writer { state.writer = writer }
         guard state != savedState else { return }
         guard let data = try? JSONEncoder().encode(state) else { return }
         do {
             try data.write(to: fileURL, options: .atomic)   // 부분 쓰기 손상 방지(펫 상태)
             savedState = state
+            savesWritten += 1
         } catch {
             AppLog.write("save failed: \(error.localizedDescription)")
         }

@@ -113,6 +113,8 @@ final class PopoverNavigation {
     var dexScope: DexScope = .all
     /// The ideas page (`IdeasScreen`) too.
     var showingIdeas = false { didSet { if showingIdeas { dexDetailCollectionID = nil } } }
+    /// The events' calendar (`EventCalendarScreen`) too.
+    var showingCalendar = false { didSet { if showingCalendar { dexDetailCollectionID = nil } } }
     /// The changelog entries seen before it was opened: the others are marked new on it.
     var changelogSeenBefore: Set<String> = []
     /// The Collection tab's open Pokédex detail page (`DexSpecies.collectionID`); nil = grid or log.
@@ -164,6 +166,7 @@ final class PopoverNavigation {
         showingBonuses = false
         showingChangelog = false
         showingIdeas = false
+        showingCalendar = false
         tab = .home
     }
 
@@ -203,6 +206,10 @@ struct PopoverView: View {
     @State private var birthdayGiftOpened = false
     /// The event egg just taken: the banner says where it went until it is dismissed.
     @State private var eventEggTaken: EventEgg?
+    /// The news shown in the strip above the tabs (`newsPages`), by its place.
+    /// The news shown, by what it is rather than its place: claiming an egg, then opening the Bag (which sees the
+    /// treasures), moved the pages under an index and showed another.
+    @State private var newsSelection: NewsPage?
 
     var body: some View {
         // NOTE: 설정을 .sheet 로 띄우면 transient 팝오버가 닫힐 때 시트가 고아로 남아
@@ -231,6 +238,8 @@ struct PopoverView: View {
                 }
             } else if nav.showingIdeas {
                 IdeasScreen(l: l) { nav.showingIdeas = false }
+            } else if nav.showingCalendar {
+                EventCalendarScreen(store: companion) { nav.showingCalendar = false }
             } else {
                 mainContent
             }
@@ -316,6 +325,7 @@ struct PopoverView: View {
                 Button(l.birthdayClaim) {
                     guard companion.claimBirthdayGift() else { return }
                     birthdayGiftOpened = true
+                    newsSelection = .birthday
                     nav.tab = .bag
                 }
                 .buttonStyle(.borderedProminent).controlSize(.small).tint(.pink)
@@ -339,36 +349,73 @@ struct PopoverView: View {
         }
     }
 
-    /// The event egg waiting, the earliest event's first, above the tabs whatever the tab: the event's wish while it
+    /// One event egg waiting, on its page of the news strip: the event's wish while it
     /// is on, then that it still waits, two weeks more. Then where it went. It never tells what hatches.
     @ViewBuilder
-    private var eventEggBanner: some View {
-        if let pending = companion.eventEggs.first {
-            let egg = pending.egg
-            let colors = egg.bannerColors
-            HStack(spacing: 10) {
-                SpriteView(speciesID: nil, size: 40, animated: true, egg: .event(egg))
-                    .frame(width: 40, height: 40)
+    private func eventEggBanner(_ pending: (egg: EventEgg, year: Int)) -> some View {
+        let egg = pending.egg
+        let colors = egg.bannerColors
+        HStack(spacing: 10) {
+            SpriteView(speciesID: nil, size: 40, animated: true, egg: .event(egg))
+                .frame(width: 40, height: 40)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(companion.isEventOn(egg, year: pending.year) ? l.eventEggWish(egg) : l.eventEggStillWaiting(egg))
+                    .font(.callout.weight(.bold))
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(l.eventEggBody(egg)).font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 4)
+            Button(l.eventEggClaim) {
+                guard companion.claimEventEgg(egg) else { return }
+                eventEggTaken = egg
+                // The note saying where this one went, not the next egg that took its place.
+                newsSelection = .eventEggTaken
+                nav.tab = .bag
+            }
+            .buttonStyle(.borderedProminent).controlSize(.small).tint(colors.0)
+        }
+        .padding(8)
+        .background(LinearGradient(colors: [colors.0.opacity(0.22), colors.1.opacity(0.14)],
+                                   startPoint: .leading, endPoint: .trailing))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    /// What the Explorer Kit dug up, until the Bag is opened or the page closed. A Legendary Egg is the jackpot, in its
+    /// own color and title.
+    @ViewBuilder
+    private var treasureBanner: some View {
+        let treasures = companion.unseenTreasures
+        if let first = treasures.first {
+            let jackpot = first.kind == .legendaryEgg
+            let tint: Color = jackpot ? .purple : .orange
+            HStack(spacing: 8) {
+                ItemIconView(kind: first.kind, size: 32)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(companion.isEventOn(egg, year: pending.year) ? l.eventEggWish(egg) : l.eventEggStillWaiting(egg))
-                        .font(.callout.weight(.bold))
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(l.eventEggBody(egg)).font(.caption).foregroundStyle(.secondary)
+                    Text(jackpot ? l.treasureJackpotTitle : l.treasureTitle).font(.callout.weight(.bold))
+                    Text(l.treasureBody(treasures)).font(.caption).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 4)
-                Button(l.eventEggClaim) {
-                    guard companion.claimEventEgg(egg) else { return }
-                    eventEggTaken = egg
+                Button(l.treasureOpenBag) {
+                    companion.markTreasuresSeen()
                     nav.tab = .bag
                 }
-                .buttonStyle(.borderedProminent).controlSize(.small).tint(colors.0)
+                .buttonStyle(.borderedProminent).controlSize(.small).tint(tint)
+                Button { companion.markTreasuresSeen() } label: { Image(systemName: "xmark") }
+                    .buttonStyle(.borderless).controlSize(.small).foregroundStyle(.secondary)
+                    .accessibilityLabel(l.close)
             }
             .padding(8)
-            .background(LinearGradient(colors: [colors.0.opacity(0.22), colors.1.opacity(0.14)],
-                                       startPoint: .leading, endPoint: .trailing))
+            .background(tint.opacity(0.14))
             .clipShape(RoundedRectangle(cornerRadius: 8))
-        } else if let egg = eventEggTaken {
+        }
+    }
+
+    /// Where the egg just taken went, until closed.
+    @ViewBuilder
+    private var eventEggTakenBanner: some View {
+        if let egg = eventEggTaken {
             HStack(spacing: 8) {
                 Text("🥚").font(.callout)
                 Text(l.eventEggClaimed(egg)).font(.caption).fixedSize(horizontal: false, vertical: true)
@@ -414,13 +461,97 @@ struct PopoverView: View {
         }
     }
 
+    /// One of the news above the tabs.
+    private enum NewsPage: Hashable {
+        case treasure, update, birthday, eventEgg(EventEgg), eventEggTaken, changelog
+    }
+
+    /// The news waiting, the eggs to take first: every event egg waiting has its page (autumn and Halloween together;
+    /// only the first showed until it was taken).
+    private var newsPages: [NewsPage] {
+        var pages: [NewsPage] = []
+        // The Explorer Kit's treasures first: what just came, which the other news does not hide.
+        if !companion.unseenTreasures.isEmpty { pages.append(.treasure) }
+        if updater.isUpdating || updater.updateError != nil
+            || (updater.available != nil && store.updateNotificationsEnabled) { pages.append(.update) }
+        pages += companion.eventEggs.map { .eventEgg($0.egg) }
+        if eventEggTaken != nil { pages.append(.eventEggTaken) }
+        if companion.birthdayGift != nil || birthdayGiftOpened { pages.append(.birthday) }
+        if store.hasUnseenChangelog { pages.append(.changelog) }
+        return pages
+    }
+
+    /// The news in one strip of one height, one at a time with arrows between them: stacked, four of them pushed Home
+    /// down by some 170 points.
+    @ViewBuilder
+    private var newsStrip: some View {
+        let pages = newsPages
+        if !pages.isEmpty {
+            let index = newsSelection.flatMap(pages.firstIndex(of:)) ?? 0
+            VStack(alignment: .leading, spacing: 4) {
+                if pages.count > 1 {
+                    HStack(spacing: 6) {
+                        Text(l.newsCount(pages.count)).font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+                        Spacer(minLength: 4)
+                        Button { newsSelection = pages[(index + pages.count - 1) % pages.count] } label: {
+                            Image(systemName: "chevron.left").frame(width: 18, height: 14)
+                        }
+                        .accessibilityLabel(l.recapPrevious)
+                        Text(l.newsPosition(index + 1, pages.count))
+                            .font(.caption2).foregroundStyle(.secondary).monospacedDigit()
+                        Button { newsSelection = pages[(index + 1) % pages.count] } label: {
+                            Image(systemName: "chevron.right").frame(width: 18, height: 14)
+                        }
+                        .accessibilityLabel(l.recapNext)
+                    }
+                    .buttonStyle(.borderless)
+                }
+                newsPage(pages[index])
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func newsPage(_ page: NewsPage) -> some View {
+        switch page {
+        case .treasure: treasureBanner
+        case .update: updateBanner
+        case .birthday: birthdayBanner
+        case .eventEgg(let egg):
+            if let pending = companion.eventEggs.first(where: { $0.egg == egg }) { eventEggBanner(pending) }
+        case .eventEggTaken: eventEggTakenBanner
+        case .changelog: changelogBanner
+        }
+    }
+
+    /// Why the save is not written (`CompanionStore.SaveLock`): stays until the cause is gone.
+    @ViewBuilder
+    private var saveLockBanner: some View {
+        if let lock = companion.saveLock {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Color.readableOrange)
+                Text(saveLockText(lock))
+                    .font(.caption)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .padding(8)
+            .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+        }
+    }
+
+    private func saveLockText(_ lock: CompanionStore.SaveLock) -> String {
+        switch lock {
+        case .unreadable: return l.saveLockUnreadable
+        case .newerBuild(let commit): return l.saveLockNewerBuild(commit)
+        }
+    }
+
     private var mainContent: some View {
         @Bindable var nav = nav
         return VStack(alignment: .leading, spacing: 12) {
-            updateBanner
-            birthdayBanner
-            eventEggBanner
-            changelogBanner
+            saveLockBanner
+            newsStrip
             PopoverTabPicker(tab: $nav.tab, l: l, unclaimedAchievements: companion.unclaimedAchievementsCount)
 
             if nav.tab == .collection {
@@ -685,6 +816,9 @@ struct PopoverView: View {
                 if selectedSnapshot?.providerID == "claude_code", !store.sessionKeyConfigured {
                     claudeKeychainHelpButton
                 }
+            }
+            if showingClaudeKeychainHelp, selectedSnapshot?.providerID == "claude_code", !store.sessionKeyConfigured {
+                claudeKeychainHelp
             }
             if selectedSnapshot?.providerID == "claude_code", store.limitsAuthExpiry == .sessionKey {
                 sessionKeyExpiredNotice
@@ -1001,7 +1135,8 @@ struct PopoverView: View {
                              candies: tally.flatMap { $0.whole <= 5 ? $0 : nil })
             if let tally { candyLine(tally) }
         }
-        .helpIfPresent(paceHelp(pace, tier: tier, utilization: utilization))
+        // `hoverTip` shows nothing for a nil text; an `if` around it rebuilt the row each time the help came or went.
+        .hoverTip(paceHelp(pace, tier: tier, utilization: utilization))
     }
 
     @ViewBuilder
@@ -1099,25 +1234,39 @@ struct PopoverView: View {
         }
         .buttonStyle(.plain)
         .hoverTip(l.claudeKeychainHelpTooltip)
-        .popover(isPresented: $showingClaudeKeychainHelp) {
-            VStack(alignment: .leading, spacing: 8) {
+        .accessibilityLabel(l.claudeKeychainHelpTooltip)
+    }
+
+    /// The help the button opens, under the section title. Inline rather than a SwiftUI `.popover`: a popover inside
+    /// the menu bar popover can outlive it as an orphan window.
+    private var claudeKeychainHelp: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
                 Text(l.claudeKeychainHelpTitle)
                     .font(.caption).fontWeight(.semibold)
-                Text(l.claudeKeychainHelpBody)
-                    .font(.caption2).foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                HStack {
-                    Spacer()
-                    Button(l.registerSessionKey) {
-                        showingClaudeKeychainHelp = false
-                        nav.openSessionKeySettings()
-                    }
-                    .controlSize(.small)
+                Spacer(minLength: 4)
+                Button {
+                    showingClaudeKeychainHelp = false
+                } label: {
+                    Image(systemName: "xmark").font(.caption2.weight(.bold)).foregroundStyle(.secondary)
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel(l.close)
             }
-            .padding(12)
-            .frame(width: 250)
+            Text(l.claudeKeychainHelpBody)
+                .font(.caption2).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Spacer()
+                Button(l.registerSessionKey) {
+                    showingClaudeKeychainHelp = false
+                    nav.openSessionKeySettings()
+                }
+                .controlSize(.small)
+            }
         }
+        .padding(10)
+        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
     }
 
     /// Claude official limits, one tab per account when there are several (default login first).
@@ -1324,9 +1473,13 @@ struct PopoverView: View {
                     Task { await store.refresh() }
                 }
                 if let updated = store.lastUpdated {
+                    // One line: with the calendar's button the six icons left it some 70 points, and "Mis à jour 3 s"
+                    // broke in two.
                     (Text("\(l.updated) ") + Text(updated, style: .relative))
                         .font(.caption)
                         .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
                 }
                 if store.lastErrorDescription != nil {
                     Image(systemName: "exclamationmark.triangle")
@@ -1334,61 +1487,36 @@ struct PopoverView: View {
                         .hoverTip(store.lastErrorMessage(l) ?? "")
                 }
             }
-            Spacer()
-            // 끄기는 펫 우클릭. 켜기는 여기 — 숨기면 우클릭할 대상이 없다(#301).
-            // Settings 체크박스와 같은 `floatingPetEnabled`. 홈 탭에만 두면 도감에서 못 켠다.
-            CircleIconButton(systemImage: store.floatingPetEnabled ? "eye" : "eye.slash",
-                             help: store.floatingPetEnabled ? l.floatingPetHideLabel : l.floatingPetEnableLabel) {
-                store.floatingPetEnabled.toggle()
-            }
-            CircleIconButton(systemImage: "lightbulb", help: l.ideasTitle) { nav.showingIdeas = true }
-            CircleIconButton(systemImage: "newspaper", help: l.changelogTitle) { openChangelog() }
-                .overlay(alignment: .topTrailing) {
-                    if !store.unseenChangelogEntries.isEmpty {
-                        Circle().fill(Color.red).frame(width: 7, height: 7).offset(x: 1, y: -1)
-                    }
+            Spacer(minLength: 4)
+            HStack(spacing: 6) {
+                // 끄기는 펫 우클릭. 켜기는 여기 — 숨기면 우클릭할 대상이 없다(#301).
+                // Settings 체크박스와 같은 `floatingPetEnabled`. 홈 탭에만 두면 도감에서 못 켠다.
+                CircleIconButton(systemImage: store.floatingPetEnabled ? "eye" : "eye.slash",
+                                 help: store.floatingPetEnabled ? l.floatingPetHideLabel : l.floatingPetEnableLabel) {
+                    store.floatingPetEnabled.toggle()
                 }
-            CircleIconButton(systemImage: "gearshape", help: l.settings) { nav.showSettings = true }
-            CircleIconButton(systemImage: "power", help: l.quit) { NSApplication.shared.terminate(nil) }
+                CircleIconButton(systemImage: "lightbulb", help: l.ideasTitle) { nav.showingIdeas = true }
+                CircleIconButton(systemImage: "calendar", help: l.calendarTitle) { nav.showingCalendar = true }
+                CircleIconButton(systemImage: "newspaper", help: l.changelogTitle) { openChangelog() }
+                    .overlay(alignment: .topTrailing) {
+                        if store.hasUnseenChangelog {
+                            Circle().fill(Color.red).frame(width: 7, height: 7).offset(x: 1, y: -1)
+                        }
+                    }
+                CircleIconButton(systemImage: "gearshape", help: l.settings) { nav.showSettings = true }
+                CircleIconButton(systemImage: "power", help: l.quit) { NSApplication.shared.terminate(nil) }
+            }
         }
     }
 }
 
-/// 이번 달 일별 추이 — 주/월 스칼라 두 개로는 답할 수 없는 "지난 며칠 어땠나"를 채운다.
-///
-/// 데이터는 이미 메모리에 있다(`ProviderEnrichment.monthDaily` — enrichment 스캔이 월 전체를
-/// 읽고 있었고, 지금까지 합계만 남기고 버렸다). 새 창을 만들지 않고 기존 헤더 결을 따라 캡션 한 줄
-/// + 막대 한 줄로 접는다.
-///
-/// 표시 게이트는 **의미값**이다(`peak > 0`). `series.isEmpty` 나 `!= nil` 로 게이트하면 안 된다 —
-/// 생산자가 사용 없는 날도 0 으로 채우므로 이번 달을 한 번도 안 쓴 사용자에게도 배열은 non-empty 라
-/// #56 계열(옵셔널 tautology)의 "안 썼는데 왜 뜨지"가 재현된다.
-@MainActor
-struct MonthDailyTrend: View {
-    let series: [DailyUsage]
-    /// Each provider's own month series. With two or more providers used this month the bars
-    /// stack by provider and a legend under the axis names each provider's color; otherwise the
-    /// row is unchanged.
-    var providers: [DailyTrendStack.ProviderSeries] = []
-    /// `UsageStore.registeredProviderIDs` — what keeps a provider's color fixed (see `DailyTrendStack.colorIndices`).
-    var providerOrder: [String] = []
-    let showsCost: Bool
-    /// 오늘의 `localDay` 키 — 강조할 막대를 뷰가 시계를 다시 읽어 고르지 않게 주입한다.
-    let today: String
-    let l: L
-    /// Today's bar and axis label: the color of the Pokémon being raised on Home.
-    var accent: Color = Design.actionColor
-
-    /// The hovered bar. Its day's numbers show in a tooltip above the bars, without the `.help` delay.
-    /// The caption keeps today's combined readout either way — opening the popover shows today's
-    /// total without hovering anything.
-    @State private var hovered: String?
-
-    /// Segment colors, indexed by `DailyTrendStack.colorIndices`. At least one per registered
-    /// provider, so no two of them share a color (a test pins this). A provider registered past
-    /// the palette wraps around; the legend and the tooltip still name it. Muted enough to sit next to
-    /// the accent-colored today bar of the single-provider row without competing with it.
-    static let providerPalette: [Color] = [
+/// Per-provider stacking of the daily bars (the Stats page), pure so the ordering and the height split can be
+/// checked headlessly. The split is where a view-local version goes quietly wrong: independently scaled segments do
+/// not sum to the bar, and the stacked bar then disagrees with the single-color bar's height for the same day.
+enum DailyTrendStack {
+    /// Segment colors, indexed by `colorIndices`. At least one per registered provider, so no two of them share a
+    /// color (a test pins this). A provider registered past the palette wraps around; the legend names it.
+    static let palette: [Color] = [
         Color(red: 0.85, green: 0.47, blue: 0.34),
         Color(red: 0.36, green: 0.62, blue: 0.95),
         Color(red: 0.45, green: 0.78, blue: 0.52),
@@ -1405,435 +1533,6 @@ struct MonthDailyTrend: View {
         Color(red: 0.40, green: 0.48, blue: 0.80),
     ]
 
-    var body: some View {
-        // 축은 시리즈 길이가 아니라 **달력의 이번 달**이다. 시리즈는 오늘에서 끝나므로 그 길이로
-        // 폭을 나누면 1일엔 막대 하나가 행 전체로 늘어나고, 첫 주 내내 막대 폭과 라벨 위치가 매일 바뀐다.
-        let columns = DailyTrendMetrics.monthColumns(series: series, today: today)
-        let peak = columns.map(\.tokens).max() ?? 0
-        if peak > 0 {
-            let stack = DailyTrendStack.ordered(providers)
-            let colors = DailyTrendStack.colorIndices(for: stack.map(\.id), registry: providerOrder,
-                                                      paletteCount: Self.providerPalette.count)
-            VStack(alignment: .leading, spacing: 6) {
-                captionRow(peak: peak, showsPeak: DailyTrendMetrics.showsPeak(columns))
-                VStack(spacing: 4) {
-                    barRow(columns, peak: peak, stack: stack, colors: colors)
-                        .background(gridLines)
-                        .overlay(alignment: .bottomLeading) { hoverTooltip(columns, stack: stack, colors: colors) }
-                        .zIndex(1)   // the tooltip rises over the caption and the rows above
-                    weekendTickRow(columns)
-                    axisRow(columns)
-                }
-                if DailyTrendStack.isStacked(stack) {
-                    legend(stack, colors: colors)
-                        .padding(.top, 2)
-                }
-            }
-        }
-    }
-
-    /// 캡션 + 오늘의 합산 리드아웃 + 최댓값. 리드아웃은 호버를 따라가지 않는다 — 다른 날은
-    /// 툴팁이 보여주고, 여기는 팝오버를 열자마자 오늘 합계(모든 프로바이더)가 보이는 자리다.
-    /// 최댓값을 남기는 이유: 막대 높이가 상대값이라 어딘가 한 곳은 절대 스케일을 적어야 한다.
-    /// 쓴 날이 하루뿐이면 최댓값이 리드아웃과 같은 숫자라 생략한다.
-    private func captionRow(peak: Int, showsPeak: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 5) {
-                SectionTitle(text: l.dailyTrend, systemImage: "chart.bar.fill")
-                Spacer()
-                if showsPeak {
-                    HStack(spacing: 3) {
-                        Text(l.peakDay).foregroundStyle(.secondary)
-                        Text(TokenFormatter.compact(peak)).fontWeight(.bold).monospacedDigit()
-                    }
-                    .font(.system(size: 10, design: .rounded))
-                    .padding(.horizontal, 7).padding(.vertical, 2)
-                    .background(Capsule().fill(Color.primary.opacity(0.07)))
-                }
-            }
-            // The same height with or without the peak pill: the chart must not jump on the 1st of the month.
-            .frame(height: 18)
-            HStack(spacing: 6) {
-                Circle().fill(accent).frame(width: 7, height: 7)
-                Text(Self.readout(series: series, today: today, showsCost: showsCost, l: l))
-                    .font(.system(.callout, design: .rounded).weight(.semibold))
-                    .monospacedDigit()
-            }
-        }
-    }
-
-    /// Faint dashed guides at the peak and at half of it, behind the bars.
-    private var gridLines: some View {
-        VStack(spacing: 0) {
-            dashedLine
-            Spacer(minLength: 0)
-            dashedLine
-            Spacer(minLength: 0)
-            Rectangle().fill(Color.primary.opacity(0.10)).frame(height: 1)
-        }
-        .frame(height: DailyTrendMetrics.track)
-        .allowsHitTesting(false)
-    }
-
-    private var dashedLine: some View {
-        Line().stroke(Color.primary.opacity(0.10), style: StrokeStyle(lineWidth: 1, dash: [2, 3]))
-            .frame(height: 1)
-    }
-
-    /// Today's "8/24 (Mon) 5.2M $3.10", summed across providers. Empty for a day outside the
-    /// series — in production the series always ends today, so the lookup cannot miss.
-    nonisolated static func readout(series: [DailyUsage], today: String, showsCost: Bool, l: L) -> String {
-        guard let day = series.first(where: { $0.date == today }) else { return "" }
-        let stamp = DailyTrendMetrics.dayStamp(day.date, language: l.lang)
-        let tokens = TokenFormatter.compact(day.totalTokens)
-        guard showsCost else { return "\(stamp) \(tokens)" }
-        return "\(stamp) \(tokens) \(day.usageCost.text(l))"
-    }
-
-    /// Swatch + name per provider, wrapping onto more lines rather than truncating — names are
-    /// what tells providers apart once colors repeat.
-    private func legend(_ stack: [DailyTrendStack.ProviderSeries], colors: [String: Int]) -> some View {
-        WrappingHStack(spacing: 6, lineSpacing: 4) {
-            ForEach(stack, id: \.id) { provider in
-                let color = color(for: provider.id, in: colors)
-                HStack(spacing: 4) {
-                    Circle().fill(color).frame(width: 7, height: 7)
-                    Text(provider.name).foregroundStyle(.secondary)
-                    Text(TokenFormatter.compact(provider.days.reduce(0) { $0 + $1.totalTokens }))
-                        .fontWeight(.semibold).monospacedDigit()
-                }
-                .font(.system(size: 10, design: .rounded))
-                .padding(.horizontal, 7).padding(.vertical, 3)
-                .background(Capsule().fill(color.opacity(0.14)))
-                .lineLimit(1)
-                .fixedSize()
-            }
-        }
-    }
-
-    private func swatch(_ providerID: String, _ colors: [String: Int]) -> some View {
-        Circle()
-            .fill(color(for: providerID, in: colors))
-            .frame(width: 6, height: 6)
-    }
-
-    /// The hovered day's date, total and (when stacked) per-provider split, floating just above
-    /// the bars and centered on the column, clamped to the row's edges.
-    @ViewBuilder
-    private func hoverTooltip(_ columns: [DailyTrendColumn], stack: [DailyTrendStack.ProviderSeries], colors: [String: Int]) -> some View {
-        if let hovered, let index = columns.firstIndex(where: { $0.date == hovered }),
-           let info = DailyTrendHover.info(day: hovered, series: series, stack: stack, showsCost: showsCost, l: l) {
-            GeometryReader { geometry in
-                let width = geometry.size.width
-                let column = (width + DailyTrendMetrics.spacing) / CGFloat(columns.count)
-                let center = column * (CGFloat(index) + 0.5)
-                tooltipCard(info, colors: colors)
-                    .fixedSize()
-                    .alignmentGuide(.leading) { d in -min(max(center - d.width / 2, 0), max(0, width - d.width)) }
-                    .alignmentGuide(.bottom) { d in d.height + geometry.size.height + 4 }
-                    .frame(width: width, height: geometry.size.height, alignment: .bottomLeading)
-            }
-            .allowsHitTesting(false)
-        }
-    }
-
-    private func tooltipCard(_ info: DailyTrendHover.Info, colors: [String: Int]) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 5) {
-                Text(info.stamp).fontWeight(.semibold)
-                Text(info.tokens)
-                if let cost = info.cost { Text(cost).foregroundStyle(.secondary) }
-            }
-            .font(.caption)
-            ForEach(info.providers, id: \.id) { row in
-                HStack(spacing: 4) {
-                    swatch(row.id, colors)
-                    Text(row.name).foregroundStyle(.secondary)
-                    Spacer(minLength: 8)
-                    Text(row.tokens)
-                    if let cost = row.cost { Text(cost).foregroundStyle(.secondary) }
-                }
-                .font(.caption2)
-            }
-        }
-        .monospacedDigit()
-        .lineLimit(1)
-        .padding(.horizontal, 9)
-        .padding(.vertical, 6)
-        .background(RoundedRectangle(cornerRadius: 9, style: .continuous)
-            .fill(Color(nsColor: .windowBackgroundColor)))
-        .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous)
-            .strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.5))
-        .shadow(color: .black.opacity(0.3), radius: 8, y: 3)
-    }
-
-    private func barRow(_ columns: [DailyTrendColumn], peak: Int, stack: [DailyTrendStack.ProviderSeries],
-                        colors: [String: Int]) -> some View {
-        HStack(alignment: .bottom, spacing: DailyTrendMetrics.spacing) {
-            ForEach(columns) { column in
-                if column.isFuture {
-                    // 아직 오지 않은 날 — 막대도 바닥 눈금도 주말 밑줄도 없이 자리만 지킨다. 0 과 달리
-                    // "안 쓴 날"이 아니라 "아직 없는 날"이라 호버 대상도 아니다. A faint dot shows the month's rest.
-                    Circle().fill(Color.primary.opacity(0.08)).frame(width: 3, height: 3)
-                        .frame(maxWidth: .infinity)
-                } else {
-                    let isToday = column.date == today
-                    // 사용 0 인 날은 바닥 눈금만 남으므로, 아주 조금 쓴 날과 높이로는 구분되지
-                    // 않는다 — 색을 한 단계 흐리게 해 "안 쓴 날"과 "조금 쓴 날"을 갈라준다.
-                    let isEmptyDay = column.tokens == 0
-                    let height = DailyTrendMetrics.barHeight(tokens: column.tokens, peak: peak)
-                    let segments = DailyTrendStack.isStacked(stack) && !isEmptyDay
-                        ? DailyTrendStack.segments(on: column.date, stack: stack, barHeight: height) : []
-                    Group {
-                        if isEmptyDay {
-                            Circle().fill(Color.secondary.opacity(0.3)).frame(width: 3, height: 3)
-                        } else if segments.isEmpty {
-                            let base = isToday ? accent : Color.primary.opacity(hovered == column.date ? 0.55 : 0.28)
-                            UnevenRoundedRectangle(topLeadingRadius: 3, topTrailingRadius: 3, style: .continuous)
-                                .fill(LinearGradient(colors: [base, base.opacity(isToday ? 0.55 : 0.6)],
-                                                     startPoint: .top, endPoint: .bottom))
-                                .frame(height: height)
-                                .shadow(color: isToday ? accent.opacity(0.5) : .clear, radius: 4)
-                        } else {
-                            stackedBar(segments, height: height, colors: colors,
-                                       highlighted: isToday || hovered == column.date)
-                        }
-                    }
-                        .frame(maxWidth: .infinity)
-                        .contentShape(Rectangle())   // 낮은 막대도 칼럼 전체가 호버 대상이 되게
-                        .onHover { inside in hovered = inside ? column.date : nil }
-                }
-            }
-        }
-        .frame(height: DailyTrendMetrics.track, alignment: .bottom)
-    }
-
-    /// One bar split into provider segments. `segments` runs bottom → top; a `VStack` lays out
-    /// top → bottom, hence the reversal. Days other than today/hovered are dimmed — in the stacked
-    /// row the accent color no longer marks today, so brightness does.
-    private func stackedBar(_ segments: [DailyTrendStack.Segment], height: CGFloat,
-                            colors: [String: Int], highlighted: Bool) -> some View {
-        VStack(spacing: 0) {
-            ForEach(segments.reversed(), id: \.providerID) { segment in
-                let color = color(for: segment.providerID, in: colors)
-                LinearGradient(colors: [color, color.opacity(0.75)], startPoint: .top, endPoint: .bottom)
-                    .opacity(highlighted ? 1 : 0.6)
-                    .frame(height: segment.height)
-            }
-        }
-        .frame(height: height)
-        .clipShape(UnevenRoundedRectangle(topLeadingRadius: 3, topTrailingRadius: 3, style: .continuous))
-    }
-
-    private func color(for providerID: String, in colors: [String: Int]) -> Color {
-        Self.providerPalette[(colors[providerID] ?? 0) % Self.providerPalette.count]
-    }
-
-    /// 주말 칼럼에 짧은 밑줄. **전체 높이 음영으로 하면 안 된다** — 다크 배경에서 그 음영이
-    /// 막대로 읽혀 주말이 큰 사용량인 것처럼 보인다(후보 B 를 렌더해서 확인하고 버렸다).
-    private func weekendTickRow(_ columns: [DailyTrendColumn]) -> some View {
-        HStack(spacing: DailyTrendMetrics.spacing) {
-            ForEach(columns) { column in
-                Capsule()
-                    .fill(DailyTrendMetrics.showsWeekendTick(column)
-                          ? Color.secondary.opacity(0.4) : Color.clear)
-                    .frame(width: 5, height: DailyTrendMetrics.tickHeight)
-                    .frame(maxWidth: .infinity)
-            }
-        }
-    }
-
-    /// 날짜 축. 막대 폭이 한 달 기준 약 9pt 라 두 자리 숫자가 다 안 들어가므로 **전부 붙이면
-    /// 서로 겹친다** — 1일·7일 간격·오늘에만 붙이고 나머지 칼럼은 빈 자리로 폭을 맞춘다
-    /// (빈 자리를 빼면 라벨이 막대와 어긋난다).
-    private func axisRow(_ columns: [DailyTrendColumn]) -> some View {
-        HStack(spacing: DailyTrendMetrics.spacing) {
-            ForEach(columns) { column in
-                Group {
-                    if let label = DailyTrendMetrics.axisLabel(for: column.date, today: today) {
-                        let isToday = column.date == today
-                        Text(label)
-                            .font(.system(size: 10, weight: isToday ? .bold : .medium, design: .rounded))
-                            .monospacedDigit()
-                            .foregroundStyle(isToday ? AnyShapeStyle(Color.white)
-                                             : column.isFuture ? AnyShapeStyle(.tertiary)
-                                             : AnyShapeStyle(.secondary))
-                            .padding(.horizontal, isToday ? 5 : 0).padding(.vertical, isToday ? 1 : 0)
-                            .background(Capsule().fill(isToday ? accent : .clear))
-                            .fixedSize(horizontal: true, vertical: false)
-                    } else {
-                        Color.clear.frame(height: 1)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-            }
-        }
-    }
-}
-
-/// 일별 추이 축의 한 칸. `isFuture` 는 이번 달 중 아직 오지 않은 날이다.
-struct DailyTrendColumn: Identifiable, Equatable {
-    let date: String
-    let tokens: Int
-    let isFuture: Bool
-    var id: String { date }
-}
-
-/// 추이 막대의 기하 — 뷰 밖의 순수 함수로 둔다. SwiftUI 안에 두면 헤드리스로 검증할 수 없고,
-/// 이 계산은 0 과 최댓값 경계에서 조용히 틀리기 쉽다(0 을 0pt 로 그리면 "그날이 없는" 것처럼 보인다).
-enum DailyTrendMetrics {
-    /// 막대 트랙 높이. The chart has its own card on Home: tall enough to compare days at a glance.
-    static let track: CGFloat = 64
-    static let spacing: CGFloat = 2.5
-    /// 사용 없는 날에 남기는 바닥 눈금. 0pt 로 그리면 그 날짜 칸이 사라진 것처럼 보이고, 축이
-    /// 밀리지 않았다는 사실(=0 을 명시적으로 채웠다)이 화면에서 안 읽힌다.
-    static let baseline: CGFloat = 1.5
-    /// 주말 표시 밑줄 두께.
-    static let tickHeight: CGFloat = 2
-
-    /// `tokens` 를 `peak` 대비 비율로 트랙 안에 눕힌다.
-    /// - `peak <= 0`: 스케일이 없다 → 전부 바닥 눈금 (호출부가 이미 게이트하지만 0 나눗셈은 막는다).
-    /// - `tokens <= 0`: 바닥 눈금.
-    /// - 그 외: 최소 `baseline` 을 보장해 아주 작은 날도 사라지지 않는다.
-    static func barHeight(tokens: Int, peak: Int) -> CGFloat {
-        guard peak > 0, tokens > 0 else { return baseline }
-        let ratio = min(1, Double(tokens) / Double(peak))
-        return max(baseline, CGFloat(ratio) * track)
-    }
-
-    /// 이번 달 전체(1일~말일)의 칼럼. 시리즈에 있는 날은 그 토큰을, 오늘까지인데 시리즈에 없는 날은
-    /// 0 을, 오늘 이후는 `isFuture` 로 채운다.
-    ///
-    /// 데이터 쪽(`monthDailySeries`)은 그대로 오늘에서 끝난다. 미래 날짜를 데이터에 넣으면 회고 원장
-    /// (`UsageLedger.merge`)이 "시리즈의 0 은 진짜 0"이라고 믿는 계약이 깨지므로, 채우기는 뷰 경계에서만 한다.
-    /// 다른 달의 날짜(자정을 넘긴 직후 아직 지난달 시리즈를 들고 있는 프로바이더)는 축에 들어오지 않는다.
-    /// `today` 를 해석할 수 없으면 시리즈를 그대로 칼럼으로 쓴다(테스트할 분기가 아니라 API 강제다).
-    static func monthColumns(series: [DailyUsage], today: String) -> [DailyTrendColumn] {
-        let month = String(today.prefix(7))   // "yyyy-MM"
-        guard let year = Int(today.prefix(4)), let monthNumber = Int(month.suffix(2)),
-              let todayOfMonth = Int(today.suffix(2)),
-              let length = daysInMonth(year: year, month: monthNumber)
-        else {
-            return series.map { DailyTrendColumn(date: $0.date, tokens: $0.totalTokens, isFuture: false) }
-        }
-        let tokensByDay = Dictionary(series.map { ($0.date, $0.totalTokens) }, uniquingKeysWith: +)
-        return (1...length).map { day in
-            let date = String(format: "%@-%02d", month, day)
-            return DailyTrendColumn(date: date, tokens: tokensByDay[date] ?? 0, isFuture: day > todayOfMonth)
-        }
-    }
-
-    /// 주말 밑줄은 지난날과 오늘에만 긋는다. 막대가 없는 미래 칸 아래에 밑줄만 남으면 의미 없는
-    /// 기호("__ __")로 읽힌다.
-    static func showsWeekendTick(_ column: DailyTrendColumn, calendar: Calendar = .current) -> Bool {
-        !column.isFuture && isWeekend(column.date, calendar: calendar)
-    }
-
-    /// 쓴 날이 둘 이상일 때만 캡션에 최댓값을 적는다. 하루뿐이면 리드아웃(오늘)과 같은 숫자다.
-    static func showsPeak(_ columns: [DailyTrendColumn]) -> Bool {
-        columns.filter { $0.tokens > 0 }.count > 1
-    }
-
-    /// 그레고리력 기준 그 달의 일수. 날짜 키가 `en_US_POSIX` 그레고리력이므로 같은 달력을 쓴다.
-    /// 시각을 다루지 않으므로 서머타임과 무관하게 UTC 로 계산한다.
-    private static func daysInMonth(year: Int, month: Int) -> Int? {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "UTC") ?? .current
-        guard let first = calendar.date(from: DateComponents(year: year, month: month, day: 1)),
-              let range = calendar.range(of: .day, in: .month, for: first) else { return nil }
-        return range.count
-    }
-
-    /// 축에 숫자를 붙일 날인가 — 1일, 7일 간격, 그리고 오늘.
-    ///
-    /// 오늘을 항상 붙이는 이유: 오늘 사용량이 적으면 막대가 바닥 눈금 한 줄이라 강조색만으로는
-    /// 위치를 못 찾는다(31일 렌더에서 실제로 안 보였다). 축의 숫자가 그때 유일한 단서다.
-    ///
-    /// **오늘 옆의 정기 라벨은 지운다.** 한 달이 다 찬 축은 칼럼이 약 9pt 인데 두 자리 숫자는
-    /// 약 11pt 라, 오늘이 7의 배수 바로 옆이면(22일·29일 등) `21 22` 가 간격 없이 붙어 한 숫자로
-    /// 읽힌다(8월 실데이터로 렌더해서 확인했다). 오늘은 절대 지우지 않으므로 라벨이 0개가 되는
-    /// 상태는 없고, 인접한 정기 라벨 하나를 잃는 대가는 없다 — 오늘 위치를 알면 그 옆도 안다.
-    static func axisLabel(for date: String, today: String, labelInterval: Int = 7,
-                          minimumSeparation: Int = 3) -> String?
-    {
-        // `Int(...)` 옵셔널 해제는 API 강제다 — 시리즈의 날짜는 항상 "yyyy-MM-dd" 라 실패하지
-        // 않는다(테스트할 분기가 아니다).
-        guard let dayOfMonth = Int(date.suffix(2)) else { return nil }
-        if date == today { return "\(dayOfMonth)" }
-
-        let isRegular = dayOfMonth == 1 || (labelInterval > 0 && dayOfMonth % labelInterval == 0)
-        guard isRegular else { return nil }
-        if let todayOfMonth = Int(today.suffix(2)),
-           abs(dayOfMonth - todayOfMonth) < minimumSeparation { return nil }
-        return "\(dayOfMonth)"
-    }
-
-    /// `calendar` 는 테스트 주입 구멍 — 주말이 어느 요일인지는 로케일이 정한다(금·토인 지역도
-    /// 있다). 프로덕션은 사용자 달력을 그대로 따라야 하므로 기본값을 쓴다.
-    static func isWeekend(_ date: String, calendar: Calendar = .current) -> Bool {
-        guard let parsed = LocalUsageReader.localDayFormatter().date(from: date) else { return false }
-        return calendar.isDateInWeekend(parsed)
-    }
-
-    /// 월·일 + 요일을 **그 언어가 쓰는 순서로** — ko "8. 24. (월)", en "Mon, 8/24", fr "lun. 24/08".
-    ///
-    /// 두 가지를 로케일 템플릿(`MdE`)에 맡긴다.
-    /// ① **요일 이름**: 6개 언어 × 7요일을 `Localization.swift` 에 손으로 적으면 OS 가 이미 가진 것을
-    ///    다시 적는 셈이다.
-    /// ② **월·일 순서**: `"\(month)/\(day)"` 로 조립하면 프랑스어·스페인어·포르투갈어에서도 미국식
-    ///    순서(8/24)가 강제된다 — 그 언어들은 24/08 이 맞다.
-    ///
-    /// 로케일은 반드시 `AppLanguage` 에서 온다. `DateFormatter` 를 기본값으로 만들면 시스템 로케일을
-    /// 따라, 앱 언어를 바꾼 사용자에게 한 화면 두 언어가 된다(defect-log §표시·UI 의 `.relative` 부류).
-    static func dayStamp(_ date: String, language: AppLanguage) -> String {
-        guard let parsed = LocalUsageReader.localDayFormatter().date(from: date) else { return "" }
-        let formatter = DateFormatter()
-        formatter.locale = language.displayLocale
-        formatter.setLocalizedDateFormatFromTemplate("MdE")
-        return formatter.string(from: parsed)
-    }
-}
-
-/// What the trend tooltip says for one day — pure, so the wording rules can be checked without hovering.
-enum DailyTrendHover {
-    struct Row: Equatable {
-        var id: String
-        var name: String
-        var tokens: String
-        var cost: String?
-    }
-
-    struct Info: Equatable {
-        var stamp: String
-        var tokens: String
-        var cost: String?
-        /// Per-provider split, in stack order; only when the bars stack, and only providers that used
-        /// something that day.
-        var providers: [Row]
-    }
-
-    /// Cost follows the totals' rule: shown only with `showsCost`, and per provider only for those that
-    /// bill (`reportsCost`). Nil for a day outside the series.
-    static func info(day: String, series: [DailyUsage], stack: [DailyTrendStack.ProviderSeries],
-                     showsCost: Bool, l: L) -> Info? {
-        guard let total = series.first(where: { $0.date == day }) else { return nil }
-        let rows: [Row] = DailyTrendStack.isStacked(stack) ? stack.compactMap { provider in
-            guard let usage = provider.days.first(where: { $0.date == day }), usage.totalTokens > 0 else { return nil }
-            return Row(id: provider.id, name: provider.name, tokens: TokenFormatter.compact(usage.totalTokens),
-                       cost: showsCost && provider.reportsCost ? usage.usageCost.text(l) : nil)
-        } : []
-        return Info(stamp: DailyTrendMetrics.dayStamp(day, language: l.lang),
-                    tokens: TokenFormatter.compact(total.totalTokens),
-                    cost: showsCost ? total.usageCost.text(l) : nil,
-                    providers: rows)
-    }
-}
-
-/// Per-provider stacking of the daily trend bars — pure, like `DailyTrendMetrics`, so the
-/// ordering and the height split can be checked headlessly. The split is where a view-local
-/// version goes quietly wrong: independently scaled segments do not sum to the bar, and the
-/// stacked bar then disagrees with the single-color bar's height for the same day.
-enum DailyTrendStack {
     struct ProviderSeries {
         var id: String
         var name: String
@@ -2006,14 +1705,6 @@ struct CapsuleTabBar: View {
         }
         // 탭이 적으면(대부분의 사용자) 스크롤·바운스가 생기지 않아 기존과 동일하게 보인다.
         .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
-    }
-}
-
-private extension View {
-    /// 문구가 있을 때만 툴팁을 단다 — `.hoverTip("")` 는 빈 툴팁 상자를 띄운다.
-    @ViewBuilder
-    func helpIfPresent(_ text: String?) -> some View {
-        if let text { hoverTip(text) } else { self }
     }
 }
 

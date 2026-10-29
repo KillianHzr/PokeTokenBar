@@ -525,6 +525,36 @@ final class SessionKeyLimitsTests: XCTestCase {
         XCTAssertEqual(limits.fiveHour?.utilization, 7, "세션 키 결과가 우선이어야 한다")
     }
 
+    /// [Regression] A session key answering 429 waits before it is asked again: the OAuth answering, the 429 was
+    /// swallowed and the key asked at every poll, which kept it rate limited.
+    func testChainLetsARateLimitedSessionKeyWait() async throws {
+        let primary = RateLimitedPrimary()
+        let chain = ChainedLimitsProvider(primary: primary, fallback: StubOAuthLimits(status: limitStatus(fiveHour: 42)))
+        for _ in 0..<3 {
+            let limits = try await chain.fetch(allowKeychainPrompt: false)
+            XCTAssertEqual(limits.fiveHour?.utilization, 42, "the fallback answers")
+        }
+        XCTAssertEqual(primary.calls, 1, "the key is asked once, then waits")
+        XCTAssertTrue(chain.primaryBackoff.isWaiting())
+        XCTAssertFalse(chain.primaryBackoff.isWaiting(now: Date().addingTimeInterval(301)), "five minutes, then again")
+    }
+
+    /// [Regression] The wait was the key's, not the next one's: a key saved during it was skipped for up to an hour,
+    /// and with the key cleared the wait read as a key there, so the manual refresh could not open the Keychain.
+    func testAChangedSessionKeyDoesNotWait() async throws {
+        let primary = SwitchablePrimary()
+        let fallback = RecordingOAuthLimits(status: limitStatus(fiveHour: 42))
+        let chain = ChainedLimitsProvider(primary: primary, fallback: fallback)
+        _ = try await chain.fetch(allowKeychainPrompt: false)
+        XCTAssertTrue(chain.primaryBackoff.isWaiting())
+
+        primary.cleared = true
+        chain.sessionKeyChanged()
+        _ = try await chain.fetch(allowKeychainPrompt: true)
+        XCTAssertEqual(primary.calls, 2, "asked again at once")
+        XCTAssertEqual(fallback.seenAllowPrompt.last, true, "no key: the manual refresh opens the Keychain as before")
+    }
+
     func testChainFallsBackToOAuthWhenNoSessionKeyStored() async throws {
         let http = StubSessionKeyHTTP([:])
         let chain = ChainedLimitsProvider(
@@ -639,5 +669,28 @@ final class SessionKeyStoreLocationTests: XCTestCase {
         XCTAssertEqual(SessionKeyStore().fileURL.lastPathComponent, "session-key.json")
         XCTAssertTrue(SessionKeyStore().fileURL.path.contains("Application Support"),
                       "공백 값은 무시하고 기본 위치를 쓴다")
+    }
+}
+
+/// A session key that answers 429, counting its calls.
+/// A key answering 429, then none once `cleared`.
+private final class SwitchablePrimary: ClaudeLimitsProviding, @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+    var cleared = false
+    var calls: Int { lock.withLock { count } }
+    func fetch(allowKeychainPrompt: Bool) async throws -> LimitStatus {
+        lock.withLock { count += 1 }
+        throw cleared ? LimitsError.sessionKeyMissing : LimitsError.rateLimited(retryAfter: nil)
+    }
+}
+
+private final class RateLimitedPrimary: ClaudeLimitsProviding, @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+    var calls: Int { lock.withLock { count } }
+    func fetch(allowKeychainPrompt: Bool) async throws -> LimitStatus {
+        lock.withLock { count += 1 }
+        throw LimitsError.rateLimited(retryAfter: nil)
     }
 }

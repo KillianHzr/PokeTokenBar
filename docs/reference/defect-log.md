@@ -655,6 +655,71 @@ read_when:
   to the west after midnight included, so that day counted twice. A day earlier than the last one now credits nothing
   (`testADateThatGoesBackCreditsNothing`).
 
+- **A value that drifts must be compared with its last reading, not its first.** A window's epoch was replaced only on
+  a reset, so each poll was compared with the first one seen: a reset time sliding a minute per poll (Antigravity's)
+  passed for a reset 30 minutes after the window's end and paid it again. A same-window epoch that moved a minute or
+  more is now followed; under a minute (Claude's fractional seconds, Codex's 1 s) nothing changes to save:
+  `testResetTimeSlidingPastItsEndIsNotAReset`, `testJitterUnderAMinuteKeepsTheStoredEpoch`.
+
+- **A dip and its recovery are one reading.** A provider's day total that went down rebased its ledger line on the
+  lower value, then credited the way back up again: Cursor falls back from its API to a lower local estimate and back.
+  The ledger keeps the day's high per provider and credits what goes past it:
+  `testDipBelowTheDaysHighIsCreditedOnce`, `testDipOfOneProviderKeepsCreditingTheOthers`. The test that guarded the
+  rebase (`testUsageIncreaseAfterValidDropContinuesEggProgress`) asserted the double credit as correct.
+
+- **"Unknown" read as a value resets what is known.** `planMultiplier` is 1 when the plan is unknown (the session key
+  answers without it); a poll at 1 between two at 5 re-seeded the window twice and lost what it owed in between. A plan
+  of 1 inside the same window as a bigger known one keeps the known plan
+  (`testAPlanReadAsOneForAPollLosesNothing`). The reverse case: the plan-change and first-seen seeding ignored the
+  stored epoch, so an old save opened after a reset kept last week's count; a window whose stored one ended starts
+  from nothing whatever its plan (`testANewWindowAtAnotherPlanDoesNotKeepTheEndedOnesCount`).
+
+- **A rearm needs a real drop.** A window without an epoch rearmed when it owed nothing, which a Pro session does at
+  99.6%: hovering at its limit, it paid its candy at each return. It now rearms under half full
+  (`testEpochlessWindowHoveringAtItsLimitPaysOnce`).
+
+- **A key read from a name test is shared by every name that fails it.** Antigravity's candy key was "gemini" or else
+  "3p", so two non-Gemini groups shared one ledger. The key comes from the buckets' ids ("gemini-5h", "3p-weekly"),
+  which gives the same keys for the groups known so far: `testEachAntigravityGroupHasItsOwnCandyKey`.
+
+- **A worse reading must not erase a better one.** The cost ledger dropped a priced day as soon as a read had an
+  unpriced part, even with no more tokens (a price list not loaded yet, one provider failing). It keeps the tokens each
+  day was priced at; only more tokens with an unpriced part drop it: `testAWorseReadOfAPricedDayKeepsItsCost`.
+
+- **Day keys are Gregorian, so months and years must be too.** `startOfMonth`, `startOfWeek`, the month axis and the
+  event and birthday eggs used `Calendar.current`; with a Persian, Hebrew or Islamic system calendar the month started
+  on another day than the "yyyy-MM" key and the event eggs fell on dates of that calendar. They use
+  `LocalUsageReader.gregorianCalendar()`; `testOnlyDayLevelCodeReadsTheSystemCalendar` allows `Calendar.current` only
+  for what is the same in every calendar (start of day, today, first weekday, weekday).
+
+- **"Had" is per form for a species with forms.** `isEvolutionCollected` checked the species only, and
+  `collectedFinals` keeps no form: a Kanto Slowbro made a Galarian Slowpoke's Slowbro had, so Home showed Galarian
+  Slowbro caught and the plan could make it again while Galarian Slowking was missing. It now takes the individual's
+  form and compares the species' own form (`testABranchIsHadInTheIndividualsFormOnly`). Same class as the Rotom
+  Catalog's form rule and the Galarian Corsola below.
+
+- **A species' usual type is not the type of every form it graduated in.** The digs counted a species as Rock if its
+  usual form was, so a Galarian Corsola (Ghost) counted. A species with forms counts by the forms it graduated in
+  (`testAFormThatIsNotRockDoesNotCount`).
+
+- **A fallback must keep the rule of the path it replaces.** The Birthday Egg's REST fallback (base index down) took
+  any legendary it met, one graduated while a mythical was missing, and never the shiny promised once all graduated.
+  It reads the mythical then legendary lists (`SpeciesGoal.legendaries`, from the index of 2026-10-29) and keeps the
+  shiny: `testWithoutTheIndexTheEggKeepsItsRule`.
+
+- **A number range is not a region's lines.** Pokémon Day's egg took number 151 or lower, which left out every Kanto
+  Pokémon whose line starts with a later baby (Pikachu, Snorlax, the Hitmons...): `EventEgg.kantoBabyLines`,
+  `testPokemonDaysEggAdmitsKantoLinesFromALaterBaby`.
+
+- **A particle after an identifier follows its reading.** The skipped-update line fixed 을 after any commit id
+  ("abc1234을"). An id or a version is read character by character, so its last one decides
+  (`testAnIdentifierEndsAsItIsRead`); other Latin words keep the paired form.
+
+- **A line can branch: count one branch, not all of them.** `activeGoals` counted every species still ahead
+  (`activeNews.newSpecies`, every branch): an Eevee showed "+4" for Kanto's Legendary Egg, where graduating it adds 2.
+  **Why missed:** the test's Larvitar line has no branch. A goal counts the branch that advances it most
+  (`testABranchedLineCountsOneBranch`).
+
 ## 외부 로그·사용량 소스
 
 - **토큰 파일 파서는 외부 도구의 실제 직렬화 구조체(중첩 객체)를 반영해야 한다.** `jetski-standalone-oauth-token`
@@ -1005,6 +1070,25 @@ read_when:
   cached organization (an hour after a failure); `SessionKeyLimitsTests` (`testTheCachedOrganizationsPlanComesFromItsRowOnceADay`,
   `testAFailedPlanReadKeepsTheUsageAndWaitsAnHour`, `testTheDiscoveredOrganizationCarriesItsPlan`).
 
+- **Decode an external answer part by part.** The Codex limits decoded as a whole: one field Codex dropped or reshaped
+  failed the response, which froze every Codex bar at its last value and stopped the Codex candies. Each snapshot
+  field decodes on its own (`try?`), a window needs only its percentage, a bad bucket of the map is left out:
+  `testCodexRateLimitStatusDecodesEachPartOnItsOwn`. Same rule as the Antigravity buckets (`LossyBucket`).
+
+- **A failed read must not be cached under the file's current signature.** `parseCodexRollout` returned an empty
+  rollout when the file could not be read, and the cache stored it under the file's mtime and size: its tokens stayed
+  out until the file changed. `readCodexRollout` returns nil, the previous blob stands in under its old signature
+  (`testCodexReadFailureIsNotCachedAsEmpty`), as `LocalAntigravityUsageReader` already did.
+
+- **A watermark on a creation date misses what is filled later.** OpenCode rescanned from a second before the newest
+  message cached; a message is dated when created and filled when it ends, so with two sessions at once the one still
+  running was never read again. The rescan reads an hour before the newest message
+  (`testOpenCodeRescanReadsAMessageFilledAfterANewerOne`).
+
+- **Check that the trigger exists before adding the guard.** The audit flagged Claude lines without `message.id` and
+  `requestId` folding into one "|" entry. On 2026-10-29, 104,402 assistant lines with usage in the owner's logs had
+  none without both ids, so no guard was added.
+
 ## 빌드·도구체인
 
 - **새 SDK에서 통과해도 CI의 AppKit Sendable 선언을 가정하지 마라.** 동시 캐시 로드 테스트가
@@ -1039,6 +1123,13 @@ read_when:
   "sending value of non-Sendable type 'XCTestCase'"), as `DexBackNavigationTests` does, or keep the sync ones to
   `nonisolated(unsafe)` fixtures as `RareCandyTests` and `WindowCandyTests` do. The first fix called `super` and
   failed CI a second time. The sweep found no other sync `tearDown` touching main-actor state.
+
+- **The local toolchain is not CI's: CI's Xcode 16.4 is the floor.** The SIGTERM handler called
+  `NSApplication.shared.terminate` from a Dispatch handler: Swift 6.2 with the macOS 26 SDK let it through, CI's Xcode
+  16.4 (macOS 15 SDK, whose handler is not isolated) refused it, and PR #97 went red. **Why missed:** PRs into
+  `release` get no CI, and the local suite runs on the newer compiler only. A callback of Dispatch, AppKit or
+  NotificationCenter that touches the main actor says so (`MainActor.assumeIsolated` on a main-queue handler); the
+  `release → main` PR's CI is the first build on the floor toolchain, so its result is read before anything else.
 
 ## 자격증명·Keychain
 
@@ -1144,6 +1235,12 @@ read_when:
   진짜 계정을 먼저 찌르면, 첫 조회에서 바로 유효 토큰(`claudeAiOauth`)을 찾아 루프를 끝내므로 2회차 암호 창이 원천 소멸한다.
   가드: `testPrioritizedAccountNamesPlacesCurrentUserNameFirstAndUnknownLast`·`testPrioritizedAccountNamesFullHierarchy`.
 
+- **A wait tied to an input ends when the input changes.** The session key's wait after a 429 outlived the key: a
+  key saved during it was skipped for up to an hour, and with the key cleared the wait read as a key there, so the
+  manual refresh could not open the Keychain. **Why missed:** the test covered the wait, not a key changed during it.
+  Saving, clearing or moving the key to another organization ends it (`sessionKeyChanged`,
+  `testAChangedSessionKeyDoesNotWait`).
+
 ## 동시성
 
 - **비동기 완료가 "그 사이 교체된 대상"에 착지하지 않게 하라 — 상태를 통째로 바꾸는 경로를 새로 만들면
@@ -1159,6 +1256,24 @@ read_when:
   (출발할 때 봐야 할 시계를 도착해서 보는 격). 가드를 넣을 땐 그 함수 위의 await 까지 거슬러 확인하고,
   회귀 테스트도 **그 await 를 실제로 지나는 진입점**으로 써라 — `hatch(baseID:)` 경로 테스트는
   `chooseBase()` 를 안 지나 통과하면서 아무것도 지키지 않았다(`testImportDuringSpeciesRollDiscardsTheHatch`).
+
+- **An answer that arrives late must not overwrite a newer one.** An automatic poll waiting on the network, then a
+  manual refresh after `/login` to another account: the poll answered last and wrote the previous account's limits
+  over the new ones. Each Claude limits read takes a number before it waits and writes only if no newer read was
+  applied: `testAnOlderPollDoesNotOverwriteANewerRead`.
+
+- **In a read numbering, decide which failures lead.** A poll's failure took the newest number as an answer does: a
+  poll that failed while the manual refresh waited on its Keychain prompt made the approved answer "older" and threw
+  it away. **Why missed:** the test had an older read answering late, never a newer one failing early. A poll's
+  failure no longer leads; a manual read's still does, or an older poll landing after it showed the previous account
+  and wiped the error just asked for (`testAPollThatFailsDoesNotThrowAwayTheManualRead`,
+  `testAnOlderPollDoesNotOverwriteAManualFailure`).
+
+- **Never read `state` on the right of a write into it through an optional chain.** `state.active?.usedAtStage =
+  min(..., stageThreshold(for: mon))` begins the write before the right side runs, and `stageThreshold` reads
+  `state`: a "Fatal access conflict" trap at the first Old Amber hatch, caught by its test before any commit. The value
+  is computed into a local first. **Sweep:** no other optional-chained write of `CompanionStore` reads `state` on its
+  right (`grep -nE 'state\.active\?\.[A-Za-z]+ (=|\+=) '`).
 
 ## 프로세스·인스턴스
 
@@ -1617,6 +1732,38 @@ read_when:
   now skipped when the state equals the one last written (`testARefreshThatChangesNothingWritesNothing`) and
   snapshot summaries are kept by file path, date and size (`testSnapshotSummariesFollowTheirFile`).
 
+- **State a view reads for one detail must live in that detail.** The Stats page held the hovered bar, so each bar
+  entered recomputed its whole report; the hover lives in `StatsChart` now (`testStatsHoverLivesInTheChart`).
+  Same class: a form species' page folded and sorted the Pokédex some 25 times per draw (`collectedDexSpecies` is
+  cached until `state` or `currentLine` changes, reading them even from the cache so views keep observing them:
+  `testThePokedexFoldIsKeptUntilTheStateChanges`); each catch-log row recomputed the whole duplicate set
+  (`testCatchLogRowsDoNotRecomputeTheDuplicates`); the Achievements tab counted every section some 17 times
+  (`achievementTallies`).
+
+- **An equal write is still a write for Observation.** `CompanionState` is observed whole; the day's ledger, the
+  candy ledgers and the display state were assigned at each refresh, equal or not, and redrew every screen open. They
+  are written on change only (`testARefreshWithNothingNewTouchesNoObservedState`), and the name fill saves once
+  (`testTheNameFillSavesOnce`). The floating pet sets its frame only when it moves.
+
+- **A cache keyed by an object retains the object.** `SpriteFit.bottomMargins` was an unbounded `NSCache` keyed by
+  image: measuring the margin of every GIF frame at each frame shown kept every decoded frame alive. The margin is
+  measured once per animation and the cache is bounded; the image and animation caches are bounded by pixels, sized
+  to the grid. `cropToContent` reads one bitmap buffer instead of an `NSColor` per pixel.
+
+- **A prefetch over everything is a download of everything.** The Pokédex grid prefetched every page's stills, and
+  each still comes from a GIF: on an empty cache the first opening downloaded the whole Pokédex. Only the neighboring
+  pages are prefetched (`testPrefetchStartsNextToThePageShown`).
+
+- **A position kept by index points elsewhere once the list changes.** The news strip kept `newsIndex` when an egg
+  was claimed: the next egg moved to that place and the note saying where the claimed one went hid behind the arrows.
+  Jumping to the note's index was not enough: opening the Bag then saw the treasures and removed their page, one
+  place before. The strip keeps the page itself (`newsSelection`), the claims select their note (UI closure, no unit
+  test).
+
+- **A button added to a full row takes its room from the row's text.** The events calendar's button made six icons
+  in the footer, which left the refresh time some 70 points: "Mis à jour 3 s" broke in two, seen on the PR's renders.
+  The icons sit 6 points apart and the time keeps one line (French, German and Russian rendered).
+
 ## 에너지 (상시 표시 애니메이션)
 
 - **절전용 정지 상태는 짝 알림 하나에만 복구를 맡기지 마라.** `screensDidSleep` 이 폴링 타이머를 끄고
@@ -1714,6 +1861,25 @@ read_when:
   캡을 반드시 **이름 있는 값**으로 두고 `>0` 를 단정한다. occlusion 게이팅은
   all-spaces/`.floating` 펫이 실제로 거의 안 가려져 메뉴바와 동일 수확체감으로 미도입. (#102 리뷰 지적 반영, 2026-07-22.)
 
+- **A stopped poll stops what it pays too.** With the screens asleep the polls stop, so a limit window filled and reset
+  in the night (an agent left running) never paid its candies. The sleep probe reads the limits alone every half hour
+  and pays them (`testSleepProbeReadsTheLimitsAloneEveryHalfHour`); a full refresh no longer runs while the screens
+  sleep (a day change, a network back), they refresh on wake (`testRefreshWhileDisplaysAsleepKeepsPollingSuspended`).
+
+- **A process launched at every poll must be needed at every poll.** `codex app-server` was launched each refresh for
+  anyone with the binary, the CLI ChatGPT.app bundles included. Without Codex usage this month and with its limits at
+  0%, it is read every 30 minutes; limits that move (cloud use) read it at each poll again
+  (`testIdleCodexLimitsAreNotReadAtEveryPoll`).
+
+- **A fallback that answers must not hide the primary's 429.** With the OAuth answering, a session key's 429 was
+  swallowed and the key asked again at every poll, which kept it rate limited. The chain lets the key wait
+  (its `retryAfter`, else the limits backoff) while the fallback answers: `testChainLetsARateLimitedSessionKeyWait`.
+
+- **A whole-view timeline for one moving part redraws the whole view.** The legendary card ran a 30 fps
+  `TimelineView` for its rays and stars, and its badge one for a shine that rests half the time. The rays turn by a
+  repeating animation, the stars keep 10 fps, and the badge's `ShineSchedule` gives no frame at rest
+  (`testTheLegendaryShineRestsBetweenSweeps`, `testTheLegendaryCardHasNoFullFrameRateTimeline`).
+
 ## 알림
 
 - **사탕 재무장도 util dip 만 믿지 마라 — 창 epoch 를 같이 보되, 휘발성 지터에 재무장되지 않게 하라.** 지급 key 는 안정
@@ -1782,6 +1948,56 @@ read_when:
   **스윕:** `CompanionStore` 의 나머지(`claimedTodayTokensByProvider` 키)는 딕셔너리 키라 유일하다. 세이브
   밖의 사용처(로그 스캔·PokéAPI 스탯)는 이 입력 경로가 아니라 범위 밖.
 
+- **A lenient decoder must never be the fallback of a strict one.** A snapshot the envelope decoder refused (over
+  8 MB, a later schema) was then decoded as a bare `CompanionState`, which the lenient decoding accepted as an empty
+  game, restored as such, and used by the recovery of a broken save. An envelope is told apart by its `format` key
+  and only ever read as one; the app's own snapshots have no size limit and are written compact; the recovery takes
+  the newest snapshot that reads (`testASnapshotThisBuildCannotReadIsNeverAnEmptyGame`,
+  `testALargeSnapshotStillRestoresAndIsCompact`).
+
+- **A file there but unreadable is not a new install.** `load()` treated any read failure as no file, started a fresh
+  game and wrote it over the save (permissions, a disk error). It locks the writes and says so
+  (`testAnUnreadableSaveIsNotWrittenOver`).
+
+- **A save must know who wrote it.** An older build dropped the fields it did not know and wrote the rest. The save
+  keeps its writer (commit and date, `CompanionState.writer`); a build older than it writes nothing and says so
+  (`testASaveFromALaterBuildIsNotWrittenOver`). What the lenient decoding left out is recorded (`LenientDecoding`) and
+  the file kept beside the save before the first write; a nature this build cannot read no longer drops the Pokémon
+  raised (`testAFieldLeftOutKeepsTheOriginalAndTheActivePokemon`).
+
+- **The newest of a set is not the newest in the past.** A snapshot dated in the future (the clock set ahead to try
+  an event) held the automatic snapshots back until that date: the interval counts from the newest one not after
+  now (`testAFutureSnapshotDoesNotHoldTheAutomaticOnesBack`).
+
+- **An undo must be in the format the restore reads.** The import's copy of the replaced state was a bare state, which
+  the import refuses: the promised undo did not exist. An import keeps it as a snapshot, which Settings restores
+  (`testAnImportKeepsTheReplacedStateAsASnapshot`).
+
+- **A lock covers every write, not only the save file.** Under `saveLock` the state is a fresh or a lossy one: the
+  automatic snapshot after each refresh still wrote it every 12 hours and pushed the real snapshots out of the ten
+  kept, and a restore took its safety snapshot before the lock refused it. **Why missed:** the lock tests compared the
+  save's bytes and `savesWritten`; the snapshots are another file, written by another call after `save()`. When a
+  guard protects data, list every path that writes it. `createManualSnapshot`, `restoreSnapshot` and `applySave`
+  throw `.saveLocked` (`testALockedSaveWritesNoSnapshot`).
+
+- **Order builds by an instant, never by a local date string.** `SaveWriter.isNewer` compared the commit dates
+  `build-app.sh` printed in each committer's zone: a commit made in Seoul at 09:00 read as later than one made after
+  it in Paris at 08:30, and locked the later build's save. **Why missed:** the test writers' dates came from one zone.
+  The build stamps `PTBCommitTime` (`%ct`) and builds are ordered by it only; a save without it is written as before
+  (`testBuildsAreOrderedByTimeNotByTheirLocalDates`).
+
+- **Changing the unit of a stored value needs its migration.** The events and the birthday moved to the Gregorian
+  calendar, but the years saves kept were the system calendar's: a Buddhist 2569 held the birthday gift back 543
+  years, a Japanese 8 let it and the season's eggs come twice. **Why missed:** the switch's tests computed new dates;
+  none loaded a save kept before it. The load converts a year no Gregorian year of the app can be: none before 2026,
+  when the gift and the events came (an Ethiopic 2019 sat inside a looser 2000 bound), and the range is never empty
+  when the clock is set back (`CompanionState.convertCalendarYears`, `testYearsKeptInAnotherCalendarAreConvertedAtLoad`).
+
+- **A count that is added to is bounded at load.** `sanitized` clamped the token values but no item count: one near
+  Int.max (a hand-edited save, an import) trapped at its next add, the Explorer Kit's treasure among them, at every
+  launch. Item and treasure counts are capped at `SaveTransfer.maxItemCount`, far above any real one, no item dropped
+  (`testAHandEditedCountNoLongerTraps`).
+
 ## 렌더 기하 (스프라이트·이미지)
 
 - **`.resizable()` + `.frame(w:h:)` 는 "맞춤"이 아니라 "늘여 채움"이다.** 대조 없이 정사각 프레임에 넣으면
@@ -1830,6 +2046,22 @@ read_when:
   the box, not counts. The other render tests' absolute thresholds (`DrawnEggTests`' "an egg is drawn") hold at 1×.
 
 ## 프로세스 제어·업데이트
+
+- **Offer what passed, build what was offered.** The updater offered `main`'s head whatever its CI, and the script
+  built `main` as it was when it ran, so a commit pushed meanwhile could be installed. It offers the newest commit
+  whose check runs all passed (`firstGreen`, `testOnlyAGreenCommitIsOffered`), passes that commit to the script, which
+  resets to it, says success only once the app reopened, and the app gives up an update that never reports after 20
+  minutes (`testTheScriptBuildsTheOfferedCommitAndReportsTheReopen`). A failed check waits ten minutes, not the next
+  popover opening (`testFailedCheckWaitsTenMinutesNotThirty`): GitHub allows 60 calls an hour unauthenticated. The
+  local patch was applied by the script and again by `build-app.sh`; only the latter does now.
+
+- **SIGTERM is a request to quit.** `build-app.sh` stopped the app with `pkill`, which left the crash marker, so every
+  update read as a crash at the next launch and buried the real ones. The app quits through `terminate` on SIGTERM;
+  `build-app.sh` waits ten seconds before SIGKILL.
+
+- **A copied script must not release someone else's project.** `release.sh` targets the upstream repository, cask and
+  `git push origin`; in PokeTokenLBI, which ships by its in-app update, it only runs `--check-only` unless
+  `PTB_UPSTREAM_RELEASE=1`.
 
 - **Never quit or delete the working app before the new one is in place.** `build-app.sh` quit the app, deleted it,
   then copied the new bundle: a failed copy left no app and no message, and `updateError` was set but never shown. The
@@ -1942,3 +2174,10 @@ read_when:
   On the same CI image, English-only recognition corrected the period label but still read
   the unrelated chart caption `Daily` as `Dally`; do not teach OCR that misspelling or relax
   the original chart guard to make a period-row regression pass.
+
+- **"Different from main", or "newer", is not "after this build".** A build of `release`, whose commit `main` does not
+  hold, was offered `main`'s head: older, it found the save written by a later build and locked it; newer but on
+  another line (#94 merged into `main` alone), its build knew nothing of `release`'s save and wrote over it. **Why
+  missed:** the tests had the installed commit on `main`, and the first fix compared times, which cannot see a
+  diverged line (found by the second review). Only a commit GitHub's `compare/{installed}...{candidate}` calls
+  "ahead" is offered (`UpdateChecker.offered`, `testOnlyACommitTheInstalledOneLeadsToIsOffered`).
