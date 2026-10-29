@@ -268,12 +268,26 @@ enum SpriteLoader {
     }()
 
     /// 동기 시드와 async 로드가 NSImage 를 공유해 파일 읽기와 이미지 객체 생성을 반복하지 않는다.
-    /// 키는 디렉터리를 포함한 파일 경로다. countLimit 은 퇴출 기준이며 엄격한 메모리 상한은 아니다.
+    /// 키는 디렉터리를 포함한 파일 경로다. Sized to the whole Pokédex grid, by its pixels: 64 images, fewer than the
+    /// grid's cells, sent each page turned back to the disk, on the main thread.
     static let imageCache: NSCache<NSString, NSImage> = {
         let cache = NSCache<NSString, NSImage>()
-        cache.countLimit = 64
+        cache.countLimit = 1_200
+        cache.totalCostLimit = 64 << 20
         return cache
     }()
+
+    /// What an image holds in memory once drawn, for the caches' cost.
+    static func pixelBytes(_ image: NSImage) -> Int {
+        let rep = image.representations.first
+        let width = rep.map { $0.pixelsWide > 0 ? $0.pixelsWide : Int($0.size.width) } ?? Int(image.size.width)
+        let height = rep.map { $0.pixelsHigh > 0 ? $0.pixelsHigh : Int($0.size.height) } ?? Int(image.size.height)
+        return max(1, width * height * 4)
+    }
+
+    static func remember(_ image: NSImage, forKey key: NSString) {
+        imageCache.setObject(image, forKey: key, cost: pixelBytes(image))
+    }
 
     /// 메모리·디스크 캐시에 이미 있으면 동기 반환(네트워크 없음). 없으면 nil.
     /// shiny 캐시 미스는 일반 캐시로 폴백 — 오프라인에서 live mon 이 알 글리프로 보이는 것 방지.
@@ -285,7 +299,7 @@ enum SpriteLoader {
         let imageKey = f.path as NSString
         if let img = imageCache.object(forKey: imageKey) { return img }
         if let d = try? Data(contentsOf: f), let img = NSImage(data: d) {
-            imageCache.setObject(img, forKey: imageKey)
+            remember(img, forKey: imageKey)
             return img
         }
         guard shiny else { return nil }
@@ -298,10 +312,12 @@ enum SpriteLoader {
         let frames: [(image: NSImage, delay: TimeInterval)]
         init(_ frames: [(image: NSImage, delay: TimeInterval)]) { self.frames = frames }
     }
-    // Decoded animations are larger than PNGs; keep recent detail visits without retaining the dex.
+    // Decoded animations are larger than PNGs; keep recent detail visits without retaining the dex. Bounded by their
+    // pixels too: sixteen long GIFs were not sixteen short ones.
     private static let animationCache: NSCache<NSString, AnimationFrames> = {
         let cache = NSCache<NSString, AnimationFrames>()
         cache.countLimit = 16
+        cache.totalCostLimit = 96 << 20
         return cache
     }()
 
@@ -317,7 +333,10 @@ enum SpriteLoader {
 
     private static func rememberFrames(_ data: Data, file: URL) -> [(image: NSImage, delay: TimeInterval)] {
         let frames = GIFDecoder.frames(from: data)
-        if !frames.isEmpty { animationCache.setObject(AnimationFrames(frames), forKey: file.path as NSString) }
+        if !frames.isEmpty {
+            animationCache.setObject(AnimationFrames(frames), forKey: file.path as NSString,
+                                     cost: frames.reduce(0) { $0 + pixelBytes($1.image) })
+        }
         return frames
     }
 
@@ -407,7 +426,7 @@ enum SpriteLoader {
             // await 중 같은 종의 다른 행이 로드를 끝냈으면 그 객체를 재사용한다.
             if let img = imageCache.object(forKey: imageKey) { return img }
             guard let img = NSImage(data: d) else { continue }
-            imageCache.setObject(img, forKey: imageKey)
+            remember(img, forKey: imageKey)
             return img
         }
         // shiny 미제공 → 일반 폴백
@@ -421,7 +440,7 @@ enum SpriteLoader {
         let imageKey = f.path as NSString
         if let img = imageCache.object(forKey: imageKey) { return img }
         if let d = try? Data(contentsOf: f), let img = NSImage(data: d) {
-            imageCache.setObject(img, forKey: imageKey)
+            remember(img, forKey: imageKey)
             return img
         }
         return nil
@@ -434,17 +453,30 @@ enum SpriteLoader {
         guard let d = await store.data(itemName: name) else { return nil }
         if let img = imageCache.object(forKey: imageKey) { return img }
         guard let img = NSImage(data: d) else { return nil }
-        imageCache.setObject(img, forKey: imageKey)
+        remember(img, forKey: imageKey)
         return img
     }
 
-    /// 비투명(alpha>0) 콘텐츠 경계로 크롭 — 큰 투명 여백 제거. 96×96 1회만 수행(메모이즈).
-    private static func cropToContent(_ image: NSImage) -> NSImage {
-        guard let tiff = image.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff) else { return image }
-        let w = rep.pixelsWide, h = rep.pixelsHigh
+    /// 비투명(alpha>0) 콘텐츠 경계로 크롭 — 큰 투명 여백 제거. 1회만 수행(메모이즈). The alpha is read from one bitmap
+    /// buffer: `colorAt` made an NSColor per pixel, on the main thread, for every placeholder.
+    static func cropToContent(_ image: NSImage) -> NSImage {
+        guard let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil), cg.width > 0, cg.height > 0
+        else { return image }
+        let w = cg.width, h = cg.height
+        var pixels = [UInt8](repeating: 0, count: w * h * 4)
+        let drawn = pixels.withUnsafeMutableBytes { buffer -> Bool in
+            guard let context = CGContext(data: buffer.baseAddress, width: w, height: h, bitsPerComponent: 8,
+                                          bytesPerRow: w * 4, space: CGColorSpaceCreateDeviceRGB(),
+                                          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
+            context.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
+            return true
+        }
+        guard drawn else { return image }
+        // Rows run from the image's top, as CGImage cropping counts them. Alpha over 0.01, as before.
         var minX = w, minY = h, maxX = -1, maxY = -1
         for y in 0..<h {
-            for x in 0..<w where (rep.colorAt(x: x, y: y)?.alphaComponent ?? 0) > 0.01 {
+            let row = y * w * 4
+            for x in 0..<w where pixels[row + x * 4 + 3] > 2 {
                 if x < minX { minX = x }; if x > maxX { maxX = x }
                 if y < minY { minY = y }; if y > maxY { maxY = y }
             }
@@ -456,9 +488,8 @@ enum SpriteLoader {
         let side = min(max(bw, bh), min(w, h))
         let sx = max(0, min(minX - (side - bw) / 2, w - side))
         let sy = max(0, min(minY - (side - bh) / 2, h - side))
-        guard let cg = rep.cgImage?.cropping(to: CGRect(x: sx, y: sy, width: side, height: side))
-        else { return image }
-        return NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
+        guard let cropped = cg.cropping(to: CGRect(x: sx, y: sy, width: side, height: side)) else { return image }
+        return NSImage(cgImage: cropped, size: NSSize(width: cropped.width, height: cropped.height))
     }
 }
 
@@ -498,7 +529,12 @@ enum SpriteFit {
         return margin
     }
 
-    @MainActor private static let bottomMargins = NSCache<NSImage, NSNumber>()
+    /// Bounded: keyed by image, it kept every decoded GIF frame met alive.
+    @MainActor private static let bottomMargins: NSCache<NSImage, NSNumber> = {
+        let cache = NSCache<NSImage, NSNumber>()
+        cache.countLimit = 512
+        return cache
+    }()
 
     private static func measureBottomMargin(_ image: NSImage) -> CGFloat {
         guard let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil), cg.width > 0, cg.height > 0

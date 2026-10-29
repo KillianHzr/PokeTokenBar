@@ -95,9 +95,6 @@ final class ScreenshotGenTests: XCTestCase {
                 Spacer()
             }
             .padding(.top, 2)
-
-            MonthDailyTrend(series: series, showsCost: true, today: today, l: l)
-
         }
         .padding(.horizontal, PopoverMetrics.padding)
         .padding(.vertical, 16)

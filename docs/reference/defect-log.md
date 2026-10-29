@@ -1684,6 +1684,28 @@ read_when:
   now skipped when the state equals the one last written (`testARefreshThatChangesNothingWritesNothing`) and
   snapshot summaries are kept by file path, date and size (`testSnapshotSummariesFollowTheirFile`).
 
+- **State a view reads for one detail must live in that detail.** The Stats page held the hovered bar, so each bar
+  entered recomputed its whole report; the hover lives in `StatsChart` now (`testStatsHoverLivesInTheChart`).
+  Same class: a form species' page folded and sorted the Pokédex some 25 times per draw (`collectedDexSpecies` is
+  cached until `state` or `currentLine` changes, reading them even from the cache so views keep observing them:
+  `testThePokedexFoldIsKeptUntilTheStateChanges`); each catch-log row recomputed the whole duplicate set
+  (`testCatchLogRowsDoNotRecomputeTheDuplicates`); the Achievements tab counted every section some 17 times
+  (`achievementTallies`).
+
+- **An equal write is still a write for Observation.** `CompanionState` is observed whole; the day's ledger, the
+  candy ledgers and the display state were assigned at each refresh, equal or not, and redrew every screen open. They
+  are written on change only (`testARefreshWithNothingNewTouchesNoObservedState`), and the name fill saves once
+  (`testTheNameFillSavesOnce`). The floating pet sets its frame only when it moves.
+
+- **A cache keyed by an object retains the object.** `SpriteFit.bottomMargins` was an unbounded `NSCache` keyed by
+  image: measuring the margin of every GIF frame at each frame shown kept every decoded frame alive. The margin is
+  measured once per animation and the cache is bounded; the image and animation caches are bounded by pixels, sized
+  to the grid. `cropToContent` reads one bitmap buffer instead of an `NSColor` per pixel.
+
+- **A prefetch over everything is a download of everything.** The Pokédex grid prefetched every page's stills, and
+  each still comes from a GIF: on an empty cache the first opening downloaded the whole Pokédex. Only the neighboring
+  pages are prefetched (`testPrefetchStartsNextToThePageShown`).
+
 ## 에너지 (상시 표시 애니메이션)
 
 - **절전용 정지 상태는 짝 알림 하나에만 복구를 맡기지 마라.** `screensDidSleep` 이 폴링 타이머를 끄고
@@ -1794,6 +1816,11 @@ read_when:
 - **A fallback that answers must not hide the primary's 429.** With the OAuth answering, a session key's 429 was
   swallowed and the key asked again at every poll, which kept it rate limited. The chain lets the key wait
   (its `retryAfter`, else the limits backoff) while the fallback answers: `testChainLetsARateLimitedSessionKeyWait`.
+
+- **A whole-view timeline for one moving part redraws the whole view.** The legendary card ran a 30 fps
+  `TimelineView` for its rays and stars, and its badge one for a shine that rests half the time. The rays turn by a
+  repeating animation, the stars keep 10 fps, and the badge's `ShineSchedule` gives no frame at rest
+  (`testTheLegendaryShineRestsBetweenSweeps`, `testTheLegendaryCardHasNoFullFrameRateTimeline`).
 
 ## 알림
 

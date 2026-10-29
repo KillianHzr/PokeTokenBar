@@ -75,13 +75,13 @@ final class SpriteStillTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: dir.appendingPathComponent("25-shs.png").path))
     }
 
-    /// The next page first, then the previous one, then the pages after and before; never the page shown.
+    /// The next page first, then the previous one; never the page shown, nor the pages further: on an empty cache, every
+    /// page ahead downloaded a GIF for each species of the Pokédex at its first opening.
     func testPrefetchStartsNextToThePageShown() {
         XCTAssertEqual(DexScrollPager.prefetchOrder(count: 50, current: 1, pageSize: 16),
-                       Array(32..<48) + Array(0..<16) + Array(48..<50))
-        XCTAssertEqual(DexScrollPager.prefetchOrder(count: 50, current: 0, pageSize: 16), Array(16..<50))
-        XCTAssertEqual(DexScrollPager.prefetchOrder(count: 50, current: 3, pageSize: 16),
-                       Array(32..<48) + Array(16..<32) + Array(0..<16))
+                       Array(32..<48) + Array(0..<16))
+        XCTAssertEqual(DexScrollPager.prefetchOrder(count: 50, current: 0, pageSize: 16), Array(16..<32))
+        XCTAssertEqual(DexScrollPager.prefetchOrder(count: 50, current: 3, pageSize: 16), Array(32..<48))
         XCTAssertEqual(DexScrollPager.prefetchOrder(count: 10, current: 0, pageSize: 16), [], "one page: nothing ahead")
         XCTAssertEqual(DexScrollPager.prefetchOrder(count: 0, current: 0, pageSize: 16), [])
     }

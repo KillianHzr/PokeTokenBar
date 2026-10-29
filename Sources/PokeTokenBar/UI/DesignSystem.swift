@@ -102,33 +102,38 @@ struct LegendaryHeroBackground: View {
         return [.init(color: .clear, location: start), .init(color: gold.opacity(0.34), location: start + 1.0 / 24)]
     } + [.init(color: .clear, location: 1)]
 
+    /// The rays turn by a repeating animation (12° a second), which redraws no body: a 30 fps timeline redrew the
+    /// whole card for them. Only the stars keep a timeline, at 10 fps.
+    @State private var turning = false
+
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { context in
-            // Seconds into a 15 min cycle (a whole number of turns of the rays): angles built on the absolute
-            // date (8e8 s) lose their precision once drawn.
-            let t = reduceMotion ? 0 : context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 900)
-            let shape = RoundedRectangle(cornerRadius: Design.cornerRadius + 2, style: .continuous)
-            ZStack {
-                shape.fill(LinearGradient(colors: [color.opacity(0.42), Self.gold.opacity(0.10),
-                                                   (secondColor ?? color).opacity(secondColor == nil ? 0.10 : 0.26)],
-                                          startPoint: .topLeading, endPoint: .bottomTrailing))
-                // Light rays turning behind the sprite, on a golden glow.
-                AngularGradient(gradient: Gradient(stops: Self.rayStops), center: .center, angle: .degrees(t * 12))
-                    .mask(RadialGradient(colors: [.white, .white.opacity(0.6), .clear], center: .center,
-                                         startRadius: 4, endRadius: 92))
-                    .frame(width: 200, height: 200)
-                    .position(x: 54, y: 52)
-                RadialGradient(colors: [Self.gold.opacity(0.55), .clear], center: .center, startRadius: 2,
-                               endRadius: 55)
-                    .frame(width: 110, height: 110)
-                    .position(x: 54, y: 52)
-                sparkles(t)
+        let shape = RoundedRectangle(cornerRadius: Design.cornerRadius + 2, style: .continuous)
+        ZStack {
+            shape.fill(LinearGradient(colors: [color.opacity(0.42), Self.gold.opacity(0.10),
+                                               (secondColor ?? color).opacity(secondColor == nil ? 0.10 : 0.26)],
+                                      startPoint: .topLeading, endPoint: .bottomTrailing))
+            // Light rays turning behind the sprite, on a golden glow.
+            AngularGradient(gradient: Gradient(stops: Self.rayStops), center: .center)
+                .rotationEffect(.degrees(turning ? 360 : 0))
+                .animation(reduceMotion ? nil : .linear(duration: 30).repeatForever(autoreverses: false), value: turning)
+                .mask(RadialGradient(colors: [.white, .white.opacity(0.6), .clear], center: .center,
+                                     startRadius: 4, endRadius: 92))
+                .frame(width: 200, height: 200)
+                .position(x: 54, y: 52)
+            RadialGradient(colors: [Self.gold.opacity(0.55), .clear], center: .center, startRadius: 2,
+                           endRadius: 55)
+                .frame(width: 110, height: 110)
+                .position(x: 54, y: 52)
+            TimelineView(.animation(minimumInterval: 1.0 / 10, paused: reduceMotion)) { context in
+                // Seconds into a 15 min cycle: phases built on the absolute date (8e8 s) lose their precision.
+                sparkles(reduceMotion ? 0 : context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 900))
             }
-            .clipShape(shape)
-            // The same border as every hero card: the type color.
-            .overlay(shape.strokeBorder(LinearGradient(colors: [color.opacity(0.4), (secondColor ?? color).opacity(0.4)],
-                                                       startPoint: .topLeading, endPoint: .bottomTrailing)))
         }
+        .clipShape(shape)
+        // The same border as every hero card: the type color.
+        .overlay(shape.strokeBorder(LinearGradient(colors: [color.opacity(0.4), (secondColor ?? color).opacity(0.4)],
+                                                   startPoint: .topLeading, endPoint: .bottomTrailing)))
+        .onAppear { if !reduceMotion { turning = true } }
     }
 
     /// A few stars at fixed spots, each twinkling on its own phase.
@@ -160,10 +165,10 @@ struct LegendaryBadge: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { context in
+        // Frames only while the shine crosses: at rest, half of each cycle, the badge is not redrawn 30 times a second.
+        TimelineView(ShineSchedule(paused: reduceMotion)) { context in
             // 0…1 over 3 s; the shine crosses during the first half, then rests.
-            let phase = reduceMotion ? 0.25
-                : context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 3) / 3
+            let phase = reduceMotion ? 0.25 : ShineSchedule.phase(at: context.date)
             Text(text)
             .font(.system(size: 9, weight: .heavy, design: .rounded))
             .foregroundStyle(Color(.sRGB, red: 0.36, green: 0.22, blue: 0.0))
@@ -180,6 +185,39 @@ struct LegendaryBadge: View {
                 .background(LegendaryHeroBackground.gold)
                 .clipShape(Capsule())
             }
+        }
+    }
+}
+
+/// The legendary badge's frames: 30 a second while the shine crosses (the first half of each 3 s cycle), one where it
+/// ends, then none until the next cycle.
+struct ShineSchedule: TimelineSchedule {
+    static let cycle: TimeInterval = 3
+    static let sweep: TimeInterval = 1.5
+    static let frame: TimeInterval = 1.0 / 30
+    var paused = false
+
+    /// 0…1 through the cycle.
+    static func phase(at date: Date) -> Double {
+        date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: cycle) / cycle
+    }
+
+    /// The frame after `date`.
+    static func next(after date: Date) -> Date {
+        let into = date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: cycle)
+        if into + frame < sweep { return date.addingTimeInterval(frame) }
+        // A millisecond of slack: a date of 8e8 s holds 1e-7 s, and a jump to the exact end could land just before it.
+        if into < sweep - 0.001 { return date.addingTimeInterval(sweep - into) }
+        return date.addingTimeInterval(cycle - into)
+    }
+
+    func entries(from startDate: Date, mode: TimelineScheduleMode) -> AnyIterator<Date> {
+        var date: Date? = startDate
+        let paused = paused
+        return AnyIterator {
+            guard let current = date else { return nil }
+            date = paused ? nil : Self.next(after: current)
+            return current
         }
     }
 }

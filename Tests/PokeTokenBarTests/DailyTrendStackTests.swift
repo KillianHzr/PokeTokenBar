@@ -2,11 +2,10 @@ import XCTest
 import SwiftUI
 @testable import PokeTokenBar
 
-// Provider-stacked daily trend bars (`DailyTrendStack` → `MonthDailyTrend`).
+// Provider-stacked daily bars of the Stats page (`DailyTrendStack`).
 //
-// Two contracts matter: the stacked split must add up to the same bar height the single-color
-// row would draw, and a month with one provider must render exactly as before — stacking is
-// only ever additive for multi-provider users.
+// The stacked split must add up to the same bar height the single-color bar would draw, and a
+// provider keeps its color whatever the others do.
 
 final class DailyTrendStackTests: XCTestCase {
 
@@ -53,43 +52,6 @@ final class DailyTrendStackTests: XCTestCase {
         ])))
     }
 
-    /// 프로바이더 1개 월은 **이전과 픽셀 단위로 같다** — `providers:` 를 안 넘긴 뷰와 비트맵을 비교한다.
-    /// 높이만 비교하면 색(오늘 accent → 팔레트)이 바뀌어도 통과하므로 실제로 그려서 본다.
-    @MainActor
-    func testASingleProviderMonthRendersPixelIdenticalToTheUnstackedRow() throws {
-        let values = (1...24).map { (String(format: "2026-08-%02d", $0), $0 * 1_000) }
-        let series = days(values, cost: 0.3)
-        let one = [DailyTrendStack.ProviderSeries(id: "only", name: "Only", days: series,
-                                                  reportsCost: true)]
-        let idle = DailyTrendStack.ProviderSeries(id: "idle", name: "Idle",
-                                                  days: days(values.map { ($0.0, 0) }),
-                                                  reportsCost: true)
-
-        let before = try pixels(MonthDailyTrend(series: series, showsCost: true,
-                                                today: "2026-08-24", l: L(.en)))
-        let single = try pixels(MonthDailyTrend(series: series, providers: one,
-                                                providerOrder: ["only", "idle"], showsCost: true,
-                                                today: "2026-08-24", l: L(.en)))
-        let withIdle = try pixels(MonthDailyTrend(series: series, providers: one + [idle],
-                                                  providerOrder: ["only", "idle"], showsCost: true,
-                                                  today: "2026-08-24", l: L(.en)))
-        assertSameImage(single, before, "프로바이더 1개인데 추이 행이 달라졌다")
-        assertSameImage(withIdle, before, "이번 달 0 토큰 프로바이더가 쌓기를 켰다")
-    }
-
-    /// Same pixels, give or take the antialiasing jitter: with the macOS 26 SDK one edge pixel of the *same* view
-    /// rendered twice can differ by one unit of alpha. A changed color or bar height moves far more than 2/255.
-    private func assertSameImage(_ a: Data, _ b: Data, _ message: String,
-                                 file: StaticString = #filePath, line: UInt = #line) {
-        guard a.count == b.count else {
-            return XCTFail("\(message): \(a.count) bytes vs \(b.count)", file: file, line: line)
-        }
-        let worst = zip(a, b).reduce(0) { max($0, abs(Int($1.0) - Int($1.1))) }
-        XCTAssertLessThanOrEqual(worst, 2, "\(message): a channel moved by \(worst)/255", file: file, line: line)
-    }
-
-    // MARK: 구간 높이
-
     /// 구간 합 == 막대 높이. 각 구간을 독립적으로 비율 계산하면 부동소수 오차가 쌓여 단색 막대와
     /// 높이가 어긋난다 — 나누어 떨어지지 않는 값들로 여러 높이에서 확인한다.
     func testSegmentsAddUpExactlyToTheBarHeight() {
@@ -98,7 +60,7 @@ final class DailyTrendStackTests: XCTestCase {
             provider("b", [("d", 222_221)]),
             provider("c", [("d", 7)]),
         ])
-        for height in [DailyTrendMetrics.baseline, 1.7, 9.3, 17.77, DailyTrendMetrics.track] {
+        for height in [2, 1.7, 9.3, 17.77, 24] as [CGFloat] {
             let segments = DailyTrendStack.segments(on: "d", stack: stack, barHeight: height)
             XCTAssertEqual(segments.map(\.providerID), ["a", "b", "c"])
             XCTAssertEqual(segments.reduce(0) { $0 + $1.height }, height, "\(height) 에서 합이 어긋났다")
@@ -172,107 +134,8 @@ final class DailyTrendStackTests: XCTestCase {
         let defaults = UserDefaults(suiteName: "DailyTrendStackTests.\(UUID().uuidString)")!
         let registry = UsageStore(autoRefresh: false, defaults: defaults).registeredProviderIDs
         let slots = DailyTrendStack.colorIndices(for: registry, registry: registry,
-                                                 paletteCount: MonthDailyTrend.providerPalette.count)
+                                                 paletteCount: DailyTrendStack.palette.count)
         XCTAssertEqual(Set(slots.values).count, registry.count,
-                       "\(registry.count) providers but \(MonthDailyTrend.providerPalette.count) colors")
-    }
-
-    // MARK: Caption readout
-
-    /// Opening the popover shows today's combined total and cost without hovering — the stacked
-    /// row keeps the same caption as the single-provider row.
-    func testTheCaptionReadsTodaysCombinedTotalAndCost() {
-        let total = days([("2026-08-23", 4_000_000), ("2026-08-24", 2_500_000)], cost: 7)
-        let l = L(.en)
-        let stamp = DailyTrendMetrics.dayStamp("2026-08-24", language: .en)
-        XCTAssertEqual(MonthDailyTrend.readout(series: total, today: "2026-08-24", showsCost: true, l: l),
-                       "\(stamp) \(TokenFormatter.compact(2_500_000)) \(total[1].usageCost.text(l))")
-        XCTAssertEqual(MonthDailyTrend.readout(series: total, today: "2026-08-24", showsCost: false, l: l),
-                       "\(stamp) \(TokenFormatter.compact(2_500_000))")
-    }
-
-    // MARK: Legend
-
-    /// The legend is its own block under the axis: absent for one provider, and with many providers
-    /// and long names it wraps onto more lines instead of overflowing the popover.
-    @MainActor
-    func testTheLegendWrapsWithinThePopoverWidth() {
-        let values = (1...31).map { (String(format: "2026-08-%02d", $0), 888_888_888) }
-        func series(_ count: Int) -> [DailyTrendStack.ProviderSeries] {
-            (0..<count).map { index in
-                DailyTrendStack.ProviderSeries(id: "p\(index)", name: "Provider Name \(index)",
-                                               days: days(values, cost: 8_888.88), reportsCost: true)
-            }
-        }
-        let total = days(values.map { ($0.0, $0.1 * 4) }, cost: 8_888.88 * 4)
-        func size(_ providers: [DailyTrendStack.ProviderSeries], _ language: AppLanguage) -> CGSize {
-            let view = MonthDailyTrend(series: total, providers: providers,
-                                       providerOrder: providers.map(\.id), showsCost: true,
-                                       today: "2026-08-24", l: L(language))
-                .environment(\.locale, language.displayLocale)
-            return NSHostingController(rootView: view)
-                .sizeThatFits(in: CGSize(width: PopoverMetrics.contentWidth, height: 600))
-        }
-
-        let unstacked = size(series(1), .en).height
-        XCTAssertGreaterThan(size(series(2), .en).height, unstacked, "two providers show a legend")
-        XCTAssertGreaterThan(size(series(14), .en).height, size(series(2), .en).height,
-                             "fourteen long names wrap onto more lines")
-        for language in AppLanguage.allCases {
-            for count in [2, 8, 14] {
-                XCTAssertLessThanOrEqual(size(series(count), language).width,
-                                         PopoverMetrics.contentWidth + 0.5,
-                                         "\(language) · \(count) providers: the trend overflowed")
-            }
-        }
-    }
-
-    // MARK: Hover tooltip
-
-    func testTheTooltipNamesTheDayTotalAndEachProviderThatUsedIt() throws {
-        let claude = DailyTrendStack.ProviderSeries(
-            id: "claude_code", name: "Claude Code",
-            days: days([("2026-08-23", 3_000_000), ("2026-08-24", 2_000_000)], cost: 5), reportsCost: true)
-        let codex = DailyTrendStack.ProviderSeries(
-            id: "codex", name: "Codex",
-            days: days([("2026-08-23", 1_000_000), ("2026-08-24", 0)], cost: 2), reportsCost: false)
-        let total = days([("2026-08-23", 4_000_000), ("2026-08-24", 2_000_000)], cost: 7)
-        let stack = DailyTrendStack.ordered([claude, codex])
-        let l = L(.en)
-
-        let info = try XCTUnwrap(DailyTrendHover.info(day: "2026-08-23", series: total, stack: stack,
-                                                      showsCost: true, l: l))
-        XCTAssertEqual(info.stamp, DailyTrendMetrics.dayStamp("2026-08-23", language: .en))
-        XCTAssertEqual(info.tokens, TokenFormatter.compact(4_000_000))
-        XCTAssertEqual(info.cost, total[0].usageCost.text(l))
-        XCTAssertEqual(info.providers.map(\.name), ["Claude Code", "Codex"])
-        XCTAssertNotNil(info.providers[0].cost)
-        XCTAssertNil(info.providers[1].cost, "a provider that does not bill shows no cost")
-
-        let quiet = try XCTUnwrap(DailyTrendHover.info(day: "2026-08-24", series: total, stack: stack,
-                                                       showsCost: false, l: l))
-        XCTAssertEqual(quiet.providers.map(\.id), ["claude_code"], "a provider idle that day is left out")
-        XCTAssertNil(quiet.cost)
-        XCTAssertNil(quiet.providers[0].cost, "no cost anywhere when costs are hidden")
-    }
-
-    func testASingleProviderTooltipHasNoSplit() throws {
-        let only = provider("claude_code", [("2026-08-24", 1_000)])
-        let info = try XCTUnwrap(DailyTrendHover.info(day: "2026-08-24", series: days([("2026-08-24", 1_000)]),
-                                                      stack: DailyTrendStack.ordered([only]),
-                                                      showsCost: true, l: L(.en)))
-        XCTAssertEqual(info.providers, [])
-    }
-
-    // MARK: 렌더 헬퍼
-
-    @MainActor
-    private func pixels(_ view: MonthDailyTrend) throws -> Data {
-        let renderer = ImageRenderer(content: view.frame(width: PopoverMetrics.contentWidth))
-        renderer.scale = 2
-        let image = try XCTUnwrap(renderer.cgImage, "렌더 실패")
-        let data = try XCTUnwrap(image.dataProvider?.data as Data?)
-        XCTAssertGreaterThan(image.height, 0)
-        return data
+                       "\(registry.count) providers but \(DailyTrendStack.palette.count) colors")
     }
 }

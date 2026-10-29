@@ -18,9 +18,18 @@ struct ReleaseForEggControls: View {
     var lockedHint: String? = nil
     let action: @MainActor () -> Bool
     @State private var stage: Stage = .idle
+    @State private var failed = false
     private enum Stage { case idle, confirm, preciousConfirm }
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            controls
+            ActionFailedNote(failed: $failed, text: store.l.actionFailed)
+        }
+    }
+
+    @ViewBuilder
+    private var controls: some View {
         let l = store.l
         // 알 상태: 리롤 대상이 없다. A Fossil Egg's own Pokémon: the caller's reason.
         let locked = store.hasActive ? lockedHint : l.eggShopLockedHint
@@ -63,14 +72,18 @@ struct ReleaseForEggControls: View {
                     .buttonStyle(.borderless).controlSize(.small)
             }
         case .preciousConfirm:
-            HStack(spacing: 8) {
+            // The warning on its own line: beside the buttons, French and German left it a few letters.
+            VStack(alignment: .leading, spacing: 6) {
                 Text(store.rarity == .legendary ? l.freshEggLegendaryWarning : l.freshEggShinyWarning)
-                    .font(.caption2.weight(.semibold)).foregroundStyle(Color.readableOrange).lineLimit(2)
-                Spacer()
-                Button(store.currentIsShiny && store.rarity != .legendary ? l.freshEggDiscardShiny : l.freshEggDiscardValuable) { commit() }
-                    .buttonStyle(PillButtonStyle(prominent: true, tint: .orange))
-                Button(l.cancel) { stage = .idle }
-                    .buttonStyle(.borderless).controlSize(.small)
+                    .font(.caption2.weight(.semibold)).foregroundStyle(Color.readableOrange)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 8) {
+                    Spacer()
+                    Button(store.currentIsShiny && store.rarity != .legendary ? l.freshEggDiscardShiny : l.freshEggDiscardValuable) { commit() }
+                        .buttonStyle(PillButtonStyle(prominent: true, tint: .orange))
+                    Button(l.cancel) { stage = .idle }
+                        .buttonStyle(.borderless).controlSize(.small)
+                }
             }
         }
     }
@@ -78,6 +91,25 @@ struct ReleaseForEggControls: View {
     /// 실행 → 새 알을 볼 수 있게 Home 으로 전환(가방 사용과 동일 패턴).
     private func commit() {
         stage = .idle
-        if action() { nav.tab = .home }
+        if action() { nav.tab = .home } else { failed = true }
+    }
+}
+
+/// A short line when a purchase or a release did not go through: it failed without a word, the button just came back.
+/// Gone after a few seconds.
+@MainActor
+struct ActionFailedNote: View {
+    @Binding var failed: Bool
+    let text: String
+
+    var body: some View {
+        if failed {
+            Label(text, systemImage: "exclamationmark.triangle.fill")
+                .font(.caption2).foregroundStyle(Color.readableOrange)
+                .task {
+                    try? await Task.sleep(for: .seconds(4))
+                    failed = false
+                }
+        }
     }
 }

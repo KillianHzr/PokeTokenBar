@@ -228,12 +228,15 @@ final class FloatingPetController: NSObject, NSWindowDelegate {
             builtAnimated = wantAnimated
         }
         if let hosting = p.contentView as? PetHostingView {
-            hosting.toolTip = currentHoverText()
+            let text = currentHoverText()
+            if hosting.toolTip != text { hosting.toolTip = text }
         }
+        // Moved and brought forward only when needed: today's tokens change at every refresh, and each change set the
+        // panel's frame again.
         let petSize = CGFloat(store.floatingPetSize)
-        p.setFrame(targetFrame(petSize: petSize, showingBubble: store.currentBubbleAlert != nil),
-                   display: true)
-        p.orderFrontRegardless()
+        let frame = targetFrame(petSize: petSize, showingBubble: store.currentBubbleAlert != nil)
+        if p.frame != frame { p.setFrame(frame, display: true) }
+        if !p.isVisible { p.orderFrontRegardless() }
         if hoverPanel?.isVisible == true { showHoverCallout() }
     }
 

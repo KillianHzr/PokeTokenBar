@@ -188,6 +188,8 @@ final class UsageStore {
     /// The key of the first release, which kept only the last day read.
     static let changelogSeenDayKey = "changelogSeen"
     var unseenChangelogEntries: [ChangelogEntry] { Changelog.unseen(changelogSeen) }
+    /// Whether one is unseen, without listing them: the header's dot read the whole list beside the banner's.
+    var hasUnseenChangelog: Bool { Changelog.entries.contains { !changelogSeen.contains($0.id) } }
     func markChangelogSeen() {
         let all = changelogSeen.union(Changelog.ids)
         if all != changelogSeen { changelogSeen = all }

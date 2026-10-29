@@ -51,6 +51,7 @@ private struct ShopItemCard: View {
     let store: CompanionStore
     let kind: ItemKind
     @State private var confirming = false
+    @State private var failed = false
     @State private var quantity = 1
 
     private var price: Int { store.price(of: kind) ?? 0 }
@@ -91,6 +92,7 @@ private struct ShopItemCard: View {
                 // 붙인다(가방 ItemCard 와 같은 구조). 둘 다 두면 남는 폭을 나눠 가져 Stepper 가 가운데에 뜬다.
             }
             buyControls(l)
+            ActionFailedNote(failed: $failed, text: l.actionFailed)
         }
         .padding(12)
         .designSurface(cornerRadius: Design.cornerRadius)
@@ -142,7 +144,7 @@ private struct ShopItemCard: View {
 
     private func buyNow() {
         confirming = false
-        if store.buy(kind, count: selectedQuantity) { quantity = 1 }
+        if store.buy(kind, count: selectedQuantity) { quantity = 1 } else { failed = true }
     }
 }
 
@@ -157,6 +159,7 @@ private struct EggCard: View {
     let store: CompanionStore
     let tier: Rarity?
     @State private var confirming = false
+    @State private var failed = false
 
     private var price: Int { store.price(of: .egg(tier)) }
     private var owned: Int { ItemKind(shopEgg: tier).map(store.itemCount) ?? 0 }
@@ -194,6 +197,7 @@ private struct EggCard: View {
                 HatchOddsView(odds: odds, l: l)
             }
             buyControls(l)
+            ActionFailedNote(failed: $failed, text: l.actionFailed)
         }
         .padding(12)
         .designSurface(cornerRadius: Design.cornerRadius)
@@ -209,7 +213,7 @@ private struct EggCard: View {
                 Spacer()
                 Button(l.buy) {
                     confirming = false
-                    store.buyEgg(tier)
+                    if !store.buyEgg(tier) { failed = true }
                 }
                 .buttonStyle(.pill(prominent: true))
                 Button(l.cancel) { confirming = false }

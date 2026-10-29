@@ -601,6 +601,12 @@ struct L {
         t("계정 폴더 \(n)개 찾음", "\(n) account folder(s) found", "アカウントフォルダが\(n)個見つかりました", "\(n) carpeta(s) de cuenta encontrada(s)", "\(n) dossier(s) de compte trouvé(s)", "\(n) pasta(s) de conta encontrada(s)", "Gefundene Kontoordner: \(n)", "Найдено папок аккаунтов: \(n)")
     }
     var close: String { t("닫기", "Close", "閉じる", "Cerrar", "Fermer", "Fechar", "Schließen", "Закрыть") }
+    /// A purchase or a release that did not go through (the wallet or the Pokémon changed meanwhile).
+    var actionFailed: String {
+        t("실패했어요. 다시 해 보세요.", "That didn't work. Try again.", "うまくいきませんでした。もう一度お試しください。",
+          "No funcionó. Inténtalo de nuevo.", "Ça n'a pas marché, réessaie.", "Não deu certo. Tente de novo.",
+          "Das hat nicht geklappt. Versuch es noch einmal.", "Не получилось. Попробуйте ещё раз.")
+    }
 
     // MARK: 세이브 이전 (설정 → 백업 & 이전)
     var transferSectionTitle: String { t("백업 & 이전", "Backup & Transfer", "バックアップと移行", "Copia de seguridad y transferencia", "Sauvegarde et transfert", "Backup e transferência", "Sicherung & Übertragung", "Резервная копия и перенос") }
@@ -2816,7 +2822,7 @@ struct L {
     }
     var freshEggShinyWarning: String { t("⚠️ 이로치 포켓몬이에요! 정말 놓아줄까요?", "⚠️ This one is shiny! Really send it off?", "⚠️ 色違いです！本当に手放しますか？", "⚠️ ¡Este es variocolor! ¿Seguro que quieres soltarlo?", "⚠️ Celui-ci est chromatique ! Vraiment le laisser partir ?", "⚠️ Esse é shiny! Quer mesmo soltar?", "⚠️ Dieses Pokémon ist schillernd! Wirklich verabschieden?", "⚠️ Это шайни! Точно отпустить?") }
     var freshEggLegendaryWarning: String { t("⚠️ 전설 포켓몬이에요! 정말 놓아줄까요?", "⚠️ This is a Legendary Pokémon! Really send it off?", "⚠️ 伝説のポケモンです！本当に手放しますか？", "⚠️ ¡Es un Pokémon legendario! ¿Seguro que quieres soltarlo?", "⚠️ C'est un Pokémon légendaire ! Vraiment le laisser partir ?", "⚠️ Esse é um Pokémon lendário! Quer mesmo soltar?", "⚠️ Dieses Pokémon ist legendär! Wirklich verabschieden?", "⚠️ Это легендарный покемон! Точно отпустить?") }
-    var freshEggDiscardShiny: String { t("이로치 놓아주기", "Send shiny off", "手放す", "Soltar variocolor", "Laisser partir le chromatique", "Soltar o shiny", "Schillerndes Pokémon verabschieden", "Отпустить шайни") }
+    var freshEggDiscardShiny: String { t("이로치 놓아주기", "Send shiny off", "手放す", "Soltar variocolor", "Le laisser partir", "Soltar o shiny", "Verabschieden", "Отпустить шайни") }
     var freshEggDiscardValuable: String { t("놓아주기", "Send off", "手放す", "Soltar", "Laisser partir", "Soltar", "Verabschieden", "Отпустить") }
 
     // MARK: 사탕 획득 알림 ("왜 받는지" = 토큰 한도를 다 채운 수고에 대한 보상)

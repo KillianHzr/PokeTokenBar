@@ -7,9 +7,16 @@ import UserNotifications
 @MainActor
 @Observable
 final class CompanionStore {
-    private(set) var state = CompanionState()
+    private(set) var state = CompanionState() { didSet { dexSpeciesCache = [:] } }
     private(set) var displayState: CompanionStateKind = .egg
-    private(set) var currentLine: EvoLine?
+    private(set) var currentLine: EvoLine? { didSet { dexSpeciesCache = [:] } }
+    /// `collectedDexSpecies` by `groupForms`, until the state or the line changes: a form species' page read it some
+    /// 25 times per draw (`formSpecies`, `dexCover`, the picker), each folding and sorting the whole Pokédex.
+    @ObservationIgnored private var dexSpeciesCache: [Bool: [DexSpecies]] = [:]
+    /// How many times the Pokédex was folded: the tests check the cache with it.
+    @ObservationIgnored private(set) var dexSpeciesFolds = 0
+    /// Writes of the save file, for the tests of what writes it.
+    @ObservationIgnored private(set) var savesWritten = 0
     private(set) var representativeSubject = RepresentativeSubject(speciesID: nil, isShiny: false)
     private(set) var isHatching = false
     private var isRevealingDitto = false   // 메타몽 리빌 비동기 중복 방지(isHatching 자매)
@@ -1000,9 +1007,20 @@ final class CompanionStore {
     }
 
     private func collectedDexSpecies(groupForms: Bool) -> [DexSpecies] {
-        // 종별 누적을 한 번에 훑는다(뷰가 body 에서 1회 소비 — 메모이즈 없이 충분).
+        // Read what the result depends on even from the cache, so a view drawing it still observes them.
+        let dex = state.dex
+        let line = currentLine
+        if let cached = dexSpeciesCache[groupForms] { return cached }
+        let species = foldDexSpecies(dex, line: line, groupForms: groupForms)
+        dexSpeciesCache[groupForms] = species
+        return species
+    }
+
+    private func foldDexSpecies(_ dex: [DexEntry], line currentLine: EvoLine?, groupForms: Bool) -> [DexSpecies] {
+        dexSpeciesFolds += 1
+        // 종별 누적을 한 번에 훑는다.
         var acc: [DexKey: DexAccumulator] = [:]
-        for entry in state.dex {
+        for entry in dex {
             for id in entry.chainOrder {
                 let key = DexKey(id, form: entry.form, groupForms: groupForms)
                 var a = acc[key] ?? DexAccumulator(rarity: entry.rarity, baseID: entry.baseID)
@@ -1344,9 +1362,13 @@ final class CompanionStore {
     /// 라인 조회는 `PokeAPIClient` 가 base 단위로 캐시하므로 같은 라인이 여러 항목이어도 네트워크는 1회.
     /// 오프라인이면 `dexResolveChainNames` 가 저장 없이 폴백만 돌려주므로 다음 진입에서 다시 시도한다.
     func backfillMissingDexNames() async {
+        var refreshed = false
         for entry in state.dex where entry.needsNamesRefresh {
-            _ = await dexResolveChainNames(entry)   // 성공분만 내부에서 state.dex 에 저장
+            // 성공분만 내부에서 state.dex 에 반영. One save for the whole fill: a names upgrade wrote the whole save
+            // once per line of the Pokédex.
+            refreshed = await resolveChainNames(entry, saving: false).refreshed || refreshed
         }
+        if refreshed { save() }
     }
 
     /// 도감 항목 진화 체인 각 종의 이름(speciesID → 현재 언어 이름). 저장돼 있으면 즉시(네트워크 0),
@@ -1369,12 +1391,17 @@ final class CompanionStore {
     }
 
     func dexResolveChainNames(_ entry: DexEntry) async -> [Int: String] {
+        await resolveChainNames(entry, saving: true).names
+    }
+
+    /// `refreshed`: the stored entries changed (and were saved when `saving`).
+    private func resolveChainNames(_ entry: DexEntry, saving: Bool) async -> (names: [Int: String], refreshed: Bool) {
         // Another row of this evolution line may already have refreshed the stored entry.
         let entry = state.dex.first { $0.id == entry.id } ?? entry
-        if !entry.needsNamesRefresh, let stored = dexStoredChainNames(entry) { return stored }
+        if !entry.needsNamesRefresh, let stored = dexStoredChainNames(entry) { return (stored, false) }
         let oldNames = dexStoredChainNames(entry) ?? [:]
         guard let line = try? await dexNameLine(baseID: entry.baseID) else {
-            return Dictionary(uniqueKeysWithValues: entry.chainOrder.map { ($0, oldNames[$0] ?? "#\($0)") })
+            return (Dictionary(uniqueKeysWithValues: entry.chainOrder.map { ($0, oldNames[$0] ?? "#\($0)") }), false)
         }
         // Preserve usable older names if a response is partial. Only a complete chain gets
         // the new version, so partial/offline responses remain eligible for retry.
@@ -1393,15 +1420,16 @@ final class CompanionStore {
             return result
         }
         // One successful lookup also refreshes duplicate catches of the same evolution line.
-        for index in state.dex.indices where state.dex[index].baseID == entry.baseID
-            && state.dex[index].needsNamesRefresh {
-            state.dex[index] = refreshed(state.dex[index])
+        var dex = state.dex
+        for index in dex.indices where dex[index].baseID == entry.baseID && dex[index].needsNamesRefresh {
+            dex[index] = refreshed(dex[index])
         }
-        save()
+        state.dex = dex   // one write for the line's entries, not one per entry
+        if saving { save() }
         let chainNames = refreshed(entry).names ?? [:]
-        return Dictionary(uniqueKeysWithValues: entry.chainOrder.map { id in
+        return (Dictionary(uniqueKeysWithValues: entry.chainOrder.map { id in
             (id, chainNames[id].flatMap { state.language.resolveName($0) } ?? "#\(id)")
-        })
+        }), true)
     }
 
     // MARK: 갱신 (AppDelegate 가 UsageStore 값으로 호출)
@@ -1504,7 +1532,9 @@ final class CompanionStore {
                         deltas[providerID] = current - previous
                         ledger[providerID] = current
                     }
-                    state.claimedTodayTokensByProvider = ledger
+                    // Only a change is written: `state` is observed whole, and an equal write still redrew every
+                    // screen open at each refresh.
+                    if state.claimedTodayTokensByProvider != ledger { state.claimedTodayTokensByProvider = ledger }
                     earnTokenCandies(deltas)
                     recordRaising(deltas)
                     if delta > 0 {
@@ -1544,8 +1574,9 @@ final class CompanionStore {
            a.usedAtStage >= stageThreshold(for: a) {
             Task { await revealDitto() }
         }
-        displayState = computeState(burnTier: burnTier, limitWarning: limitWarning,
-                                    hasUsageData: hasUsageData, today: todayTokens)
+        let nextDisplayState = computeState(burnTier: burnTier, limitWarning: limitWarning,
+                                            hasUsageData: hasUsageData, today: todayTokens)
+        if displayState != nextDisplayState { displayState = nextDisplayState }
         announceBirthdayGiftIfNeeded()
         announceEventEggsIfNeeded()
         save()
@@ -2245,19 +2276,42 @@ final class CompanionStore {
         let registered = graduatedSpeciesIDs
         var tally = AchievementTally()
         for kind in Self.achievementItems where group == nil || kind.collectorGroup == group {
-            if kind.isRegional {
-                let tiers = regionTiers(kind, registered: registered)
-                tally.ready += tiers.filter(\.isReady).count
-                tally.claimed += tiers.filter(\.isDone).count
-                tally.total += tiers.count
-            } else {
-                let claimed = isClaimed(kind)
-                tally.ready += !claimed && isUnlocked(kind, registered: registered) ? 1 : 0
-                tally.claimed += claimed ? 1 : 0
-                tally.total += 1
-            }
+            count(kind, into: &tally, registered: registered)
         }
         return tally
+    }
+
+    /// Every section's tally and the whole one in one pass, which the Achievements tab reads once per draw: its
+    /// header, tabs, banner and progress line counted them some 17 times.
+    func achievementTallies() -> (all: AchievementTally, byGroup: [CollectorGroup: AchievementTally]) {
+        let registered = graduatedSpeciesIDs
+        var all = AchievementTally()
+        var byGroup: [CollectorGroup: AchievementTally] = [:]
+        for kind in Self.achievementItems {
+            var one = AchievementTally()
+            count(kind, into: &one, registered: registered)
+            all.ready += one.ready; all.claimed += one.claimed; all.total += one.total
+            if let group = kind.collectorGroup {
+                var tally = byGroup[group] ?? AchievementTally()
+                tally.ready += one.ready; tally.claimed += one.claimed; tally.total += one.total
+                byGroup[group] = tally
+            }
+        }
+        return (all, byGroup)
+    }
+
+    private func count(_ kind: ItemKind, into tally: inout AchievementTally, registered: Set<Int>) {
+        if kind.isRegional {
+            let tiers = regionTiers(kind, registered: registered)
+            tally.ready += tiers.filter(\.isReady).count
+            tally.claimed += tiers.filter(\.isDone).count
+            tally.total += tiers.count
+        } else {
+            let claimed = isClaimed(kind)
+            tally.ready += !claimed && isUnlocked(kind, registered: registered) ? 1 : 0
+            tally.claimed += claimed ? 1 : 0
+            tally.total += 1
+        }
     }
 
     /// Number of achievements ready to be claimed (each regional tier counts).
@@ -2886,8 +2940,8 @@ final class CompanionStore {
             grantTier: &grantTier,
             windowEpoch: &windowEpoch,
             now: now)
-        state.candyGrantTier = grantTier
-        state.candyWindowEpoch = windowEpoch
+        if state.candyGrantTier != grantTier { state.candyGrantTier = grantTier }
+        if state.candyWindowEpoch != windowEpoch { state.candyWindowEpoch = windowEpoch }
         let meteorite = itemCount(.meteorite) > 0 ? CollectorBonus.meteoriteWindowCandies : 0
         for g in grants {
             let received = addRareCandies(g.count + (g.completesWindow ? meteorite : 0))
@@ -4082,6 +4136,7 @@ final class CompanionStore {
         do {
             try data.write(to: fileURL, options: .atomic)   // 부분 쓰기 손상 방지(펫 상태)
             savedState = state
+            savesWritten += 1
         } catch {
             AppLog.write("save failed: \(error.localizedDescription)")
         }
