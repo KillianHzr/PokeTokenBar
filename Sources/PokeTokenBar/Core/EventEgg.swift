@@ -117,8 +117,15 @@ enum EventEgg: String, CaseIterable, Codable, Sendable {
     }
 
     /// The guarantees the egg keeps like the Shop's and the stones' (`CompanionStore.chooseBase`): Christmas, an Ice
-    /// Pokémon rare or better; Halloween, a Ghost one.
-    var tier: Rarity? { self == .christmas ? .rare : nil }
+    /// Pokémon rare or better; Halloween, a Ghost one; a season's, Uncommon or better (asked on 2026-10-29), its
+    /// Deerling of the season, a Common, kept as the exception (`CompanionStore.chooseBase` rolls it first).
+    var tier: Rarity? {
+        switch self {
+        case .christmas: return .rare
+        case .spring, .summer, .autumn, .winter: return .uncommon
+        default: return nil
+        }
+    }
     var type: PokemonType? {
         switch self {
         case .christmas: return .ice

@@ -3265,7 +3265,9 @@ final class CompanionStore {
         // 산 보증을 지키는 마지막 관문 — 진짜 등급을 아는 건 여기뿐이다(후보 인덱스엔 capture_rate 만
         // 있고 is_legendary 가 없다). 필터가 어긋났으면(인덱스 stale 등) 낮은 등급을 그냥 내주지 말고
         // 알을 유지한 채 pre-roll 만 버려 다음 틱에 다시 뽑는다 — 사용자는 산 보증을 계속 들고 있는다.
-        if let tier = state.eggTier, line.rarity.sortRank < tier.sortRank {
+        // A season's Deerling is the exception to its egg's Uncommon guarantee (`EventEgg.tier`).
+        let seasonDeerling = state.eggEvent?.seasonForm != nil && line.baseID == EventEgg.deerlingID
+        if let tier = state.eggTier, line.rarity.sortRank < tier.sortRank, !seasonDeerling {
             AppLog.write("hatch: rolled \(line.rarity) below guaranteed \(tier) — discarded, re-roll next tick")
             state.pendingHatchID = nil
             state.pendingForm = nil

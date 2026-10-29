@@ -67,6 +67,14 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-29", entries: [
+            .improved("2026-10-29-season-eggs-uncommon", { $0.t("계절 알에서 이제 고급 이상의 포켓몬만 태어나요. 그 계절 폼의 사철록은 예외로 그대로 나와요.",
+                                                                "Season eggs now hatch Uncommon or better. Deerling in the season's form still comes, as the exception.",
+                                                                "季節のタマゴからはアンコモン以上のポケモンだけが生まれるようになりました。その季節のすがたのシキジカは例外としてこれまでどおり出ます。",
+                                                                "Los huevos de estación ahora dan Pokémon poco comunes o mejores. Deerling con la forma de la estación sigue saliendo, como excepción.",
+                                                                "Les œufs de saison font maintenant éclore un Peu commun ou mieux. Vivaldaim dans la forme de la saison sort toujours, en exception.",
+                                                                "Os ovos de estação agora chocam Pokémon incomuns ou melhores. Deerling na forma da estação continua saindo, como exceção.",
+                                                                "Jahreszeiten-Eier lassen jetzt nur noch Ungewöhnliche oder Besseres schlüpfen. Sesokitz in der Form der Jahreszeit bleibt die Ausnahme.",
+                                                                "Из сезонных яиц теперь вылупляются только необычные покемоны и лучше. Дирлинг в форме сезона остаётся исключением.") }),
             .improved("2026-10-29-item-numbers") { l in
                 let wing = l.itemName(.rainbowWing), map = l.itemName(.oldSeaMap), glass = l.itemName(.revealGlass)
                 return l.t("\(wing), \(map), \(glass)의 설명에 실제 수치가 나와요: 25% 할인, 성장 20% 증가, 이로치 확률 두 배.",

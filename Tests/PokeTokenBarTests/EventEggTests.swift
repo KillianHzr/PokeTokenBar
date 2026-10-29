@@ -326,7 +326,8 @@ final class EventEggTests: XCTestCase {
     }
 
     /// A season's egg: Deerling in the season's form one time in three, else a Pokémon of the season's types, in a
-    /// form that has one (an Alolan Vulpix in winter, never a Fire one).
+    /// form that has one, Uncommon or better (asked on 2026-10-29): the Common ones, an Alolan Vulpix among them, no
+    /// longer come; Deerling, Common, stays the exception.
     func testASeasonEggHatchesDeerlingOrTheSeasonsTypes() async throws {
         var seen = Set<Int>()
         for seed: UInt64 in 1...24 {
@@ -341,8 +342,11 @@ final class EventEggTests: XCTestCase {
             }
         }
         XCTAssertTrue(seen.contains(EventEgg.deerlingID))
-        XCTAssertTrue(seen.contains(37), "Vulpix comes in its Alolan form")
+        XCTAssertTrue(seen.isDisjoint(with: [37, 220, 361]), "no Common but Deerling: \(seen.sorted())")
+        XCTAssertTrue(seen.contains(131), "Lapras, Rare, comes")
         XCTAssertFalse(seen.contains(1))
+        XCTAssertEqual(EventEgg.autumn.tier, .uncommon)
+        XCTAssertNil(EventEgg.halloween.tier)
     }
 
     /// The base index down, the REST fallback keeps the event's pool and its shiny promise.
