@@ -72,5 +72,15 @@ final class GregorianCalendarTests: XCTestCase {
         XCTAssertEqual(gregorian.claimedEventEggs, ["autumn@2026"])
         XCTAssertEqual(converted(.buddhist, gift: 2026, eggs: ["autumn@2026"]).claimedEventEggs, ["autumn@2026"],
                        "already converted: left as it is")
+        // Ethiopic years (2019 for 2026) sat inside the old 2000...2027 and were never read back: no year of the app
+        // is before 2026.
+        XCTAssertEqual(converted(.ethiopicAmeteMihret, gift: 2019, eggs: []).lastBirthdayGiftYear, 2026)
+        // A clock set years back made the range empty, which trapped at load.
+        var past = Calendar(identifier: .buddhist)
+        past.timeZone = zone
+        var state = CompanionState()
+        state.lastBirthdayGiftYear = 2569
+        state.convertCalendarYears(recordedIn: past, now: Date(timeIntervalSince1970: 0))
+        XCTAssertNotNil(state.lastBirthdayGiftYear)
     }
 }

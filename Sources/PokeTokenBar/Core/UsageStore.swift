@@ -1334,8 +1334,10 @@ final class UsageStore {
 
     /// Claude limit reads overlap: a poll waiting on the network, then a manual refresh after `/login` to another
     /// account. Each read takes a number before it waits, and one that ends after a newer read's answer was applied is
-    /// left out, or the older answer (the previous account's) overwrote the newer one. Only an answer takes the lead: a
-    /// poll that failed while the manual read waited on its Keychain prompt threw the manual read's answer away.
+    /// left out, or the older answer (the previous account's) overwrote the newer one. A poll's failure does not take the
+    /// lead: one that failed while the manual read waited on its Keychain prompt threw the manual read's answer away. A
+    /// manual read's failure does, as its answer would: an older poll landing after it showed the previous account's
+    /// limits and wiped the error the player had just asked for.
     @ObservationIgnored private var claudeLimitsFetchesStarted = 0
     @ObservationIgnored private var claudeLimitsFetchApplied = 0
 
@@ -1351,7 +1353,7 @@ final class UsageStore {
         return true
     }
 
-    /// Whether the read numbered `fetch` may write its failure: no newer answer came first. It does not lead.
+    /// Whether the poll numbered `fetch` may write its failure: no newer answer came first. It does not lead.
     private func claudeLimitsFailureApplies(_ fetch: Int) -> Bool { fetch > claudeLimitsFetchApplied }
 
     func refreshLimitTokenFromKeychain() async {
@@ -1374,7 +1376,7 @@ final class UsageStore {
             AppLog.write("limits refreshed from keychain by user action")
         } catch is CancellationError {
             AppLog.write("limits user refresh: a newer read came first, its answer is left out")
-        } catch where !claudeLimitsFailureApplies(fetch) {
+        } catch where !applyClaudeLimitsFetch(fetch) {
             AppLog.write("limits user refresh: a newer read came first, its failure is left out")
         } catch {
             limitTokenRefreshFailure = error

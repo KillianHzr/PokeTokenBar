@@ -2212,8 +2212,6 @@ final class CompanionStore {
         return true
     }
 
-    /// Adds Rare Candies from any source. Returns how many landed in the bag.
-    @discardableResult
     /// The Explorer Kit counts the graduations: every `ExplorerKit.graduationsPerTreasure` dig up a treasure, put in the
     /// Bag and shown in the news strip until seen.
     private func digTreasureIfDue() {
@@ -2245,6 +2243,8 @@ final class CompanionStore {
         save()
     }
 
+    /// Adds Rare Candies from any source. Returns how many landed in the bag.
+    @discardableResult
     private func addRareCandies(_ count: Int) -> Int {
         state.inventory[ItemKind.rareCandy.rawValue, default: 0] += count
         return count

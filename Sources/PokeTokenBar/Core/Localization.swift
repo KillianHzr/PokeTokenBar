@@ -2572,6 +2572,13 @@ struct L {
           "\(needed) Pokémon fósseis totalmente evoluídos quaisquer", "\(needed) beliebige voll entwickelte Fossil-Pokémon",
           "Покемоны-окаменелости в последней стадии: любые \(needed)")
     }
+    /// Every fossil line's final Pokémon (the Old Amber): "any" would read as a choice.
+    func allFossilsGoal(_ count: Int) -> String {
+        t("최종 진화한 화석 포켓몬 \(count)마리 모두", "All \(count) fully evolved fossil Pokémon", "最終進化の化石ポケモン\(count)匹すべて",
+          "Los \(count) Pokémon fósiles totalmente evolucionados", "Les \(count) Pokémon fossiles au stade final",
+          "Os \(count) Pokémon fósseis totalmente evoluídos", "Alle \(count) voll entwickelten Fossil-Pokémon",
+          "Все \(count) покемонов-окаменелостей в последней стадии")
+    }
     func ultraBeastsGoal(_ needed: Int) -> String {
         t("울트라비스트 중 \(needed)마리", "Any \(needed) Ultra Beasts", "ウルトラビーストのうち\(needed)匹", "\(needed) Ultraentes cualesquiera", "\(needed) Ultra-Chimères au choix", "\(needed) Ultracriaturas quaisquer", "\(needed) beliebige Ultrabestien", "Ультрачудовища: любые \(needed)")
     }

@@ -74,6 +74,8 @@ enum SaveTransfer {
     /// 세이브에 들어올 수 있는 수치의 상한 — 실사용(수십억)의 10만 배라 정상 진행을 자르지 않으면서,
     /// 이 값끼리 더하고 빼도 Int64 범위 안에 머문다.
     static let maxTokenValue = 1_000_000_000_000_000
+    /// The most of one item a save holds: far above any real count, far below an add's overflow.
+    static let maxItemCount = 1_000_000_000
 
     /// 내보내기 파일명 — 날짜가 들어가야 여러 번 내보내도 덮어쓰지 않는다.
     static func suggestedFileName(date: Date) -> String {
@@ -159,6 +161,11 @@ enum SaveTransfer {
         s.usedSinceInstall = clampToken(s.usedSinceInstall)
         s.spentTokens = clampToken(s.spentTokens)
         s.eggUsage = clampToken(s.eggUsage)
+        s.amberCarry = clampToken(s.amberCarry)
+        // Counts are added to (a treasure, a claim, a purchase): one near Int.max trapped at its next add, at every
+        // launch. Capped far above any real count: no item is dropped.
+        s.inventory = s.inventory.mapValues { min(max(0, $0), maxItemCount) }
+        s.unseenTreasures = s.unseenTreasures.mapValues { min(max(0, $0), maxItemCount) }
         s.claimedTodayTokensByProvider = s.claimedTodayTokensByProvider?.reduce(into: [:]) { result, entry in
             result[entry.key] = clampToken(entry.value)
         }

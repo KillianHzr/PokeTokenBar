@@ -106,4 +106,19 @@ final class TreasureAndAmberTests: XCTestCase {
         let none = await sentOff(usedAtStage: 1_000_000, amber: false)
         XCTAssertEqual(none.state.active?.usedAtStage, 0)
     }
+
+    /// [Regression] A hand-edited count near Int.max trapped at the treasure's add, at every fifth graduation, at every
+    /// launch. Counts are capped at load, far above any real one, no item dropped.
+    func testAHandEditedCountNoLongerTraps() async {
+        let s = store(inventory: [ItemKind.explorerKit.rawValue: 1, ItemKind.rareCandy.rawValue: Int.max,
+                                  ItemKind.rareEgg.rawValue: Int.max, ItemKind.uncommonEgg.rawValue: Int.max,
+                                  ItemKind.legendaryEgg.rawValue: Int.max])
+        XCTAssertEqual(s.itemCount(.rareCandy), SaveTransfer.maxItemCount)
+        for _ in 0..<ExplorerKit.graduationsPerTreasure {
+            await s.hatch(baseID: 4)
+            s.applyUsage(s.threshold)
+        }
+        XCTAssertEqual(s.unseenTreasures.count, 1, "dug up, no trap")
+        XCTAssertEqual(s.itemCount(.explorerKit), 1, "no item dropped")
+    }
 }

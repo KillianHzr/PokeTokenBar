@@ -133,30 +133,31 @@ final class UpdateCheckerTests: XCTestCase {
         XCTAssertFalse(UpdateChecker.isGreen([]), "no check at all is not a pass")
     }
 
-    /// [Regression] A build of `release`, whose commit `main` does not hold, was offered `main`'s head, older: installed,
-    /// it found the save written by a later build and locked it. Nothing committed before the installed build is
-    /// offered; a later green commit still is.
-    func testNoCommitOlderThanTheInstalledBuildIsOffered() async {
-        let green: [[String: Any]] = [["status": "completed", "conclusion": "success"]]
+    /// [Regression] A build of `release` was offered `main`'s head when it was newer by time but on another line (#94
+    /// merged into `main` alone): `main`'s build knows nothing of the save `release` wrote. Only a commit the installed
+    /// one leads to is offered; the same, older or diverged reads as the installed one; an unread comparison offers
+    /// nothing.
+    func testOnlyACommitTheInstalledOneLeadsToIsOffered() async {
         let installed = "d" + String(repeating: "0", count: 39)
-        let older = UpdateChecker.LatestCommit(sha: "a" + String(repeating: "0", count: 39),
-                                               url: "https://github.com/KillianHzr/PokeTokenLBI/commit/a", time: 1_000)
-        let picked = await UpdateChecker.firstGreen([older], current: installed, installedTime: 2_000) { _ in green }
-        XCTAssertEqual(picked?.sha, installed, "read as the installed one: no update")
-        let later = UpdateChecker.LatestCommit(sha: "b" + String(repeating: "0", count: 39),
-                                               url: "https://github.com/KillianHzr/PokeTokenLBI/commit/b", time: 3_000)
-        let newer = await UpdateChecker.firstGreen([later, older], current: installed, installedTime: 2_000) { _ in green }
-        XCTAssertEqual(newer?.sha, later.sha)
-        let unknown = await UpdateChecker.firstGreen([older], current: installed) { _ in green }
-        XCTAssertEqual(unknown?.sha, older.sha, "a build without its time keeps offering the newest green one")
+        let green = UpdateChecker.LatestCommit(sha: "b" + String(repeating: "0", count: 39),
+                                               url: "https://github.com/KillianHzr/PokeTokenLBI/commit/b")
+        for (status, offered) in [("ahead", true), ("diverged", false), ("behind", false), ("identical", false)] {
+            let result = await UpdateChecker.offered(green, current: installed) { _, _ in status }
+            XCTAssertEqual(result?.sha, offered ? green.sha : installed, status)
+        }
+        let unread = await UpdateChecker.offered(green, current: installed) { _, _ in nil }
+        XCTAssertNil(unread, "not known to follow: nothing")
+        let dev = await UpdateChecker.offered(green, current: "dev") { _, _ in XCTFail("compared"); return nil }
+        XCTAssertEqual(dev?.sha, green.sha, "a build without its commit compares nothing")
+        let same = await UpdateChecker.offered(green, current: String(green.sha.prefix(7))) { _, _ in nil }
+        XCTAssertEqual(same?.sha, green.sha, "the installed one itself")
     }
 
     /// What the walk returns for an older commit reads as no update.
     @MainActor
     func testTheInstalledCommitReturnedIsNoUpdate() async {
         let installed = "d" + String(repeating: "0", count: 39)
-        let returned = UpdateChecker.LatestCommit(sha: installed, url: "https://github.com/KillianHzr/PokeTokenLBI/commit/a",
-                                                  time: 2_000)
+        let returned = UpdateChecker.LatestCommit(sha: installed, url: "https://github.com/KillianHzr/PokeTokenLBI/commit/a")
         let checker = UpdateChecker(currentCommit: installed, defaults: isolatedDefaults(),
                                     updateStatusURL: FileManager.default.temporaryDirectory
                                         .appendingPathComponent("ptb-update-\(UUID().uuidString)"),

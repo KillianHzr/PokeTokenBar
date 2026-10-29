@@ -34,6 +34,21 @@ private final class PromptingClaude: ClaudeLimitsProviding, @unchecked Sendable 
         return status
     }
 }
+/// A poll still reading the previous account, then a manual read for the new one that fails at once.
+private final class SlowPollThenFailingManual: ClaudeLimitsProviding, @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+    var calls: Int { lock.withLock { count } }
+
+    func fetch(allowKeychainPrompt: Bool) async throws -> LimitStatus {
+        let call = lock.withLock { count += 1; return count }
+        guard call == 1 else { throw LimitsError.keychainInteractionNotAllowed }
+        try? await Task.sleep(nanoseconds: 400_000_000)
+        var status = LimitStatus()
+        status.accountEmail = "previous@example.com"
+        return status
+    }
+}
 private struct NoCodex: CodexLimitsProviding {
     func fetch() async throws -> CodexRateLimitStatus? { nil }
 }
@@ -87,5 +102,24 @@ final class ClaudeLimitsReadOrderTests: XCTestCase {
         await manual.value
         XCTAssertEqual(store.limits?.accountEmail, "approved@example.com")
         XCTAssertTrue(store.limitsAvailable)
+    }
+
+    /// [Regression] A manual read's failure leads as its answer would: an older poll landing after it showed the
+    /// previous account's limits and wiped the error the player had just asked for.
+    func testAnOlderPollDoesNotOverwriteAManualFailure() async throws {
+        let suite = "limits-order-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        addTeardownBlock { defaults.removePersistentDomain(forName: suite) }
+        let claude = SlowPollThenFailingManual()
+        let store = UsageStore(providers: [], claudeLimitsProvider: claude, codexLimitsProvider: NoCodex(),
+                               antigravityLimitsProvider: NoAntigravity(), statusProvider: NoStatus(),
+                               autoRefresh: false, defaults: defaults)
+        let poll = Task { await store.refresh(scheduleEmptyRetry: false) }
+        for _ in 0..<200 where claude.calls < 1 { try await Task.sleep(nanoseconds: 10_000_000) }
+        await store.refreshLimitTokenFromKeychain()
+        XCTAssertNotNil(store.limitTokenRefreshError, "the manual read failed")
+        await poll.value
+        XCTAssertNil(store.limits?.accountEmail, "the older answer is left out")
+        XCTAssertNotNil(store.limitTokenRefreshError, "and the error stays")
     }
 }

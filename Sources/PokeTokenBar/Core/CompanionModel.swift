@@ -1858,15 +1858,18 @@ struct CompanionState: Codable, Sendable, Equatable {
 
     /// The years kept before the events and the birthday were counted in the Gregorian calendar were the system
     /// calendar's: 2569 on a Mac in the Buddhist calendar held the birthday gift back 543 years, 8 in the Japanese one
-    /// gave it and the season's eggs twice. A year that no Gregorian year of the app can be is read in `recorded`, the
-    /// calendar it was most likely counted in, at the middle of that year, and is never after this one: a claim is past.
+    /// gave it and the season's eggs twice. A year that no Gregorian year of the app can be (the gift came on 2026-10-26,
+    /// the events the day after: never before 2026) is read in `recorded`, the calendar it was most likely counted in, at
+    /// the middle of that year, and is never after this one: a claim is past.
     mutating func convertCalendarYears(recordedIn recorded: Calendar, now: Date) {
         guard recorded.identifier != .gregorian else { return }
         let gregorian = LocalUsageReader.gregorianCalendar(timeZone: recorded.timeZone)
         let thisYear = gregorian.component(.year, from: now)
         let era = recorded.component(.era, from: now)
+        // Bounded both ways: a clock set years back made `2026...thisYear + 1` an empty range, which traps.
+        let plausible = 2026...max(2026, thisYear + 1)
         func converted(_ year: Int) -> Int {
-            guard !(2000...thisYear + 1).contains(year),
+            guard !plausible.contains(year),
                   let middle = recorded.date(from: DateComponents(era: era, year: year, month: 6, day: 1))
             else { return year }
             return min(gregorian.component(.year, from: middle), thisYear)

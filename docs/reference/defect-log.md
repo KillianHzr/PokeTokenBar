@@ -1255,10 +1255,12 @@ read_when:
   over the new ones. Each Claude limits read takes a number before it waits and writes only if no newer read was
   applied: `testAnOlderPollDoesNotOverwriteANewerRead`.
 
-- **In a read numbering, only an answer may take the lead.** A failure took the newest number as an answer does: a
+- **In a read numbering, decide which failures lead.** A poll's failure took the newest number as an answer does: a
   poll that failed while the manual refresh waited on its Keychain prompt made the approved answer "older" and threw
-  it away. **Why missed:** the test had an older read answering late, never a newer one failing early. A failure is
-  written only when no newer answer came, and does not lead (`testAPollThatFailsDoesNotThrowAwayTheManualRead`).
+  it away. **Why missed:** the test had an older read answering late, never a newer one failing early. A poll's
+  failure no longer leads; a manual read's still does, or an older poll landing after it showed the previous account
+  and wiped the error just asked for (`testAPollThatFailsDoesNotThrowAwayTheManualRead`,
+  `testAnOlderPollDoesNotOverwriteAManualFailure`).
 
 - **Never read `state` on the right of a write into it through an optional chain.** `state.active?.usedAtStage =
   min(..., stageThreshold(for: mon))` begins the write before the right side runs, and `stageThreshold` reads
@@ -1747,7 +1749,9 @@ read_when:
 
 - **A position kept by index points elsewhere once the list changes.** The news strip kept `newsIndex` when an egg
   was claimed: the next egg moved to that place and the note saying where the claimed one went hid behind the arrows.
-  The claim moves the strip to that note (UI closure, no unit test).
+  Jumping to the note's index was not enough: opening the Bag then saw the treasures and removed their page, one
+  place before. The strip keeps the page itself (`newsSelection`), the claims select their note (UI closure, no unit
+  test).
 
 ## 에너지 (상시 표시 애니메이션)
 
@@ -1974,8 +1978,14 @@ read_when:
 - **Changing the unit of a stored value needs its migration.** The events and the birthday moved to the Gregorian
   calendar, but the years saves kept were the system calendar's: a Buddhist 2569 held the birthday gift back 543
   years, a Japanese 8 let it and the season's eggs come twice. **Why missed:** the switch's tests computed new dates;
-  none loaded a save kept before it. The load converts a year no Gregorian year of the app can be
-  (`CompanionState.convertCalendarYears`, `testYearsKeptInAnotherCalendarAreConvertedAtLoad`).
+  none loaded a save kept before it. The load converts a year no Gregorian year of the app can be: none before 2026,
+  when the gift and the events came (an Ethiopic 2019 sat inside a looser 2000 bound), and the range is never empty
+  when the clock is set back (`CompanionState.convertCalendarYears`, `testYearsKeptInAnotherCalendarAreConvertedAtLoad`).
+
+- **A count that is added to is bounded at load.** `sanitized` clamped the token values but no item count: one near
+  Int.max (a hand-edited save, an import) trapped at its next add, the Explorer Kit's treasure among them, at every
+  launch. Item and treasure counts are capped at `SaveTransfer.maxItemCount`, far above any real one, no item dropped
+  (`testAHandEditedCountNoLongerTraps`).
 
 ## 렌더 기하 (스프라이트·이미지)
 
@@ -2154,7 +2164,9 @@ read_when:
   the unrelated chart caption `Daily` as `Dally`; do not teach OCR that misspelling or relax
   the original chart guard to make a period-row regression pass.
 
-- **"Different from main" is not "newer than this build".** A build of `release`, whose commit `main` does not hold,
-  was offered `main`'s head, older; installed, it found the save written by a later build and locked it. **Why
-  missed:** the tests had the installed commit on `main`. A commit not after the installed build's time stops the
-  walk as the installed one does (`testNoCommitOlderThanTheInstalledBuildIsOffered`).
+- **"Different from main", or "newer", is not "after this build".** A build of `release`, whose commit `main` does not
+  hold, was offered `main`'s head: older, it found the save written by a later build and locked it; newer but on
+  another line (#94 merged into `main` alone), its build knew nothing of `release`'s save and wrote over it. **Why
+  missed:** the tests had the installed commit on `main`, and the first fix compared times, which cannot see a
+  diverged line (found by the second review). Only a commit GitHub's `compare/{installed}...{candidate}` calls
+  "ahead" is offered (`UpdateChecker.offered`, `testOnlyACommitTheInstalledOneLeadsToIsOffered`).

@@ -207,7 +207,9 @@ struct PopoverView: View {
     /// The event egg just taken: the banner says where it went until it is dismissed.
     @State private var eventEggTaken: EventEgg?
     /// The news shown in the strip above the tabs (`newsPages`), by its place.
-    @State private var newsIndex = 0
+    /// The news shown, by what it is rather than its place: claiming an egg, then opening the Bag (which sees the
+    /// treasures), moved the pages under an index and showed another.
+    @State private var newsSelection: NewsPage?
 
     var body: some View {
         // NOTE: 설정을 .sheet 로 띄우면 transient 팝오버가 닫힐 때 시트가 고아로 남아
@@ -323,6 +325,7 @@ struct PopoverView: View {
                 Button(l.birthdayClaim) {
                     guard companion.claimBirthdayGift() else { return }
                     birthdayGiftOpened = true
+                    newsSelection = .birthday
                     nav.tab = .bag
                 }
                 .buttonStyle(.borderedProminent).controlSize(.small).tint(.pink)
@@ -366,8 +369,8 @@ struct PopoverView: View {
             Button(l.eventEggClaim) {
                 guard companion.claimEventEgg(egg) else { return }
                 eventEggTaken = egg
-                // The strip keeps its place, which the next egg took: the note saying where this one went hid behind it.
-                newsIndex = newsPages.firstIndex(of: .eventEggTaken) ?? 0
+                // The note saying where this one went, not the next egg that took its place.
+                newsSelection = .eventEggTaken
                 nav.tab = .bag
             }
             .buttonStyle(.borderedProminent).controlSize(.small).tint(colors.0)
@@ -484,19 +487,19 @@ struct PopoverView: View {
     private var newsStrip: some View {
         let pages = newsPages
         if !pages.isEmpty {
-            let index = min(newsIndex, pages.count - 1)
+            let index = newsSelection.flatMap(pages.firstIndex(of:)) ?? 0
             VStack(alignment: .leading, spacing: 4) {
                 if pages.count > 1 {
                     HStack(spacing: 6) {
                         Text(l.newsCount(pages.count)).font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
                         Spacer(minLength: 4)
-                        Button { newsIndex = (index + pages.count - 1) % pages.count } label: {
+                        Button { newsSelection = pages[(index + pages.count - 1) % pages.count] } label: {
                             Image(systemName: "chevron.left").frame(width: 18, height: 14)
                         }
                         .accessibilityLabel(l.recapPrevious)
                         Text(l.newsPosition(index + 1, pages.count))
                             .font(.caption2).foregroundStyle(.secondary).monospacedDigit()
-                        Button { newsIndex = (index + 1) % pages.count } label: {
+                        Button { newsSelection = pages[(index + 1) % pages.count] } label: {
                             Image(systemName: "chevron.right").frame(width: 18, height: 14)
                         }
                         .accessibilityLabel(l.recapNext)
