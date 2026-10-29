@@ -502,7 +502,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .rareCandy, .mint, .shinyCharm, .birthdayEgg, .pokemonEgg, .uncommonEgg, .rareEgg, .fossilEgg: return nil
         case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return nil
         case .rotomCatalog, .cometShard, .redNectar, .smoothRock, .sawsbuckSeasons, .fairyFeather, .furfrouTrims, .vivillonPatterns, .whippedDream, .unownLetters: return .forms
-        case .excavation, .oldAmber: return .evolutionStones   // rocks and stones, side by side
+        case .excavation: return .evolutionStones   // rocks and stones, side by side
         default: return .legendaryArtifacts
         }
     }

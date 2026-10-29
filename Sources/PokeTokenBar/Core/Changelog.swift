@@ -67,6 +67,17 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-29", entries: [
+            .improved("2026-10-29-old-amber-artifacts") { l in
+                let amber = l.itemName(.oldAmber)
+                return l.t("\(KoreanParticle.subject.attach(to: amber)) 업적과 가방에서 다른 유물들과 함께 있어요.",
+                           "The \(amber) now sits with the other artifacts, in the Achievements and in the Bag.",
+                           "\(amber)は実績とバッグで、ほかのどうぐと同じ場所に並びます。",
+                           "El \(amber) está ahora con los demás objetos, en los logros y en la bolsa.",
+                           "Le \(amber) est maintenant avec les autres artefacts, dans les succès et dans le sac.",
+                           "O \(amber) agora fica com os outros objetos, nas conquistas e na bolsa.",
+                           "Der \(amber) liegt jetzt bei den anderen Artefakten, in den Erfolgen und im Beutel.",
+                           "\"\(amber)\" теперь вместе с другими реликвиями: в успехах и в сумке.")
+            },
             .new("2026-10-29-explorer-kit") { l in
                 let kit = l.itemName(.explorerKit)
                 return l.t("새 업적 \(kit): 땅속 탐험가 다섯 마리(모두 희귀)와 히드런을 졸업시키면 받아요. 그다음엔 포켓몬을 5마리 졸업시킬 때마다 보물을 발굴하고, 소식 맨 앞에 떠요.",
