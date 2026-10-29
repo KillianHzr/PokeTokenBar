@@ -366,6 +366,8 @@ struct PopoverView: View {
             Button(l.eventEggClaim) {
                 guard companion.claimEventEgg(egg) else { return }
                 eventEggTaken = egg
+                // The strip keeps its place, which the next egg took: the note saying where this one went hid behind it.
+                newsIndex = newsPages.firstIndex(of: .eventEggTaken) ?? 0
                 nav.tab = .bag
             }
             .buttonStyle(.borderedProminent).controlSize(.small).tint(colors.0)

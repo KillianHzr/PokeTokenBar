@@ -715,6 +715,11 @@ read_when:
   ("abc1234을"). An id or a version is read character by character, so its last one decides
   (`testAnIdentifierEndsAsItIsRead`); other Latin words keep the paired form.
 
+- **A line can branch: count one branch, not all of them.** `activeGoals` counted every species still ahead
+  (`activeNews.newSpecies`, every branch): an Eevee showed "+4" for Kanto's Legendary Egg, where graduating it adds 2.
+  **Why missed:** the test's Larvitar line has no branch. A goal counts the branch that advances it most
+  (`testABranchedLineCountsOneBranch`).
+
 ## 외부 로그·사용량 소스
 
 - **토큰 파일 파서는 외부 도구의 실제 직렬화 구조체(중첩 객체)를 반영해야 한다.** `jetski-standalone-oauth-token`
@@ -1210,6 +1215,12 @@ read_when:
   진짜 계정을 먼저 찌르면, 첫 조회에서 바로 유효 토큰(`claudeAiOauth`)을 찾아 루프를 끝내므로 2회차 암호 창이 원천 소멸한다.
   가드: `testPrioritizedAccountNamesPlacesCurrentUserNameFirstAndUnknownLast`·`testPrioritizedAccountNamesFullHierarchy`.
 
+- **A wait tied to an input ends when the input changes.** The session key's wait after a 429 outlived the key: a
+  key saved during it was skipped for up to an hour, and with the key cleared the wait read as a key there, so the
+  manual refresh could not open the Keychain. **Why missed:** the test covered the wait, not a key changed during it.
+  Saving, clearing or moving the key to another organization ends it (`sessionKeyChanged`,
+  `testAChangedSessionKeyDoesNotWait`).
+
 ## 동시성
 
 - **비동기 완료가 "그 사이 교체된 대상"에 착지하지 않게 하라 — 상태를 통째로 바꾸는 경로를 새로 만들면
@@ -1230,6 +1241,11 @@ read_when:
   manual refresh after `/login` to another account: the poll answered last and wrote the previous account's limits
   over the new ones. Each Claude limits read takes a number before it waits and writes only if no newer read was
   applied: `testAnOlderPollDoesNotOverwriteANewerRead`.
+
+- **In a read numbering, only an answer may take the lead.** A failure took the newest number as an answer does: a
+  poll that failed while the manual refresh waited on its Keychain prompt made the approved answer "older" and threw
+  it away. **Why missed:** the test had an older read answering late, never a newer one failing early. A failure is
+  written only when no newer answer came, and does not lead (`testAPollThatFailsDoesNotThrowAwayTheManualRead`).
 
 ## 프로세스·인스턴스
 
@@ -1710,6 +1726,10 @@ read_when:
   each still comes from a GIF: on an empty cache the first opening downloaded the whole Pokédex. Only the neighboring
   pages are prefetched (`testPrefetchStartsNextToThePageShown`).
 
+- **A position kept by index points elsewhere once the list changes.** The news strip kept `newsIndex` when an egg
+  was claimed: the next egg moved to that place and the note saying where the claimed one went hid behind the arrows.
+  The claim moves the strip to that note (UI closure, no unit test).
+
 ## 에너지 (상시 표시 애니메이션)
 
 - **절전용 정지 상태는 짝 알림 하나에만 복구를 맡기지 마라.** `screensDidSleep` 이 폴링 타이머를 끄고
@@ -1919,6 +1939,25 @@ read_when:
   the import refuses: the promised undo did not exist. An import keeps it as a snapshot, which Settings restores
   (`testAnImportKeepsTheReplacedStateAsASnapshot`).
 
+- **A lock covers every write, not only the save file.** Under `saveLock` the state is a fresh or a lossy one: the
+  automatic snapshot after each refresh still wrote it every 12 hours and pushed the real snapshots out of the ten
+  kept, and a restore took its safety snapshot before the lock refused it. **Why missed:** the lock tests compared the
+  save's bytes and `savesWritten`; the snapshots are another file, written by another call after `save()`. When a
+  guard protects data, list every path that writes it. `createManualSnapshot`, `restoreSnapshot` and `applySave`
+  throw `.saveLocked` (`testALockedSaveWritesNoSnapshot`).
+
+- **Order builds by an instant, never by a local date string.** `SaveWriter.isNewer` compared the commit dates
+  `build-app.sh` printed in each committer's zone: a commit made in Seoul at 09:00 read as later than one made after
+  it in Paris at 08:30, and locked the later build's save. **Why missed:** the test writers' dates came from one zone.
+  The build stamps `PTBCommitTime` (`%ct`) and builds are ordered by it only; a save without it is written as before
+  (`testBuildsAreOrderedByTimeNotByTheirLocalDates`).
+
+- **Changing the unit of a stored value needs its migration.** The events and the birthday moved to the Gregorian
+  calendar, but the years saves kept were the system calendar's: a Buddhist 2569 held the birthday gift back 543
+  years, a Japanese 8 let it and the season's eggs come twice. **Why missed:** the switch's tests computed new dates;
+  none loaded a save kept before it. The load converts a year no Gregorian year of the app can be
+  (`CompanionState.convertCalendarYears`, `testYearsKeptInAnotherCalendarAreConvertedAtLoad`).
+
 ## 렌더 기하 (스프라이트·이미지)
 
 - **`.resizable()` + `.frame(w:h:)` 는 "맞춤"이 아니라 "늘여 채움"이다.** 대조 없이 정사각 프레임에 넣으면
@@ -2095,3 +2134,8 @@ read_when:
   On the same CI image, English-only recognition corrected the period label but still read
   the unrelated chart caption `Daily` as `Dally`; do not teach OCR that misspelling or relax
   the original chart guard to make a period-row regression pass.
+
+- **"Different from main" is not "newer than this build".** A build of `release`, whose commit `main` does not hold,
+  was offered `main`'s head, older; installed, it found the save written by a later build and locked it. **Why
+  missed:** the tests had the installed commit on `main`. A commit not after the installed build's time stops the
+  walk as the installed one does (`testNoCommitOlderThanTheInstalledBuildIsOffered`).

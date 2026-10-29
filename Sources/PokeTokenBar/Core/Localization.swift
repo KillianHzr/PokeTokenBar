@@ -916,8 +916,20 @@ struct L {
         case SaveTransferError.newerSchema:   return importErrorNewerSchema
         case SaveTransferError.fileTooLarge:  return importErrorTooLarge
         case SaveTransferError.backupFailed:  return importErrorBackupFailed
+        case SaveTransferError.saveLocked:    return importErrorSaveLocked
         default: return userFacingError(error)
         }
+    }
+    /// The save is locked (`CompanionStore.SaveLock`): the banner above the tabs says why.
+    var importErrorSaveLocked: String {
+        t("저장 파일이 잠겨 있어 스냅샷을 포함해 아무것도 쓰지 않아요. 이유는 탭 위의 안내에 있어요.",
+          "Your save is locked, so nothing is written, snapshots included. The message above the tabs says why.",
+          "セーブがロックされているため、スナップショットも含めて何も書き込みません。理由はタブの上の案内にあります。",
+          "Tu partida está bloqueada, así que no se escribe nada, ni siquiera las instantáneas. El mensaje sobre las pestañas explica por qué.",
+          "Ta sauvegarde est verrouillée : rien n'est écrit, instantanés compris. Le message au-dessus des onglets dit pourquoi.",
+          "Seu salvamento está bloqueado, então nada é gravado, nem os instantâneos. A mensagem acima das abas diz por quê.",
+          "Dein Spielstand ist gesperrt, daher wird nichts gespeichert, auch keine Snapshots. Die Meldung über den Tabs sagt, warum.",
+          "Сохранение заблокировано, поэтому ничего не записывается, даже снимки. Причина указана в сообщении над вкладками.")
     }
     var importErrorTooLarge: String {
         t("세이브 파일이라기엔 너무 커요. 다른 파일을 고른 것 같아요.",

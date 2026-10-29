@@ -39,6 +39,18 @@ final class ActiveGoalsTests: XCTestCase {
         XCTAssertTrue(sentence.contains("+3"))
     }
 
+    /// [Regression] Graduated, an Eevee keeps one branch: it counted Vaporeon, Jolteon and Flareon at once, "+4" for
+    /// Kanto's Legendary Egg where it brings 2. The branch that advances a goal most counts.
+    func testABranchedLineCountsOneBranch() throws {
+        let eevee = MonState(baseID: 133, pathIDs: [133], plannedPathIDs: [133, 134], stageIndex: 0, usedAtStage: 0,
+                             rarity: .uncommon, totalForms: 2)
+        let s = try store(active: eevee)
+        let kanto = try XCTUnwrap(s.activeGoals.first { $0.item == .legendaryEgg && $0.generation == 1 })
+        XCTAssertEqual(kanto.gain, 2, "Eevee and one of its Kanto evolutions")
+        let water = try XCTUnwrap(ItemKind.allCases.first { $0.badgeType == .water })
+        XCTAssertEqual(s.activeGoals.first { $0.item == water && $0.generation == 1 }?.gain, 1, "Vaporeon")
+    }
+
     /// Nothing new, nothing shown: its line graduated already.
     func testADuplicateCountsForNothing() throws {
         let had = DexEntry(baseID: 246, finalID: 248, chainOrder: [246, 247, 248], rarity: .rare, caughtAt: nil)

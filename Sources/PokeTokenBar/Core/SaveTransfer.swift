@@ -49,6 +49,8 @@ enum SaveTransferError: Error, Equatable {
     case fileTooLarge(bytes: Int, limit: Int)
     /// 덮어쓰기 전 백업을 못 남겼다 — 확인창이 약속한 복구 수단이 없으므로 불러오기를 중단한다.
     case backupFailed
+    /// The save is locked (`CompanionStore.SaveLock`): nothing is written, snapshots included, until it reads.
+    case saveLocked
 }
 
 /// 불러오기 확인창의 버튼 배치 규칙. AppKit 밖으로 빼둔 이유는 이 규칙이 **데이터 손실과 직결**되는데

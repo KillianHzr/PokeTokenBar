@@ -1174,7 +1174,7 @@ struct SettingsView: View {
             presentAlert(title: l.createSnapshotButton, message: l.snapshotCreatedToast, style: .informational)
         } catch {
             AppLog.write("manual snapshot creation failed: \(error)")
-            presentAlert(title: l.createSnapshotButton, message: l.userFacingError(error), style: .warning)
+            presentAlert(title: l.createSnapshotButton, message: l.importErrorMessage(error), style: .warning)
         }
     }
 

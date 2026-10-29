@@ -1316,22 +1316,31 @@ struct DexEntry: Codable, Sendable, Identifiable, Equatable {
     }
 }
 
-/// A build of the app: its commit and that commit's date ("yyyy-MM-dd HH:mm", which sorts by time), from its
-/// Info.plist (`scripts/build-app.sh`). Nil for a build without them (`swift run`, the tests).
+/// A build of the app: its commit, that commit's date ("yyyy-MM-dd HH:mm" in the committer's time zone, for people)
+/// and its time in seconds since 1970 (to order builds), from its Info.plist (`scripts/build-app.sh`). Nil for a build
+/// without them (`swift run`, the tests).
 struct SaveWriter: Codable, Equatable, Sendable {
     var commit: String
     var date: String
+    /// nil in a save the first builds that stamped it wrote.
+    var time: Int?
 
     static let current: SaveWriter? = {
         guard let commit = Bundle.main.object(forInfoDictionaryKey: "PTBCommitSHA") as? String,
               !commit.isEmpty, commit != "unknown",
               let date = Bundle.main.object(forInfoDictionaryKey: "PTBCommitDate") as? String, !date.isEmpty
         else { return nil }
-        return SaveWriter(commit: commit, date: date)
+        let time = (Bundle.main.object(forInfoDictionaryKey: "PTBCommitTime") as? String).flatMap { Int($0) }
+        return SaveWriter(commit: commit, date: date, time: time)
     }()
 
-    /// Whether a save this writer wrote comes from a build later than `build`.
-    func isNewer(than build: SaveWriter) -> Bool { commit != build.commit && date > build.date }
+    /// Whether a save this writer wrote comes from a build later than `build`. By time only: the dates are each in
+    /// their committer's zone, and a commit made in Seoul read as later than one made after it in Paris. Without both
+    /// times, not newer: the save is written, as it was before the stamp.
+    func isNewer(than build: SaveWriter) -> Bool {
+        guard let time, let other = build.time else { return false }
+        return commit != build.commit && time > other
+    }
 }
 
 /// 배열 항목별 격리 디코딩 래퍼 — 손상된 한 항목이 배열 전체(및 상위 상태) 디코드를 실패시키지 않게.
@@ -1797,6 +1806,29 @@ struct CompanionState: Codable, Sendable, Equatable {
             representativeSpeciesID = nil
             representativeForm = nil
         }
+    }
+
+    /// The years kept before the events and the birthday were counted in the Gregorian calendar were the system
+    /// calendar's: 2569 on a Mac in the Buddhist calendar held the birthday gift back 543 years, 8 in the Japanese one
+    /// gave it and the season's eggs twice. A year that no Gregorian year of the app can be is read in `recorded`, the
+    /// calendar it was most likely counted in, at the middle of that year, and is never after this one: a claim is past.
+    mutating func convertCalendarYears(recordedIn recorded: Calendar, now: Date) {
+        guard recorded.identifier != .gregorian else { return }
+        let gregorian = LocalUsageReader.gregorianCalendar(timeZone: recorded.timeZone)
+        let thisYear = gregorian.component(.year, from: now)
+        let era = recorded.component(.era, from: now)
+        func converted(_ year: Int) -> Int {
+            guard !(2000...thisYear + 1).contains(year),
+                  let middle = recorded.date(from: DateComponents(era: era, year: year, month: 6, day: 1))
+            else { return year }
+            return min(gregorian.component(.year, from: middle), thisYear)
+        }
+        if let year = lastBirthdayGiftYear { lastBirthdayGiftYear = converted(year) }
+        if let year = birthdayChangedAfterGiftYear { birthdayChangedAfterGiftYear = converted(year) }
+        claimedEventEggs = Set(claimedEventEggs.map { key in
+            guard let at = key.lastIndex(of: "@"), let year = Int(key[key.index(after: at)...]) else { return key }
+            return "\(key[..<at])@\(converted(year))"
+        })
     }
 }
 

@@ -30,6 +30,13 @@ enum LimitsError: Error, Equatable {
 /// Claude 한도 조회 추상화 — 실 구현(OAuthLimitsProvider) 또는 테스트 스텁 주입.
 protocol ClaudeLimitsProviding: Sendable {
     func fetch(allowKeychainPrompt: Bool) async throws -> LimitStatus
+    /// The session key was saved, cleared or moved to another organization: a wait a 429 of the previous one set is
+    /// over (`ChainedLimitsProvider`).
+    func sessionKeyChanged()
+}
+
+extension ClaudeLimitsProviding {
+    func sessionKeyChanged() {}
 }
 
 /// 공식 한도 % 조회 — Claude Code 자격증명(Keychain)의 OAuth 토큰으로 usage endpoint 호출.

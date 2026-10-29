@@ -780,12 +780,21 @@ final class CompanionStore {
     var activeGoals: [ActiveGoal] {
         guard let a = state.active, let news = activeNews, !news.newSpecies.isEmpty else { return [] }
         let new = Set(news.newSpecies)
+        // Graduated, it keeps one branch of its line: an Eevee counted Vaporeon, Jolteon and Flareon at once (+4 for
+        // Kanto, where it brings 2). A goal counts the branch that advances it most.
+        var branches: [Set<Int>] = []
+        func walk(_ id: Int, _ path: [Int]) {
+            let children = PokemonEvolutionData.children(of: id, form: a.form).filter { !path.contains($0) }
+            if children.isEmpty { branches.append(Set(path).intersection(new)) }
+            for child in children { walk(child, path + [child]) }
+        }
+        walk(a.currentID, Array(a.pathIDs.prefix(a.stageIndex + 1)))
         let registered = graduatedSpeciesIDs
         var goals: [ActiveGoal] = []
-        func consider(_ item: ItemKind, _ generation: Int?, _ progress: GoalProgress, counted: Set<Int>) {
+        func consider(_ item: ItemKind, _ generation: Int?, _ progress: GoalProgress, counted: [Set<Int>]) {
             guard !progress.isMet else { return }
-            let gain = min(Set(progress.goal.species).subtracting(progress.registered).intersection(counted).count,
-                           progress.goal.needed - progress.count)
+            let missing = Set(progress.goal.species).subtracting(progress.registered)
+            let gain = min(counted.map { missing.intersection($0).count }.max() ?? 0, progress.goal.needed - progress.count)
             guard gain > 0 else { return }
             goals.append(ActiveGoal(item: item, generation: generation, gain: gain, count: progress.count,
                                     needed: progress.goal.needed))
@@ -793,13 +802,13 @@ final class CompanionStore {
         for kind in Self.achievementItems {
             if kind == .excavation {
                 // The digs add up: only the next one counts, with the species that are Rock in this form.
-                let rock = new.filter { PokemonTypeData.types(forSpeciesID: $0, form: a.form).contains(.rock) }
+                let rock = branches.map { $0.filter { PokemonTypeData.types(forSpeciesID: $0, form: a.form).contains(.rock) } }
                 if let next = regionTiers(.excavation).first(where: { !$0.isDone && !$0.progress.isMet }) {
                     consider(kind, next.generation, next.progress, counted: rock)
                 }
             } else if kind.isRegional {
                 for tier in regionTiers(kind, registered: registered) where !tier.isDone {
-                    consider(kind, tier.generation, tier.progress, counted: new)
+                    consider(kind, tier.generation, tier.progress, counted: branches)
                 }
             } else if !isClaimed(kind), !isUnlocked(kind, registered: registered) {
                 if case .forms(let goal)? = kind.unlock, new.contains(goal.speciesID) {
@@ -811,7 +820,7 @@ final class CompanionStore {
                 // Any one goal unlocks it: the one this Pokémon advances most.
                 let before = goals.count
                 for progress in unlockProgress(of: kind, registered: registered) {
-                    consider(kind, nil, progress, counted: new)
+                    consider(kind, nil, progress, counted: branches)
                 }
                 if goals.count - before > 1 {
                     let best = goals[before...].max { $0.gain < $1.gain || ($0.gain == $1.gain && $0.count < $1.count) }!
@@ -4046,7 +4055,7 @@ final class CompanionStore {
     /// copy beside the save (`backupStateBeforeImport`) is a bare state the import refuses. A restore made its own.
     func applySave(_ envelope: SaveEnvelope, todayTokensByProvider: [String: Int], todayDate: String,
                    hasUsageData: Bool, snapshotFirst: Bool = true) throws {
-        guard saveLock == nil else { throw SaveTransferError.backupFailed }
+        guard saveLock == nil else { throw SaveTransferError.saveLocked }
         try backupStateBeforeImport()
         if snapshotFirst {
             do { try createManualSnapshot() } catch { AppLog.write("save import: no snapshot of the state replaced: \(error)") }
@@ -4117,7 +4126,10 @@ final class CompanionStore {
     }
 
     @discardableResult
+    /// Refused while the save is locked (`saveLock`): the state then is a fresh or a lossy one, and each snapshot of it
+    /// pushed one of the real ones out of the ten kept.
     func createManualSnapshot(now: Date? = nil) throws -> SaveSnapshot {
+        guard saveLock == nil else { throw SaveTransferError.saveLocked }
         let timestamp = now ?? clock()
         let snapshot = try SaveSnapshotManager.createSnapshot(
             state: state,
@@ -4161,6 +4173,7 @@ final class CompanionStore {
         // Read and validate the selected snapshot before taking the safety snapshot: at the retention
         // limit, that extra file prunes the oldest one, which may be the snapshot being restored.
         // A snapshot that no longer decodes also fails here, before anything is written or pruned.
+        guard saveLock == nil else { throw SaveTransferError.saveLocked }
         let envelope = try SaveSnapshotManager.loadEnvelope(from: snapshot.fileURL)
         _ = try? createManualSnapshot()
         try applySave(envelope,
@@ -4357,6 +4370,7 @@ final class CompanionStore {
 
             if let recovered = SaveSnapshotManager.loadLatestValidSnapshot(for: fileURL) {
                 state = SaveTransfer.sanitized(recovered)
+                state.convertCalendarYears(recordedIn: Calendar.current, now: clock())
                 AppLog.write("automatically recovered companion state from snapshot")
                 save()
             } else {
@@ -4369,6 +4383,7 @@ final class CompanionStore {
         // 극단값은 그대로 남아, 앱이 매 기동마다 같은 값을 읽어 산술 트랩으로 죽는 상태를 못 벗어난다
         // (디코드는 *성공*하므로 위의 .corrupt 복구도 발동하지 않는다). 여기서 걸면 자가 복구된다.
         state = SaveTransfer.sanitized(s)
+        state.convertCalendarYears(recordedIn: Calendar.current, now: clock())
         if let saved = s.writer, let writer, saved.isNewer(than: writer) {
             saveLock = .newerBuild(commit: String(saved.commit.prefix(7)))
             AppLog.write("companion state written by a later build \(saved.commit.prefix(7)) (\(saved.date)), this one "

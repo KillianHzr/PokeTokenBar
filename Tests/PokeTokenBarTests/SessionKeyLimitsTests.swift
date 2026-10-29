@@ -527,6 +527,22 @@ final class SessionKeyLimitsTests: XCTestCase {
         XCTAssertFalse(chain.primaryBackoff.isWaiting(now: Date().addingTimeInterval(301)), "five minutes, then again")
     }
 
+    /// [Regression] The wait was the key's, not the next one's: a key saved during it was skipped for up to an hour,
+    /// and with the key cleared the wait read as a key there, so the manual refresh could not open the Keychain.
+    func testAChangedSessionKeyDoesNotWait() async throws {
+        let primary = SwitchablePrimary()
+        let fallback = RecordingOAuthLimits(status: limitStatus(fiveHour: 42))
+        let chain = ChainedLimitsProvider(primary: primary, fallback: fallback)
+        _ = try await chain.fetch(allowKeychainPrompt: false)
+        XCTAssertTrue(chain.primaryBackoff.isWaiting())
+
+        primary.cleared = true
+        chain.sessionKeyChanged()
+        _ = try await chain.fetch(allowKeychainPrompt: true)
+        XCTAssertEqual(primary.calls, 2, "asked again at once")
+        XCTAssertEqual(fallback.seenAllowPrompt.last, true, "no key: the manual refresh opens the Keychain as before")
+    }
+
     func testChainFallsBackToOAuthWhenNoSessionKeyStored() async throws {
         let http = StubSessionKeyHTTP([:])
         let chain = ChainedLimitsProvider(
@@ -645,6 +661,18 @@ final class SessionKeyStoreLocationTests: XCTestCase {
 }
 
 /// A session key that answers 429, counting its calls.
+/// A key answering 429, then none once `cleared`.
+private final class SwitchablePrimary: ClaudeLimitsProviding, @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+    var cleared = false
+    var calls: Int { lock.withLock { count } }
+    func fetch(allowKeychainPrompt: Bool) async throws -> LimitStatus {
+        lock.withLock { count += 1 }
+        throw cleared ? LimitsError.sessionKeyMissing : LimitsError.rateLimited(retryAfter: nil)
+    }
+}
+
 private final class RateLimitedPrimary: ClaudeLimitsProviding, @unchecked Sendable {
     private let lock = NSLock()
     private var count = 0

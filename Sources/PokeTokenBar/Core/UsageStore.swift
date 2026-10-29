@@ -1306,7 +1306,7 @@ final class UsageStore {
                 AppLog.write("limits refreshed fiveHour=\(limits?.fiveHour?.utilization?.description ?? "nil") sevenDay=\(limits?.sevenDay?.utilization?.description ?? "nil")")
             } catch is CancellationError {
                 AppLog.write("claude limits: a newer read came first, this poll's answer is left out")
-            } catch where !applyClaudeLimitsFetch(fetch) {   // a failure is written by the newest read only, too
+            } catch where !claudeLimitsFailureApplies(fetch) {   // nor a failure, after a newer answer
                 AppLog.write("claude limits: a newer read came first, this poll's failure is left out")
             } catch {
                 // 비공식 endpoint 실패 → 섹션 숨김, 토큰 표시는 무영향
@@ -1333,8 +1333,9 @@ final class UsageStore {
     }
 
     /// Claude limit reads overlap: a poll waiting on the network, then a manual refresh after `/login` to another
-    /// account. Each read takes a number before it waits, and one that ends after a newer read was applied is left
-    /// out, or the older answer (the previous account's) overwrote the newer one.
+    /// account. Each read takes a number before it waits, and one that ends after a newer read's answer was applied is
+    /// left out, or the older answer (the previous account's) overwrote the newer one. Only an answer takes the lead: a
+    /// poll that failed while the manual read waited on its Keychain prompt threw the manual read's answer away.
     @ObservationIgnored private var claudeLimitsFetchesStarted = 0
     @ObservationIgnored private var claudeLimitsFetchApplied = 0
 
@@ -1343,12 +1344,15 @@ final class UsageStore {
         return claudeLimitsFetchesStarted
     }
 
-    /// Whether the read numbered `fetch` may write its answer, which it then owns.
+    /// Whether the read numbered `fetch` may write its answer, which then leads.
     private func applyClaudeLimitsFetch(_ fetch: Int) -> Bool {
         guard fetch > claudeLimitsFetchApplied else { return false }
         claudeLimitsFetchApplied = fetch
         return true
     }
+
+    /// Whether the read numbered `fetch` may write its failure: no newer answer came first. It does not lead.
+    private func claudeLimitsFailureApplies(_ fetch: Int) -> Bool { fetch > claudeLimitsFetchApplied }
 
     func refreshLimitTokenFromKeychain() async {
         guard !isRefreshingLimitToken else { return }
@@ -1370,7 +1374,7 @@ final class UsageStore {
             AppLog.write("limits refreshed from keychain by user action")
         } catch is CancellationError {
             AppLog.write("limits user refresh: a newer read came first, its answer is left out")
-        } catch where !applyClaudeLimitsFetch(fetch) {
+        } catch where !claudeLimitsFailureApplies(fetch) {
             AppLog.write("limits user refresh: a newer read came first, its failure is left out")
         } catch {
             limitTokenRefreshFailure = error
@@ -1744,6 +1748,8 @@ final class UsageStore {
                 throw LimitsError.sessionKeyNoOrganization
             }
             try keys.save(key: key, organizationID: picked.id)
+            additionalProviders[root.path]?.sessionKeyChanged()
+            additionalBackoff[root.path] = nil
             accountSessionKeyPaths.insert(rootPath)
             AppLog.write("account session key saved (\(root.lastPathComponent), orgs=\(organizations.count))")
             await refresh()
@@ -1756,6 +1762,8 @@ final class UsageStore {
     func clearAccountSessionKey(for rootPath: String) {
         let root = URL(fileURLWithPath: rootPath)
         accountSessionKeys(root).clear()
+        additionalProviders[root.path]?.sessionKeyChanged()
+        additionalBackoff[root.path] = nil
         accountSessionKeyPaths.remove(rootPath)
         accountSessionKeyFailures[rootPath] = nil
         // An expiry that was the key's goes with it: the folder's token decides again at the next refresh.
@@ -1808,6 +1816,7 @@ final class UsageStore {
                 throw LimitsError.sessionKeyNoOrganization
             }
             try sessionKeys.save(key: key, organizationID: picked.id)
+            sessionKeyChanged()
             sessionKeyOrganizations = organizations
             sessionKeySelectedOrgID = picked.id
             sessionKeyConfigured = true
@@ -1838,6 +1847,7 @@ final class UsageStore {
 
     func clearSessionKey() {
         sessionKeys.clear()
+        sessionKeyChanged()
         sessionKeyConfigured = false
         sessionKeyOrganizations = []
         sessionKeySelectedOrgID = nil
@@ -1846,11 +1856,18 @@ final class UsageStore {
         Task { await refresh() }   // OAuth 경로로 되돌아간다(또는 한도 섹션을 숨긴다)
     }
 
+    /// A 429 answered the previous key: the new one, or the Keychain without one, is asked at once.
+    private func sessionKeyChanged() {
+        limitsProvider.sessionKeyChanged()
+        resetLimitsBackoff()
+    }
+
     /// 조직 수동 교체 — 자동 선택이 회사/개인 계정을 잘못 고른 경우.
     func selectSessionOrganization(_ id: String) async {
         guard let credential = sessionKeys.credential(), credential.organizationID != id else { return }
         do {
             try sessionKeys.save(key: credential.key, organizationID: id)
+            sessionKeyChanged()
             sessionKeySelectedOrgID = id
             AppLog.write("session key org switched to \(id)")
             await refresh()

@@ -34,11 +34,14 @@ final class UpdateChecker {
         let sha: String
         let message: String
         let url: String
+        /// When it was committed, in seconds since 1970: nil when GitHub's answer has no date.
+        let time: Int?
 
-        init(sha: String, message: String = "", url: String) {
+        init(sha: String, message: String = "", url: String, time: Int? = nil) {
             self.sha = sha
             self.message = message
             self.url = url
+            self.time = time
         }
 
         // Backwards compatibility alias for tests
@@ -46,6 +49,7 @@ final class UpdateChecker {
             self.sha = tag
             self.message = ""
             self.url = url
+            self.time = nil
         }
     }
 
@@ -91,7 +95,10 @@ final class UpdateChecker {
         self.clock = clock
         self.defaults = defaults
         let installed = self.currentCommit
-        self.fetchLatest = fetchLatest ?? { await Self.liveLatestGreenCommit(repo: "KillianHzr/PokeTokenLBI", current: installed) }
+        let installedTime = (Bundle.main.object(forInfoDictionaryKey: "PTBCommitTime") as? String).flatMap { Int($0) }
+        self.fetchLatest = fetchLatest ?? {
+            await Self.liveLatestGreenCommit(repo: "KillianHzr/PokeTokenLBI", current: installed, installedTime: installedTime)
+        }
         self.updateStatusURL = updateStatusURL
         updateError = Self.recentUpdateError(at: updateStatusURL, now: clock())
     }
@@ -173,16 +180,19 @@ final class UpdateChecker {
 
     /// The newest commit of `main` whose CI passed: a commit whose checks failed, or still run, was offered and
     /// installed all the same (a red one on 15/10). The installed commit stops the walk: nothing older is offered.
-    private nonisolated static func liveLatestGreenCommit(repo: String, current: String) async -> LatestCommit? {
+    private nonisolated static func liveLatestGreenCommit(repo: String, current: String,
+                                                         installedTime: Int?) async -> LatestCommit? {
         guard let json = await githubJSON("https://api.github.com/repos/\(repo)/commits?sha=main&per_page=10"),
               let list = json as? [[String: Any]] else { return nil }
         let commits = list.compactMap { item -> LatestCommit? in
             guard let sha = item["sha"] as? String, let html = item["html_url"] as? String else { return nil }
-            let message = ((item["commit"] as? [String: Any])?["message"] as? String)?
-                .components(separatedBy: .newlines).first ?? ""
-            return LatestCommit(sha: sha, message: message, url: html)
+            let commit = item["commit"] as? [String: Any]
+            let message = (commit?["message"] as? String)?.components(separatedBy: .newlines).first ?? ""
+            let date = ((commit?["committer"] as? [String: Any])?["date"] as? String)
+                .flatMap { ISO8601DateFormatter().date(from: $0) }
+            return LatestCommit(sha: sha, message: message, url: html, time: date.map { Int($0.timeIntervalSince1970) })
         }
-        return await firstGreen(commits, current: current) { sha in
+        return await firstGreen(commits, current: current, installedTime: installedTime) { sha in
             (await githubJSON("https://api.github.com/repos/\(repo)/commits/\(sha)/check-runs") as? [String: Any])?["check_runs"]
                 as? [[String: Any]]
         }
@@ -190,10 +200,16 @@ final class UpdateChecker {
 
     /// The first of `commits` (newest first) whose check runs all passed, or the installed one when it comes first.
     /// `checkRuns` nil: the request failed, so nothing is offered rather than a commit not known to pass.
-    nonisolated static func firstGreen(_ commits: [LatestCommit], current: String,
+    /// `installedTime`: the installed build's commit time. A build of a commit `main` does not hold yet (`release`)
+    /// was offered `main`'s head, older, which then found the save written by a later build and locked it: a commit
+    /// not after it stops the walk as the installed one does, returned as the installed one.
+    nonisolated static func firstGreen(_ commits: [LatestCommit], current: String, installedTime: Int? = nil,
                                        checkRuns: (String) async -> [[String: Any]]?) async -> LatestCommit? {
         for commit in commits {
             if current.count >= 7, commit.sha.hasPrefix(current) { return commit }
+            if let installedTime, let time = commit.time, time <= installedTime, current.count >= 7 {
+                return LatestCommit(sha: current, message: commit.message, url: commit.url, time: installedTime)
+            }
             guard let runs = await checkRuns(commit.sha) else { return nil }
             if isGreen(runs) { return commit }
         }

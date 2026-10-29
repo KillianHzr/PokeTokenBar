@@ -133,6 +133,39 @@ final class UpdateCheckerTests: XCTestCase {
         XCTAssertFalse(UpdateChecker.isGreen([]), "no check at all is not a pass")
     }
 
+    /// [Regression] A build of `release`, whose commit `main` does not hold, was offered `main`'s head, older: installed,
+    /// it found the save written by a later build and locked it. Nothing committed before the installed build is
+    /// offered; a later green commit still is.
+    func testNoCommitOlderThanTheInstalledBuildIsOffered() async {
+        let green: [[String: Any]] = [["status": "completed", "conclusion": "success"]]
+        let installed = "d" + String(repeating: "0", count: 39)
+        let older = UpdateChecker.LatestCommit(sha: "a" + String(repeating: "0", count: 39),
+                                               url: "https://github.com/KillianHzr/PokeTokenLBI/commit/a", time: 1_000)
+        let picked = await UpdateChecker.firstGreen([older], current: installed, installedTime: 2_000) { _ in green }
+        XCTAssertEqual(picked?.sha, installed, "read as the installed one: no update")
+        let later = UpdateChecker.LatestCommit(sha: "b" + String(repeating: "0", count: 39),
+                                               url: "https://github.com/KillianHzr/PokeTokenLBI/commit/b", time: 3_000)
+        let newer = await UpdateChecker.firstGreen([later, older], current: installed, installedTime: 2_000) { _ in green }
+        XCTAssertEqual(newer?.sha, later.sha)
+        let unknown = await UpdateChecker.firstGreen([older], current: installed) { _ in green }
+        XCTAssertEqual(unknown?.sha, older.sha, "a build without its time keeps offering the newest green one")
+    }
+
+    /// What the walk returns for an older commit reads as no update.
+    @MainActor
+    func testTheInstalledCommitReturnedIsNoUpdate() async {
+        let installed = "d" + String(repeating: "0", count: 39)
+        let returned = UpdateChecker.LatestCommit(sha: installed, url: "https://github.com/KillianHzr/PokeTokenLBI/commit/a",
+                                                  time: 2_000)
+        let checker = UpdateChecker(currentCommit: installed, defaults: isolatedDefaults(),
+                                    updateStatusURL: FileManager.default.temporaryDirectory
+                                        .appendingPathComponent("ptb-update-\(UUID().uuidString)"),
+                                    fetchLatest: { returned })
+        await checker.check(minInterval: 0)
+        XCTAssertNil(checker.available)
+        XCTAssertNil(checker.skipped)
+    }
+
     /// The script builds the commit offered, applies the local patch once (build-app.sh does), and says success only
     /// once the app reopened.
     func testTheScriptBuildsTheOfferedCommitAndReportsTheReopen() {

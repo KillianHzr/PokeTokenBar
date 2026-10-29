@@ -415,6 +415,10 @@ struct ChainedLimitsProvider: ClaudeLimitsProviding {
             fallback: fallback ?? OAuthLimitsProvider(accessTokenCache: .forConfigRoot(root)))
     }
 
+    /// A new key, or none, is not the one the 429 answered: saved, it was skipped for up to an hour; cleared, the wait
+    /// read as a key there and kept the manual refresh from the Keychain.
+    func sessionKeyChanged() { primaryBackoff.answered() }
+
     func fetch(allowKeychainPrompt: Bool) async throws -> LimitStatus {
         do {
             if primaryBackoff.isWaiting() { throw LimitsError.rateLimited(retryAfter: nil) }

@@ -114,28 +114,60 @@ final class SaveSafetyTests: XCTestCase {
         XCTAssertEqual(s.savesWritten, 0)
     }
 
+    /// [Regression] Locked, the state is a fresh one: its automatic snapshots, every 12 hours, pushed the real ones out
+    /// of the ten kept, and a restore took a snapshot before it was refused. No snapshot is written while locked.
+    func testALockedSaveWritesNoSnapshot() throws {
+        let url = try stateURL()
+        try JSONEncoder().encode(state(dex: 7)).write(to: url)
+        _ = try SaveSnapshotManager.createSnapshot(state: state(dex: 7), for: url, date: now.addingTimeInterval(-86_400))
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: url.path)
+        addTeardownBlock { try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: url.path) }
+        let s = store(url)
+        XCTAssertEqual(s.saveLock, .unreadable)
+        s.update(todayTokensByProvider: ["claude_code": 10], todayDate: "2026-10-29", monthTotal: 10, burnTier: .idle,
+                 limitWarning: false, hasUsageData: true)
+        s.autoSnapshotIfNeeded(now: now.addingTimeInterval(13 * 3600))
+        XCTAssertThrowsError(try s.createManualSnapshot()) { XCTAssertEqual($0 as? SaveTransferError, .saveLocked) }
+        let kept = try XCTUnwrap(s.availableSnapshots.first)
+        XCTAssertThrowsError(try s.restoreSnapshot(kept)) { XCTAssertEqual($0 as? SaveTransferError, .saveLocked) }
+        XCTAssertEqual(SaveSnapshotManager.listSnapshots(for: url).map(\.dexCount), [7], "only the real one")
+    }
+
     /// [Regression] A save a later build wrote is not written over by this one, which would drop what it does not
     /// know. Written by an earlier build, it is, with this build stamped.
     func testASaveFromALaterBuildIsNotWrittenOver() throws {
         let url = try stateURL()
         var later = state(dex: 5)
-        later.writer = SaveWriter(commit: "bbbbbbbcafe", date: "2026-12-01 10:00")
+        later.writer = SaveWriter(commit: "bbbbbbbcafe", date: "2026-12-01 10:00", time: 1_796_119_200)
         let original = try JSONEncoder().encode(later)
         try original.write(to: url)
-        let mine = SaveWriter(commit: "aaaaaaa1234", date: "2026-10-29 10:00")
+        let mine = SaveWriter(commit: "aaaaaaa1234", date: "2026-10-29 10:00", time: 1_793_264_400)
         let s = store(url, writer: mine)
         XCTAssertEqual(s.saveLock, .newerBuild(commit: "bbbbbbb"))
         s.setLanguage(.de)
         XCTAssertEqual(try Data(contentsOf: url), original)
 
         var earlier = state(dex: 5)
-        earlier.writer = SaveWriter(commit: "0000000beef", date: "2026-09-01 10:00")
+        earlier.writer = SaveWriter(commit: "0000000beef", date: "2026-09-01 10:00", time: 1_788_249_600)
         try JSONEncoder().encode(earlier).write(to: url)
         let upgraded = store(url, writer: mine)
         XCTAssertNil(upgraded.saveLock)
         upgraded.setLanguage(.de)
         let saved = try JSONDecoder().decode(CompanionState.self, from: Data(contentsOf: url))
         XCTAssertEqual(saved.writer, mine, "this build stamps the save")
+    }
+
+    /// [Regression] Builds were ordered by their dates, each in its committer's time zone: a commit made in Seoul at
+    /// 09:00 (00:00 UTC) read as later than one made after it in Paris at 08:30 (07:30 UTC), and locked the save of the
+    /// later build. They are ordered by time; a save stamped before the time was, without one, is written.
+    func testBuildsAreOrderedByTimeNotByTheirLocalDates() {
+        let seoul = SaveWriter(commit: "1111111aaaa", date: "2026-10-30 09:00", time: 1_793_318_400)
+        let paris = SaveWriter(commit: "2222222bbbb", date: "2026-10-30 08:30", time: 1_793_345_400)
+        XCTAssertFalse(seoul.isNewer(than: paris), "Paris came later")
+        XCTAssertTrue(paris.isNewer(than: seoul))
+        let unstamped = SaveWriter(commit: "3333333cccc", date: "2026-12-31 23:59")
+        XCTAssertFalse(unstamped.isNewer(than: paris), "no time to order by: written as before")
+        XCTAssertFalse(paris.isNewer(than: unstamped))
     }
 
     /// [Regression] A field of another shape (a later build's, a broken one) falls back to its default: the file as
