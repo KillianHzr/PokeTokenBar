@@ -218,11 +218,12 @@ Pi는 모델 여러 개를 세션 로그 하나로 흘려보낼 수 있습니다
 | **운석** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/meteorite.png" width="28" height="28" alt="운석"> | 지라치, 테오키스 | 토큰 한도를 다 채울 때마다 이상한 사탕 1개 더 |
 | **오박사의편지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/oaks-letter.png" width="28" height="28" alt="오박사의편지"> | 세레비, 쉐이미 | 모든 지방의 스타팅 포켓몬이 어느 단계든 25% 빨리 자라요 |
 | **바닷물향로** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sea-incense.png" width="28" height="28" alt="바닷물향로"> | 마나피 (피오네가 진화해요), 가이오가 | 등급이 확정된 알(상점, 레전드플레이트)이 2배 빨리 부화해요 |
-| **번개카세트** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/shock-drive.png" width="28" height="28" alt="번개카세트"> | 비크티니, 메로엣타, 게노세크트 | 화석 포켓몬¹이 어느 단계든 50% 빨리 자라요 |
+| **번개카세트** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/shock-drive.png" width="28" height="28" alt="번개카세트"> | 비크티니, 메로엣타, 게노세크트 | 이상한 사탕을 쓸 때마다 4번에 1번은 그 사탕이 가방에 남아요 |
 | **Z링** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/z-ring.png" width="28" height="28" alt="Z링"> | 실버디, 마기아나, 마샤도, 제라오라, 멜메탈 중 4마리 | 강철·전기타입 포켓몬이 30% 더 빨리 성장해요 |
 | **악의 족자** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/scroll-of-darkness.png" width="28" height="28" alt="악의 족자"> | 우라오스, 자루도 | 격투타입 포켓몬이 30% 더 빨리 성장해요 |
 | **고대의항아리** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-vase.png" width="28" height="28" alt="고대의항아리"> | 총지엔, 파오젠, 딩루, 위유이 | 중간 진화 단계의 포켓몬이 25% 빨리 자라요 |
 | **탐험세트** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/explorer-kit.png" width="28" height="28" alt="탐험세트"> | 강철톤, 마기라스, 한카리아스, 깜까미, 어써러셔, 히드런 | 포켓몬을 5마리 졸업시킬 때마다 보물을 발굴하고 소식 맨 앞에 떠요: 이상한 사탕 3개, 고급 알(20%), 희귀 알(5%), 아주 드물게 전설의 알 |
+| **비밀의호박** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/old-amber.png" width="28" height="28" alt="비밀의호박"> | 화석 포켓몬¹ 15마리 모두 | 알과 바꾸려고 놓아준 포켓몬이 지금 단계에서 쌓은 경험치의 절반을 새로 태어나는 포켓몬에게 넘겨줘요. 태어나자마자 진화하지는 않아요 |
 | **레전드플레이트** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/legend-plate.png" width="28" height="28" alt="레전드플레이트"> | 아르세우스 | 가방에 희귀 알과 고급 알 하나씩: 상점처럼 포켓몬을 놓아주고 그 등급 이상의 알을 받아요 |
 | **전기구슬** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/light-ball.png" width="28" height="28" alt="전기구슬"> | 피카츄의 옷 15개 모두 | 가방에 희귀 알 2개와 이상한 사탕 5개 |
 | **타입:널의 알** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/mystery-egg.png" width="28" height="28" alt="타입:널의 알"> | 실버디의 메모리 17개 모두⁴ | 지금 포켓몬을 놓아주고 타입:널이 태어나는 알을 받아요 |
@@ -237,8 +238,6 @@ Pi는 모델 여러 개를 세션 로그 하나로 흘려보낼 수 있습니다
 ⁴ 실버디는 타입:널로 태어나 노말폼으로 진화해요. 도감에 있는 전설·환상의 포켓몬마다(놓아준 개체 포함) 그 폼의 타입 메모리를 줘요(파이어: 불꽃·비행, 가라르 파이어: 악·비행). 벌레타입 전설은 게노세크트뿐이에요. 실버디가 도감에 있으면 메모리마다 그 폼이 해금되고(도감의 폼 목록에 표시), 17개를 모두 모으면 타입:널의 알을 받아요.
 
 **발굴** (돌 탭): 바위 타입 포켓몬을 4종 졸업시킬 때마다(평소 바위 타입 74종, 폼으로 몇 종 더) 화석 알을 하나 발굴해요. 화석 계열마다 하나씩 모두 15개. 화석 알에서는 아직 졸업하지 않은 화석 계열이 무작위로 태어나고, 발굴 전에 졸업한 화석 계열은 발굴해서 연 것으로 15개 중에 쳐요. 화석 알에서 태어난 포켓몬을 졸업 전에 놓아주면 알이 돌아와요. 화석 계열은 졸업하기 전까지 화석 알에서만 태어나고(첫 포켓몬의 계열은 우정 기념 알에서도 돌아와요), 졸업한 뒤에는 다른 포켓몬처럼 모든 알에 들어가 이로치나 다른 성격으로 다시 얻을 수 있어요.
-
-**비밀의호박** (돌 탭, 발굴 아래): 화석 계열 15개를 모두 졸업시키면 받아요. 가지고 있으면 알과 바꾸려고 놓아준 포켓몬이 지금 단계에서 쌓은 경험치의 절반을 새로 태어나는 포켓몬에게 넘겨줘요. 태어나자마자 진화하지는 않아요.
 
 **폼** (업적의 새 탭): 한 종의 모든 폼을 졸업시키면 받아요.
 

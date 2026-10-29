@@ -1489,11 +1489,13 @@ struct PopoverView: View {
             }
             Spacer(minLength: 4)
             HStack(spacing: 6) {
-                // 끄기는 펫 우클릭. 켜기는 여기 — 숨기면 우클릭할 대상이 없다(#301).
-                // Settings 체크박스와 같은 `floatingPetEnabled`. 홈 탭에만 두면 도감에서 못 켠다.
-                CircleIconButton(systemImage: store.floatingPetEnabled ? "eye" : "eye.slash",
-                                 help: store.floatingPetEnabled ? l.floatingPetHideLabel : l.floatingPetEnableLabel) {
-                    store.floatingPetEnabled.toggle()
+                // The menu bar's Pokémon, hidden in one click, its token lines staying (a meeting, a shared screen). The
+                // floating pet it used to switch is in Settings and in the status item's menu (#301: not lost once
+                // hidden). Without any token line the menu bar keeps the Pokémon, or nothing would be left to click.
+                let spriteHidden = store.menuSpriteMode == .hidden
+                CircleIconButton(systemImage: spriteHidden ? "eye.slash" : "eye",
+                                 help: spriteHidden ? l.menuSpriteShowLabel : l.menuSpriteHideLabel) {
+                    store.toggleMenuSprite()
                 }
                 CircleIconButton(systemImage: "lightbulb", help: l.ideasTitle) { nav.showingIdeas = true }
                 CircleIconButton(systemImage: "calendar", help: l.calendarTitle) { nav.showingCalendar = true }

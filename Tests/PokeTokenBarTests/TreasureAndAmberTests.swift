@@ -34,7 +34,7 @@ final class TreasureAndAmberTests: XCTestCase {
 
     /// Every fossil line for the Amber, all six of the Kit: one missing keeps it locked.
     func testBothAskForTheWholeSet() {
-        XCTAssertEqual(ItemKind.oldAmber.collectorGroup, .evolutionStones, "beside the Excavation")
+        XCTAssertEqual(ItemKind.oldAmber.collectorGroup, .legendaryArtifacts, "an artifact, as in the games, not a stone")
         XCTAssertEqual(ItemKind.explorerKit.collectorGroup, .legendaryArtifacts)
         XCTAssertTrue(ItemKind.oldAmber.isPassive)
         XCTAssertTrue(ItemKind.explorerKit.isPassive)

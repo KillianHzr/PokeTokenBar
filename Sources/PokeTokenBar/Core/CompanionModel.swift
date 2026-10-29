@@ -502,7 +502,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .rareCandy, .mint, .shinyCharm, .birthdayEgg, .pokemonEgg, .uncommonEgg, .rareEgg, .fossilEgg: return nil
         case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return nil
         case .rotomCatalog, .cometShard, .redNectar, .smoothRock, .sawsbuckSeasons, .fairyFeather, .furfrouTrims, .vivillonPatterns, .whippedDream, .unownLetters: return .forms
-        case .excavation, .oldAmber: return .evolutionStones   // rocks and stones, side by side
+        case .excavation: return .evolutionStones   // rocks and stones, side by side
         default: return .legendaryArtifacts
         }
     }
@@ -671,13 +671,13 @@ enum BonusTheme: CaseIterable, Sendable {
         switch kind {
         case .oldSeaMap, .dnaSplicers, .zygardeCube, .clearBell, .griseousOrb, .prisonBottle, .sparklingStone,
              .sunFlute, .gracidea, .relicStatue, .beastBall, .rustedSword, .boosterEnergy, .tealMask,
-             .magmaStone, .libertyPass, .lunarWing, .oaksLetter, .shockDrive, .zRing, .scrollOfDarkness, .relicVase,
+             .magmaStone, .libertyPass, .lunarWing, .oaksLetter, .zRing, .scrollOfDarkness, .relicVase,
              .oldAmber:
             return .growth
         case .silverWing, .teraOrb, .seaIncense, .legendCharm, .ovalCharm: return .eggs
         case .shinyCharm, .revealGlass, .glimmeringCharm: return .shiny
         case .rainbowWing, .jadeOrb: return .shop
-        case .soulDew, .reinsOfUnity, .meteorite, .rotomCatalog, .explorerKit: return .candies
+        case .soulDew, .reinsOfUnity, .meteorite, .rotomCatalog, .explorerKit, .shockDrive: return .candies
         default: return nil
         }
     }
@@ -750,8 +750,12 @@ enum CollectorBonus {
     /// Oak's Letter: the starters of every region, at every stage.
     static let oaksLetterStarter = 1.25
     static let starterLines: Set<Int> = Set([1, 152, 252, 387, 495, 650, 722, 810, 906].flatMap { $0...($0 + 8) })
-    /// Shock Drive: the fossil Pokémon, as Genesect was revived from one.
-    static let shockDriveFossil = 1.5
+    /// Shock Drive: one Rare Candy used in this many recharges, Genesect's drive charging it again: it stays in the Bag.
+    /// It made fossil Pokémon grow 50% faster, which they long were by the time its three mythicals graduated.
+    static let shockDriveRechargeOneIn = 4
+
+    /// Whether the Shock Drive recharges the candy of this roll.
+    static func shockDriveRecharges(roll: UInt64) -> Bool { roll % UInt64(shockDriveRechargeOneIn) == 0 }
     /// Every species of the fossil lines whose finals are `SpeciesGoal.fossils`.
     static let fossilLines: Set<Int> = [138, 139, 140, 141, 142, 345, 346, 347, 348, 408, 409, 410, 411, 564, 565, 566,
                                         567, 696, 697, 698, 699, 880, 881, 882, 883]

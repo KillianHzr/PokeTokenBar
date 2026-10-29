@@ -46,10 +46,15 @@ Claude Code는 `.claude/skills/prepare-pr`의 symlink를 통해
 Each merge into `main` is an update offered to every player by the in-app updater, so development is batched on the
 `release` branch (not to be confused with the versioned releases below):
 
-- Every development goes to `release`: a branch from an up-to-date `release`, a PR with `--base release`, merged into
-  `release` once the full local suite passes (PRs into `release` get no CI). Group what is asked together in one PR.
-- Nothing is merged into `main` until the owner says so. Then everything in `release` goes to `main` in one
-  `release → main` PR: one merge, one update.
+- Every development is merged into `release` as soon as it is done and the full local suite passes, **always, without
+  asking**: committed on `release`, or a branch from an up-to-date `release` whose PR (`--base release`, no CI) is merged
+  at once. Never leave a development waiting on a branch or on an open PR into `release`, even when the owner says
+  "don't merge": that means `main`.
+- `release` is **always** ready to go to `main` in one PR: whenever `release` is ahead of `main`, one `release → main`
+  PR is open, its body and images kept up to date with each development, its CI read after each push.
+- **The only step that waits for the owner's word is merging into `main`** (each merge is an update offered to every
+  player). A go is for that one merge. Then everything in `release` goes to `main` in that one PR: one merge, one
+  update.
 - Never open a PR against `main` for a feature, not even to get CI: CI runs on that single `release → main` PR.
 - Before that merge, sync upstream PokeTokenBar and date the What's New entries with the merge day. After it,
   fast-forward `release` to `main` if it fell behind, and rebuild the installed app from `main`.

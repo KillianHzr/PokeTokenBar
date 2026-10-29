@@ -37,6 +37,8 @@ final class CompanionStore {
     /// 사탕 사용 시 "+XP" 순간 표시 — 진화 없이 부분 진행일 때도 피드백. seq 증가로 CompanionHeader 감지.
     private(set) var candyFeedbackSeq = 0
     private(set) var candyFeedbackAmount = 0
+    /// The candies of that use the Shock Drive recharged, shown beside the "+XP".
+    private(set) var candyFeedbackRecharged = 0
     /// "+XP" 표시 1회성 보장 — CompanionHeader 가 재생 후 호출한다. 소비하지 않으면 다른 탭에 갔다
     /// 홈으로 재진입할 때(CompanionHeader 재마운트) @State 가 초기화돼 같은 값이 다시 떠오른다(회귀).
     func consumeCandyFeedback() { candyFeedbackAmount = 0 }
@@ -341,7 +343,6 @@ final class CompanionStore {
         add(.tealMask, CollectorBonus.tealMaskTypes, if: types.contains(where: CollectorBonus.tealMaskTypeList.contains))
         add(.lunarWing, CollectorBonus.lunarWingPsychicDark, if: types.contains { $0 == .psychic || $0 == .dark })
         add(.oaksLetter, CollectorBonus.oaksLetterStarter, if: CollectorBonus.starterLines.contains(mon.currentID))
-        add(.shockDrive, CollectorBonus.shockDriveFossil, if: CollectorBonus.fossilLines.contains(mon.currentID))
         add(.zRing, CollectorBonus.zRingSteelElectric, if: types.contains { $0 == .steel || $0 == .electric })
         add(.scrollOfDarkness, CollectorBonus.scrollOfDarknessFighting, if: types.contains(.fighting))
         // Neither the first nor the last stage: only a line of three stages or more has one.
@@ -2118,8 +2119,13 @@ final class CompanionStore {
             consumed = min(consumed, needed)
         }
         let xp = consumed * preview.xpPerCandy
-        state.inventory[ItemKind.rareCandy.rawValue] = rareCandyCount - consumed
+        // Every candy used gives its XP; the Shock Drive recharges one in four, which stays in the Bag.
+        let recharged = itemCount(.shockDrive) > 0
+            ? (0..<consumed).filter { _ in CollectorBonus.shockDriveRecharges(roll: rng.next()) }.count : 0
+        if recharged > 0 { AppLog.write("rare candy: shock drive recharged \(recharged) of \(consumed)") }
+        state.inventory[ItemKind.rareCandy.rawValue] = rareCandyCount - (consumed - recharged)
         state.active?.raising?.candiesUsed += consumed
+        candyFeedbackRecharged = recharged
         let beforeStage = state.active?.stageIndex ?? 0
         // 진화 안 될 때(부분 진행)도 즉시 "+XP" 피드백 — CompanionHeader 가 연출과 별개로 표시.
         candyFeedbackAmount = xp
@@ -2274,7 +2280,14 @@ final class CompanionStore {
         let speciesTotal: Int
         let forms: Int
         let formsTotal: Int
+        /// Evolution lines, each one family from its first species (Pichu, Pikachu and Raichu are one), with a species
+        /// in the collection.
+        let lines: Int
+        let linesTotal: Int
     }
+
+    /// Every evolution line of the 1,025 species: one per species that evolves from none.
+    static let evolutionLineCount = PokemonAssets.animatedSpeciesIDs.filter { PokemonEvolutionData.root(of: $0) == $0 }.count
 
     /// Every appearance that can be collected: 1,025 species and their other forms.
     static let collectableFormCount = PokemonAssets.animatedSpeciesIDs.reduce(0) {
@@ -2294,7 +2307,9 @@ final class CompanionStore {
             return $0 + (PokemonForm.hasForms(speciesID: $1) ? max(1, collected.count) : 1)
         }
         return CollectionProgress(species: species.count, speciesTotal: PokemonAssets.animatedSpeciesIDs.count,
-                                  forms: forms, formsTotal: Self.collectableFormCount)
+                                  forms: forms, formsTotal: Self.collectableFormCount,
+                                  lines: Set(species.map(PokemonEvolutionData.root)).count,
+                                  linesTotal: Self.evolutionLineCount)
     }
 
     /// How far one species goal is from unlocking its item.
