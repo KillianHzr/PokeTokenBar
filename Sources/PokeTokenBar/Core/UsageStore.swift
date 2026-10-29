@@ -772,9 +772,23 @@ final class UsageStore {
         "codex.\(bucket.limitId ?? bucket.limitName ?? "codex").\(secondary ? "secondary" : "primary")"
     }
 
-    static func antigravityCandyKey(_ group: AntigravityQuotaGroup, weekly: Bool) -> String {
-        let groupKey = group.displayName.localizedCaseInsensitiveContains("gemini") ? "gemini" : "3p"
-        return "antigravity.\(groupKey).\(weekly ? "weekly" : "5h")"
+    nonisolated static func antigravityCandyKey(_ group: AntigravityQuotaGroup, weekly: Bool) -> String {
+        "antigravity.\(antigravityGroupKey(group)).\(weekly ? "weekly" : "5h")"
+    }
+
+    /// A group's own identifier, from its buckets' ids ("gemini-5h", "3p-weekly": "gemini", "3p", the keys the name
+    /// gave so far). Read from the name ("gemini", or "3p" for anything else), two other groups shared one ledger.
+    /// A group whose ids name no window falls back to its name.
+    nonisolated static func antigravityGroupKey(_ group: AntigravityQuotaGroup) -> String {
+        func slug(_ s: String) -> String { s.lowercased().filter { $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" } }
+        for bucket in group.buckets {
+            let id = slug(bucket.bucketId)
+            for suffix in ["-5h", "_5h", "-weekly", "_weekly"] where id.hasSuffix(suffix) && id.count > suffix.count {
+                return String(id.dropLast(suffix.count))
+            }
+        }
+        let name = slug(group.displayName)
+        return name.isEmpty ? "group" : name
     }
 
     /// `named`: next to other accounts, the notification says whose limit it is.
@@ -1044,7 +1058,10 @@ final class UsageStore {
     }
 
     func runSuspendedPollingProbe() async {
-        guard clearStaleSuspension(reason: "probe") else { return }
+        guard clearStaleSuspension(reason: "probe") else {
+            await refreshLimitsWhileAsleep()
+            return
+        }
         await refresh()
     }
 
@@ -1059,6 +1076,12 @@ final class UsageStore {
         // 진행 중이면 드롭하지 말고 예약 — 완료 후 1회 재실행(코얼레싱). 수동모드(interval 0)에서 키체인
         // 재활성(disableKeychainAccess didSet)의 refresh 가 in-flight 폴에 묻혀, 자동폴이 없는 탓에
         // Claude 한도가 다음 수동 액션까지 빈 채로 남던 회귀 방지.
+        // The screens asleep, polls stop (battery): a day change or a network back at night waits for the screens, which
+        // refresh at once. Only the sleep probe reads the limits meanwhile (`refreshLimitsWhileAsleep`).
+        if pollingSuspended, displaysAsleep() {
+            AppLog.writeIfChanged("refresh-asleep", "refresh skipped: the screens sleep")
+            return
+        }
         if isRefreshing { refreshPending = true; return }
         isRefreshing = true
         clearStaleSuspension(reason: "refresh")
@@ -1212,6 +1235,51 @@ final class UsageStore {
         recordDailyLedger()
 
         // ── 한도 조회 (Keychain 프롬프트로 블로킹될 수 있어 마지막)
+        await refreshClaudeLimits()
+        await refreshAdditionalClaudeLimits(allowKeychainPrompt: false)
+        await refreshCodexLimits()
+        await refreshAntigravityLimits(allowKeychainPrompt: false)
+        await refreshCursorLimits()
+        await refreshProviderStatuses()
+        limitsPolledAt = Date()
+
+        checkLimitAlerts()
+        writeParitySnapshot()
+        let summary = snapshots.map { "\($0.providerID):\($0.today?.date ?? "nil")=\($0.todayTotalTokens)" }
+            .joined(separator: ", ")
+        AppLog.write("refresh done [\(summary)]")
+        onRefresh?()   // 한도 로드 후 companion 갱신·사탕 지급(신선한 한도 시점)
+    }
+
+    /// While the screens sleep the polls stop (battery), but a limit window can fill and reset in the night (an agent
+    /// left running): with no poll, its candies were never paid. The sleep probe reads the limits alone this often,
+    /// no log scan, then `onLimitsRefresh` pays what they owe.
+    static let sleepLimitsInterval: TimeInterval = 1800
+    @ObservationIgnored private var limitsPolledAt: Date?
+    var onLimitsRefresh: (@MainActor () -> Void)?
+
+    func refreshLimitsWhileAsleep() async {
+        guard pollingSuspended, !isRefreshing else { return }
+        if let last = limitsPolledAt, Date().timeIntervalSince(last) < Self.sleepLimitsInterval { return }
+        isRefreshing = true
+        defer {
+            isRefreshing = false
+            if refreshPending {
+                refreshPending = false
+                Task { await self.refresh() }
+            }
+        }
+        await refreshClaudeLimits()
+        await refreshAdditionalClaudeLimits(allowKeychainPrompt: false)
+        await refreshCodexLimits()
+        await refreshAntigravityLimits(allowKeychainPrompt: false)
+        limitsPolledAt = Date()
+        AppLog.write("limits read while the screens sleep")
+        onLimitsRefresh?()
+    }
+
+    /// The default Claude account's limits, for a poll (no Keychain prompt).
+    private func refreshClaudeLimits() async {
         // 세션 키 경로는 Keychain 을 안 읽으므로 이 토글과 무관하게 조회한다 — 토글을 켠 이유(팝업)가
         // 세션 키에는 없는데도 같이 막으면, 키를 넣은 사용자가 한도를 영영 못 본다.
         if disableKeychainAccess && !sessionKeyConfigured {
@@ -1223,14 +1291,21 @@ final class UsageStore {
             // 429 백오프 중 — 폴링을 쉬어 rate limit 악화 방지 (버그 리포트 실측: 매분 429 재시도)
             AppLog.write("claude limits backoff: skipping (\(Int(until.timeIntervalSinceNow))s left)")
         } else {
+            let fetch = beginClaudeLimitsFetch()
             do {
-                limits = try await limitsProvider.fetch(allowKeychainPrompt: false)
+                let fetched = try await limitsProvider.fetch(allowKeychainPrompt: false)
+                guard applyClaudeLimitsFetch(fetch) else { throw CancellationError() }
+                limits = fetched
                 limitsAvailable = true
                 limitsUpdatedAt = Date()
                 limitsAuthExpiry = nil
                 limitTokenRefreshFailure = nil   // the values loaded: a manual failure is no longer news
                 resetLimitsBackoff()
                 AppLog.write("limits refreshed fiveHour=\(limits?.fiveHour?.utilization?.description ?? "nil") sevenDay=\(limits?.sevenDay?.utilization?.description ?? "nil")")
+            } catch is CancellationError {
+                AppLog.write("claude limits: a newer read came first, this poll's answer is left out")
+            } catch where !applyClaudeLimitsFetch(fetch) {   // a failure is written by the newest read only, too
+                AppLog.write("claude limits: a newer read came first, this poll's failure is left out")
             } catch {
                 // 비공식 endpoint 실패 → 섹션 숨김, 토큰 표시는 무영향
                 if limits == nil { limitsAvailable = false }
@@ -1239,18 +1314,6 @@ final class UsageStore {
                 AppLog.writeIfChanged("claude-limits", "limits unavailable: \(error)")
             }
         }
-        await refreshAdditionalClaudeLimits(allowKeychainPrompt: false)
-        await refreshCodexLimits()
-        await refreshAntigravityLimits(allowKeychainPrompt: false)
-        await refreshCursorLimits()
-        await refreshProviderStatuses()
-
-        checkLimitAlerts()
-        writeParitySnapshot()
-        let summary = snapshots.map { "\($0.providerID):\($0.today?.date ?? "nil")=\($0.todayTotalTokens)" }
-            .joined(separator: ", ")
-        AppLog.write("refresh done [\(summary)]")
-        onRefresh?()   // 한도 로드 후 companion 갱신·사탕 지급(신선한 한도 시점)
     }
 
     private func handleEmptyUsageRetry(schedule: Bool, hasErrors: Bool) {
@@ -1267,14 +1330,35 @@ final class UsageStore {
         }
     }
 
+    /// Claude limit reads overlap: a poll waiting on the network, then a manual refresh after `/login` to another
+    /// account. Each read takes a number before it waits, and one that ends after a newer read was applied is left
+    /// out, or the older answer (the previous account's) overwrote the newer one.
+    @ObservationIgnored private var claudeLimitsFetchesStarted = 0
+    @ObservationIgnored private var claudeLimitsFetchApplied = 0
+
+    private func beginClaudeLimitsFetch() -> Int {
+        claudeLimitsFetchesStarted += 1
+        return claudeLimitsFetchesStarted
+    }
+
+    /// Whether the read numbered `fetch` may write its answer, which it then owns.
+    private func applyClaudeLimitsFetch(_ fetch: Int) -> Bool {
+        guard fetch > claudeLimitsFetchApplied else { return false }
+        claudeLimitsFetchApplied = fetch
+        return true
+    }
+
     func refreshLimitTokenFromKeychain() async {
         guard !isRefreshingLimitToken else { return }
         isRefreshingLimitToken = true
         defer { isRefreshingLimitToken = false }
 
+        let fetch = beginClaudeLimitsFetch()
         do {
             // 명시적 사용자 액션은 백오프를 우회해 1회 시도 — 성공하면 백오프 해제
-            limits = try await limitsProvider.fetch(allowKeychainPrompt: true)
+            let fetched = try await limitsProvider.fetch(allowKeychainPrompt: true)
+            guard applyClaudeLimitsFetch(fetch) else { throw CancellationError() }
+            limits = fetched
             limitsAvailable = true
             limitsUpdatedAt = Date()
             limitsAuthExpiry = nil
@@ -1282,6 +1366,10 @@ final class UsageStore {
             resetLimitsBackoff()
             AppLog.write("limits refreshed by user action fiveHour=\(limits?.fiveHour?.utilization?.description ?? "nil") sevenDay=\(limits?.sevenDay?.utilization?.description ?? "nil")")
             AppLog.write("limits refreshed from keychain by user action")
+        } catch is CancellationError {
+            AppLog.write("limits user refresh: a newer read came first, its answer is left out")
+        } catch where !applyClaudeLimitsFetch(fetch) {
+            AppLog.write("limits user refresh: a newer read came first, its failure is left out")
         } catch {
             limitTokenRefreshFailure = error
             if limits == nil { limitsAvailable = false }
@@ -1894,7 +1982,24 @@ final class UsageStore {
         }
     }
 
+    /// `codex app-server` is a process launched for each read. Someone with no Codex use (the CLI ChatGPT.app bundles,
+    /// never run) had it launched at every poll: without Codex usage this month and with its limits all at 0%, it is
+    /// read this often instead. Any use, local or in the cloud (its limits move), reads it at each poll again.
+    static let idleCodexLimitsInterval: TimeInterval = 1800
+    @ObservationIgnored private var codexLimitsReadAt: Date?
+
+    private var usesCodex: Bool {
+        snapshots.contains { $0.providerID == "codex" }
+            || (codexLimits?.visibleSnapshots.contains {
+                ($0.primary?.usedPercent ?? 0) > 0 || ($0.secondary?.usedPercent ?? 0) > 0
+            } ?? false)
+    }
+
     private func refreshCodexLimits() async {
+        if !usesCodex, let last = codexLimitsReadAt, Date().timeIntervalSince(last) < Self.idleCodexLimitsInterval {
+            return
+        }
+        codexLimitsReadAt = Date()
         do {
             codexLimits = try await codexLimitsProvider.fetch()
             if let status = codexLimits {

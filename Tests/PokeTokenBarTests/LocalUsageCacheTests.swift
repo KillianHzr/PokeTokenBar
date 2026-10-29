@@ -390,6 +390,33 @@ final class LocalUsageCacheTests: XCTestCase {
         XCTAssertEqual(entries.map(\.total), [110])
     }
 
+    /// [Regression] A Codex rollout that cannot be read is not cached as empty under its current signature: its
+    /// tokens stayed out until the file changed again. The previous read stands in, and the next one reads the file.
+    func testCodexReadFailureIsNotCachedAsEmpty() async throws {
+        let first = [
+            sessionMeta(id: "s", ts: "2026-07-29T01:00:00.000Z"),
+            codexStateLine(ts: "2026-07-29T01:00:01.000Z", cumulativeInput: 100, cumulativeOutput: 10,
+                           lastInput: 100, lastOutput: 10),
+        ]
+        let url = try writeFile("rollout.jsonl", lines: first)
+        let cache = makeCache()
+        let before = await cache.codexEntries(modifiedSince: since)
+        XCTAssertEqual(before.map(\.total), [110])
+
+        try writeFile("rollout.jsonl", lines: first + [
+            codexStateLine(ts: "2026-07-29T01:00:02.000Z", cumulativeInput: 300, cumulativeOutput: 30,
+                           lastInput: 200, lastOutput: 20),
+        ])
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: url.path)
+        addTeardownBlock { try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: url.path) }
+        let failed = await cache.codexEntries(modifiedSince: since)
+        XCTAssertEqual(failed.map(\.total), [110], "the previous read stands in")
+
+        try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: url.path)
+        let after = await cache.codexEntries(modifiedSince: since)
+        XCTAssertEqual(after.map(\.total).reduce(0, +), 330, "readable again: read under the same signature")
+    }
+
     /// 활성 세션과 보관 세션에 같은 rollout이 동시에 보이는 이동 중 상태에서도
     /// 파일 경로가 아니라 session/state ID 기준으로 한 번만 집계해야 한다.
     func testCodexCacheDeduplicatesRolloutAcrossActiveAndArchivedRoots() async throws {

@@ -655,6 +655,43 @@ read_when:
   to the west after midnight included, so that day counted twice. A day earlier than the last one now credits nothing
   (`testADateThatGoesBackCreditsNothing`).
 
+- **A value that drifts must be compared with its last reading, not its first.** A window's epoch was replaced only on
+  a reset, so each poll was compared with the first one seen: a reset time sliding a minute per poll (Antigravity's)
+  passed for a reset 30 minutes after the window's end and paid it again. A same-window epoch that moved a minute or
+  more is now followed; under a minute (Claude's fractional seconds, Codex's 1 s) nothing changes to save:
+  `testResetTimeSlidingPastItsEndIsNotAReset`, `testJitterUnderAMinuteKeepsTheStoredEpoch`.
+
+- **A dip and its recovery are one reading.** A provider's day total that went down rebased its ledger line on the
+  lower value, then credited the way back up again: Cursor falls back from its API to a lower local estimate and back.
+  The ledger keeps the day's high per provider and credits what goes past it:
+  `testDipBelowTheDaysHighIsCreditedOnce`, `testDipOfOneProviderKeepsCreditingTheOthers`. The test that guarded the
+  rebase (`testUsageIncreaseAfterValidDropContinuesEggProgress`) asserted the double credit as correct.
+
+- **"Unknown" read as a value resets what is known.** `planMultiplier` is 1 when the plan is unknown (the session key
+  answers without it); a poll at 1 between two at 5 re-seeded the window twice and lost what it owed in between. A plan
+  of 1 inside the same window as a bigger known one keeps the known plan
+  (`testAPlanReadAsOneForAPollLosesNothing`). The reverse case: the plan-change and first-seen seeding ignored the
+  stored epoch, so an old save opened after a reset kept last week's count; a window whose stored one ended starts
+  from nothing whatever its plan (`testANewWindowAtAnotherPlanDoesNotKeepTheEndedOnesCount`).
+
+- **A rearm needs a real drop.** A window without an epoch rearmed when it owed nothing, which a Pro session does at
+  99.6%: hovering at its limit, it paid its candy at each return. It now rearms under half full
+  (`testEpochlessWindowHoveringAtItsLimitPaysOnce`).
+
+- **A key read from a name test is shared by every name that fails it.** Antigravity's candy key was "gemini" or else
+  "3p", so two non-Gemini groups shared one ledger. The key comes from the buckets' ids ("gemini-5h", "3p-weekly"),
+  which gives the same keys for the groups known so far: `testEachAntigravityGroupHasItsOwnCandyKey`.
+
+- **A worse reading must not erase a better one.** The cost ledger dropped a priced day as soon as a read had an
+  unpriced part, even with no more tokens (a price list not loaded yet, one provider failing). It keeps the tokens each
+  day was priced at; only more tokens with an unpriced part drop it: `testAWorseReadOfAPricedDayKeepsItsCost`.
+
+- **Day keys are Gregorian, so months and years must be too.** `startOfMonth`, `startOfWeek`, the month axis and the
+  event and birthday eggs used `Calendar.current`; with a Persian, Hebrew or Islamic system calendar the month started
+  on another day than the "yyyy-MM" key and the event eggs fell on dates of that calendar. They use
+  `LocalUsageReader.gregorianCalendar()`; `testOnlyDayLevelCodeReadsTheSystemCalendar` allows `Calendar.current` only
+  for what is the same in every calendar (start of day, today, first weekday, weekday).
+
 ## 외부 로그·사용량 소스
 
 - **토큰 파일 파서는 외부 도구의 실제 직렬화 구조체(중첩 객체)를 반영해야 한다.** `jetski-standalone-oauth-token`
@@ -1005,6 +1042,25 @@ read_when:
   cached organization (an hour after a failure); `SessionKeyLimitsTests` (`testTheCachedOrganizationsPlanComesFromItsRowOnceADay`,
   `testAFailedPlanReadKeepsTheUsageAndWaitsAnHour`, `testTheDiscoveredOrganizationCarriesItsPlan`).
 
+- **Decode an external answer part by part.** The Codex limits decoded as a whole: one field Codex dropped or reshaped
+  failed the response, which froze every Codex bar at its last value and stopped the Codex candies. Each snapshot
+  field decodes on its own (`try?`), a window needs only its percentage, a bad bucket of the map is left out:
+  `testCodexRateLimitStatusDecodesEachPartOnItsOwn`. Same rule as the Antigravity buckets (`LossyBucket`).
+
+- **A failed read must not be cached under the file's current signature.** `parseCodexRollout` returned an empty
+  rollout when the file could not be read, and the cache stored it under the file's mtime and size: its tokens stayed
+  out until the file changed. `readCodexRollout` returns nil, the previous blob stands in under its old signature
+  (`testCodexReadFailureIsNotCachedAsEmpty`), as `LocalAntigravityUsageReader` already did.
+
+- **A watermark on a creation date misses what is filled later.** OpenCode rescanned from a second before the newest
+  message cached; a message is dated when created and filled when it ends, so with two sessions at once the one still
+  running was never read again. The rescan reads an hour before the newest message
+  (`testOpenCodeRescanReadsAMessageFilledAfterANewerOne`).
+
+- **Check that the trigger exists before adding the guard.** The audit flagged Claude lines without `message.id` and
+  `requestId` folding into one "|" entry. On 2026-10-29, 104,402 assistant lines with usage in the owner's logs had
+  none without both ids, so no guard was added.
+
 ## 빌드·도구체인
 
 - **새 SDK에서 통과해도 CI의 AppKit Sendable 선언을 가정하지 마라.** 동시 캐시 로드 테스트가
@@ -1146,6 +1202,11 @@ read_when:
   (출발할 때 봐야 할 시계를 도착해서 보는 격). 가드를 넣을 땐 그 함수 위의 await 까지 거슬러 확인하고,
   회귀 테스트도 **그 await 를 실제로 지나는 진입점**으로 써라 — `hatch(baseID:)` 경로 테스트는
   `chooseBase()` 를 안 지나 통과하면서 아무것도 지키지 않았다(`testImportDuringSpeciesRollDiscardsTheHatch`).
+
+- **An answer that arrives late must not overwrite a newer one.** An automatic poll waiting on the network, then a
+  manual refresh after `/login` to another account: the poll answered last and wrote the previous account's limits
+  over the new ones. Each Claude limits read takes a number before it waits and writes only if no newer read was
+  applied: `testAnOlderPollDoesNotOverwriteANewerRead`.
 
 ## 프로세스·인스턴스
 
@@ -1700,6 +1761,20 @@ read_when:
   `testTransientSurfaceIsTheOnlyUncappedOne` — 캡=0 주입으로 실패 확인). 상시 표시 표면을 더할 땐
   캡을 반드시 **이름 있는 값**으로 두고 `>0` 를 단정한다. occlusion 게이팅은
   all-spaces/`.floating` 펫이 실제로 거의 안 가려져 메뉴바와 동일 수확체감으로 미도입. (#102 리뷰 지적 반영, 2026-07-22.)
+
+- **A stopped poll stops what it pays too.** With the screens asleep the polls stop, so a limit window filled and reset
+  in the night (an agent left running) never paid its candies. The sleep probe reads the limits alone every half hour
+  and pays them (`testSleepProbeReadsTheLimitsAloneEveryHalfHour`); a full refresh no longer runs while the screens
+  sleep (a day change, a network back), they refresh on wake (`testRefreshWhileDisplaysAsleepKeepsPollingSuspended`).
+
+- **A process launched at every poll must be needed at every poll.** `codex app-server` was launched each refresh for
+  anyone with the binary, the CLI ChatGPT.app bundles included. Without Codex usage this month and with its limits at
+  0%, it is read every 30 minutes; limits that move (cloud use) read it at each poll again
+  (`testIdleCodexLimitsAreNotReadAtEveryPoll`).
+
+- **A fallback that answers must not hide the primary's 429.** With the OAuth answering, a session key's 429 was
+  swallowed and the key asked again at every poll, which kept it rate limited. The chain lets the key wait
+  (its `retryAfter`, else the limits backoff) while the fallback answers: `testChainLetsARateLimitedSessionKeyWait`.
 
 ## 알림
 

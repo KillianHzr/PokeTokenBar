@@ -928,6 +928,10 @@ struct CandyWindow: Sendable {
         self.epoch = epoch
         self.planMultiplier = max(1, planMultiplier)
     }
+
+    func withPlanMultiplier(_ plan: Int) -> CandyWindow {
+        CandyWindow(key: key, name: name, kind: kind, utilization: utilization, epoch: epoch, planMultiplier: plan)
+    }
 }
 
 /// 사탕 지급 1건(순수 판정 결과) — 부수효과(인벤토리·알림)와 분리해 테스트 가능하게.

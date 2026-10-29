@@ -82,6 +82,24 @@ final class CandyGrantEvaluationTests: XCTestCase {
         XCTAssertEqual(regrant.map(\.count), [1], "리셋 후 다시 채우면 재지급")
     }
 
+    /// [Regression] A window without an epoch hovering around its limit pays once: a Pro session at 100%, 99.6%, 100%
+    /// owed nothing at each dip and paid again at each return. A real drop starts it again.
+    func testEpochlessWindowHoveringAtItsLimitPaysOnce() {
+        var tier: [String: Int] = [:]
+        var epochs: [String: String] = [:]
+        var paid = 0
+        for util in [100, 99.6, 100, 99.8, 100, 99.9, 100] {
+            paid += CompanionStore.evaluateCandyGrants(windows: [w("s", .session, util)], grantTier: &tier,
+                                                       windowEpoch: &epochs).map(\.count).reduce(0, +)
+        }
+        XCTAssertEqual(paid, 1)
+        for util in [30.0, 100] {
+            paid += CompanionStore.evaluateCandyGrants(windows: [w("s", .session, util)], grantTier: &tier,
+                                                       windowEpoch: &epochs).map(\.count).reduce(0, +)
+        }
+        XCTAssertEqual(paid, 2, "back down for real, then full again")
+    }
+
     /// Another account under the same key (`/login` in the same folder, `codex login`): its week ends later while
     /// the previous one still runs. Read as a reset, it paid that account's whole usage at once, and switching back
     /// paid the gap again. It pays from then on; the week that really ends still starts again.
@@ -174,6 +192,42 @@ final class CandyGrantEvaluationTests: XCTestCase {
             windows: [w("antigravity.3p.5h", .session, 100, epoch: "2026-09-28T19:15:12Z")],
             grantTier: &tier, windowEpoch: &epochs)
         XCTAssertTrue(drift5Min.isEmpty, "5-minute rolling drift must not regrant candy")
+    }
+
+    /// [Regression] A reset time that slides a minute at each poll, past the window's end, is the same window: each
+    /// poll was compared to the first one seen, so 30 minutes of slides passed for a reset and paid the window again.
+    /// The real reset after it still pays.
+    func testResetTimeSlidingPastItsEndIsNotAReset() {
+        var tier: [String: Int] = [:]
+        var epochs: [String: String] = [:]
+        let end = Date(timeIntervalSince1970: 1_790_000_000)
+        var paid = 0
+        for minute in 0...90 {
+            let epoch = String(Int(end.addingTimeInterval(Double(minute) * 60).timeIntervalSince1970))
+            paid += CompanionStore.evaluateCandyGrants(
+                windows: [w("antigravity.3p.5h", .session, 100, epoch: epoch)],
+                grantTier: &tier, windowEpoch: &epochs,
+                now: end.addingTimeInterval(Double(minute) * 60 + 600)).map(\.count).reduce(0, +)
+        }
+        XCTAssertEqual(paid, 1, "one window, paid once")
+        let next = String(Int(end.addingTimeInterval(90 * 60 + 5 * 3600).timeIntervalSince1970))
+        let reset = CompanionStore.evaluateCandyGrants(
+            windows: [w("antigravity.3p.5h", .session, 100, epoch: next)],
+            grantTier: &tier, windowEpoch: &epochs, now: end.addingTimeInterval(91 * 60))
+        XCTAssertEqual(reset.map(\.count), [1], "the next window pays")
+    }
+
+    /// A jitter under a minute leaves the stored reset time as it is: nothing new to save at each poll.
+    func testJitterUnderAMinuteKeepsTheStoredEpoch() {
+        var tier: [String: Int] = [:]
+        var epochs: [String: String] = [:]
+        _ = CompanionStore.evaluateCandyGrants(
+            windows: [w("claude.fiveHour", .session, 50, epoch: "2026-09-28T17:10:00.928794+00:00")],
+            grantTier: &tier, windowEpoch: &epochs)
+        _ = CompanionStore.evaluateCandyGrants(
+            windows: [w("claude.fiveHour", .session, 50, epoch: "2026-09-28T17:10:30.135515+00:00")],
+            grantTier: &tier, windowEpoch: &epochs)
+        XCTAssertEqual(epochs["claude.fiveHour"], "2026-09-28T17:10:00.928794+00:00")
     }
 
     /// Full session window advancement (e.g. 5h) while still at 100% regrants candy.

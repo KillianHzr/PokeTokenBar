@@ -4,25 +4,34 @@ import Foundation
 /// without it the Stats page could not price last month or the year.
 struct CostLedger: Equatable, Sendable {
     static let defaultsKey = "dailyCostLedger"
+    static let tokensKey = "dailyCostLedgerTokens"
 
     private(set) var costByDay: [String: Double] = [:]
+    /// The tokens each priced day had when it was priced.
+    private(set) var pricedTokensByDay: [String: Int] = [:]
 
     func cost(on day: String) -> Double? { costByDay[day] }
 
-    /// Records the days whose whole cost is known, and never lowers one, like the token ledger. A day with an unpriced
-    /// part is dropped rather than priced low: a period over it shows no cost.
+    /// Records the days whose whole cost is known, and never lowers one, like the token ledger. A day that gains an
+    /// unpriced part is dropped rather than priced low: a period over it shows no cost. A read of no more tokens than
+    /// the day was priced at, with a part unpriced (a price list not loaded yet, one provider's read failing), is the
+    /// same day read worse: it keeps its cost, which such a read erased.
     mutating func merge(_ series: [DailyUsage]) {
         for day in series where day.totalTokens > 0 {
             if day.costCoverage.unknown || !day.costCoverage.hasKnown {
+                if let priced = pricedTokensByDay[day.date], day.totalTokens <= priced { continue }
                 costByDay[day.date] = nil
+                pricedTokensByDay[day.date] = nil
             } else {
                 costByDay[day.date] = max(costByDay[day.date] ?? 0, day.totalCost)
+                pricedTokensByDay[day.date] = max(pricedTokensByDay[day.date] ?? 0, day.totalTokens)
             }
         }
     }
 
     mutating func prune(before cutoff: String) {
         costByDay = costByDay.filter { $0.key >= cutoff }
+        pricedTokensByDay = pricedTokensByDay.filter { $0.key >= cutoff }
     }
 
     static func load(from defaults: UserDefaults) -> CostLedger {
@@ -32,11 +41,15 @@ struct CostLedger: Equatable, Sendable {
         if let stored = defaults.dictionary(forKey: defaultsKey) as? [String: Double] {
             ledger.costByDay = stored.filter { formatter.date(from: $0.key) != nil && $0.value.isFinite && $0.value >= 0 }
         }
+        if let stored = defaults.dictionary(forKey: tokensKey) as? [String: Int] {
+            ledger.pricedTokensByDay = stored.filter { ledger.costByDay[$0.key] != nil && $0.value > 0 }
+        }
         return ledger
     }
 
     func save(to defaults: UserDefaults) {
         defaults.set(costByDay, forKey: Self.defaultsKey)
+        defaults.set(pricedTokensByDay, forKey: Self.tokensKey)
     }
 }
 

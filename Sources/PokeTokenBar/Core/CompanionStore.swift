@@ -1406,6 +1406,9 @@ final class CompanionStore {
 
     // MARK: 갱신 (AppDelegate 가 UsageStore 값으로 호출)
 
+    /// One log line per provider and day's high, not one per refresh while a provider reads below it.
+    @ObservationIgnored private var usageDropLog = LogRepeatSuppressor()
+
     func update(todayTokensByProvider: [String: Int], todayDate: String, monthTotal: Int,
                 burnTier: BurnTier, limitWarning: Bool, hasUsageData: Bool) {
         let todayTokens = todayTokensByProvider.values.reduce(0, +)
@@ -1487,11 +1490,14 @@ final class CompanionStore {
                             continue
                         }
                         if current < previous {
-                            // 전체 합계가 아니라 해당 프로바이더의 line만 rebase한다. 다른 프로바이더가
-                            // 이번 refresh에서 보고하지 않았거나 carrier snapshot만 남은 경우에는 map에
-                            // line 자체가 없으므로 기존 기준값을 건드리지 않는다.
-                            ledger[providerID] = current
-                            AppLog.write("companion usage regression provider=\(providerID) date=\(todayDate) previous=\(previous) current=\(current) drop=\(previous - current) — rebased provider ledger")
+                            // The ledger keeps the day's high: only what goes past it is credited. Rebased on the
+                            // lower total, a dip and its recovery were credited twice (Cursor falls back from its
+                            // API to a lower local estimate, then back). Only this provider's line is concerned.
+                            if usageDropLog.shouldWrite(key: "usage-drop-\(providerID)",
+                                                        message: "\(todayDate) \(previous)",
+                                                        now: clock(), repeatAfter: 3600) {
+                                AppLog.write("companion usage: provider=\(providerID) date=\(todayDate) below the day's high (\(current) < \(previous)), credited past the high only")
+                            }
                             continue
                         }
                         delta += current - previous
@@ -2571,12 +2577,12 @@ final class CompanionStore {
 
     /// The event eggs waiting now, earliest event first (`EventEgg.claimable`).
     var eventEggs: [(egg: EventEgg, year: Int)] {
-        EventEgg.claimable(now: clock(), claimed: state.claimedEventEggs, firstCatch: firstCatch?.date, calendar: .current)
+        EventEgg.claimable(now: clock(), claimed: state.claimedEventEggs, firstCatch: firstCatch?.date, calendar: LocalUsageReader.gregorianCalendar())
     }
 
     /// Whether this waiting egg's event is on, rather than in the two weeks after it.
     func isEventOn(_ egg: EventEgg, year: Int) -> Bool {
-        egg.isOn(year: year, now: clock(), firstCatch: firstCatch?.date, calendar: .current)
+        egg.isOn(year: year, now: clock(), firstCatch: firstCatch?.date, calendar: LocalUsageReader.gregorianCalendar())
     }
 
     /// Puts a waiting event egg in the Bag, once for its year.
@@ -2631,7 +2637,7 @@ final class CompanionStore {
     /// The birthday gift claimable now, and whether it is the birthday's week or a catch-up (`BirthdayGift`).
     var birthdayGift: (year: Int, occasion: BirthdayGift.Occasion)? {
         BirthdayGift.claimable(birthday: state.birthday, lastGiftYear: state.lastBirthdayGiftYear,
-                               changedAfterGiftYear: state.birthdayChangedAfterGiftYear, now: clock(), calendar: .current)
+                               changedAfterGiftYear: state.birthdayChangedAfterGiftYear, now: clock(), calendar: LocalUsageReader.gregorianCalendar())
     }
 
     /// Sets the player's birthday, or clears it with nil. Changing it never brings a second gift within a year: after
@@ -2648,7 +2654,7 @@ final class CompanionStore {
             if let giftDate { state.lastBirthdayGiftDate = giftDate }
             if let birthday, birthday != giftDate {
                 // A save that claimed before the claim date was kept: its gift's birthday year, at least.
-                let claimedIn = state.lastBirthdayGiftClaimedAt.map { Calendar.current.component(.year, from: $0) } ?? lastGift
+                let claimedIn = state.lastBirthdayGiftClaimedAt.map { LocalUsageReader.gregorianCalendar().component(.year, from: $0) } ?? lastGift
                 state.birthdayChangedAfterGiftYear = max(state.birthdayChangedAfterGiftYear ?? claimedIn, claimedIn)
             } else if let giftDate, birthday == giftDate {
                 state.birthdayChangedAfterGiftYear = nil
@@ -2735,6 +2741,9 @@ final class CompanionStore {
         return isDay(day) && isDay(other) && day < other
     }
 
+    /// Below this, a window without an epoch has gone down for real and starts again (`evaluateCandyGrants`).
+    static let epochlessRearmUtilization: Double = 50
+
     /// How a window's epoch moved since the last poll.
     enum EpochChange: Equatable { case same, reset, otherWindow }
 
@@ -2757,7 +2766,7 @@ final class CompanionStore {
     /// it is tested apart from the Bag and the notifications (evaluateLimitAlerts 자매).
     /// - The ledger (`grantTier`) keeps what each window paid. A new epoch (`resets_at`) starts it again, even when the
     ///   app never saw the window go down (#326); the key never holds the epoch.
-    /// - Without an epoch, a window back to nothing owed is a new one.
+    /// - Without an epoch, a window back to nothing owed, and under half full, is a new one.
     /// - What a window paid is never taken back: a utilization that goes down a little pays nothing until it is past
     ///   it again.
     /// - Another window under the key (`epochChange`) pays from now on, as a window first seen does (#79).
@@ -2774,7 +2783,14 @@ final class CompanionStore {
                 if let previousEpoch = windowEpoch[w.key] {
                     switch epochChange(previous: previousEpoch, current: epoch, kind: w.kind, now: now) {
                     case .same:
-                        break
+                        // A reset time that slides (Antigravity's moves a little at each poll) is followed, so a poll
+                        // is compared to the last one seen: compared to the first, the slides added up once the
+                        // window's end was past and passed for a reset. Under a minute it stays, so a jitter
+                        // (Claude's fractional seconds, Codex's 1 s) changes nothing to save.
+                        if let p = parseEpochDate(previousEpoch), let c = parseEpochDate(epoch),
+                           abs(c.timeIntervalSince(p)) >= 60 {
+                            windowEpoch[w.key] = epoch
+                        }
                     case .reset:
                         grantTier[w.key] = nil
                         windowEpoch[w.key] = epoch
@@ -2788,7 +2804,9 @@ final class CompanionStore {
                 }
             }
             var paid = grantTier[w.key] ?? 0
-            if w.epoch == nil, due == 0 { paid = 0 }
+            // Without an epoch, only a real drop starts a window again: a Pro session hovering around its limit
+            // (100%, 99.6%, 100%) owes nothing at each dip and paid its candy again at each return.
+            if w.epoch == nil, due == 0, w.utilization < Self.epochlessRearmUtilization { paid = 0 }
             if due > paid {
                 let whole = RareCandy.windowCandies(kind: w.kind, planMultiplier: w.planMultiplier)
                 grants.append(CandyGrant(windowKey: w.key, windowName: w.name, count: due - paid,
@@ -2808,8 +2826,18 @@ final class CompanionStore {
     /// - A window first seen later (another login, a Codex bucket), or seen at another plan, pays from then on too:
     ///   a Max 20x login added at 80% of its week would pay 80 candies at once, a Pro week at 60% read as Max 5x 12
     ///   (#79).
-    func grantCandies(from windows: [CandyWindow], limitsReady: Bool) {
+    func grantCandies(from polled: [CandyWindow], limitsReady: Bool) {
         guard limitsReady else { return }
+        let now = clock()
+        // A plan read as 1 is a plan unknown for that poll (`LimitStatus.planMultiplier`) when a bigger one is known for
+        // the same window: re-seeded at 1 and back, the window lost what it owed between the two polls.
+        let windows = polled.map { w -> CandyWindow in
+            guard w.planMultiplier == 1, let known = state.candyWindowPlan[w.key], known > 1,
+                  let previous = state.candyWindowEpoch[w.key], let epoch = w.epoch,
+                  Self.epochChange(previous: previous, current: epoch, kind: w.kind, now: now) == .same
+            else { return w }
+            return w.withPlanMultiplier(known)
+        }
         if !state.candyFeatureSeeded {
             // 한계(수용): 첫 refresh 에 한 프로바이더 한도만 로드되면 그 프로바이더 창만 시드된다. refresh() 는 전
             // 프로바이더 fetch 를 await 후 onRefresh 하므로 정상 경로에선 원자적 시드다.
@@ -2830,6 +2858,14 @@ final class CompanionStore {
         for w in windows where state.candyWindowPlan[w.key] != w.planMultiplier {
             let firstSeen = state.candyWindowPlan[w.key] == nil
             let paid = state.candyGrantTier[w.key] ?? 0
+            // A window whose stored one has ended is new whatever its plan: what the ended one paid is not carried
+            // over (an old save opened after a reset kept last week's count), it starts from nothing as any reset.
+            if let previous = state.candyWindowEpoch[w.key], let epoch = w.epoch,
+               Self.epochChange(previous: previous, current: epoch, kind: w.kind, now: now) == .reset {
+                state.candyWindowPlan[w.key] = w.planMultiplier
+                AppLog.write("candies: \(w.key) plan ×\(w.planMultiplier) in a new window, pays from nothing")
+                continue
+            }
             seedCandyLedger(w, paid: true)
             // Seen for the first time, what it paid already stays paid; at another plan, it paid that plan's share.
             if firstSeen, paid > (state.candyGrantTier[w.key] ?? 0) { state.candyGrantTier[w.key] = paid }
@@ -2841,7 +2877,7 @@ final class CompanionStore {
             windows: windows,
             grantTier: &grantTier,
             windowEpoch: &windowEpoch,
-            now: clock())
+            now: now)
         state.candyGrantTier = grantTier
         state.candyWindowEpoch = windowEpoch
         let meteorite = itemCount(.meteorite) > 0 ? CollectorBonus.meteoriteWindowCandies : 0

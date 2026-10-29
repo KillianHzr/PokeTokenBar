@@ -351,6 +351,34 @@ final class ModelDecodingTests: XCTestCase {
         XCTAssertEqual(status.maxPrimaryUsedPercent, 86)
     }
 
+    /// [Regression] One field Codex reshapes or drops leaves the rest: decoded as a whole, a single bad field failed the
+    /// response, which froze every Codex bar at its last value and stopped the Codex candies.
+    func testCodexRateLimitStatusDecodesEachPartOnItsOwn() throws {
+        let json = """
+        {"rateLimits":{"limitId":"codex",
+        "primary":{"windowDurationMins":300,"resetsAt":1781694161},
+        "secondary":{"usedPercent":58.5,"windowDurationMins":"10080","resetsAt":1781855658},
+        "credits":{"balance":"3"},
+        "individualLimit":{"limit":"10","remainingPercent":40},"planType":"plus","rateLimitReachedType":7},
+        "rateLimitsByLimitId":{"codex_other":"unknown",
+        "codex_spark":{"limitId":"codex_spark","primary":{"usedPercent":12,"windowDurationMins":300}}}}
+        """.data(using: .utf8)!
+
+        let status = try JSONDecoder().decode(CodexRateLimitStatus.self, from: json)
+
+        let codex = status.rateLimits
+        XCTAssertNil(codex.primary, "a window without its percentage is unknown")
+        XCTAssertEqual(codex.secondary?.usedPercent, 59)
+        XCTAssertNil(codex.secondary?.windowDurationMins)
+        XCTAssertEqual(codex.secondary?.resetsAt, 1_781_855_658)
+        XCTAssertNil(codex.credits)
+        XCTAssertNil(codex.individualLimit)
+        XCTAssertNil(codex.rateLimitReachedType)
+        XCTAssertEqual(codex.planType, "plus")
+        XCTAssertEqual(status.snapshots.map(\.limitId), ["codex", "codex_spark"], "the bucket that does not decode is left out")
+        XCTAssertEqual(status.maxPrimaryUsedPercent, 12)
+    }
+
     /// 다중 bucket 계정 (codex + codex_other) — 리포트된 버그 시나리오:
     /// "codex" bucket 은 미사용(0%), 실사용은 codex_other(주간 93%). 두 bucket 모두 노출돼야 한다.
     func testCodexRateLimitStatusMultiBucket() throws {

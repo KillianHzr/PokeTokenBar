@@ -166,6 +166,26 @@ final class AntigravityRateLimitsProviderTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(geminiWeekly?.utilization), 6.0, accuracy: 0.01)
     }
 
+    /// [Regression] Each group has its own candy key, from its buckets' ids: read from the name, every group without
+    /// "gemini" in it was "3p", so two of them shared one ledger. The keys of the groups known so far do not change.
+    func testEachAntigravityGroupHasItsOwnCandyKey() {
+        func group(_ name: String, _ ids: [String]) -> AntigravityQuotaGroup {
+            AntigravityQuotaGroup(displayName: name, buckets: ids.map {
+                AntigravityQuotaBucket(bucketId: $0, displayName: $0, remainingFraction: 0.5)
+            })
+        }
+        XCTAssertEqual(UsageStore.antigravityCandyKey(group("Gemini Models", ["gemini-weekly", "gemini-5h"]), weekly: false),
+                       "antigravity.gemini.5h")
+        XCTAssertEqual(UsageStore.antigravityCandyKey(group("Claude and GPT models", ["3p-5h"]), weekly: true),
+                       "antigravity.3p.weekly")
+        let claude = UsageStore.antigravityCandyKey(group("Claude models", ["claude-5h"]), weekly: false)
+        let gpt = UsageStore.antigravityCandyKey(group("GPT models", ["gpt-oss_5h"]), weekly: false)
+        XCTAssertNotEqual(claude, gpt, "two groups without Gemini in their names")
+        XCTAssertEqual([claude, gpt], ["antigravity.claude.5h", "antigravity.gpt-oss.5h"])
+        XCTAssertEqual(UsageStore.antigravityCandyKey(group("Other Models", ["x"]), weekly: true),
+                       "antigravity.othermodels.weekly", "ids without a window")
+    }
+
     @MainActor
     func testAntigravityLimitsStalenessThreshold() async throws {
         let data = Data(sampleJSON.utf8)

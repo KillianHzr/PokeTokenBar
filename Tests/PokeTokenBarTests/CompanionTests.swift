@@ -826,23 +826,37 @@ final class CompanionStoreTests: XCTestCase {
         XCTAssertEqual(s.state.usedSinceInstall, 100_000_000)
     }
 
-    /// [회귀] 로컬 사용량 재집계가 기존 값보다 낮아진 뒤에도, 새 기준점 이후의 증가분은 알에 반영한다.
-    /// 예전에는 aggregate high-water mark 로만 유지해 감소 후 증가가 영구히 무시됐다.
-    func testUsageIncreaseAfterValidDropContinuesEggProgress() {
+    /// [Regression] A provider's total that dips below the day's high and comes back is credited once: Cursor falls
+    /// back from its API to a lower local estimate, then back. Rebased on the dip, the recovery was credited again.
+    /// Only what goes past the day's high counts.
+    func testDipBelowTheDaysHighIsCreditedOnce() {
         let s = store(linear3)
         base(s)
         use(s, 200)
         XCTAssertEqual(s.state.eggUsage, 200)
 
-        // 유효한 낮은 스냅샷: 이 자체는 토큰 사용량으로 지급하지 않고 기준점만 재설정한다.
-        use(s, 40)
+        use(s, 40)          // the dip: nothing credited, the high stays
         XCTAssertEqual(s.state.eggUsage, 200)
-        XCTAssertEqual(s.state.claimedTodayTokensByProvider?["test"], 40)
+        XCTAssertEqual(s.state.claimedTodayTokensByProvider?["test"], 200)
 
-        // 새 기준점 이후의 증가분만 반영한다.
-        use(s, 75)
-        XCTAssertEqual(s.state.eggUsage, 235)
-        XCTAssertEqual(s.state.usedSinceInstall, 235)
+        use(s, 200)         // back to the high: nothing again
+        XCTAssertEqual(s.state.eggUsage, 200)
+
+        use(s, 275)         // past it: only the part above the high
+        XCTAssertEqual(s.state.eggUsage, 275)
+        XCTAssertEqual(s.state.usedSinceInstall, 275)
+    }
+
+    /// A dip of one provider leaves the others' credit alone.
+    func testDipOfOneProviderKeepsCreditingTheOthers() {
+        let s = store(linear3)
+        useMap(s, ["cursor": 0, "codex": 0])
+        useMap(s, ["cursor": 1_000, "codex": 500])
+        useMap(s, ["cursor": 300, "codex": 800])
+        XCTAssertEqual(s.state.usedSinceInstall, 1_800)
+        XCTAssertEqual(s.state.claimedTodayTokensByProvider, ["cursor": 1_000, "codex": 800])
+        useMap(s, ["cursor": 1_100, "codex": 800])
+        XCTAssertEqual(s.state.usedSinceInstall, 1_900)
     }
 
     /// [회귀] 데이터 공백/조회 실패로 today=0 이 들어와도 당일 기준점을 0으로 낮추지 않는다.
