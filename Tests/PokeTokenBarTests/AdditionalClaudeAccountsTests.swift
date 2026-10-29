@@ -680,6 +680,18 @@ final class AdditionalClaudeAccountsStoreTests: XCTestCase {
         XCTAssertFalse(loaded.claudeLimitsMissing)
     }
 
+    /// A session key answers without an email, so the default tab takes the login saved in `~/.claude.json`.
+    func testLoadedDefaultLimitsWithoutAnEmailTakeTheSavedLogin() async {
+        let identity = AccountIdentity(email: "main@example.com", organizationName: "Main Corp")
+        for folders in [[:], [work: ScriptedLimits([.success(limitStatus(fiveHour: 20, email: "work@example.com"))])]] {
+            let store = makeStore(primary: ScriptedLimits([.success(limitStatus(fiveHour: 10, email: nil))]),
+                                  folders: folders, defaultIdentity: identity)
+            await store.refresh(scheduleEmptyRetry: false)
+            XCTAssertEqual(store.claudeAccounts.first?.title, "Main Corp", "\(folders.count) other folder(s)")
+            XCTAssertEqual(store.claudeAccounts.first?.status.accountDisplay, "main@example.com · Main Corp")
+        }
+    }
+
     func testAutomaticRefreshNeverPromptsManualRefreshDoes() async {
         let primary = ScriptedLimits([.success(limitStatus(fiveHour: 10, email: "main@example.com"))])
         let folder = ScriptedLimits([.success(limitStatus(fiveHour: 20, email: "work@example.com"))])

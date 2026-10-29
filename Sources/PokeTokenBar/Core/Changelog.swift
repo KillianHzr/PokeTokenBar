@@ -67,6 +67,14 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-29", entries: [
+            .fixed("2026-10-29-session-key-account-details", { $0.t("claude.ai 세션 키로 읽은 공식 한도에 이제 Team 플랜이 보이고, 기본 계정도 이름과 이메일이 보여요.",
+                                                                    "Official limits read with a claude.ai session key now show a Team plan, and the default account shows its name and email.",
+                                                                    "claude.ai セッションキーで読んだ公式上限に Team プランが表示され、デフォルトのアカウントにも名前とメールが出るようになりました。",
+                                                                    "Los límites oficiales leídos con una clave de sesión de claude.ai ahora muestran el plan Team, y la cuenta predeterminada muestra su nombre y su correo.",
+                                                                    "Les limites officielles lues avec une clé de session claude.ai affichent maintenant le forfait Team, et le compte par défaut montre son nom et son adresse.",
+                                                                    "Os limites oficiais lidos com uma chave de sessão do claude.ai agora mostram o plano Team, e a conta padrão mostra seu nome e e-mail.",
+                                                                    "Offizielle Limits, die mit einem claude.ai Sitzungsschlüssel gelesen werden, zeigen jetzt den Team-Tarif, und das Standardkonto zeigt seinen Namen und seine E-Mail.",
+                                                                    "Официальные лимиты, прочитанные по ключу сессии claude.ai, теперь показывают тариф Team, а основной аккаунт показывает имя и почту.") }),
             .new("2026-10-29-hatch-odds", { $0.t("상점과 가방의 알과 진화의 돌이 지금 부화하면 나올 확률을 보여 줘요: 등급별 확률과 새 종이 나올 확률.",
                                                  "Eggs and evolution stones in the Shop and the Bag show their odds if they hatched now: each rarity's share and the chance of a new species.",
                                                  "ショップとバッグのタマゴと進化の石に、いま孵った場合の確率が出ます。レア度ごとの確率と、新しい種が出る確率です。",

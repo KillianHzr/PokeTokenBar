@@ -1301,7 +1301,8 @@ final class UsageStore {
     /// warning state, highest utilization, 5h forecast) follow `trackedClaudeAccount`.
     var claudeAccounts: [ClaudeAccountLimits] {
         let additional = additionalLimits.map(ClaudeAccountLimits.additional)
-        if let limits {
+        if var limits {
+            limits.fillIdentity(from: defaultSavedIdentity)
             return [.defaultAccount(limits, isExpired: limitsAuthExpired, updatedAt: limitsUpdatedAt)] + additional
         }
         // Next to other accounts, the default login keeps its tab while its limits are not loaded,

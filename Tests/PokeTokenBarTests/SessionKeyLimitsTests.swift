@@ -281,6 +281,18 @@ final class SessionKeyLimitsTests: XCTestCase {
         XCTAssertEqual(paths.filter { $0 == orgsPath }.count, 1, "the plan saved with the organization")
     }
 
+    func testATeamOrganizationReadsAsTeam() async throws {
+        try seed()
+        let rows = """
+        [{"uuid":"org-team","name":"Team Plan","capabilities":["raven","chat"],"rate_limit_tier":"default_raven"}]
+        """
+        let http = StubSessionKeyHTTP([orgsPath: ok(rows), usagePath("org-team"): ok(activeUsageJSON)])
+        let provider = SessionKeyLimitsProvider(store: store, http: http)
+        let limits = try await provider.fetch(allowKeychainPrompt: false)
+        XCTAssertEqual(limits.planDisplay, "Team")
+        XCTAssertEqual(limits.planMultiplier, 1, "candies unchanged")
+    }
+
     /// 조직에서 빠졌거나 권한이 사라진 경우(403) — 목록을 다시 훑어 살아있는 조직으로 옮겨간다.
     func testFetchRerunsDiscoveryWhenCachedOrgLosesAccess() async throws {
         try seed(org: "org-api")
