@@ -2007,6 +2007,7 @@ struct FullDexView: View {
                 }
             }
             HStack(spacing: 8) {
+                Text(store.l.dexLinesProgress(owned.lines, of: owned.linesTotal)).hoverTip(store.l.dexLinesHint)
                 Text(store.l.formsCollected(owned.forms, of: owned.formsTotal))
                 Text("✨ \(store.l.dexShinySpecies(shinies))")
             }

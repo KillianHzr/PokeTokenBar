@@ -2280,7 +2280,14 @@ final class CompanionStore {
         let speciesTotal: Int
         let forms: Int
         let formsTotal: Int
+        /// Evolution lines, each one family from its first species (Pichu, Pikachu and Raichu are one), with a species
+        /// in the collection.
+        let lines: Int
+        let linesTotal: Int
     }
+
+    /// Every evolution line of the 1,025 species: one per species that evolves from none.
+    static let evolutionLineCount = PokemonAssets.animatedSpeciesIDs.filter { PokemonEvolutionData.root(of: $0) == $0 }.count
 
     /// Every appearance that can be collected: 1,025 species and their other forms.
     static let collectableFormCount = PokemonAssets.animatedSpeciesIDs.reduce(0) {
@@ -2300,7 +2307,9 @@ final class CompanionStore {
             return $0 + (PokemonForm.hasForms(speciesID: $1) ? max(1, collected.count) : 1)
         }
         return CollectionProgress(species: species.count, speciesTotal: PokemonAssets.animatedSpeciesIDs.count,
-                                  forms: forms, formsTotal: Self.collectableFormCount)
+                                  forms: forms, formsTotal: Self.collectableFormCount,
+                                  lines: Set(species.map(PokemonEvolutionData.root)).count,
+                                  linesTotal: Self.evolutionLineCount)
     }
 
     /// How far one species goal is from unlocking its item.

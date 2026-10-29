@@ -307,6 +307,16 @@ struct L {
         t("메뉴바의 포켓몬", "Pokémon in the menu bar", "メニューバーのポケモン", "Pokémon en la barra de menús",
           "Pokémon dans la barre des menus", "Pokémon na barra de menus", "Pokémon in der Menüleiste", "Покемон в строке меню")
     }
+    var menuSpriteHideLabel: String {
+        t("메뉴바의 포켓몬 숨기기", "Hide the Pokémon in the menu bar", "メニューバーのポケモンを隠す",
+          "Ocultar el Pokémon de la barra de menús", "Masquer le Pokémon de la barre des menus",
+          "Ocultar o Pokémon da barra de menus", "Pokémon in der Menüleiste ausblenden", "Скрыть покемона в строке меню")
+    }
+    var menuSpriteShowLabel: String {
+        t("메뉴바에 포켓몬 표시", "Show the Pokémon in the menu bar", "メニューバーにポケモンを表示",
+          "Mostrar el Pokémon en la barra de menús", "Afficher le Pokémon dans la barre des menus",
+          "Mostrar o Pokémon na barra de menus", "Pokémon in der Menüleiste anzeigen", "Показать покемона в строке меню")
+    }
     var menuSpriteHint: String {
         t("숨기면 사용량 글자만 보여요", "Hidden shows the usage text alone", "非表示にすると使用量の文字だけになります",
           "Oculto muestra solo el texto de uso", "Masqué n'affiche que le texte de consommation",
@@ -1185,6 +1195,21 @@ struct L {
     var catchLogTitle: String { t("포획 로그", "Catch log", "捕獲ログ", "Registro de capturas", "Journal de captures", "Registro de capturas", "Fangprotokoll", "Журнал поимок") }
     /// 도감 총계는 개체가 아니라 종 수 — 로그의 dexTotal("총 N마리")과 단위가 다르다.
     /// Species in the Pokédex out of every species that can hatch, above the grid next to `formsCollected`.
+    /// Evolution lines in the Pokédex, out of all of them (`CompanionStore.CollectionProgress.lines`).
+    func dexLinesProgress(_ count: Int, of total: Int) -> String {
+        t("계열 \(count)/\(total)", "Lines \(count)/\(total)", "系統 \(count)/\(total)", "Líneas \(count)/\(total)",
+          "Lignées \(count)/\(total)", "Linhas \(count)/\(total)", "Linien \(count)/\(total)", "Линии: \(count)/\(total)")
+    }
+    var dexLinesHint: String {
+        t("진화 계열: 한 마리라도 졸업한 계열이에요(피츄, 피카츄, 라이츄는 한 계열).",
+          "Evolution lines with a Pokémon graduated (Pichu, Pikachu and Raichu are one line).",
+          "1匹でも卒業した進化の系統です（ピチュー、ピカチュウ、ライチュウで1系統）。",
+          "Líneas evolutivas con algún Pokémon graduado (Pichu, Pikachu y Raichu son una línea).",
+          "Les lignées d'évolution dont un Pokémon est diplômé (Pichu, Pikachu et Raichu font une lignée).",
+          "Linhas evolutivas com algum Pokémon formado (Pichu, Pikachu e Raichu são uma linha).",
+          "Entwicklungslinien mit einem verabschiedeten Pokémon (Pichu, Pikachu und Raichu sind eine Linie).",
+          "Эволюционные линии, где выпущен хотя бы один покемон (Пичу, Пикачу и Райчу: одна линия).")
+    }
     func dexSpeciesProgress(_ count: Int, of total: Int) -> String {
         t("종 \(count)/\(total)", "Species \(count)/\(total)", "種 \(count)/\(total)", "Especies \(count)/\(total)",
           "Espèces \(count)/\(total)", "Espécies \(count)/\(total)", "Spezies \(count)/\(total)", "Виды: \(count)/\(total)")
