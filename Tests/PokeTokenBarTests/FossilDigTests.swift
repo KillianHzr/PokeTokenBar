@@ -268,6 +268,29 @@ final class FossilDigTests: XCTestCase {
         XCTAssertEqual([s.excavationProgress.opened, s.excavationProgress.inBag], [0, 0], "no dig claimed here")
     }
 
+    /// Regression (#90): a Fossil Egg used on a Fossil Egg's own Pokémon gave that egg back, so fossil hatches rerolled
+    /// for free, shiny roll included. It is greyed out while such a Pokémon grows; a stone or a Shop egg still sends it
+    /// off, and gives its egg back (#77).
+    func testAFossilEggWaitsWhileAFossilEggsPokemonGrows() throws {
+        var fossil = MonState(baseID: 138, pathIDs: [138], stageIndex: 0, usedAtStage: 0, rarity: .common, totalForms: 1)
+        fossil.fromFossilEgg = true
+        let s = try store(inventory: [.fossilEgg: 2, .fireStone: 1]) { $0.active = fossil }
+        XCTAssertTrue(s.isRaisingFossilEggPokemon)
+        XCTAssertFalse(s.canUseFossilEgg())
+        XCTAssertFalse(s.useFossilEgg())
+        XCTAssertEqual(s.itemCount(.fossilEgg), 2, "not spent")
+        XCTAssertEqual(s.state.active?.baseID, 138, "still raised")
+        XCTAssertTrue(s.useStone(.fireStone))
+        XCTAssertEqual(s.itemCount(.fossilEgg), 3, "its egg back (#77)")
+        XCTAssertFalse(s.isRaisingFossilEggPokemon)
+
+        let other = try store(inventory: [.fossilEgg: 1]) {
+            $0.active = MonState(baseID: 1, pathIDs: [1], stageIndex: 0, usedAtStage: 0, rarity: .common, totalForms: 1)
+        }
+        XCTAssertFalse(other.isRaisingFossilEggPokemon)
+        XCTAssertTrue(other.canUseFossilEgg(), "any other Pokémon can be sent off for one")
+    }
+
     /// The base index down, a Fossil Egg's REST fallback asks for its lines themselves: it hatches one on every try,
     /// not the line hatched last while another is left. It used to draw 32 random numbers and seldom met one.
     func testTheRestFallbackFindsAFossilLineEveryTime() async throws {

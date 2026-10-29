@@ -58,6 +58,73 @@ final class SaveSnapshotTests: XCTestCase {
         XCTAssertEqual(store.availableSnapshots.first?.id, snapshot.id)
     }
 
+    /// A refresh that changes nothing writes nothing: every refresh rewrote the whole save (660 KB) all the same.
+    /// Removed after the first write, the file comes back only with a change.
+    func testARefreshThatChangesNothingWritesNothing() throws {
+        let url = tempURL("unchanged")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        var state = sampleState(tokens: 12_500, dexCount: 3)
+        state.lastDate = "2026-10-28"
+        try JSONEncoder().encode(state).write(to: url)
+        let store = CompanionStore(provider: OfflineProvider(), clock: { self.baseNow }, fileURL: url)
+        let refresh = { (tokens: Int) in
+            store.update(todayTokensByProvider: ["claude_code": tokens], todayDate: "2026-10-28", monthTotal: tokens,
+                         burnTier: .idle, limitWarning: false, hasUsageData: true)
+        }
+        refresh(1_000)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
+        try FileManager.default.removeItem(at: url)
+        refresh(1_000)
+        refresh(1_000)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: url.path), "nothing changed, nothing written")
+        refresh(2_000)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: url.path), "new usage is saved")
+        let saved = try JSONDecoder().decode(CompanionState.self, from: Data(contentsOf: url))
+        XCTAssertEqual(saved.usedSinceInstall, store.state.usedSinceInstall)
+    }
+
+    /// A day that goes back (a time zone to the west after midnight, the clock set back) credits nothing: its whole
+    /// total was credited as a new day, a second time. Once the date is past again, only the new usage counts.
+    func testADateThatGoesBackCreditsNothing() throws {
+        let url = tempURL("backwards")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        var state = sampleState(tokens: 1_000, dexCount: 1)
+        state.active = nil
+        state.lastDate = "2026-10-29"
+        state.claimedTodayTokensByProvider = ["claude_code": 1_000]
+        try JSONEncoder().encode(state).write(to: url)
+        let store = CompanionStore(provider: OfflineProvider(), clock: { self.baseNow }, fileURL: url)
+        let refresh = { (tokens: Int, day: String) in
+            store.update(todayTokensByProvider: ["claude_code": tokens], todayDate: day, monthTotal: tokens,
+                         burnTier: .idle, limitWarning: false, hasUsageData: true)
+        }
+        refresh(5_000, "2026-10-28")
+        XCTAssertEqual(store.state.usedSinceInstall, 1_000, "the 28th was credited already")
+        XCTAssertEqual(store.state.lastDate, "2026-10-29")
+        refresh(1_500, "2026-10-29")
+        XCTAssertEqual(store.state.usedSinceInstall, 1_500, "only the 29th's new 500")
+        refresh(200, "2026-10-30")
+        XCTAssertEqual(store.state.usedSinceInstall, 1_700, "a day forward credits its total")
+        XCTAssertFalse(CompanionStore.isEarlierDay("2026-10-28", than: "d"), "a test date is no day")
+    }
+
+    /// Listing keeps each snapshot's summary while its file is unchanged, and reads it again once it changed.
+    func testSnapshotSummariesFollowTheirFile() throws {
+        let url = tempURL("summaries")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let created = try SaveSnapshotManager.createSnapshot(state: sampleState(tokens: 1_000, dexCount: 2), for: url,
+                                                             date: baseNow)
+        XCTAssertEqual(SaveSnapshotManager.listSnapshots(for: url).map(\.dexCount), [2])
+        XCTAssertEqual(SaveSnapshotManager.listSnapshots(for: url).map(\.dexCount), [2], "the same, kept")
+        let envelope = try SaveSnapshotManager.loadEnvelope(from: created.fileURL)
+        var bigger = envelope.state
+        bigger.dex += sampleState(tokens: 1_000, dexCount: 5).dex
+        try SaveTransfer.encode(state: bigger, appVersion: envelope.appVersion, deviceName: envelope.sourceDevice,
+                                now: envelope.exportedAt)
+            .write(to: created.fileURL, options: .atomic)
+        XCTAssertEqual(SaveSnapshotManager.listSnapshots(for: url).map(\.dexCount), [7], "read again once changed")
+    }
+
     func testSnapshotKeepsNonDefaultFormInSummaryAndRestoredState() throws {
         let url = tempURL("form")
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }

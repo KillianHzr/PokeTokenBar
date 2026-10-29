@@ -25,6 +25,43 @@ final class UpdateCheckerTests: XCTestCase {
         XCTAssertFalse(UpdateChecker.isNewer("2.0", than: "2.0.0"))  // 동일
     }
 
+    // MARK: - A failed update is shown
+
+    /// The update quits the app before installing: the app reopened after a failure reads the error the script left,
+    /// if it is recent. "success", an old error or a dismissed one show nothing.
+    @MainActor
+    func testAFailedUpdateIsShownAfterTheAppReopens() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("ptb-update-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let status = dir.appendingPathComponent("update-status")
+        let now = Date()
+        func checker() -> UpdateChecker {
+            UpdateChecker(currentCommit: "abc1234", clock: { now }, updateStatusURL: status, fetchLatest: { nil })
+        }
+        try "error: build failed".write(to: status, atomically: true, encoding: .utf8)
+        let failed = checker()
+        XCTAssertEqual(failed.updateError, "error: build failed")
+        failed.dismissUpdateError()
+        XCTAssertNil(failed.updateError)
+        XCTAssertNil(checker().updateError, "dismissed")
+
+        try "error: install failed".write(to: status, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.modificationDate: now.addingTimeInterval(-7_200)], ofItemAtPath: status.path)
+        XCTAssertNil(checker().updateError, "two hours old")
+        try "success".write(to: status, atomically: true, encoding: .utf8)
+        XCTAssertNil(checker().updateError)
+    }
+
+    /// A failure after the build quit the app reopens it: the player is never left without one.
+    func testAFailedUpdateReopensTheApp() {
+        let script = UpdateChecker.detachedUpgradeScript
+        XCTAssertTrue(script.contains("APP_PID=\"$1\""), "the app's pid, kept before fail() takes its own $1")
+        let fail = script.components(separatedBy: "fail() {").last?.components(separatedBy: "\n    }").first ?? ""
+        XCTAssertTrue(fail.contains("open \"/Applications/PokeTokenLBI.app\""))
+        XCTAssertTrue(fail.contains("kill -0 \"$APP_PID\""))
+    }
+
     // MARK: - Detached upgrade script wait loop (#175)
 
     func testDetachedUpgradeScriptWaitsOnPidNotProcessName() {

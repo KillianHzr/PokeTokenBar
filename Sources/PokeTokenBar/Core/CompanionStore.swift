@@ -297,6 +297,9 @@ final class CompanionStore {
         func add(_ kind: ItemKind, _ multiplier: Double, if applies: Bool) {
             if applies, itemCount(kind) > 0 { factors.append(GrowthFactor(source: .item(kind), multiplier: multiplier)) }
         }
+        add(.silverWing, CollectorBonus.silverWingGrowth, if: true)
+        add(.teraOrb, CollectorBonus.teraOrbStoneGrowth, if: mon.fromStoneEgg)
+        add(.seaIncense, CollectorBonus.seaIncenseRarityEggGrowth, if: mon.fromRarityEgg)
         let badges = typeBadgeSpeedMultiplier(forSpeciesID: mon.currentID, form: mon.form)
         if badges > 1 { factors.append(GrowthFactor(source: .badges, multiplier: badges)) }
         add(.clearBell, CollectorBonus.clearBellRare, if: mon.rarity == .rare)
@@ -489,6 +492,29 @@ final class CompanionStore {
     }
     var tokensToNext: Int { guard let a = state.active else { return 0 }; return max(0, threshold - a.usedAtStage) }
 
+    /// Tokens a day at the user's pace (`UsageStore.dailyPace`), set with each update; nil while unknown.
+    var usagePacePerDay: Double?
+    /// Each provider's usage today, set before each update: the raising record spreads and prices new tokens with it.
+    @ObservationIgnored var todayUsageDetails: [String: TodayUsageDetail] = [:]
+    /// The providers' names, for the raising record ("Claude Code").
+    var providerNames: [String: String] = [:]
+
+    /// The tokens still to use before the next stage: `tokensToNext` less what the token bonuses add on top
+    /// (`applyUsage`), which the threshold does not include.
+    var tokensNeededToNext: Int {
+        guard let mon = state.active else { return 0 }
+        let tokenBonus = Self.bonusSum(tokenGrowthFactors)
+        guard tokenBonus > 0 else { return tokensToNext }
+        let thresholdSpeed = 1 + Self.bonusSum(thresholdGrowthFactors(for: mon))
+        return Int((Double(tokensToNext) * thresholdSpeed / (thresholdSpeed + tokenBonus)).rounded(.up))
+    }
+
+    /// The time before the next stage at the user's pace, nil while the pace is unknown.
+    var timeToNext: TimeInterval? {
+        guard let pace = usagePacePerDay, pace > 0, state.active != nil else { return nil }
+        return Double(tokensNeededToNext) / pace * 86_400
+    }
+
     /// 진화 라인 표시용: 실현된 경로 + 다음 단계 미리보기.
     /// 분기 후보가 있는 경우 각 후보(이미 수집된 것은 스프라이트, 미수집은 실루엣/음영)를 모두 표시한다.
     var lineNodes: [EvoLineItem] {
@@ -609,7 +635,7 @@ final class CompanionStore {
             },
             form: active.form,
             hasNewForm: active.hasNewForm
-        )
+        ).withRaising(active.raising)
     }
 
     /// 놓아준 개체의 영구 기록 — 알을 새로 사서 육성을 포기하는 순간 만든다.
@@ -639,7 +665,7 @@ final class CompanionStore {
                 Dictionary(uniqueKeysWithValues:
                     chain.compactMap { id in line.names[id].map { (id, $0) } })
             },
-            releasedAt: now, form: a.form, hasNewForm: a.hasNewForm)
+            releasedAt: now, form: a.form, hasNewForm: a.hasNewForm).withRaising(a.raising)
     }
 
     var dexEntries: [DexEntry] {
@@ -1415,6 +1441,11 @@ final class CompanionStore {
                     state.claimedTodayTokensByProvider = todayTokensByProvider
                     state.lastDate = todayDate
                     AppLog.write("companion provider ledger seeded date=\(todayDate) providers=\(todayTokensByProvider.keys.sorted().joined(separator: ","))")
+                } else if Self.isEarlierDay(todayDate, than: state.lastDate) {
+                    // The day went back (a time zone to the west after midnight, the clock set back): that day was
+                    // credited already, and crediting its whole total as a new day counted it twice. Nothing is
+                    // credited until the date is past again; the ledger waits as it is.
+                    AppLog.write("companion usage: date went back \(state.lastDate) → \(todayDate), nothing credited")
                 } else if dateChanged {
                     // 일자별 snapshot은 서로 비교할 수 없다. 새 날짜에는 이전 날짜의 ledger를
                     // 기준으로 삼지 않고, 현재 날짜의 누적값 전체를 새 날짜 사용량으로 적립한다.
@@ -1434,6 +1465,8 @@ final class CompanionStore {
                     }
                     state.claimedTodayTokensByProvider = newLedger
                     let delta = todayTokensByProvider.values.reduce(0, +)
+                    earnTokenCandies(todayTokensByProvider)
+                    recordRaising(todayTokensByProvider)
                     if delta > 0 {
                         state.usedSinceInstall += delta
                         if state.active == nil {
@@ -1445,6 +1478,7 @@ final class CompanionStore {
                 } else {
                     var ledger = state.claimedTodayTokensByProvider ?? [:]
                     var delta = 0
+                    var deltas: [String: Int] = [:]
                     for (providerID, current) in todayTokensByProvider {
                         guard let previous = ledger[providerID] else {
                             // 새로 관측된 프로바이더의 과거 로그를 소급하지 않는다. 이후 refresh부터
@@ -1461,9 +1495,12 @@ final class CompanionStore {
                             continue
                         }
                         delta += current - previous
+                        deltas[providerID] = current - previous
                         ledger[providerID] = current
                     }
                     state.claimedTodayTokensByProvider = ledger
+                    earnTokenCandies(deltas)
+                    recordRaising(deltas)
                     if delta > 0 {
                         state.usedSinceInstall += delta
                         if state.active == nil {
@@ -1683,6 +1720,16 @@ final class CompanionStore {
         a.profile?.advanceGrowth(to: PokemonBalance.graduationTotal(a.rarity), rarity: a.rarity)
         if let details = pokemonDetails(speciesID: a.currentID, form: a.form) { a.profile?.enrich(with: details) }
         let finalID = a.currentID
+        // The Rotom Catalog pays for a form the line never graduated, when it graduates: paid at the hatch, a form
+        // sent off before graduating paid again each time it hatched (#91). Any graduated record of the line in that
+        // form counts: `graduatedLineForms` wants every species of the line in it, and a Kanto Slowking paid after a
+        // Kanto Slowbro. A revealed Ditto has no form.
+        if itemCount(.rotomCatalog) > 0, let form = PokemonForm.resolved(baseID: a.baseID, form: a.form),
+           !state.dex.contains(where: { !$0.isReleased && $0.baseID == a.baseID
+               && PokemonForm.resolved(baseID: $0.baseID, form: $0.form) == form }) {
+            let received = addRareCandies(CollectorBonus.rotomCatalogNewFormCandies)
+            AppLog.write("graduate: rotom catalog +\(received) candy for a new form")
+        }
         state.collectedFinals.insert("\(a.baseID):\(finalID)")
         state.dex.append(DexEntry(id: a.profile?.instanceID ?? UUID().uuidString,
                                   baseID: a.baseID, finalID: finalID,
@@ -1692,8 +1739,10 @@ final class CompanionStore {
                                   names: currentLine.map { line in   // 체인 각 종의 다국어 이름 저장(표시 즉시)
                                       Dictionary(uniqueKeysWithValues:
                                           a.pathIDs.compactMap { id in line.names[id].map { (id, $0) } })
-                                  }, form: a.form, hasNewForm: a.hasNewForm))
-        if ownsReinsOfUnity {
+                                  }, form: a.form, hasNewForm: a.hasNewForm).withRaising(a.raising))
+        // Not for a Common: one candy is a whole Common line's XP (`RareCandy.xp`), so each one graduated paid the next
+        // and Commons graduated for free, one egg apart.
+        if ownsReinsOfUnity, a.rarity != .common {
             let received = addRareCandies(CollectorBonus.reinsOfUnityCandies)
             AppLog.write("graduate: reins of unity +\(received) rare candy")
         }
@@ -1778,7 +1827,7 @@ final class CompanionStore {
     var ownedItems: [(kind: ItemKind, count: Int)] {
         let owned: [(kind: ItemKind, count: Int)] = ItemKind.allCases.compactMap { k in
             let c = itemCount(k)
-            return c > 0 ? (k, c) : nil
+            return c > 0 && !k.isRetired ? (k, c) : nil
         }
         return owned.filter { !$0.kind.isPassive } + owned.filter { $0.kind.isPassive }
     }
@@ -1862,6 +1911,7 @@ final class CompanionStore {
         }
         let xp = consumed * preview.xpPerCandy
         state.inventory[ItemKind.rareCandy.rawValue] = rareCandyCount - consumed
+        state.active?.raising?.candiesUsed += consumed
         let beforeStage = state.active?.stageIndex ?? 0
         // 진화 안 될 때(부분 진행)도 즉시 "+XP" 피드백 — CompanionHeader 가 연출과 별개로 표시.
         candyFeedbackAmount = xp
@@ -1903,25 +1953,17 @@ final class CompanionStore {
 
     /// 상점 판매 아이템 — shopPrice 있는 것만. 가격 저렴한 순, 단 구매 완료한 보유형은 맨 아래로.
     /// Collector items have no price: they are only claimed in the Achievements tab.
+    /// What the Shop sells, cheapest first: a passive item bought once (the Shiny Charm) leaves it for the Bag, and a
+    /// retired item (`isRetired`) is not sold.
     var purchasableItems: [ItemKind] {
         ItemKind.allCases
-            .filter { $0.shopPrice != nil }
-            .sorted { a, b in
-                // 구매 완료한 보유형(이로치 부적 등)은 맨 아래로 — 재구매 불가라 위에 있을 이유가 없다.
-                let aDone = a.isPassive && itemCount(a) > 0
-                let bDone = b.isPassive && itemCount(b) > 0
-                if aDone != bDone { return !aDone }
-                return (a.shopPrice ?? 0) < (b.shopPrice ?? 0)   // 나머지는 가격 저렴한 순
-            }
+            .filter { $0.shopPrice != nil && !$0.isRetired && !($0.isPassive && itemCount($0) > 0) }
+            .sorted { ($0.shopPrice ?? 0) < ($1.shopPrice ?? 0) }
     }
 
     /// 상점 표시 순서 — 판매 아이템 + 알 3종을 하나의 가격 오름차순 목록으로 병합.
-    /// 정렬 규칙은 purchasableItems 와 동일: 구매 완료한 보유형은 맨 아래, 나머지는 가격 저렴한 순.
-    /// 알은 즉시 액션이라 '보유' 개념이 없어 가격 순서에만 참여한다.
-    ///
-    /// 알은 활성 포켓몬이 없어도(알 상태) 목록에 남는다 — 구매는 `canBuyEgg` 의 `hasActive` 게이트가
-    /// 막고, EggCard 가 비활성 버튼 + 사유 한 줄로 보여준다. 목록에서 통째로 빼면 "상점에 알이 원래
-    /// 없다"로 읽혀서, 게이트는 유지하되 존재는 계속 보이게 한다.
+    /// Cheapest first, as `purchasableItems`: a passive item bought is in the Bag, not here.
+    /// The eggs are never "owned" passives: they only take part in the price order. Bought, they go in the Bag.
     ///
     /// 등급 알끼리 붙여 '티어 사다리'로 묶어 보이게 하는 안도 검토했으나 채택하지 않았다 — 지금의 순수
     /// 가격 오름차순은 "알이 무조건 맨 아래로 append 돼 더 비싼 부적보다 아래에 놓이던" 표시 회귀를
@@ -1930,23 +1972,12 @@ final class CompanionStore {
     var shopEntries: [ShopEntry] {
         var entries: [ShopEntry] = purchasableItems.map { ShopEntry.item($0) }
         entries += FreshEgg.shopTiers.map { ShopEntry.egg($0) }
-        return entries.sorted { a, b in
-            let aDone = isPurchasedPassive(a)
-            let bDone = isPurchasedPassive(b)
-            if aDone != bDone { return !aDone }
-            return price(of: a) < price(of: b)
-        }
-    }
-
-    /// 구매 완료한 보유형(이로치 부적 등)인지 — shopEntries 정렬에서 맨 아래로 보낼 판정.
-    private func isPurchasedPassive(_ entry: ShopEntry) -> Bool {
-        guard case .item(let kind) = entry else { return false }   // 알은 즉시 액션 — 보유 개념 없음
-        return kind.isPassive && itemCount(kind) > 0
+        return entries.sorted { price(of: $0) < price(of: $1) }
     }
 
     /// 구매 가능 — 잔액이 그 아이템 가격 이상(상점 미판매면 false). 활성/알 무관(재고는 미리 쌓아둘 수 있음).
     func canBuy(_ kind: ItemKind) -> Bool {
-        guard let price = price(of: kind) else { return false }
+        guard let price = price(of: kind), !kind.isRetired else { return false }
         if kind.isPassive && itemCount(kind) > 0 { return false }   // 보유형은 1회만(재구매 불가)
         return availableTokens >= price
     }
@@ -2376,32 +2407,26 @@ final class CompanionStore {
     /// 현재 알이 보증하는 타입(진화의 돌 사용 UI 표시용). 활성 포켓몬이 있으면 알이 없으므로 nil.
     var eggTypeGuarantee: PokemonType? { state.active == nil ? state.eggTypeGuarantee : nil }
 
-    /// 알 구매 가능 — 폐기할 활성 포켓몬이 있고 지갑이 그 티어 가격 이상일 때만.
-    /// 알 상태에서도 살 수 있게 하는 안은 채택하지 않았다(기존 새 알과 게이트 통일) — 알끼리 교체하는
-    /// 동작을 새로 만들지 않고, 상점의 알은 언제나 "지금 개체를 놓아주고 다시 뽑는다"는 한 가지 의미만 갖는다.
-    /// 항목 자체는 알 상태에서도 상점에 남는다(shopEntries) — 이 게이트는 구매만 막는다.
+    /// A Shop egg can be bought whenever the wallet holds its price, egg or not: it waits in the Bag, and only using
+    /// it sends the current Pokémon off (`useBagEgg`).
     func canBuyEgg(_ tier: Rarity?) -> Bool {
         // 파는 티어인지 먼저 확인한다 — 만족 불가능한 보증(전설: capture_rate 로 표현 불가)을 사면
         // 두 롤 경로 모두 후보가 0개라 알이 영영 안 깨지고, 부화가 없으니 보증도 안 풀리며,
         // 새 알 구매는 `hasActive` 에 막혀 되돌릴 수단이 없다. 가격만 계산되면 값이 빠져나가므로
         // 판매 목록을 여기서 강제한다(호출부 하나가 실수하면 토큰이 통째로 사라진다).
         guard FreshEgg.shopTiers.contains(tier) else { return false }
-        return hasActive && availableTokens >= price(of: .egg(tier))
+        return availableTokens >= price(of: .egg(tier))
     }
 
-    /// 알 구매 — 현재 포켓몬을 놓아주고 처음부터 인큐베이션하는 새 알로. 지갑에서 가격 차감.
-    /// graduate() 의 알-리셋을 미러링하되, 놓아준 개체는 **도감에 남긴다**(`releasedDexEntry`).
-    /// 도감은 "쌓이기만 한다"는 약속을 주는데, 여기가 종이 사라질 수 있던 유일한 경로였다.
-    /// `collectedFinals`(최종체 완성·분기 가중)는 여전히 손대지 않는다 — 끝까지 키운 게 아니다.
-    /// 성장(usedAtStage)은 소멸(추가 비용).
-    ///
-    /// 여기서 종을 롤하지 않는다 — 롤에는 네트워크가 필요해서 오프라인이면 토큰만 사라진다. 보증만
-    /// 상태(`eggTier`)에 적고, 실제 롤은 프리패치/부화 경로가 그 보증을 읽어 수행한다.
+    /// Buys a Shop egg: its price leaves the wallet and the egg goes in the Bag (`ItemKind(shopEgg:)`). Bought, it
+    /// used to send the current Pokémon off at once; the player now picks the moment (`useBagEgg`).
     @discardableResult
     func buyEgg(_ tier: Rarity?) -> Bool {
-        guard canBuyEgg(tier) else { return false }
-        replaceActiveWithEgg(price: price(of: .egg(tier)), tier: tier, type: nil)
-        AppLog.write("egg purchased: discarded active, tier=\(tier?.rawValue ?? "none")")
+        guard canBuyEgg(tier), let kind = ItemKind(shopEgg: tier) else { return false }
+        state.spentTokens += price(of: .egg(tier))
+        state.inventory[kind.rawValue, default: 0] += 1
+        save()
+        AppLog.write("egg purchased: \(kind.rawValue) to the bag")
         return true
     }
 
@@ -2460,16 +2485,21 @@ final class CompanionStore {
         return true
     }
 
-    func canUseBagEgg(_ kind: ItemKind) -> Bool { kind.bagEggTier != nil && hasActive && itemCount(kind) > 0 }
+    func canUseBagEgg(_ kind: ItemKind) -> Bool { kind.isShopEgg && hasActive && itemCount(kind) > 0 }
 
-    /// Uses one of the Legend Plate's eggs: like the Shop's egg of its rarity, for free. The current Pokémon is sent
-    /// off for an egg that hatches a Pokémon of that rarity or better.
+    /// Uses one of the Shop's eggs from the Bag, bought or given by an achievement. The current Pokémon is sent off
+    /// for an egg that hatches anew, a Pokémon of the egg's rarity or better.
+    ///
+    /// The Pokémon sent off stays in the Pokédex (`releasedDexEntry`), its growth is lost, and `collectedFinals` is
+    /// left alone: it was not raised to the end. No species is rolled here, so offline nothing is lost: the egg's
+    /// guarantee is written in the state (`eggTier`) and the hatch reads it.
     @discardableResult
     func useBagEgg(_ kind: ItemKind) -> Bool {
-        guard canUseBagEgg(kind), let tier = kind.bagEggTier else { return false }
+        guard canUseBagEgg(kind) else { return false }
+        let tier = kind.bagEggTier
         state.inventory[kind.rawValue] = itemCount(kind) - 1   // saved with the new egg
         replaceActiveWithEgg(price: 0, tier: tier, type: nil)
-        AppLog.write("bag egg used: \(kind.rawValue), discarded active, tier=\(tier.rawValue)")
+        AppLog.write("bag egg used: \(kind.rawValue), discarded active, tier=\(tier?.rawValue ?? "none")")
         return true
     }
 
@@ -2503,7 +2533,12 @@ final class CompanionStore {
         return true
     }
 
-    func canUseFossilEgg() -> Bool { hasActive && itemCount(.fossilEgg) > 0 }
+    /// The Pokémon raised hatched from a Fossil Egg: sent off, it gives its egg back (#77).
+    var isRaisingFossilEggPokemon: Bool { state.active?.fromFossilEgg == true }
+
+    /// Not on a Fossil Egg's own Pokémon: sent off, it gives its egg back, so the egg would cost nothing and fossil
+    /// hatches would reroll for free (#90). A stone or a Shop egg sends it off.
+    func canUseFossilEgg() -> Bool { hasActive && !isRaisingFossilEggPokemon && itemCount(.fossilEgg) > 0 }
 
     /// Uses a Fossil Egg: like a stone, the current Pokémon is sent off for an egg, which hatches a fossil line not
     /// graduated yet (`FossilDig`).
@@ -2523,6 +2558,15 @@ final class CompanionStore {
     /// The player's very first catch, its time and line: the companion's anniversary egg follows it.
     var firstCatch: (date: Date, baseID: Int)? {
         state.dex.compactMap { e in e.caughtAt.map { (date: $0, baseID: e.baseID) } }.min { $0.date < $1.date }
+    }
+
+    /// The line the Friendship Egg brings back: the first catch's, unless it was a Ditto, which no egg hatches (its
+    /// record carries Ditto's number once revealed, left out of every egg's pool): then the next catch's. A Ditto
+    /// first kept the egg waiting for a candidate forever, and with no Pokémon raised nothing else could be used.
+    var companionLineID: Int? {
+        state.dex.filter { $0.baseID != PokemonOdds.dittoSpeciesID }
+            .compactMap { e in e.caughtAt.map { (date: $0, baseID: e.baseID) } }
+            .min { $0.date < $1.date }?.baseID
     }
 
     /// The event eggs waiting now, earliest event first (`EventEgg.claimable`).
@@ -2595,16 +2639,18 @@ final class CompanionStore {
     func setBirthday(_ birthday: Birthday?) {
         guard state.birthday != birthday else { return }
         if let lastGift = state.lastBirthdayGiftYear {
-            // The date of the last gift (a save from before it was kept: the date set until now). Settings clear the
-            // date, then set a month, then a day: only a date that differs from the gift's waits for a later year, and
+            // The date of the last gift. A save from before it was kept: the date set until now if it has not moved
+            // since the gift, else unknown (#92), and then no date typed lifts the block. Settings clear the date,
+            // then set a month, then a day: only a date that differs from the gift's waits for a later year, and
             // clearing it sets nothing.
-            let giftDate = state.lastBirthdayGiftDate ?? state.birthday
-            state.lastBirthdayGiftDate = giftDate
+            let giftDate = state.lastBirthdayGiftDate
+                ?? (state.birthdayChangedAfterGiftYear == nil ? state.birthday : nil)
+            if let giftDate { state.lastBirthdayGiftDate = giftDate }
             if let birthday, birthday != giftDate {
                 // A save that claimed before the claim date was kept: its gift's birthday year, at least.
                 let claimedIn = state.lastBirthdayGiftClaimedAt.map { Calendar.current.component(.year, from: $0) } ?? lastGift
                 state.birthdayChangedAfterGiftYear = max(state.birthdayChangedAfterGiftYear ?? claimedIn, claimedIn)
-            } else if birthday == giftDate {
+            } else if let giftDate, birthday == giftDate {
                 state.birthdayChangedAfterGiftYear = nil
             }
         }
@@ -2669,13 +2715,8 @@ final class CompanionStore {
         save()
     }
 
-    // 보증 없는 기본 알 래퍼 — 기존 호출부/테스트 호환.
-    var canBuyFreshEgg: Bool { canBuyEgg(nil) }
-    @discardableResult
-    func buyFreshEgg() -> Bool { buyEgg(nil) }
-
     /// Parse an epoch string into a Date, supporting Unix timestamp (seconds or ms) or ISO8601 strings.
-    static func parseEpochDate(_ string: String) -> Date? {
+    nonisolated static func parseEpochDate(_ string: String) -> Date? {
         if let ts = Double(string) {
             if ts > 1_000_000_000_000 {
                 return Date(timeIntervalSince1970: ts / 1000.0)
@@ -2686,19 +2727,30 @@ final class CompanionStore {
         return ISO8601Parser.date(from: string)
     }
 
-    /// Determines if a new epoch represents an actual window advancement (reset) rather than
-    /// volatile network jitter (e.g. Codex ±1s) or fractional-second differences (Claude microseconds).
-    /// For session windows (≈5h), requires advancing forward by at least 30 minutes.
-    /// For weekly windows (7d), requires advancing forward by at least 24 hours.
-    /// Non-date strings (used in synthetic unit tests) fall back to string inequality.
-    static func isNewEpoch(previous: String, current: String, kind: WindowClass) -> Bool {
-        guard previous != current else { return false }
-        guard let dPrev = parseEpochDate(previous), let dCurr = parseEpochDate(current) else {
-            return true
+    /// Whether `day` comes before `other`, both `yyyy-MM-dd`; false for anything else (an empty or test date).
+    nonisolated static func isEarlierDay(_ day: String, than other: String) -> Bool {
+        func isDay(_ s: String) -> Bool {
+            s.count == 10 && s.enumerated().allSatisfy { i, c in i == 4 || i == 7 ? c == "-" : c.isASCII && c.isNumber }
         }
+        return isDay(day) && isDay(other) && day < other
+    }
+
+    /// How a window's epoch moved since the last poll.
+    enum EpochChange: Equatable { case same, reset, otherWindow }
+
+    /// Less than 30 minutes (a day for a week) is the same window: network jitter (Codex ±1 s), fractional seconds
+    /// (Claude), a rolling window's drift. Non-date strings (synthetic tests) differ as a reset.
+    /// A window resets once its epoch is past: one that moves by a window's worth while the previous one still
+    /// runs is another window under the same key (`/login` to another account in the same folder, `codex login`,
+    /// another organization answering). Paid as a reset, it paid that account's whole usage at once, and switching
+    /// back paid the gap again. A few minutes of slack for the Mac's clock.
+    static func epochChange(previous: String, current: String, kind: WindowClass, now: Date) -> EpochChange {
+        guard previous != current else { return .same }
+        guard let dPrev = parseEpochDate(previous), let dCurr = parseEpochDate(current) else { return .reset }
         let delta = dCurr.timeIntervalSince(dPrev)
         let minAdvance: TimeInterval = kind == .weekly ? 86400 : 1800
-        return delta >= minAdvance
+        guard abs(delta) >= minAdvance else { return .same }
+        return delta > 0 && now >= dPrev.addingTimeInterval(-300) ? .reset : .otherWindow
     }
 
     /// The candies each window owes now (`RareCandy.candiesDue`), less those it already paid in its epoch. Pure, so
@@ -2708,24 +2760,33 @@ final class CompanionStore {
     /// - Without an epoch, a window back to nothing owed is a new one.
     /// - What a window paid is never taken back: a utilization that goes down a little pays nothing until it is past
     ///   it again.
+    /// - Another window under the key (`epochChange`) pays from now on, as a window first seen does (#79).
     static func evaluateCandyGrants(
         windows: [CandyWindow],
         grantTier: inout [String: Int],
-        windowEpoch: inout [String: String]
+        windowEpoch: inout [String: String],
+        now: Date = .distantFuture
     ) -> [CandyGrant] {
         var grants: [CandyGrant] = []
         for w in windows {
+            let due = RareCandy.candiesDue(utilization: w.utilization, kind: w.kind, planMultiplier: w.planMultiplier)
             if let epoch = w.epoch {
                 if let previousEpoch = windowEpoch[w.key] {
-                    if isNewEpoch(previous: previousEpoch, current: epoch, kind: w.kind) {
+                    switch epochChange(previous: previousEpoch, current: epoch, kind: w.kind, now: now) {
+                    case .same:
+                        break
+                    case .reset:
                         grantTier[w.key] = nil
                         windowEpoch[w.key] = epoch
+                    case .otherWindow:
+                        grantTier[w.key] = due > 0 ? due : nil
+                        windowEpoch[w.key] = epoch
+                        continue
                     }
                 } else {
                     windowEpoch[w.key] = epoch
                 }
             }
-            let due = RareCandy.candiesDue(utilization: w.utilization, kind: w.kind, planMultiplier: w.planMultiplier)
             var paid = grantTier[w.key] ?? 0
             if w.epoch == nil, due == 0 { paid = 0 }
             if due > paid {
@@ -2779,7 +2840,8 @@ final class CompanionStore {
         let grants = Self.evaluateCandyGrants(
             windows: windows,
             grantTier: &grantTier,
-            windowEpoch: &windowEpoch)
+            windowEpoch: &windowEpoch,
+            now: clock())
         state.candyGrantTier = grantTier
         state.candyWindowEpoch = windowEpoch
         let meteorite = itemCount(.meteorite) > 0 ? CollectorBonus.meteoriteWindowCandies : 0
@@ -2799,6 +2861,38 @@ final class CompanionStore {
             || state.candyWindowPlan != beforePlan {
             save()
         }
+    }
+
+    /// Adds a refresh's new tokens to the raising record of the Pokémon raised (`RaisingRecord.add`).
+    private func recordRaising(_ deltas: [String: Int]) {
+        guard state.active?.raising != nil else { return }
+        for (provider, tokens) in deltas where tokens > 0 {
+            state.active?.raising?.add(tokens, provider: provider, day: todayUsageDetails[provider])
+        }
+    }
+
+    /// Whether a provider's tokens pay Rare Candies by themselves: one that never had a limit window the candies read
+    /// (Cursor, Gemini CLI, OpenCode…). A provider that had one is paid by its windows, never twice.
+    func paysCandiesByTokens(_ providerID: String) -> Bool {
+        !state.candyWindowPlan.keys.contains { CandyWindow.providerID(forKey: $0) == providerID }
+    }
+
+    /// Pays a candy for every `RareCandy.tokensPerCandyWithoutLimits` tokens of the tools without limit windows,
+    /// keeping what is left for the next one. `deltas`: each provider's tokens credited by this refresh.
+    private func earnTokenCandies(_ deltas: [String: Int]) {
+        let tokens = deltas.reduce(0) { sum, entry in
+            entry.value > 0 && paysCandiesByTokens(entry.key) ? sum + entry.value : sum
+        }
+        guard tokens > 0 else { return }
+        let total = state.tokenCandyTokens + tokens
+        let candies = total / RareCandy.tokensPerCandyWithoutLimits
+        state.tokenCandyTokens = total % RareCandy.tokensPerCandyWithoutLimits
+        guard candies > 0 else { return }
+        state.tokenCandiesEarned += candies
+        pendingCandyNotice.count += addRareCandies(candies)
+        pendingCandyNotice.windows.append(l.tokenCandiesSource)
+        AppLog.write("candies: +\(candies) from tools without limits")
+        announcePendingCandies()
     }
 
     /// Records a window as paid up to what it owes now (`paid`), or as owing all of it.
@@ -3088,6 +3182,7 @@ final class CompanionStore {
         // 부화 임계 초과분은 부화체 성장에 이월(낭비 없음).
         let overflow = max(0, state.eggUsage - eggHatchThreshold)
         state.eggUsage = 0
+        let fromRarityEgg = state.eggTier != nil && state.eggEvent == nil
         state.eggTier = nil   // 보증은 이 부화로 소비된다(다음 알은 다시 무보증)
         let typeGuarantee = state.eggTypeGuarantee
         // Still restrict the form rolled below: a stone's type, a season's types.
@@ -3148,11 +3243,9 @@ final class CompanionStore {
                                 dittoDisguise: dittoDisguise, form: form)
         state.active?.hasNewForm = hasNewForm
         state.active?.fromFossilEgg = fromFossilEgg
-        // The Rotom Catalog pays for a form the line never had; a disguised Ditto's form is not its own.
-        if hasNewForm, dittoDisguise == nil, itemCount(.rotomCatalog) > 0 {
-            state.inventory[ItemKind.rareCandy.rawValue, default: 0] += CollectorBonus.rotomCatalogNewFormCandies
-            AppLog.write("rotom catalog: +\(CollectorBonus.rotomCatalogNewFormCandies) candy for a new form")
-        }
+        state.active?.raising = RaisingRecord(hatchedAt: clock())
+        state.active?.fromStoneEgg = typeGuarantee != nil && event == nil
+        state.active?.fromRarityEgg = fromRarityEgg
         state.lastHatchedBaseID = line.baseID
         // A disguised Ditto is not the species it shows: nothing unlocks until it is revealed.
         if dittoDisguise == nil { announceFormUnlocks(since: unlockedForms) }
@@ -3299,38 +3392,13 @@ final class CompanionStore {
                 AppLog.write("hatch roll: \(event.rawValue) egg base=\(EventEgg.deerlingID)")
                 return (EventEgg.deerlingID, event.alwaysShiny)
             }
-            // 등급 보증 알은 후보를 먼저 좁힌다 — capture_rate 상한이 곧 등급 하한이고, 전설은 플래그로
-            // 늘 들어간다(`Rarity.admits`: capture_rate 255 인 Necrozma·Eternatus·Terapagos 도 "희귀 이상").
-            // 좁힌 결과가 비면 보증을 못 지키므로 전체 풀로 폴백하지 말고 알을 유지한다(다음 틱 재시도).
-            // A fossil line hatches from Fossil Eggs only until it graduates (`FossilDig`), then from any egg like
-            // every other species: shiny, twice, with another nature.
-            let graduated = graduatedSpeciesIDs
-            // The Friendship Egg keeps its promise even then: the line is the player's own first Pokémon.
-            let friendship = event == .companion ? firstCatch?.baseID : nil
-            let admitted = full.filter { !FossilDig.isFossilLine($0.id) || graduated.contains($0.id) || $0.id == friendship }
-            var index = tier.map { t in admitted.filter(t.admits) } ?? admitted
-            // A Legendary Egg hatches a legendary or mythical Pokémon, any of them.
-            if state.eggFromLegendaryEgg { index = index.filter(\.isLegendary) }
-            if let targetType = typeGuarantee {
-                index = index.filter { PokemonTypeData.canHatch(baseID: $0.id, as: targetType) }
-            }
-            // An event egg hatches the event's Pokémon (`EventEgg.admits`).
-            if let event {
-                let companionLine = firstCatch?.baseID
-                index = index.filter { event.admits($0, companionLine: companionLine) }
-            }
-            guard !index.isEmpty else {
+            let pool = hatchPool(full, egg: incubatingEgg, logging: true)
+            guard !pool.isEmpty else {
                 AppLog.write("hatch: no candidate for guaranteed tier=\(tier?.rawValue ?? "none") type=\(typeGuarantee?.rawValue ?? "none") legendary=\(state.eggFromLegendaryEgg), egg kept; retry next tick")
                 return nil
             }
-            // The Oval Charm, reward for every species: eggs only bring lines with a form still missing, while
-            // some are left within the egg's guarantees.
-            if ownsOvalCharm {
-                let missing = index.filter { state.lineMissesForms(baseID: $0.id, types: eggFormTypes) }
-                if !missing.isEmpty { index = missing }
-            }
-            index = Self.withoutLastHatched(index, last: state.lastHatchedBaseID)
-            let weights = index.map { hatchWeight(for: $0, type: typeGuarantee) }
+            let index = pool.map(\.base)
+            let weights = pool.map(\.weight)
             let total = weights.reduce(0, +)
             var r = Int(rng.next() % UInt64(total))
             for (i, w) in weights.enumerated() {
@@ -3347,6 +3415,130 @@ final class CompanionStore {
         AppLog.write("hatch: base index unavailable — REST fallback")
         // An event's egg keeps its shiny promise there too.
         return await chooseBaseViaREST().map { ($0, state.eggEvent?.alwaysShiny ?? false) }
+    }
+
+    // MARK: Hatch pool and odds
+
+    /// An egg's guarantees: the egg incubating, for the roll, or an egg a card shows before it is used.
+    struct EggSpec: Equatable, Sendable {
+        var tier: Rarity?
+        var type: PokemonType?
+        var legendaryEgg = false
+        var event: EventEgg?
+
+        init(tier: Rarity? = nil, type: PokemonType? = nil, legendaryEgg: Bool = false, event: EventEgg? = nil) {
+            self.tier = tier
+            self.type = type
+            self.legendaryEgg = legendaryEgg
+            self.event = event
+        }
+
+        /// The egg a Bag item gives when used, for the items whose odds the Bag shows: the Shop's eggs, the stones
+        /// and the Legendary Egg. The event, Birthday, Fossil and Type: Null eggs have rolls of their own.
+        init?(item: ItemKind) {
+            if item.isShopEgg { self.init(tier: item.bagEggTier) }
+            else if let type = item.stoneType { self.init(type: type) }
+            else if item == .legendaryEgg { self.init(legendaryEgg: true) }
+            else { return nil }
+        }
+    }
+
+    private var incubatingEgg: EggSpec {
+        EggSpec(tier: state.eggTier, type: state.eggTypeGuarantee, legendaryEgg: state.eggFromLegendaryEgg,
+                event: state.eggEvent)
+    }
+
+    /// The species an egg draws from, each with its weight: what `chooseBase` rolls and what an egg card shows
+    /// (`hatchOdds`), from one function so the odds shown are the roll's. Empty when no species keeps the egg's
+    /// guarantees. Not the Birthday, Fossil and season's Deerling rolls, which have their own.
+    func hatchPool(_ full: [BaseSpecies], egg: EggSpec, logging: Bool = false) -> [(base: BaseSpecies, weight: Int)] {
+        // 등급 보증 알은 후보를 먼저 좁힌다 — capture_rate 상한이 곧 등급 하한이고, 전설은 플래그로
+        // 늘 들어간다(`Rarity.admits`: capture_rate 255 인 Necrozma·Eternatus·Terapagos 도 "희귀 이상").
+        // 좁힌 결과가 비면 보증을 못 지키므로 전체 풀로 폴백하지 말고 알을 유지한다(다음 틱 재시도).
+        // A fossil line hatches from Fossil Eggs only until it graduates (`FossilDig`), then from any egg like
+        // every other species: shiny, twice, with another nature.
+        let graduated = graduatedSpeciesIDs
+        // The Friendship Egg keeps its promise even then: the line is the player's own first Pokémon.
+        let friendship = egg.event == .companion ? companionLineID : nil
+        let admitted = full.filter { !FossilDig.isFossilLine($0.id) || graduated.contains($0.id) || $0.id == friendship }
+        var index = egg.tier.map { t in admitted.filter(t.admits) } ?? admitted
+        // A Legendary Egg hatches a legendary or mythical Pokémon, any of them.
+        if egg.legendaryEgg { index = index.filter(\.isLegendary) }
+        if let targetType = egg.type {
+            index = index.filter { PokemonTypeData.canHatch(baseID: $0.id, as: targetType) }
+        }
+        // An event egg hatches the event's Pokémon (`EventEgg.admits`). None of them in the pool (a first catch
+        // the index leaves out), it hatches as a plain egg would rather than wait forever: no other egg can be
+        // used while it incubates.
+        if let event = egg.event {
+            let companionLine = companionLineID
+            let eventIndex = index.filter { event.admits($0, companionLine: companionLine) }
+            if eventIndex.isEmpty {
+                if logging { AppLog.write("hatch: no \(event.rawValue) Pokémon in the pool, hatched as a plain egg") }
+            } else {
+                index = eventIndex
+            }
+        }
+        guard !index.isEmpty else { return [] }
+        // The Oval Charm, reward for every species: eggs only bring lines with a form still missing, while
+        // some are left within the egg's guarantees.
+        if ownsOvalCharm {
+            let formTypes = egg.type.map { [$0] } ?? egg.event?.seasonTypes ?? []
+            let missing = index.filter { state.lineMissesForms(baseID: $0.id, types: formTypes) }
+            if !missing.isEmpty { index = missing }
+        }
+        index = Self.withoutLastHatched(index, last: state.lastHatchedBaseID)
+        return index.map { ($0, hatchWeight(for: $0, type: egg.type)) }
+    }
+
+    /// The base index the egg cards' odds read, loaded once (`loadHatchIndex`). The roll reads the index itself.
+    private(set) var hatchIndex: [BaseSpecies]?
+
+    func loadHatchIndex() async {
+        guard hatchIndex == nil, let full = try? await provider.baseSpeciesIndex(), !full.isEmpty else { return }
+        hatchIndex = full
+    }
+
+    /// One rarity's share of an egg's pool, by weight.
+    struct RarityShare: Equatable, Sendable {
+        let rarity: Rarity
+        let share: Double
+    }
+
+    /// What an egg can hatch, as its roll would now: each rarity's share, commonest first, and the share of
+    /// species not graduated yet. Nil before the index is loaded or for an egg nothing can hatch from.
+    struct HatchOdds: Equatable, Sendable {
+        let rarities: [RarityShare]
+        let newSpecies: Double
+    }
+
+    func hatchOdds(for egg: EggSpec) -> HatchOdds? {
+        guard let index = hatchIndex else { return nil }
+        let pool = hatchPool(index, egg: egg)
+        let total = pool.reduce(0) { $0 + $1.weight }
+        guard total > 0 else { return nil }
+        let graduated = graduatedSpeciesIDs
+        var byRarity: [Rarity: Int] = [:]
+        var newWeight = 0
+        for (base, weight) in pool {
+            byRarity[base.rarity, default: 0] += weight
+            if !graduated.contains(base.id) { newWeight += weight }
+        }
+        let order: [Rarity] = [.common, .uncommon, .rare, .legendary]
+        return HatchOdds(rarities: order.compactMap { r in
+                             byRarity[r].map { RarityShare(rarity: r, share: Double($0) / Double(total)) }
+                         },
+                         newSpecies: Double(newWeight) / Double(total))
+    }
+
+    /// Whole percents that add up to 100 (largest remainder): rounded one by one, 78.5, 11.1, 9.3 and 1.1 make 99.
+    nonisolated static func wholePercents(_ shares: [Double]) -> [Int] {
+        let scaled = shares.map { $0 * 100 }
+        var result = scaled.map { Int($0.rounded(.down)) }
+        let missing = 100 - result.reduce(0, +)
+        let order = scaled.indices.sorted { (scaled[$0] - Double(result[$0])) > (scaled[$1] - Double(result[$1])) }
+        for i in order.prefix(max(0, missing)) { result[i] += 1 }
+        return result
     }
 
     /// The candidates without the line hatched last, so no egg brings the same line twice in a row; all of them
@@ -3407,7 +3599,7 @@ final class CompanionStore {
         // A Fossil Egg asks for its candidates themselves: 32 random numbers seldom meet one of 15 lines, one in 1,025
         // even less. So does an event egg of a few lines, the Friendship Egg's one above all.
         if state.eggFromFossilEgg { return await chooseListedBaseViaREST(fossilCandidates, charm: false) }
-        if let lines = state.eggEvent?.lines(companionLine: firstCatch?.baseID) {
+        if let lines = state.eggEvent?.lines(companionLine: companionLineID) {
             return await chooseListedBaseViaREST(lines, charm: ownsOvalCharm)
         }
         let tier = state.eggTier
@@ -3429,7 +3621,7 @@ final class CompanionStore {
                         continue
                     }
                     if let typeGuarantee, !PokemonTypeData.canHatch(baseID: bs.id, as: typeGuarantee) { continue }
-                    if let event = state.eggEvent, !event.admits(bs, companionLine: firstCatch?.baseID) { continue }
+                    if let event = state.eggEvent, !event.admits(bs, companionLine: companionLineID) { continue }
                     // Not the line hatched last again; the index path keeps it when it is the only one, this one
                     // retries.
                     if bs.id == state.lastHatchedBaseID { continue }
@@ -3821,10 +4013,20 @@ final class CompanionStore {
         // (디코드는 *성공*하므로 위의 .corrupt 복구도 발동하지 않는다). 여기서 걸면 자가 복구된다.
         state = SaveTransfer.sanitized(s)
     }
+    /// What the file holds, as last written. Every refresh ends with a save: a refresh that changed nothing rewrote
+    /// the whole file all the same (660 KB for 571 Pokédex entries, twice a minute while tokens flow).
+    private var savedState: CompanionState?
+
     private func save() {
         refreshRepresentativeSubject()
+        guard state != savedState else { return }
         guard let data = try? JSONEncoder().encode(state) else { return }
-        try? data.write(to: fileURL, options: .atomic)   // 부분 쓰기 손상 방지(펫 상태)
+        do {
+            try data.write(to: fileURL, options: .atomic)   // 부분 쓰기 손상 방지(펫 상태)
+            savedState = state
+        } catch {
+            AppLog.write("save failed: \(error.localizedDescription)")
+        }
     }
 }
 

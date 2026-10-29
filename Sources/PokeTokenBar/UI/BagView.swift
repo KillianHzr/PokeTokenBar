@@ -22,6 +22,11 @@ struct BagView: View {
     }
 
     var body: some View {
+        content.task { await store.loadHatchIndex() }
+    }
+
+    @ViewBuilder
+    private var content: some View {
         let owned = store.ownedItems
         if owned.isEmpty {
             emptyState
@@ -133,13 +138,16 @@ private struct ItemCard: View {
                     Text(l.itemDescription(kind, rareCandyXP: store.rareCandyXP))
                         .font(.caption).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    // A stone sends the companion off like a Shop egg: say what stays, as the egg card does.
-                    if kind.stoneType != nil, store.hasActive {
+                    // A stone or a Shop egg sends the companion off: say what stays.
+                    if kind.stoneType != nil || kind.isShopEgg, store.hasActive {
                         Text(l.eggReleaseNote)
                             .font(.caption2).foregroundStyle(.tertiary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
+            }
+            if let egg = CompanionStore.EggSpec(item: kind), let odds = store.hatchOdds(for: egg) {
+                HatchOddsView(odds: odds, l: l)
             }
             if kind == .rareCandy, let preview = store.planRareCandyUse(count: selectedCandyCount) {
                 if preview.graduates {
@@ -214,7 +222,8 @@ private struct ItemCard: View {
         } else if kind == .fossilEgg {
             ReleaseForEggControls(store: store, nav: nav, detail: effectHint(l), actionTitle: l.useItem,
                                   isAvailable: store.canUseFossilEgg(), unavailableText: l.useNeedsPokemon,
-                                  confirmText: l.stoneConfirm(store.displayName, l.itemName(kind))) {
+                                  confirmText: l.stoneConfirm(store.displayName, l.itemName(kind)),
+                                  lockedHint: store.isRaisingFossilEggPokemon ? l.fossilEggInProgress : nil) {
                 store.useFossilEgg()
             }
         } else if let event = EventEgg(item: kind) {
@@ -223,7 +232,7 @@ private struct ItemCard: View {
                                   confirmText: l.stoneConfirm(store.displayName, l.itemName(kind))) {
                 store.useEventEgg(event)
             }
-        } else if kind.bagEggTier != nil {
+        } else if kind.isShopEgg {
             ReleaseForEggControls(store: store, nav: nav, detail: effectHint(l), actionTitle: l.useItem,
                                   isAvailable: store.canUseBagEgg(kind), unavailableText: l.useNeedsPokemon,
                                   confirmText: l.stoneConfirm(store.displayName, l.itemName(kind))) {
@@ -344,6 +353,7 @@ extension CompanionStore {
         case .cometShard, .redNectar, .smoothRock, .sawsbuckSeasons, .fairyFeather, .furfrouTrims, .vivillonPatterns,
              .whippedDream, .unownLetters, .lightBall:
             return l.rewardsList(kind.achievementRewards)
+        case .pokemonEgg: return l.eggAnyRarityHint
         case .uncommonEgg: return l.eggGuaranteeHint(.uncommon)
         case .rareEgg: return l.eggGuaranteeHint(.rare)
         case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return l.birthdayEggHint

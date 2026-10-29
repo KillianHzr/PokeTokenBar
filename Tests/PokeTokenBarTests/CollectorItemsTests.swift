@@ -7,8 +7,9 @@ private func collectorNode(_ id: Int, _ children: [EvoNode] = []) -> EvoNode {
     EvoNode(speciesID: id, children: children)
 }
 
+/// Dratini (147) is the one rare line, for the Reins of Unity.
 private func collectorLine(base: Int) -> EvoLine {
-    EvoLine(baseID: base, tree: collectorNode(base), rarity: .common,
+    EvoLine(baseID: base, tree: collectorNode(base), rarity: base == 147 ? .rare : .common,
             names: [base: ["en": "P\(base)", "ko": "포\(base)", "fr": "P\(base)"]])
 }
 
@@ -68,20 +69,21 @@ final class CollectorItemsTests: XCTestCase {
         XCTAssertEqual(Set(CompanionStore.achievementItems), Set(ItemKind.allCases.filter { $0.collectorGroup != nil }))
         XCTAssertEqual(s.totalAchievementsCount, 242,
                        "10 stones, 37 artifacts and the Legendary Egg's 9 regions, 161 badge regions, 10 forms, 15 digs")
-        XCTAssertEqual(s.purchasableItems, [.mint, .rareCandy, .shinyCharm], "the Shop sells what main sells")
+        XCTAssertEqual(s.purchasableItems, [.rareCandy, .shinyCharm], "the Shop sells what main sells, the Mint retired")
 
         // An unlocked stone is an achievement to claim, never a Shop item.
         let withFire = store(dex: entries([154, 157, 160]))
         XCTAssertTrue(withFire.isUnlocked(.fireStone))
-        XCTAssertEqual(withFire.purchasableItems, [.mint, .rareCandy, .shinyCharm])
+        XCTAssertEqual(withFire.purchasableItems, [.rareCandy, .shinyCharm])
         XCTAssertFalse(withFire.shopEntries.contains(.item(.fireStone)))
         XCTAssertEqual(withFire.unclaimedAchievementsCount, 1)
     }
 
     func testItemsHaveAppropriatePricesAndUnlockConditions() {
         for kind in ItemKind.allCases {
-            if kind == .birthdayEgg || EventEgg(item: kind) != nil || kind.bagEggTier != nil || kind == .fossilEgg {
-                // The birthday and event gifts and the Legend Plate's eggs: neither sold nor an achievement of their own.
+            if kind == .birthdayEgg || EventEgg(item: kind) != nil || kind.isShopEgg || kind == .fossilEgg {
+                // The birthday and event gifts and the Shop's eggs (sold as Shop eggs, not items): neither sold as an
+                // item nor an achievement of their own.
                 XCTAssertNil(kind.unlock)
                 XCTAssertNil(kind.shopPrice)
                 XCTAssertFalse(kind.isAchievement)
@@ -461,13 +463,16 @@ final class CollectorItemsTests: XCTestCase {
         XCTAssertEqual(stoneEgg.eggHatchThreshold, plain.eggHatchThreshold / 2)
     }
 
-    func testReinsOfUnityAddACandyToEachGraduation() async {
-        for owned in [false, true] {
+    /// A candy for each graduation but a Common's: one candy is a whole Common line's XP, so each Common graduated
+    /// paid the next one, and Commons graduated for free one egg apart.
+    func testReinsOfUnityAddACandyToEachGraduationButACommons() async {
+        for (owned, base, expected) in [(false, 147, 0), (true, 147, CollectorBonus.reinsOfUnityCandies), (true, 4, 0)] {
             let s = store(inventory: owned ? [ItemKind.reinsOfUnity.rawValue: 1] : [:])
-            await s.hatch(baseID: 4)
+            await s.hatch(baseID: base)
+            XCTAssertEqual(s.state.active?.rarity, base == 147 ? .rare : .common)
             s.applyUsage(s.threshold)
             XCTAssertEqual(s.state.dex.count, 1, "graduated")
-            XCTAssertEqual(s.rareCandyCount, owned ? CollectorBonus.reinsOfUnityCandies : 0)
+            XCTAssertEqual(s.rareCandyCount, expected, "owned \(owned), base \(base)")
         }
     }
 

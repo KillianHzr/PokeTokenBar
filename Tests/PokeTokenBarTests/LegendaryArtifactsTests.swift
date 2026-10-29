@@ -85,11 +85,11 @@ final class LegendaryArtifactsTests: XCTestCase {
         XCTAssertEqual(incense.eggHatchThreshold, base / 2)
 
         let shop = try store(used: 100_000_000_000, active: rattata, inventory: [.seaIncense: 1])
-        XCTAssertTrue(shop.buyEgg(.uncommon))
+        XCTAssertTrue(shop.buyAndUseEgg(.uncommon))
         XCTAssertEqual(shop.eggHatchThreshold, base / 2)
 
         let plainEgg = try store(used: 100_000_000_000, active: rattata, inventory: [.seaIncense: 1])
-        XCTAssertTrue(plainEgg.buyEgg(nil))
+        XCTAssertTrue(plainEgg.buyAndUseEgg(nil))
         XCTAssertEqual(plainEgg.eggHatchThreshold, base, "an egg without a guarantee")
 
         let without = try store(active: rattata, inventory: [.rareEgg: 1])

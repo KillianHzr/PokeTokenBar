@@ -39,7 +39,7 @@ final class FreshEggTests: XCTestCase {
         XCTAssertEqual(s.dexEntries.count, persistedDexBefore.count + 1,
                        "현재 포켓몬은 졸업 전에도 도감 화면에 표시")
         XCTAssertTrue(s.hasActive)
-        XCTAssertTrue(s.buyFreshEgg())
+        XCTAssertTrue(s.buyAndUseEgg(nil))
         XCTAssertNil(s.state.active, "현재 포켓몬은 더 이상 활성이 아니다")
         XCTAssertTrue(s.isEgg)
         XCTAssertEqual(s.state.eggUsage, 0, "새 알은 처음부터 인큐베이션")
@@ -67,7 +67,7 @@ final class FreshEggTests: XCTestCase {
     func testReleasedSpeciesStaysInTheDex() {
         let s = store()
         XCTAssertTrue(s.dexSpecies.contains { $0.id == 10 }, "육성 중엔 도감에 보인다")
-        XCTAssertTrue(s.buyFreshEgg())
+        XCTAssertTrue(s.buyAndUseEgg(nil))
         XCTAssertTrue(s.dexSpecies.contains { $0.id == 10 },
                       "놓아준 뒤에도 남는다 — 도감 종 수는 줄지 않는다")
         XCTAssertFalse(s.dexSpecies.first { $0.id == 10 }?.isRaising ?? true,
@@ -77,25 +77,42 @@ final class FreshEggTests: XCTestCase {
     /// 폐기한 개체(baseID 10)의 종은 collectedFinals 에 들어가지 않는다(이후 부화 확률에 영향 없음).
     func testDiscardedSpeciesNotCollected() {
         let s = store()
-        XCTAssertTrue(s.buyFreshEgg())
+        XCTAssertTrue(s.buyAndUseEgg(nil))
         XCTAssertFalse(s.state.collectedFinals.contains { $0.hasPrefix("10:") },
                        "폐기 개체 종은 수집 기록에 없어야 함")
     }
 
-    /// 알 상태(활성 없음)에선 리롤할 게 없어 불가.
-    func testCannotRerollWhenEgg() {
+    /// Bought, an egg goes in the Bag and the Pokémon stays: it is sent off only when the egg is used.
+    func testABoughtEggWaitsInTheBag() {
+        let s = store(used: 5_000_000_000, spent: 0)
+        XCTAssertTrue(s.buyEgg(nil))
+        XCTAssertEqual(s.state.active?.baseID, 10, "the Pokémon is still raised")
+        XCTAssertEqual(s.itemCount(.pokemonEgg), 1)
+        XCTAssertEqual(s.state.spentTokens, FreshEgg.price)
+        XCTAssertTrue(s.useBagEgg(.pokemonEgg))
+        XCTAssertNil(s.state.active)
+        XCTAssertEqual(s.itemCount(.pokemonEgg), 0)
+        XCTAssertNil(s.state.eggTier, "the Pokémon Egg guarantees no rarity")
+        XCTAssertEqual(s.state.spentTokens, FreshEgg.price, "paid once, at the Shop")
+    }
+
+    /// An egg can be bought while incubating, for later; it cannot be used then, there is no Pokémon to send off.
+    func testAnEggBoughtWhileIncubatingWaits() {
         let s = store(active: false, used: 5_000_000_000)
         XCTAssertFalse(s.hasActive)
-        XCTAssertFalse(s.canBuyFreshEgg)
-        XCTAssertFalse(s.buyFreshEgg())
-        XCTAssertEqual(s.state.spentTokens, 0, "no-op")
+        XCTAssertTrue(s.canBuyEgg(nil))
+        XCTAssertTrue(s.buyEgg(nil))
+        XCTAssertEqual(s.itemCount(.pokemonEgg), 1)
+        XCTAssertFalse(s.canUseBagEgg(.pokemonEgg))
+        XCTAssertFalse(s.useBagEgg(.pokemonEgg))
+        XCTAssertEqual(s.itemCount(.pokemonEgg), 1, "kept for later")
     }
 
     /// 잔액이 가격 미만이면 불가 — 활성 유지.
     func testCannotRerollWithoutFunds() {
         let s = store(used: 500_000_000)   // 1B 미만
-        XCTAssertFalse(s.canBuyFreshEgg)
-        XCTAssertFalse(s.buyFreshEgg())
+        XCTAssertFalse(s.canBuyEgg(nil))
+        XCTAssertFalse(s.buyEgg(nil))
         XCTAssertNotNil(s.state.active, "활성 유지")
         XCTAssertEqual(s.state.spentTokens, 0)
     }
@@ -104,7 +121,7 @@ final class FreshEggTests: XCTestCase {
     func testShinyCanBeRerolled() {
         let s = store(shiny: true)
         XCTAssertTrue(s.currentIsShiny)
-        XCTAssertTrue(s.buyFreshEgg())
+        XCTAssertTrue(s.buyAndUseEgg(nil))
         XCTAssertNil(s.state.active)
         XCTAssertFalse(s.currentIsShiny)
     }

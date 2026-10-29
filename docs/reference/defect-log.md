@@ -609,6 +609,52 @@ read_when:
   weighs a quarter in a stone's egg (half in a plain one), and no egg brings the line hatched last again
   (`lastHatchedBaseID`). Guards: `StoneEggDuplicateTests`.
 
+- **A refund rule must not refund the action that triggers it.** #77 gave a Fossil Egg back when its Pokémon is
+  sent off before graduating; a Fossil Egg sending it off took one egg and got it back, so fossil hatches rerolled for
+  free, shiny roll included (#90). The review of #77 checked the stone and the Shop egg, not the refunded item itself.
+  `canUseFossilEgg` now refuses on a Fossil Egg's own Pokémon and the Bag greys it out with the reason;
+  `testAFossilEggWaitsWhileAFossilEggsPokemonGrows`. Sweep: the Fossil Egg is the only item given back.
+
+- **Narrowing what "collected" means changes every payout that reads it.** #88 made achievements count graduated
+  Pokémon only, and `hasNewForm` with them; the Rotom Catalog paid its candy at the hatch on that flag, so a form sent
+  off before graduating paid again each time it hatched (#91). The candy is now paid at the graduation, for a form the
+  line never graduated: `testTheRotomCatalogPaysForANewFormGraduated`, `testTheRotomCatalogPaysEachFormOnce`. Sweep of
+  the payouts (`addRareCandies`, inventory grants): the others are claimed once (achievements, event and birthday
+  eggs) or paid by windows; the Prison Bottle reads `hasNewForm` for a growth bonus, which its text allows to repeat.
+
+- **A migration fallback must not take today's value for a past one the save says has moved.** Saves from before #88
+  kept no gift date, and `setBirthday` took the date set now for it, even when `birthdayChangedAfterGiftYear` said the
+  date had moved since the gift: retyping it lifted the block and brought a second Birthday Egg (#92). The fallback
+  now applies only while that block is nil; otherwise the gift's date stays unknown and no date typed, nor clearing,
+  lifts it. `testRetypingADateChangedAfterAGiftOnAnOldSaveKeepsTheBlock`; removing the `let giftDate` guard on the
+  lifting branch fails it (clearing then lifted the block).
+
+- **"Every species of the line in this form" is not "the line had this form".** `graduatedLineForms` wants each
+  catalogued species of a line graduated in a form; on a branched line (Slowpoke into Slowbro or Slowking, Burmy into
+  Mothim or Wormadam) the Rotom Catalog paid the same form again until every branch had it, right after #91 promised
+  once. The candy now looks for any graduated record of the line in that form:
+  `testTheRotomCatalogPaysOncePerFormOnBranchedLines` (15 failures with the old predicate). The #91 test used Rotom,
+  a one-species line, so it passed on the wrong rule.
+
+- **An egg whose pool can be empty for good must not wait for it.** The Friendship Egg kept the first catch's line;
+  a first catch that was a revealed Ditto carries number 132, which every pool leaves out, so the egg waited forever
+  and, with no Pokémon raised, nothing else could be used. The line now skips Ditto, and an event egg whose Pokémon
+  the pool lacks hatches as a plain egg: `testTheFriendshipEggNeverWaitsForever`. The "keep the egg, retry next tick"
+  rule is for a pool emptied by the network, not by the egg's own rule.
+
+- **A ledger keyed by place, not by owner, pays a new owner as a new window.** The candy ledger is keyed by config
+  folder or Codex bucket; `/login` to another account moved `resets_at` and read as a reset, which paid that
+  account's whole usage, and switching back paid the gap. An epoch that moves while the previous window still runs
+  is now another window, paid from then on (`epochChange`, `testAnotherAccountUnderTheSameKeyPaysFromThen`).
+
+- **Fields that belong together must be merged together.** Restoring a save merged the paid count by max and the
+  epoch by latest, so last week's 80 sat under this week's epoch and nothing paid below 80%. The window of the later
+  epoch now keeps its count, epoch and plan (`withoutEndedWindows`, `testRestoringAnOlderWeekKeepsThisWeeksCandyCount`).
+
+- **A date that goes back is not a new day.** `dateChanged` credited a day's whole total on any change, a time zone
+  to the west after midnight included, so that day counted twice. A day earlier than the last one now credits nothing
+  (`testADateThatGoesBackCreditsNothing`).
+
 ## 외부 로그·사용량 소스
 
 - **토큰 파일 파서는 외부 도구의 실제 직렬화 구조체(중첩 객체)를 반영해야 한다.** `jetski-standalone-oauth-token`
@@ -1543,6 +1589,21 @@ read_when:
   graduates, the Excavation's fossil lines and the achievements' species rows now draw at one scale; single heroes
   and the forms of one species still fill their box.
 
+- **One observed collection read by many views and written one item at a time redraws them all for each item.**
+  `PokemonNameDisplayStore` kept every translated name in one `@Observable` dictionary. Each move row of the
+  Pokédex page loads its move's name when it scrolls in, known or not, and each load wrote the dictionary again: every
+  name on screen, and the page itself (its form picker and the active Pokémon's title read form names), redrew for
+  each row, so the move list lagged. Each name is now its own observed entry, written only when it changes, and a row
+  whose name is known loads nothing. `testALoadedNameRedrawsOnlyTheViewsReadingIt` failed before the fix (a row
+  reading Tackle was redrawn when Growl loaded). Sweep: the other `@Observable` stores (`CompanionStore`,
+  `UsageStore`, `UpdateChecker`, the popover's) write per event, not per mounted row; `enrichProfiles` already writes
+  only on change. An observed store fed by rows as they mount needs a box per item, never one shared collection.
+
+- **A periodic path must not write what did not change.** Every refresh ended with `save()`, which encoded and wrote
+  the whole save (660 KB) even when nothing changed; Settings decoded each snapshot in full to list them. The save is
+  now skipped when the state equals the one last written (`testARefreshThatChangesNothingWritesNothing`) and
+  snapshot summaries are kept by file path, date and size (`testSnapshotSummariesFollowTheirFile`).
+
 ## 에너지 (상시 표시 애니메이션)
 
 - **절전용 정지 상태는 짝 알림 하나에만 복구를 맡기지 마라.** `screensDidSleep` 이 폴링 타이머를 끄고
@@ -1756,6 +1817,19 @@ read_when:
   the box, not counts. The other render tests' absolute thresholds (`DrawnEggTests`' "an egg is drawn") hold at 1×.
 
 ## 프로세스 제어·업데이트
+
+- **Never quit or delete the working app before the new one is in place.** `build-app.sh` quit the app, deleted it,
+  then copied the new bundle: a failed copy left no app and no message, and `updateError` was set but never shown. The
+  bundle is now copied and verified next to the installed one, swapped in, and put back on failure; the update script
+  reopens the app after any failure past the quit, and the reopened app reads the error from `update-status`
+  (`testAFailedUpdateIsShownAfterTheAppReopens`, `testAFailedUpdateReopensTheApp`).
+
+- **An `SMAppService` agent breaks at every ad-hoc rebuild.** launchd reported the agent "spawn failed", exit 78,
+  "needs LWCR update", on the owner's Mac while Settings showed it on: the launch constraint recorded for the agent no
+  longer matched the rebuilt binary's signature, and registering it again on a new build did not help (tried and taken
+  out on 2026-10-28). The app now writes a classic LaunchAgent plist in `~/Library/LaunchAgents`, which has no such
+  constraint, moves the old registration to it once and unregisters it (`LoginItem.migrateIfNeeded`), and turns it on
+  or off by writing or removing the file, for the next login, with no `launchctl` call (`LoginItemTests`).
 
 - **"나중에"는 이 버전을 다시 안 보여 주는 스킵이지, 다음에 또 물어보기가 아니다.** `skipCurrent()` 가
   `skippedUpdateVersion` 에 한 번 쓰면 `check()` 는 그 태그를 `available` 에서 빼고, Settings 의

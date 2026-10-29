@@ -13,6 +13,23 @@ struct PokemonNameText: View {
     let names: [PokemonNameResource: [String: String]]
     var failed: Set<PokemonNameResource> = []
 
+    init(items: [PokemonNameItem], language: AppLanguage, names: [PokemonNameResource: [String: String]],
+         failed: Set<PokemonNameResource> = []) {
+        self.items = items
+        self.language = language
+        self.names = names
+        self.failed = failed
+    }
+
+    /// Reads only the names of `items`: the view is redrawn when one of them arrives, not when any other does.
+    init(items: [PokemonNameItem], language: AppLanguage, names: PokemonNameDisplayStore.Names,
+         failed: Set<PokemonNameResource> = []) {
+        self.init(items: items, language: language,
+                  names: Dictionary(items.compactMap { item in names[item.resource].map { (item.resource, $0) } },
+                                    uniquingKeysWith: { first, _ in first }),
+                  failed: failed)
+    }
+
     var text: String {
         items.map { item in
             guard let translations = names[item.resource] else {
@@ -28,16 +45,48 @@ struct PokemonNameText: View {
 
 /// Synchronous presentation snapshot: reopening a detail starts with the last translated names.
 /// The API client still owns disk caching, request deduplication, and freshness checks.
-@MainActor @Observable
+///
+/// Each name is observed on its own: one observed dictionary made every name loaded redraw every view reading any
+/// name, and the move list's rows each load theirs as they scroll in, so scrolling it redrew the whole Pokédex page
+/// for each row.
+@MainActor
 final class PokemonNameDisplayStore {
     static let shared = PokemonNameDisplayStore()
-    private(set) var names: [PokemonNameResource: [String: String]] = [:]
+
+    @MainActor @Observable
+    final class Entry {
+        fileprivate(set) var translations: [String: String]?
+    }
+
+    /// Created on first read, so that a view waiting for a name is redrawn when it arrives.
+    private var entries: [PokemonNameResource: Entry] = [:]
+
+    private func entry(_ resource: PokemonNameResource) -> Entry {
+        if let entry = entries[resource] { return entry }
+        let entry = Entry()
+        entries[resource] = entry
+        return entry
+    }
+
+    /// The names known so far, read one resource at a time: `names[resource]`.
+    var names: Names { Names(store: self) }
+
+    @MainActor
+    struct Names {
+        fileprivate let store: PokemonNameDisplayStore
+
+        subscript(resource: PokemonNameResource) -> [String: String]? { store.entry(resource).translations }
+
+        var isEmpty: Bool { store.entries.values.allSatisfy { $0.translations == nil } }
+    }
 
     func load(_ resource: PokemonNameResource, provider: any PokemonNameProviding) async -> Bool {
         do {
             let translations = try await provider.names(for: resource)
             guard !Task.isCancelled else { return false }
-            names[resource] = translations
+            let entry = entry(resource)
+            // Written again unchanged, it would redraw the views reading it all the same.
+            if entry.translations != translations { entry.translations = translations }
             return true
         } catch {
             return false
@@ -129,7 +178,8 @@ struct PokemonNameLabel: View {
             .task(id: items.map(\.resource)) {
                 failed.subtract(items.map(\.resource))
                 await withTaskGroup(of: (PokemonNameResource, Bool).self) { group in
-                    for resource in Set(items.map(\.resource)) {
+                    // A row scrolled back in knows its name already.
+                    for resource in Set(items.map(\.resource)) where displayStore.names[resource] == nil {
                         group.addTask { (resource, await displayStore.load(resource, provider: provider)) }
                     }
                     for await (resource, loaded) in group {

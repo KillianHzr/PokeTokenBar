@@ -6,7 +6,6 @@ import SwiftUI
 @MainActor
 struct ShopView: View {
     let store: CompanionStore
-    let nav: PopoverNavigation
 
     var body: some View {
         let l = store.l
@@ -15,20 +14,20 @@ struct ShopView: View {
             VStack(alignment: .leading, spacing: 10) {
                 walletHeader(l)
                 // shopEntries = 판매 아이템 + 알 3종(보증 없음·고급 이상·희귀 이상)을 가격 오름차순으로
-                // 병합한 단일 목록. 알은 항상 포함되고(즉시 액션이라 ItemKind 가 아님), 알 상태에선
-                // EggCard 가 구매만 비활성으로 보여준다.
+                // 병합한 단일 목록. A bought egg goes in the Bag (`EggCard`).
                 ForEach(store.shopEntries, id: \.self) { entry in
                     switch entry {
                     case .item(let kind):
                         ShopItemCard(store: store, kind: kind)
                     case .egg(let tier):
-                        EggCard(store: store, nav: nav, tier: tier)
+                        EggCard(store: store, tier: tier)
                     }
                 }
             }
             .reservesScrollerLane()
         }
         .frame(height: 520)
+        .task { await store.loadHatchIndex() }
     }
 
     private func walletHeader(_ l: L) -> some View {
@@ -147,19 +146,20 @@ private struct ShopItemCard: View {
     }
 }
 
-/// 알 카드 — 구매 = 즉시 현재 포켓몬 폐기 후 새 알로. `tier` 는 보증 등급 하한(nil = 보증 없는 기본 알).
-/// 인라인 2단계 확인: 일반은 1회, 이로치면 한 번 더(사고 폐기 방지). 성공하면 Home 으로 전환해 새 알을 보여준다.
-/// 알 상태(활성 없음)에서도 카드는 노출하되 구매 버튼만 비활성 + 사유 한 줄(eggShopLockedHint).
+/// An egg card: `tier` is the rarity it guarantees at least (nil: none). Bought, the egg goes in the Bag
+/// (`ItemKind(shopEgg:)`): the player uses it there when they want to send their Pokémon off. Before, buying sent it
+/// off at once.
 ///
 /// 등급 알의 시각 구분은 **카드의 등급 배지**로만 한다 — 알 스프라이트는 한 장뿐이고, 메뉴바·플로팅 펫은
 /// 기존 알 그대로 둔다(새 에셋 없이 구분이 서는 최소 범위).
 @MainActor
 private struct EggCard: View {
     let store: CompanionStore
-    let nav: PopoverNavigation
     let tier: Rarity?
+    @State private var confirming = false
 
     private var price: Int { store.price(of: .egg(tier)) }
+    private var owned: Int { ItemKind(shopEgg: tier).map(store.itemCount) ?? 0 }
 
     var body: some View {
         let l = store.l
@@ -176,31 +176,58 @@ private struct EggCard: View {
                             // 도감 칩과 같은 라벨·색 — 상점의 등급 표기가 도감과 한 말로 맞물리게.
                             Badge(l.rarityLabel(tier).uppercased(), tint: .rarity(tier))
                         }
+                        if owned > 0 {
+                            Text(l.ownedCount(owned)).font(.caption2.weight(.bold))
+                                .foregroundStyle(.secondary).monospacedDigit()
+                        }
                     }
                     Text(l.eggDescription(tier))
                         .font(.caption).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    // "놓아준다" 바로 아래 — 무엇을 잃는지 읽은 자리에서 무엇이 남는지 이어 읽게 한다.
-                    // 가격 줄이 아니라 여기인 이유: 이건 가격·구매 가능 여부와 무관한 상품 설명이고,
-                    // 아래쪽은 버튼과 `eggShopLockedHint`(왜 못 사는지) 가 쓰는 자리다.
-                    // 놓아줄 대상이 있을 때만 — 알 상태에선 할 말이 아니다.
-                    if store.hasActive {
-                        Text(l.eggReleaseNote)
-                            .font(.caption2).foregroundStyle(.tertiary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+                    Text(l.eggGoesToBag)
+                        .font(.caption2).foregroundStyle(.tertiary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer()
             }
-            ReleaseForEggControls(store: store, nav: nav,
-                                  detail: "\(l.shopPriceLabel) \(TokenFormatter.compact(price))",
-                                  actionTitle: l.buy, isAvailable: store.canBuyEgg(tier),
-                                  unavailableText: l.notEnoughTokens,
-                                  confirmText: l.eggConfirm(store.displayName, l.eggName(tier))) {
-                store.buyEgg(tier)
+            if let odds = store.hatchOdds(for: .init(tier: tier)) {
+                HatchOddsView(odds: odds, l: l)
             }
+            buyControls(l)
         }
         .padding(12)
         .designSurface(cornerRadius: Design.cornerRadius)
+    }
+
+    /// The same inline confirmation as the other items' (`ShopItemCard`).
+    @ViewBuilder
+    private func buyControls(_ l: L) -> some View {
+        if confirming {
+            HStack(spacing: 8) {
+                Text(l.buyConfirm(l.eggName(tier)))
+                    .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                Spacer()
+                Button(l.buy) {
+                    confirming = false
+                    store.buyEgg(tier)
+                }
+                .buttonStyle(.pill(prominent: true))
+                Button(l.cancel) { confirming = false }
+                    .buttonStyle(.borderless).controlSize(.small)
+            }
+        } else {
+            HStack {
+                Text("\(l.shopPriceLabel) \(TokenFormatter.compact(price))")
+                    .font(.caption2).foregroundStyle(.tertiary).monospacedDigit()
+                Spacer()
+                if store.canBuyEgg(tier) {
+                    Button(l.buy) { confirming = true }
+                        .buttonStyle(.pill())
+                } else {
+                    Text(l.notEnoughTokens)
+                        .font(.caption2).foregroundStyle(.tertiary)
+                }
+            }
+        }
     }
 }

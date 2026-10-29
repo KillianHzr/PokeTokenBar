@@ -228,6 +228,25 @@ final class EventEggTests: XCTestCase {
         }
     }
 
+    /// Regression: a first catch that was a Ditto (its record carries Ditto's number once revealed, which no egg's
+    /// pool holds) kept the Friendship Egg waiting forever, and nothing else could be used meanwhile. The next catch's
+    /// line comes instead. An event whose Pokémon the pool lacks hatches as a plain egg.
+    func testTheFriendshipEggNeverWaitsForever() async throws {
+        let long = Date(timeIntervalSince1970: 1_700_000_000)
+        let ditto = DexEntry(baseID: 132, finalID: 132, chainOrder: [132], rarity: .common, caughtAt: long)
+        let charmander = DexEntry(baseID: 4, finalID: 4, chainOrder: [4], rarity: .common,
+                                  caughtAt: long.addingTimeInterval(86_400))
+        for seed: UInt64 in 1...4 {
+            let mon = try await tryHatch(.companion, seed: seed) { $0.dex = [ditto, charmander] }
+            XCTAssertEqual(mon?.baseID, 4, "seed \(seed): the first catch that is no Ditto")
+            XCTAssertEqual(mon?.isShiny, true)
+
+            let missing = DexEntry(baseID: 25, finalID: 25, chainOrder: [25], rarity: .common, caughtAt: long)
+            let plain = try await tryHatch(.companion, seed: seed) { $0.dex = [missing] }
+            XCTAssertNotNil(plain, "seed \(seed): a line the pool lacks hatches as a plain egg")
+        }
+    }
+
     /// A first catch that is a fossil line sent off before it graduated hatches from no egg but a Fossil Egg; the
     /// Friendship Egg still brings it back, from the index and from the REST fallback.
     func testTheFriendshipEggHatchesAFossilFirstCatchNotGraduated() async throws {

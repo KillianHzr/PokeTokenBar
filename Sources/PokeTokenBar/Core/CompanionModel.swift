@@ -212,7 +212,9 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     case lightBall
     /// The birthday gift (`BirthdayGift`): an egg whose hatch is a surprise, a mythical Pokémon not graduated yet.
     case birthdayEgg
-    /// The Legend Plate's eggs: like the Shop's eggs of these rarities, free.
+    /// The Shop's eggs, kept in the Bag until used: no guarantee, Uncommon or better, Rare or better. The Legend
+    /// Plate and the forms achievements give the last two too.
+    case pokemonEgg
     case uncommonEgg
     case rareEgg
     /// The eggs of the year's events (`EventEgg`), claimed from a banner.
@@ -391,7 +393,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .whippedDream: return "🍰"
         case .sawsbuckSeasons, .furfrouTrims, .vivillonPatterns, .unownLetters, .fossilEgg: return "🥚"
         case .excavation: return "🦴"
-        case .typeNullEgg, .legendaryEgg, .birthdayEgg, .uncommonEgg, .rareEgg, .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return "🥚"
+        case .typeNullEgg, .legendaryEgg, .birthdayEgg, .pokemonEgg, .uncommonEgg, .rareEgg, .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return "🥚"
         case .lightBall: return "⚡"
         case .ovalCharm: return "🔶"
         case .glimmeringCharm: return "✨"
@@ -405,6 +407,10 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
             return "★"
         }
     }
+    /// Items taken out of the game without deleting them: neither sold nor shown in the Bag, while a save keeps
+    /// what it holds. The Mint went on 2026-10-28.
+    var isRetired: Bool { self == .mint }
+
     /// 상점 판매가(재화 = 사용한 토큰). nil = 상점 미판매(업적 보상).
     var shopPrice: Int? {
         switch self {
@@ -418,7 +424,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     var isPassive: Bool {
         switch self {
         case .rareCandy, .mint,
-             .typeNullEgg, .legendaryEgg, .birthdayEgg, .uncommonEgg, .rareEgg, .legendPlate, .lightBall,
+             .typeNullEgg, .legendaryEgg, .birthdayEgg, .pokemonEgg, .uncommonEgg, .rareEgg, .legendPlate, .lightBall,
              .excavation, .fossilEgg,
              .cometShard, .redNectar, .smoothRock, .sawsbuckSeasons, .fairyFeather, .furfrouTrims, .vivillonPatterns, .whippedDream, .unownLetters,
              .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg,
@@ -456,11 +462,24 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     /// candies): the Bag never holds it.
     var givesOtherItems: Bool { achievementRewards.contains { $0.kind != self } }
 
-    /// The rarity a free egg of the Bag guarantees, like the Shop's egg of that rarity. nil for any other item.
+    /// The rarity a Shop egg of the Bag guarantees. nil for the Pokémon Egg, which guarantees none, and any other item.
     var bagEggTier: Rarity? {
         switch self {
         case .uncommonEgg: return .uncommon
         case .rareEgg: return .rare
+        default: return nil
+        }
+    }
+
+    /// One of the Shop's eggs, which wait in the Bag until used.
+    var isShopEgg: Bool { self == .pokemonEgg || bagEggTier != nil }
+
+    /// The Bag item a Shop egg of `tier` becomes (`FreshEgg.shopTiers`).
+    init?(shopEgg tier: Rarity?) {
+        switch tier {
+        case nil: self = .pokemonEgg
+        case .uncommon?: self = .uncommonEgg
+        case .rare?: self = .rareEgg
         default: return nil
         }
     }
@@ -470,7 +489,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         if badgeType != nil { return .gymBadges }
         if stoneType != nil { return .evolutionStones }
         switch self {
-        case .rareCandy, .mint, .shinyCharm, .birthdayEgg, .uncommonEgg, .rareEgg, .fossilEgg: return nil
+        case .rareCandy, .mint, .shinyCharm, .birthdayEgg, .pokemonEgg, .uncommonEgg, .rareEgg, .fossilEgg: return nil
         case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return nil
         case .rotomCatalog, .cometShard, .redNectar, .smoothRock, .sawsbuckSeasons, .fairyFeather, .furfrouTrims, .vivillonPatterns, .whippedDream, .unownLetters: return .forms
         case .excavation: return .evolutionStones   // rocks and stones, side by side
@@ -482,7 +501,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     /// Each item keeps the Pokémon of the achievement that used to award it.
     var unlock: ItemUnlock? {
         switch self {
-        case .rareCandy, .mint, .shinyCharm, .birthdayEgg, .uncommonEgg, .rareEgg, .fossilEgg: return nil
+        case .rareCandy, .mint, .shinyCharm, .birthdayEgg, .pokemonEgg, .uncommonEgg, .rareEgg, .fossilEgg: return nil
         case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return nil
         // The first nine stones follow the generations: each asks for one region's final starters.
         case .leafStone:   return .species([SpeciesGoal([3, 6, 9])])            // Kanto starters
@@ -686,6 +705,12 @@ enum CollectorBonus {
     /// Ogerpon's four masks.
     static let tealMaskTypeList: [PokemonType] = [.grass, .water, .fire, .rock]
     static let clearBellRare = 1.25
+    /// Silver Wing: every Pokémon grows 25% faster (and eggs still hatch twice as fast).
+    static let silverWingGrowth = 1.25
+    /// Tera Orb: a Pokémon from an evolution stone's egg grows 30% faster.
+    static let teraOrbStoneGrowth = 1.3
+    /// Sea Incense: a Pokémon from an egg of a guaranteed rarity grows 30% faster.
+    static let seaIncenseRarityEggGrowth = 1.3
     static let griseousOrbGhostDragon = 1.3
     /// Rare Candies the Reins of Unity add to each graduation.
     static let reinsOfUnityCandies = 1
@@ -727,6 +752,10 @@ enum RareCandy {
     static let xp = PokemonBalance.scaled(PokemonBalance.graduationTotal(.common))
     /// Candies a whole week of a Pro plan pays; a whole 5-hour session pays one.
     static let weeklyGrant = 5
+    /// The tokens a tool with no limit window pays a candy for (Cursor, Gemini CLI, OpenCode…): what Claude's windows
+    /// pay a Max 5x user, measured on 2026-10-28 (40 candies for 2.61B tokens, 68% of the week). Not scaled with the
+    /// difficulty: windows pay by usage whatever it is.
+    static let tokensPerCandyWithoutLimits = 65_000_000
     /// The Shop's table price, scaled like every price (`PokemonBalance.scaled`): 50M at 10%. The wallet is the tokens
     /// used (usedSinceInstall minus spentTokens), which also grew the Pokémon, so a candy priced at its XP would be
     /// free growth. Candies also come free from the limit windows, paid as they fill (`candiesDue`).
@@ -765,7 +794,7 @@ enum ShinyCharm {
     static let shinyDenominator: UInt64 = 48
 }
 
-/// 새 알(리롤) 밸런스 상수 — 상점 구매 시 현재 포켓몬을 폐기하고 새 알로 되돌린다.
+/// The Shop eggs' balance: bought into the Bag; used, an egg sends the current Pokémon off for a new egg.
 enum FreshEgg {
     /// 상점 구매가. 마음에 안 드는 부화를 리롤하는 프리미엄(쌓인 토큰의 활용처). 폐기 개체는 졸업이
     /// 아니라 그냥 사라지므로 도감·확률(collectedFinals)에 무영향 — "뽑은 적 없던 것처럼". 새 알은
@@ -791,7 +820,7 @@ enum FreshEgg {
     }
 }
 
-/// 상점 표시 한 줄 — 판매 아이템(ItemKind) 또는 알 리롤(즉시 액션이라 ItemKind 가 아님).
+/// One Shop row: an item sold (ItemKind) or an egg, bought into the Bag as `ItemKind(shopEgg:)` and drawn by its own card.
 /// `egg` 의 연관값은 **보증 등급 하한**(nil = 보증 없는 기존 알).
 /// CompanionStore.shopEntries 가 이 둘을 가격 오름차순으로 병합해 뷰가 단일 목록으로 그린다.
 enum ShopEntry: Hashable, Sendable {
@@ -809,8 +838,78 @@ enum ShopEntry: Hashable, Sendable {
 /// The two kinds of limit windows: a session (5 hours) and a week.
 enum WindowClass: Sendable { case session, weekly }
 
+/// A Pokémon's raising record (carnet d'élevage), kept from its hatch: the tokens that raised it, by tool and by model,
+/// and their estimated cost. A Pokémon hatched before it was kept has none.
+struct RaisingRecord: Codable, Sendable, Equatable {
+    var hatchedAt: Date
+    var tokensByProvider: [String: Int] = [:]
+    var tokensByModel: [String: Int] = [:]
+    /// The tokens' cost, each refresh priced at its provider's cost per token that day; nil while none reported one.
+    var cost: Double?
+    /// The Rare Candies used on it.
+    var candiesUsed = 0
+
+    init(hatchedAt: Date) { self.hatchedAt = hatchedAt }
+
+    /// Each field but the hatch read leniently: a record written before a field existed keeps the rest.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        hatchedAt = try c.decode(Date.self, forKey: .hatchedAt)
+        tokensByProvider = (try? c.decodeIfPresent([String: Int].self, forKey: .tokensByProvider)) ?? [:]
+        tokensByModel = (try? c.decodeIfPresent([String: Int].self, forKey: .tokensByModel)) ?? [:]
+        cost = (try? c.decodeIfPresent(Double.self, forKey: .cost)) ?? nil
+        candiesUsed = (try? c.decodeIfPresent(Int.self, forKey: .candiesUsed)) ?? 0
+    }
+
+    var tokens: Int { tokensByProvider.values.reduce(0, +) }
+    var mainProvider: String? { tokensByProvider.max { $0.value < $1.value }?.key }
+    var mainModel: String? { tokensByModel.max { $0.value < $1.value }?.key }
+
+    /// Adds a refresh's new tokens of one provider, spread over the day's models and priced at the day's cost.
+    mutating func add(_ tokens: Int, provider: String, day: TodayUsageDetail?) {
+        guard tokens > 0 else { return }
+        tokensByProvider[provider, default: 0] += tokens
+        guard let day, day.tokens > 0 else { return }
+        let share = Double(tokens) / Double(day.tokens)
+        for (model, modelTokens) in day.models {
+            let part = Int((Double(modelTokens) * share).rounded())
+            if part > 0 { tokensByModel[model, default: 0] += part }
+        }
+        if let dayCost = day.cost { cost = (cost ?? 0) + dayCost * share }
+    }
+
+    /// A model id as people say it: "claude-opus-5-5" is "Opus 5.5"; an id it does not know stays as it is.
+    static func modelName(_ id: String) -> String {
+        var name = id.lowercased()
+        if name.hasPrefix("claude-") { name.removeFirst("claude-".count) }
+        if let date = name.range(of: #"-\d{8}$"#, options: .regularExpression) { name.removeSubrange(date) }
+        let parts = name.split(separator: "-").map(String.init)
+        guard let family = parts.first, ["opus", "sonnet", "haiku", "fable"].contains(family) else { return id }
+        let version = parts.dropFirst().joined(separator: ".")
+        return family.capitalized + (version.isEmpty ? "" : " " + version)
+    }
+}
+
+/// One provider's usage today, as the raising record reads it to spread and price a refresh's new tokens.
+struct TodayUsageDetail: Sendable, Equatable {
+    var tokens: Int
+    var cost: Double?
+    var models: [String: Int]
+}
+
 /// 사탕 지급 판정 입력 — 프로바이더 무관 한도 창 1개. (UsageStore.candyEligibleWindows 가 생성)
 struct CandyWindow: Sendable {
+    /// The usage provider whose tokens a window pays for, read from its key: a provider that ever had one pays no
+    /// candies by tokens (`CompanionStore.paysCandiesByTokens`).
+    static func providerID(forKey key: String) -> String? {
+        switch key.split(separator: ".").first {
+        case "claude": return "claude_code"
+        case "codex": return "codex"
+        case "antigravity": return "antigravity"
+        default: return nil
+        }
+    }
+
     let key: String          // 안정 식별자(tier 추적) — resets_at 등 휘발 필드는 key 에 넣지 않는다
     let name: String         // 표시용(알림 "왜 받는지")
     let kind: WindowClass
@@ -1004,7 +1103,7 @@ enum PokemonOdds {
 }
 
 /// 현재 키우는 포켓몬.
-struct MonState: Codable, Sendable {
+struct MonState: Codable, Sendable, Equatable {
     var baseID: Int
     var pathIDs: [Int]      // 실제 진화 경로(분기 선택 반영)
     var plannedPathIDs: [Int] // 사전에 선택한 전체 진화 경로
@@ -1024,6 +1123,12 @@ struct MonState: Codable, Sendable {
     /// Hatched from a Fossil Egg: sent off before it graduates, its egg goes back to the Bag, or its line would be
     /// out of reach (there are as many eggs as fossil lines).
     var fromFossilEgg = false
+    /// Hatched from an evolution stone's egg (the Tera Orb grows it faster) or from an egg of a guaranteed rarity,
+    /// bought or given by an achievement (the Sea Incense). An event egg's type or rarity is the event's: neither.
+    var fromStoneEgg = false
+    var fromRarityEgg = false
+    /// Its raising record from its hatch on (`RaisingRecord`).
+    var raising: RaisingRecord?
     /// The costume this individual brought when it became a Pikachu: it wears that one rather than the equipped one.
     var pikachuCostume: PikachuCostume?
     // 메타몽 위장 — nil=일반. 값=정체 메타몽, 이 종으로 위장 중(위장 구간엔 baseID 와 동일, 리빌 후에도 원 위장체 보존).
@@ -1096,6 +1201,9 @@ struct MonState: Codable, Sendable {
         hasGrowthBoost = try c.decodeIfPresent(Bool.self, forKey: .hasGrowthBoost) ?? false
         hasNewForm = try c.decodeIfPresent(Bool.self, forKey: .hasNewForm) ?? false
         fromFossilEgg = (try? c.decodeIfPresent(Bool.self, forKey: .fromFossilEgg)) ?? false
+        fromStoneEgg = (try? c.decodeIfPresent(Bool.self, forKey: .fromStoneEgg)) ?? false
+        fromRarityEgg = (try? c.decodeIfPresent(Bool.self, forKey: .fromRarityEgg)) ?? false
+        raising = (try? c.decodeIfPresent(RaisingRecord.self, forKey: .raising)) ?? nil
         // A costume this version doesn't know is dropped, not the whole individual.
         pikachuCostume = ((try? c.decodeIfPresent(String.self, forKey: .pikachuCostume)) ?? nil)
             .flatMap(PikachuCostume.init(rawValue:))
@@ -1106,7 +1214,7 @@ struct MonState: Codable, Sendable {
 }
 
 /// 도감 항목 — 라인 전체(초기→최종) 순서 보존.
-struct DexEntry: Codable, Sendable, Identifiable {
+struct DexEntry: Codable, Sendable, Identifiable, Equatable {
     /// Version 1 preserves every API language; earlier saves retained only app-supported names.
     static let currentNamesVersion = 1
     var id = UUID().uuidString
@@ -1138,6 +1246,13 @@ struct DexEntry: Codable, Sendable, Identifiable {
     /// The individual brought a form its line had never registered (`MonState.hasNewForm`). False for entries saved
     /// before it was kept.
     var hasNewForm = false
+    /// What raised it (`RaisingRecord`), for a Pokémon hatched since the record is kept.
+    var raising: RaisingRecord?
+    func withRaising(_ raising: RaisingRecord?) -> DexEntry {
+        var entry = self
+        entry.raising = raising
+        return entry
+    }
     /// 졸업이 아니라 놓아준 기록인가 — 포획 로그가 뱃지를 가르는 판정.
     var isReleased: Bool { releasedAt != nil }
 
@@ -1183,6 +1298,7 @@ struct DexEntry: Codable, Sendable, Identifiable {
         // 이 필드 이전에 저장된 항목은 전부 졸업분이다 — nil 이 곧 "졸업"이라 마이그레이션이 필요 없다.
         releasedAt = try c.decodeIfPresent(Date.self, forKey: .releasedAt)
         hasNewForm = (try? c.decodeIfPresent(Bool.self, forKey: .hasNewForm)) ?? false
+        raising = (try? c.decodeIfPresent(RaisingRecord.self, forKey: .raising)) ?? nil
         form = PokemonForm.resolved(baseID: baseID, form: PokemonForm.decoded(from: decoder, keys: "form", "unownForm"))
     }
 }
@@ -1206,7 +1322,7 @@ private extension KeyedDecodingContainer {
 }
 
 /// 영속 상태(Application Support JSON). 포켓몬 전환 — 이전 커스텀 캐릭터 상태는 폐기(새로 시작).
-struct CompanionState: Codable, Sendable {
+struct CompanionState: Codable, Sendable, Equatable {
     // 토큰: 설치 이후만 측정
     var installBaselineSet = false
     var usedSinceInstall = 0
@@ -1303,6 +1419,10 @@ struct CompanionState: Codable, Sendable {
     /// plan, is recorded as paid up to what it owes then (`CompanionStore.grantCandies`): its usage so far was used
     /// before the app knew it, or counted at another plan (#79).
     var candyWindowPlan: [String: Int] = [:]
+    /// Tokens of the tools without limit windows since their last candy (`RareCandy.tokensPerCandyWithoutLimits`),
+    /// and the candies they paid.
+    var tokenCandyTokens = 0
+    var tokenCandiesEarned = 0
     // 사탕 지급 첫 실행 시드 완료 — 업데이트 직후 이미 100%였던 창의 소급 지급 차단.
     var candyFeatureSeeded = false
     /// Windows pay their candies as they go (`RareCandy.candiesDue`). A save from before has `false`: its windows'
@@ -1357,6 +1477,8 @@ struct CompanionState: Codable, Sendable {
         candyGrantTier     = c.lenient([String: Int].self, forKey: .candyGrantTier, default: [:])
         candyWindowEpoch   = c.lenient([String: String].self, forKey: .candyWindowEpoch, default: [:])
         candyWindowPlan    = c.lenient([String: Int].self, forKey: .candyWindowPlan, default: [:])
+        tokenCandyTokens   = c.lenient(Int.self, forKey: .tokenCandyTokens, default: 0)
+        tokenCandiesEarned = c.lenient(Int.self, forKey: .tokenCandiesEarned, default: 0)
         candyFeatureSeeded = c.lenient(Bool.self, forKey: .candyFeatureSeeded, default: false)
         candyGrantsAsYouGo = c.lenient(Bool.self, forKey: .candyGrantsAsYouGo, default: false)
         additiveGrowthBonuses = c.lenient(Bool.self, forKey: .additiveGrowthBonuses, default: false)

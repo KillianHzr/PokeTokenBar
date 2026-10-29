@@ -82,6 +82,26 @@ final class CandyGrantEvaluationTests: XCTestCase {
         XCTAssertEqual(regrant.map(\.count), [1], "리셋 후 다시 채우면 재지급")
     }
 
+    /// Another account under the same key (`/login` in the same folder, `codex login`): its week ends later while
+    /// the previous one still runs. Read as a reset, it paid that account's whole usage at once, and switching back
+    /// paid the gap again. It pays from then on; the week that really ends still starts again.
+    func testAnotherAccountUnderTheSameKeyPaysFromThen() {
+        let now = Date(timeIntervalSince1970: 1_790_000_000)
+        let day: TimeInterval = 86_400
+        func epoch(_ days: Double) -> String { String(Int(now.addingTimeInterval(days * day).timeIntervalSince1970)) }
+        var tier: [String: Int] = [:]
+        var epochs: [String: String] = [:]
+        func poll(_ util: Double, _ end: String, at time: Date = now) -> Int {
+            CompanionStore.evaluateCandyGrants(windows: [w("claude.sevenDay", .weekly, util, epoch: end)],
+                                               grantTier: &tier, windowEpoch: &epochs, now: time).map(\.count).reduce(0, +)
+        }
+        XCTAssertEqual(poll(40, epoch(2)), 2, "account A, 40% of its week")
+        XCTAssertEqual(poll(80, epoch(5)), 0, "account B at 80%: paid from then on")
+        XCTAssertEqual(poll(100, epoch(5)), 1, "B's own usage since")
+        XCTAssertEqual(poll(100, epoch(2)), 0, "back to A, already paid up to now")
+        XCTAssertEqual(poll(20, epoch(9), at: now.addingTimeInterval(2 * day + 3_600)), 1, "A's week ended: a new one")
+    }
+
     /// [#326] 창이 리셋됐는데 앱이 중간 &lt;100% 샘플을 못 보면(슬립·종료) util 은 계속 100%다.
     /// key 는 안정(claude.fiveHour)이라 util-only 재무장은 안 되고, epoch(`resets_at`) 교체로 재무장한다.
     func testRearmWhenWindowEpochAdvancesWhileStillAt100() {

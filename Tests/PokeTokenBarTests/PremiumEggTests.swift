@@ -218,7 +218,7 @@ final class PremiumEggTests: XCTestCase {
     func testBuyPremiumEggRecordsGuaranteeAndDebitsTierPrice() {
         let s = activeStore()
         XCTAssertTrue(s.canBuyEgg(.rare))
-        XCTAssertTrue(s.buyEgg(.rare))
+        XCTAssertTrue(s.buyAndUseEgg(.rare))
         XCTAssertEqual(s.state.eggTier, .rare, "보증이 상태에 기록됨")
         XCTAssertEqual(s.eggGuarantee, .rare)
         XCTAssertEqual(s.state.spentTokens, FreshEgg.price(guaranteeing: .rare))
@@ -228,17 +228,6 @@ final class PremiumEggTests: XCTestCase {
         XCTAssertEqual(s.state.dex.count, 1, "놓아준 개체가 기록으로 남는다")
         XCTAssertTrue(s.state.dex.first?.isReleased ?? false, "졸업이 아니라 놓아줌")
         XCTAssertTrue(s.state.collectedFinals.isEmpty, "최종체 완성으로 세지 않는다")
-    }
-
-    /// 알 상태에선 등급 알도 못 산다 — 기존 새 알과 게이트 통일.
-    func testCannotBuyAnyEggWhileIncubating() {
-        let s = eggStore(tier: nil, seed: 1, provider: TieredProvider())
-        XCTAssertFalse(s.hasActive)
-        for tier in FreshEgg.shopTiers {
-            XCTAssertFalse(s.canBuyEgg(tier))
-            XCTAssertFalse(s.buyEgg(tier))
-        }
-        XCTAssertEqual(s.state.spentTokens, 0, "no-op")
     }
 
     /// 잔액이 그 **티어의** 가격에 미달이면 불가 — 기본 알은 살 수 있어도 희귀 알은 못 산다.
@@ -261,7 +250,7 @@ final class PremiumEggTests: XCTestCase {
     func testPurchaseStartsFromCleanRollState() {
         let s = activeStore()
         XCTAssertNil(s.state.pendingHatchID, "활성 포켓몬이 있는 동안엔 pre-roll 이 없다")
-        XCTAssertTrue(s.buyEgg(.rare))
+        XCTAssertTrue(s.buyAndUseEgg(.rare))
         XCTAssertEqual(s.state.eggTier, .rare)
         XCTAssertNil(s.state.pendingHatchID, "새 보증으로 다시 롤한다")
         XCTAssertEqual(s.state.eggUsage, 0)
@@ -271,7 +260,7 @@ final class PremiumEggTests: XCTestCase {
     func testGuaranteeSurvivesRestart() {
         let f = url()
         let s1 = activeStore(at: f)
-        XCTAssertTrue(s1.buyEgg(.uncommon))
+        XCTAssertTrue(s1.buyAndUseEgg(.uncommon))
         let s2 = CompanionStore(provider: TieredProvider(), clock: { self.now }, fileURL: f, rng: SeededRNG(seed: 7), difficulty: 1)
         XCTAssertEqual(s2.state.eggTier, .uncommon, "재시작 후에도 산 보증 유지")
         XCTAssertEqual(s2.eggGuarantee, .uncommon)

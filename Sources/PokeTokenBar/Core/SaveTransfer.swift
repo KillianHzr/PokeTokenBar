@@ -215,12 +215,13 @@ enum SaveTransfer {
                                      hasUsageData: Bool) -> CompanionState {
         var state = imported
         state.language = current.language
-        state.candyGrantTier = mergedGrantTier(imported.candyGrantTier, current.candyGrantTier)
+        let (importedLedger, currentLedger) = withoutEndedWindows(imported, current)
+        state.candyGrantTier = mergedGrantTier(importedLedger.candyGrantTier, currentLedger.candyGrantTier)
         state.candyWindowEpoch = mergedWindowEpochs(
-            imported.candyWindowEpoch, imported.candyGrantTier,
-            current.candyWindowEpoch, current.candyGrantTier)
-        state.candyWindowPlan = mergedWindowPlans(imported.candyWindowPlan, imported.candyGrantTier,
-                                                  current.candyWindowPlan, current.candyGrantTier)
+            importedLedger.candyWindowEpoch, importedLedger.candyGrantTier,
+            currentLedger.candyWindowEpoch, currentLedger.candyGrantTier)
+        state.candyWindowPlan = mergedWindowPlans(importedLedger.candyWindowPlan, importedLedger.candyGrantTier,
+                                                  currentLedger.candyWindowPlan, currentLedger.candyGrantTier)
         state.candyFeatureSeeded = imported.candyFeatureSeeded || current.candyFeatureSeeded
         state.candyGrantsAsYouGo = imported.candyGrantsAsYouGo || current.candyGrantsAsYouGo
         let hasCurrentProviderData = hasUsageData && !todayTokensByProvider.isEmpty
@@ -239,6 +240,25 @@ enum SaveTransfer {
             state.lastDate = ""
         }
         return state
+    }
+
+    /// Both ledgers without the windows one side saw in an earlier epoch than the other: that window ended, and its
+    /// count says nothing of the current one. Merged by max, a snapshot of last week paid 80 kept this week's count at
+    /// 80 under this week's epoch, and nothing was paid until the week passed 80%. The later window keeps its count,
+    /// epoch and plan together. Windows of the same epoch, or without one, merge as before.
+    static func withoutEndedWindows(_ a: CompanionState, _ b: CompanionState) -> (CompanionState, CompanionState) {
+        var a = a, b = b
+        for key in Set(a.candyWindowEpoch.keys).intersection(b.candyWindowEpoch.keys) {
+            guard let dateA = a.candyWindowEpoch[key].flatMap(CompanionStore.parseEpochDate),
+                  let dateB = b.candyWindowEpoch[key].flatMap(CompanionStore.parseEpochDate),
+                  abs(dateA.timeIntervalSince(dateB)) >= 1800 else { continue }
+            if dateA < dateB {
+                a.candyGrantTier[key] = nil; a.candyWindowEpoch[key] = nil; a.candyWindowPlan[key] = nil
+            } else {
+                b.candyGrantTier[key] = nil; b.candyWindowEpoch[key] = nil; b.candyWindowPlan[key] = nil
+            }
+        }
+        return (a, b)
     }
 
     /// Each window's plan from the side whose ledger `mergedGrantTier` keeps, this device's on a tie: the count paid
