@@ -67,6 +67,44 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-29", entries: [
+            .improved("2026-10-29-dex-lines", { $0.t("도감에 몇 개의 진화 계열을 모았는지도 보여 줘요(전체 중 몇 개).",
+                                                     "The Pokédex also shows how many evolution lines you have, out of all of them.",
+                                                     "図鑑に、集めた進化の系統の数（全体のうちいくつか）も出ます。",
+                                                     "La Pokédex también muestra cuántas líneas evolutivas tienes, sobre el total.",
+                                                     "Le Pokédex montre aussi combien de lignées d'évolution tu as, sur le total.",
+                                                     "A Pokédex também mostra quantas linhas evolutivas você tem, do total.",
+                                                     "Der Pokédex zeigt auch, wie viele Entwicklungslinien du hast, von allen.",
+                                                     "Покедекс показывает и число собранных эволюционных линий из всех.") }),
+            .improved("2026-10-29-hide-menu-pokemon", { $0.t("아래쪽 눈 버튼이 이제 메뉴바의 포켓몬을 숨기거나 보여 줘요. 토큰 정보는 그대로라 회의 중에도 금방 숨길 수 있어요. 플로팅 펫은 설정과 메뉴바 메뉴에서 켜고 꺼요.",
+                                                             "The eye button at the bottom now hides or shows the Pokémon in the menu bar, the token info staying: quick to hide in a meeting. The floating pet is switched in Settings and in the menu bar's menu.",
+                                                             "下の目のボタンで、メニューバーのポケモンを隠したり出したりできます。トークンの情報はそのままなので、会議中もすぐ隠せます。フローティングペットは設定とメニューバーのメニューで切り替えます。",
+                                                             "El botón del ojo de abajo ahora oculta o muestra el Pokémon de la barra de menús, y la información de tokens se queda: rápido de ocultar en una reunión. La mascota flotante se activa en Ajustes y en el menú de la barra.",
+                                                             "Le bouton œil en bas masque ou affiche maintenant le Pokémon de la barre des menus, les infos de tokens restent : pratique en réunion. Le compagnon flottant se règle dans les Réglages et dans le menu de la barre des menus.",
+                                                             "O botão de olho embaixo agora oculta ou mostra o Pokémon da barra de menus, e as informações de tokens ficam: rápido de ocultar numa reunião. O mascote flutuante é ligado nos Ajustes e no menu da barra.",
+                                                             "Die Augen-Taste unten blendet jetzt das Pokémon in der Menüleiste aus oder ein, die Token-Infos bleiben: schnell versteckt im Meeting. Das schwebende Pokémon schaltest du in den Einstellungen und im Menü der Menüleiste.",
+                                                             "Кнопка с глазом внизу теперь скрывает или показывает покемона в строке меню, а данные о токенах остаются: удобно на встрече. Плавающего питомца включают в настройках и в меню строки меню.") }),
+            .improved("2026-10-29-shock-drive-recharge") { l in
+                let drive = l.itemName(.shockDrive), candy = l.itemName(.rareCandy)
+                return l.t("\(drive)의 효과가 바뀌었어요: 화석 포켓몬 성장 대신, 이제 \(candy) 하나를 쓸 때마다 4번에 1번은 그 사탕이 가방에 그대로 남아요.",
+                           "The \(drive) changes: instead of growing fossil Pokémon faster, each \(candy) you use has 1 chance in 4 to stay in your Bag.",
+                           "\(drive)の効果が変わりました。化石ポケモンを早く育てる代わりに、\(candy)を使うたびに4回に1回はバッグに残ります。",
+                           "El \(drive) cambia: en lugar de acelerar a los Pokémon fósiles, cada \(candy) que usas tiene 1 posibilidad entre 4 de quedarse en tu bolsa.",
+                           "Le \(drive) change : au lieu d'accélérer les Pokémon fossiles, chaque \(candy) utilisé a 1 chance sur 4 de rester dans ton sac.",
+                           "O \(drive) muda: em vez de acelerar os Pokémon fósseis, cada \(candy) usado tem 1 chance em 4 de continuar na sua bolsa.",
+                           "Das \(drive) ändert sich: Statt Fossil-Pokémon schneller wachsen zu lassen, bleibt jedes verwendete \(candy) mit einer Chance von 1 zu 4 im Beutel.",
+                           "\"\(drive)\" теперь работает иначе: вместо ускорения покемонов-окаменелостей каждая использованная \"\(candy)\" с шансом 1 из 4 остаётся в сумке.")
+            },
+            .improved("2026-10-29-old-amber-artifacts") { l in
+                let amber = l.itemName(.oldAmber)
+                return l.t("\(KoreanParticle.subject.attach(to: amber)) 업적과 가방에서 다른 유물들과 함께 있어요.",
+                           "The \(amber) now sits with the other artifacts, in the Achievements and in the Bag.",
+                           "\(amber)は実績とバッグで、ほかのどうぐと同じ場所に並びます。",
+                           "El \(amber) está ahora con los demás objetos, en los logros y en la bolsa.",
+                           "Le \(amber) est maintenant avec les autres artefacts, dans les succès et dans le sac.",
+                           "O \(amber) agora fica com os outros objetos, nas conquistas e na bolsa.",
+                           "Der \(amber) liegt jetzt bei den anderen Artefakten, in den Erfolgen und im Beutel.",
+                           "\"\(amber)\" теперь вместе с другими реликвиями: в успехах и в сумке.")
+            },
             .new("2026-10-29-explorer-kit") { l in
                 let kit = l.itemName(.explorerKit)
                 return l.t("새 업적 \(kit): 땅속 탐험가 다섯 마리(모두 희귀)와 히드런을 졸업시키면 받아요. 그다음엔 포켓몬을 5마리 졸업시킬 때마다 보물을 발굴하고, 소식 맨 앞에 떠요.",

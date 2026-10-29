@@ -31,7 +31,8 @@ final class CollectionProgressTests: XCTestCase {
         addTeardownBlock { try? FileManager.default.removeItem(at: url) }
         let s = CompanionStore(provider: StubIndexProvider(), clock: { self.date }, fileURL: url, rng: SeededRNG(seed: 1))
         XCTAssertEqual(s.collectionProgress,
-                       .init(species: 3, speciesTotal: 1025, forms: 6, formsTotal: CompanionStore.collectableFormCount))
+                       .init(species: 3, speciesTotal: 1025, forms: 6, formsTotal: CompanionStore.collectableFormCount,
+                             lines: 3, linesTotal: CompanionStore.evolutionLineCount))
     }
 }
 

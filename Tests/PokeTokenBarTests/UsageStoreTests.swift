@@ -827,6 +827,24 @@ final class UsageStoreTests: XCTestCase {
         XCTAssertEqual(makeStore(providers: []).menuSpriteMode, .hidden)
     }
 
+    /// The footer's eye hides the menu bar's Pokémon and brings back the mode it had, still or animated; Settings'
+    /// picker is the same setting, and what comes back survives a restart.
+    func testTheFooterEyeHidesTheMenuBarPokemonAndBringsItBack() {
+        let s1 = makeStore(providers: [])
+        s1.menuSpriteMode = .still
+        s1.toggleMenuSprite()
+        XCTAssertEqual(s1.menuSpriteMode, .hidden)
+        XCTAssertEqual(makeStore(providers: []).menuSpriteMode, .hidden)
+        let s2 = makeStore(providers: [])
+        s2.toggleMenuSprite()
+        XCTAssertEqual(s2.menuSpriteMode, .still, "the mode it had, after a restart")
+        s2.menuSpriteMode = .hidden
+        s2.menuSpriteMode = .animated
+        s2.toggleMenuSprite()
+        s2.toggleMenuSprite()
+        XCTAssertEqual(s2.menuSpriteMode, .animated, "picked in Settings, it is the one that comes back")
+    }
+
     /// Hidden with no text line on would leave the menu bar empty: it shows the still frame then.
     func testAHiddenPokemonComesBackStillWhenNoTextIsOn() {
         XCTAssertEqual(UsageStore.MenuSpriteMode.hidden.effective(lines: []), .still)

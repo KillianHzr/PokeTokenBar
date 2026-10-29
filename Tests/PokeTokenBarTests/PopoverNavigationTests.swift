@@ -85,20 +85,21 @@ final class PopoverNavigationTests: XCTestCase {
         }
     }
 
-    /// #301: Hide is a right-click. Show has to live on the popover footer, bound to the same
-    /// `floatingPetEnabled` the Settings checkbox already uses. Removing the button must fail this.
-    func testPopoverFooterTogglesFloatingPetWithoutOpeningSettings() throws {
+    /// #301: once the floating pet is hidden (a right click on it), showing it again must not need Settings. The
+    /// footer's eye did it until it took the menu bar's Pokémon (2026-10-29, the owner's ask): the status item's menu,
+    /// a right click on the menu bar, keeps that one click, bound to the same `floatingPetEnabled` as Settings.
+    /// Removing that entry must fail this.
+    func testTheFloatingPetIsShownAgainWithoutOpeningSettings() throws {
+        let l = L(.fr)
+        for enabled in [false, true] {
+            let entries = StatusItemMenu.entries(l: l, todayTokens: 0, todayCost: nil, floatingPetEnabled: enabled)
+            let pet = try XCTUnwrap(entries.compactMap { $0 }.first { $0.action == .toggleFloatingPet })
+            XCTAssertEqual(pet.title, enabled ? l.floatingPetHideLabel : l.floatingPetEnableLabel)
+        }
         let source = try String(contentsOf: Self.popoverSource, encoding: .utf8)
         let footer = try XCTUnwrap(source.range(of: "private var footer"))
         let body = String(source[footer.lowerBound...])
-        XCTAssertTrue(
-            body.contains("store.floatingPetEnabled.toggle()"),
-            "footer must flip floatingPetEnabled — Hide already does; Show had only Settings")
-        XCTAssertTrue(body.contains("l.floatingPetHideLabel"))
-        XCTAssertTrue(body.contains("l.floatingPetEnableLabel"))
-        XCTAssertFalse(
-            body.contains("nav.showSettings = true\n            }\n            .buttonStyle(.borderless)\n            .help(l.floatingPet"),
-            "the pet control must not be a second door into Settings")
+        XCTAssertTrue(body.contains("store.toggleMenuSprite()"), "the footer's eye hides the menu bar's Pokémon")
     }
 
     private static let popoverSource: URL = {

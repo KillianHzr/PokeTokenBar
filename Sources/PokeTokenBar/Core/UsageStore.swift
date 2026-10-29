@@ -177,7 +177,20 @@ final class UsageStore {
         }
     }
     var menuSpriteMode: MenuSpriteMode {
-        didSet { defaults.set(menuSpriteMode.rawValue, forKey: "menuSpriteMode") }
+        didSet {
+            defaults.set(menuSpriteMode.rawValue, forKey: "menuSpriteMode")
+            if menuSpriteMode != .hidden { menuSpriteShownMode = menuSpriteMode }
+        }
+    }
+    /// The mode the footer's eye brings back (`toggleMenuSprite`): the last one that showed the Pokémon.
+    private(set) var menuSpriteShownMode: MenuSpriteMode {
+        didSet { defaults.set(menuSpriteShownMode.rawValue, forKey: "menuSpriteShownMode") }
+    }
+    /// The footer's eye: hides the menu bar's Pokémon in one click, its token lines staying (a meeting, a shared screen),
+    /// then brings back the mode it had. It used to switch the floating pet, which Settings and the status item's
+    /// menu still do. One setting with Settings' picker, which follows it.
+    func toggleMenuSprite() {
+        menuSpriteMode = menuSpriteMode == .hidden ? menuSpriteShownMode : .hidden
     }
 
     /// The changelog entries this Mac's player has seen (`ChangelogEntry.id`): the others came with an update since.
@@ -940,7 +953,10 @@ final class UsageStore {
         // 기본 powerSaver — 이 설정이 생기기 전의 고정 캡(0.4s)과 같은 프레임 레이트라, 기존
         // 사용자의 배터리 프로파일은 그대로다. 더 부드러운 쪽은 opt-in(실측 idle CPU 1.8%/5.1%).
         animationQuality = AnimationQuality(rawValue: d.string(forKey: "animationQuality") ?? "") ?? .powerSaver
-        menuSpriteMode = MenuSpriteMode(rawValue: d.string(forKey: "menuSpriteMode") ?? "") ?? .animated
+        let spriteMode = MenuSpriteMode(rawValue: d.string(forKey: "menuSpriteMode") ?? "") ?? .animated
+        menuSpriteMode = spriteMode
+        let shown = MenuSpriteMode(rawValue: d.string(forKey: "menuSpriteShownMode") ?? "")
+        menuSpriteShownMode = shown.flatMap { $0 == .hidden ? nil : $0 } ?? (spriteMode == .hidden ? .animated : spriteMode)
         // A player who never opened the changelog sees the latest day as new, not the whole history; one who read it
         // when only the day was kept has seen that day as it was then.
         if let ids = d.stringArray(forKey: Self.changelogSeenKey) {
