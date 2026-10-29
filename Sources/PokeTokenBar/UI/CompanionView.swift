@@ -2672,7 +2672,7 @@ struct PokemonDetailView: View {
         let date = entry.caughtAt.map {
             $0.formatted(Date.FormatStyle(date: .numeric, time: .omitted)
                 .locale(Locale(identifier: store.language.rawValue)))
-        } ?? (store.isActiveDexEntry(entry) ? store.l.dexRaising : "—")
+        } ?? (store.isActiveDexEntry(entry) ? store.l.dexRaising : "-")
         return "#\(index + 1) · \(appearance) · Lv. \(entry.profile?.level ?? 5) · \(date)"
     }
 
@@ -2683,7 +2683,7 @@ struct PokemonDetailView: View {
             HStack(spacing: 12) {
                 valuePair(store.l.level, "\(profile.level)")
                 valuePair(store.l.gender, store.l.genderLabel(profile.gender))
-                valuePair(store.l.nature, entry.nature?.name(store.language) ?? "—")
+                valuePair(store.l.nature, entry.nature?.name(store.language) ?? "-")
             }
             VStack(alignment: .leading, spacing: 1) {
                 Text(store.l.ability).font(.system(size: 11)).foregroundStyle(.secondary)
@@ -2692,7 +2692,7 @@ struct PokemonDetailView: View {
                                      suffix: profile.abilityIsHidden ? " · " + store.l.hiddenAbility : "")
                         .font(.callout.weight(.semibold))
                 } else {
-                    Text("—").font(.callout.weight(.semibold))
+                    Text("-").font(.callout.weight(.semibold))
                 }
             }
             statsSection(PokemonStatCalculator.stats(details: details, profile: profile, nature: entry.nature))

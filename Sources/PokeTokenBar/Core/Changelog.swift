@@ -608,10 +608,10 @@ enum Changelog {
                                                       "In the Pokédex, the Pokémon you're missing show as black silhouettes. All gets the shiny and evolution family filters, Missing the family one.",
                                                       "図鑑で、まだいないポケモンが黒いシルエットで表示されます。「すべて」に色違いと進化ラインのフィルター、「未入手」に進化ラインのフィルターが加わりました。",
                                                       "En la Pokédex, los Pokémon que te faltan aparecen como siluetas negras. Todos gana los filtros variocolor y línea evolutiva, Faltan el de línea evolutiva.",
-                                                      "Dans le Pokédex, les Pokémon qui te manquent apparaissent en silhouette noire. « Tous » a les filtres chromatique et famille d'évolution, « Manquants » le filtre famille.",
+                                                      "Dans le Pokédex, les Pokémon qui te manquent apparaissent en silhouette noire. \"Tous\" a les filtres chromatique et famille d'évolution, \"Manquants\" le filtre famille.",
                                                       "Na Pokédex, os Pokémon que faltam aparecem como silhuetas pretas. Todos ganha os filtros brilhante e linha evolutiva, Faltando o de linha evolutiva.",
                                                       "Im Pokédex erscheinen fehlende Pokémon als schwarze Silhouetten. Alle bekommt die Filter für Schillernde und Entwicklungsreihen, Fehlend den für Entwicklungsreihen.",
-                                                      "В покедексе недостающие покемоны показаны чёрными силуэтами. Во «Все» появились фильтры сияющих и линии эволюции, в «Не хватает» фильтр линии эволюции.") },
+                                                      "В покедексе недостающие покемоны показаны чёрными силуэтами. Во \"Все\" появились фильтры сияющих и линии эволюции, в \"Не хватает\" фильтр линии эволюции.") },
         ]),
         ChangelogDay(date: "2026-10-27", entries: [
             .fixed("2026-10-27-dex-sprite-scale") { $0.t("도감 전체와 업적에서 포켓몬이 다시 원래 크기 비율로 보여요. 파이리가 리자몽보다 작아요.",
@@ -677,7 +677,7 @@ enum Changelog {
                                                   "Fouilles : tous les 4 Pokémon de type Roche diplômés, un Œuf fossile (onglet Pierres, 15 fouilles). Il fait éclore au hasard une lignée fossile pas encore diplômée ; celles que tu as déjà diplômées comptent comme fouillées. Les Pokémon fossiles n'éclosent plus que des Œufs fossiles.",
                                                   "Escavação: a cada 4 Pokémon do tipo Pedra formados, um Ovo Fóssil (aba Pedras, 15 escavações). Nasce ao acaso uma linha fóssil que você ainda não formou; as que você já formou contam como escavadas. Pokémon fósseis agora só nascem de Ovos Fósseis.",
                                                   "Ausgrabung: Alle 4 verabschiedeten Gestein-Pokémon gibt es ein Fossil-Ei (Tab Steine, 15 Ausgrabungen). Daraus schlüpft zufällig eine noch nicht verabschiedete Fossil-Linie; schon verabschiedete Linien gelten als ausgegraben. Fossil-Pokémon schlüpfen jetzt nur noch aus Fossil-Eiern.",
-                                                  "Раскопки: каждые 4 выпущенных покемона каменного типа дают Яйцо-окаменелость (вкладка «Камни», 15 раскопок). Из него вылупляется случайная ещё не выпущенная линия окаменелостей; уже выпущенные считаются раскопанными. Покемоны-окаменелости теперь вылупляются только из Яиц-окаменелостей.") },
+                                                  "Раскопки: каждые 4 выпущенных покемона каменного типа дают Яйцо-окаменелость (вкладка \"Камни\", 15 раскопок). Из него вылупляется случайная ещё не выпущенная линия окаменелостей; уже выпущенные считаются раскопанными. Покемоны-окаменелости теперь вылупляются только из Яиц-окаменелостей.") },
             .fixed("2026-10-27-contrast") { $0.t("밝은 테마와 어두운 테마 모두에서 초록·주황 글자와 배지, 아직 없는 폼과 도감 칸이 더 잘 보여요.",
                                                   "Green and orange text and badges, forms not caught yet and the Pokédex's missing species read better in both light and dark mode.",
                                                   "ライトとダークの両方で、緑やオレンジの文字とバッジ、まだいないフォルムや図鑑のマスが見やすくなりました。",
@@ -693,7 +693,7 @@ enum Changelog {
                                                      "Le Pokédex montre tous les Pokémon région par région, comme TokenDex : la progression et les raretés de chaque région, et les espèces qui te manquent par leur numéro. Passe de Tous à Obtenus ou Manquants.",
                                                      "A Pokédex mostra todos os Pokémon região por região, como o TokenDex: o progresso e as raridades de cada região, e as espécies que faltam pelo número. Alterne entre Todos, Obtidos e Faltando.",
                                                      "Der Pokédex zeigt alle Pokémon Region für Region, wie TokenDex: Fortschritt und Seltenheiten jeder Region, fehlende Arten mit ihrer Nummer. Wechsle zwischen Alle, Gefangen und Fehlend.",
-                                                     "Покедекс показывает всех покемонов по регионам, как TokenDex: прогресс и редкость каждого региона, а недостающие виды по номеру. Переключайтесь между «Все», «Пойманы» и «Не хватает».") },
+                                                     "Покедекс показывает всех покемонов по регионам, как TokenDex: прогресс и редкость каждого региона, а недостающие виды по номеру. Переключайтесь между \"Все\", \"Пойманы\" и \"Не хватает\".") },
             .new("2026-10-27-stats-page") { $0.t("통계 페이지: 홈의 차트 버튼으로 이번 달 일별 그래프, 주·월·년 요약과 그 날짜별 표(토큰, 졸업한 포켓몬), 컬렉션 숫자를 한곳에서 봐요.",
                                                   "A Stats page: Home's chart button gathers this month day by day, the recap of a week, a month or a year with a table of its days (tokens, Pokémon graduated), and your collection in numbers.",
                                                   "統計ページ：ホームのグラフボタンで、今月の日ごとのグラフ、週・月・年のまとめと日ごとの表(トークン、卒業したポケモン)、コレクションの数字をまとめて見られます。",
@@ -717,7 +717,7 @@ enum Changelog {
                                                              "Les Nouveautés montrent chaque mise à jour, ses changements regroupés en nouveautés, améliorations et corrections, derrière une icône de journal.",
                                                              "Novidades mostra cada atualização com as mudanças agrupadas em novas, melhorias e correções, atrás de um ícone de jornal.",
                                                              "Neuigkeiten zeigen jedes Update mit seinen Änderungen nach neu, verbessert und behoben, hinter einem Zeitungssymbol.",
-                                                             "«Что нового» показывает каждое обновление, разбив изменения на новое, улучшения и исправления, за значком газеты.") },
+                                                             "\"Что нового\" показывает каждое обновление, разбив изменения на новое, улучшения и исправления, за значком газеты.") },
             .improved("2026-10-27-light-ball-rewards") { l in
                 let ball = l.itemName(.lightBall), list = l.rewardsList(ItemKind.lightBall.achievementRewards)
                 return l.t("\(KoreanParticle.subject.attach(to: ball)) 이제 피츄 계열을 빨리 키우는 대신 가방에 넣어 줘요: \(list). 이미 가진 플레이어도 한 번 받아요.",
@@ -727,7 +727,7 @@ enum Changelog {
                            "La \(ball) n'accélère plus la lignée de Pikachu, qu'on n'élève plus une fois tous les costumes obtenus : elle met maintenant dans ton sac \(list). Ceux qui l'avaient déjà les reçoivent une fois.",
                            "A \(ball) não acelera mais a linha do Pikachu, que você para de criar ao ter todas as fantasias: agora coloca na sua bolsa \(list). Quem já tinha recebe uma vez.",
                            "Der \(ball) beschleunigt nicht mehr Pikachus Reihe, die du mit allen Kostümen nicht mehr aufziehst: Er legt jetzt in deinen Beutel \(list). Wer ihn schon hat, bekommt sie einmal.",
-                           "«\(ball)» больше не ускоряет линию Пикачу, которую уже не растят, собрав все костюмы: теперь он кладёт в сумку \(list). Те, у кого он уже был, получат их один раз.")
+                           "\"\(ball)\" больше не ускоряет линию Пикачу, которую уже не растят, собрав все костюмы: теперь он кладёт в сумку \(list). Те, у кого он уже был, получат их один раз.")
             },
             .new("2026-10-27-forms-achievements") { $0.t("업적에 폼 탭이 생겼어요. 로토무, 메테노, 마휘핑, 비비용, 안농 등 10종의 모든 폼을 졸업시키면 이상한 사탕, 알, 또는 새 폼으로 태어난 포켓몬마다 사탕을 주는 로토무카탈로그를 받아요.",
                                                            "A Forms tab in Achievements: graduate every form of Rotom, Minior, Alcremie, Vivillon, Unown and five more species to earn Rare Candies, eggs, or the Rotom Catalog, which gives a candy for each Pokémon hatched in a new form.",
@@ -736,7 +736,7 @@ enum Changelog {
                                                            "Un onglet Formes dans les Succès : diplôme toutes les formes de Motisma, Météno, Charmilly, Prismillon, Zarbi et cinq autres espèces pour gagner des Super Bonbons, des œufs ou le Moti-Catalogue, qui donne un bonbon pour chaque Pokémon éclos dans une nouvelle forme.",
                                                            "Uma aba Formas em Conquistas: forme todas as formas de Rotom, Minior, Alcremie, Vivillon, Unown e mais cinco espécies para ganhar Doces Raros, ovos ou o Catálogo Rotom, que dá um doce por cada Pokémon que nasce numa forma nova.",
                                                            "Ein Formen-Tab bei den Erfolgen: Verabschiede jede Form von Rotom, Meteno, Pokusan, Vivillon, Icognito und fünf weiteren Arten für Sonderbonbons, Eier oder den Rotom-Katalog, der für jedes in einer neuen Form geschlüpfte Pokémon ein Bonbon gibt.",
-                                                           "Вкладка «Формы» в достижениях: выпустите все формы Ротома, Минёра, Алкреми, Вивиллона, Аноуна и ещё пяти видов, чтобы получить Редкие конфеты, яйца или Каталог Ротома, который дарит конфету за каждого покемона, вылупившегося в новой форме.") },
+                                                           "Вкладка \"Формы\" в достижениях: выпустите все формы Ротома, Минёра, Алкреми, Вивиллона, Аноуна и ещё пяти видов, чтобы получить Редкие конфеты, яйца или Каталог Ротома, который дарит конфету за каждого покемона, вылупившегося в новой форме.") },
             .fixed("2026-10-27-form-names-whole") { $0.t("도감 페이지에서 긴 폼 이름(비비용의 무늬, 마휘핑의 데코)과 포켓몬 이름이 잘리지 않고 다 보여요.",
                                                          "Long form names on Pokédex pages (Vivillon's patterns, Alcremie's sweets) and the Pokémon's name above them now show whole instead of being cut.",
                                                          "図鑑ページの長いフォルム名(ビビヨンのもよう、マホイップのデコ)とポケモンの名前が、切れずに全部表示されます。",
@@ -778,7 +778,7 @@ enum Changelog {
                            "L'\(egg) t'attend de ton anniversaire jusqu'à trois mois après : des vacances ne te le font plus rater.",
                            "O \(egg) espera por você do aniversário até três meses depois: férias não fazem você perdê-lo.",
                            "Das \(egg) wartet ab deinem Geburtstag drei Monate auf dich, ein Urlaub kostet es dich nicht mehr.",
-                           "«\(egg)» ждёт вас с дня рождения три месяца, так что отпуск больше не помешает его получить.")
+                           "\"\(egg)\" ждёт вас с дня рождения три месяца, так что отпуск больше не помешает его получить.")
             },
             .improved("2026-10-27-menu-bar-companion") { $0.t("메뉴 막대에 오늘 토큰과 비용 대신 진화·부화까지 남은 토큰(↑)과 상점 토큰(¤)을 보여 줘요. 설정에서 바꿀 수 있어요.",
                           "The menu bar shows the tokens left to evolve or hatch (↑) and your Shop tokens (¤) instead of today's tokens and cost. Choose in Settings.",
@@ -795,7 +795,7 @@ enum Changelog {
                           "L'accueil indique quand ton Pokémon est 100 % doublon : toutes les espèces et formes qu'il peut apporter sont diplômées, le laisser partir ne fait rien perdre. Sinon, survole son badge Nouveau pour voir ce qu'il ajoute.",
                           "O Início mostra quando seu Pokémon é 100% repetido: todas as espécies e formas que ele pode trazer já se formaram, então soltá-lo não faz perder nada. Se não, passe o cursor no selo Novo para ver o que ele adiciona.",
                           "Die Startseite zeigt, wenn dein Pokémon zu 100 % doppelt ist: Alle Arten und Formen, die es bringen kann, hatten ihren Abschied, es abzugeben kostet nichts. Sonst zeigt das Neu-Abzeichen beim Darüberfahren, was es bringt.",
-                          "Главная показывает, если покемон на 100% дубликат: все виды и формы, которые он может принести, уже выпущены, и отпустить его ничего не стоит. Иначе наведите на значок «Новое», чтобы увидеть, что он добавит.") },
+                          "Главная показывает, если покемон на 100% дубликат: все виды и формы, которые он может принести, уже выпущены, и отпустить его ничего не стоит. Иначе наведите на значок \"Новое\", чтобы увидеть, что он добавит.") },
             .fixed("2026-10-27-birthday-once-a-year") { l in
                 let egg = l.itemName(.birthdayEgg)
                 return l.t("\(egg)을 받은 뒤 생일을 바꿔도 1년 안에 하나 더 받을 수 없어요.",
@@ -805,7 +805,7 @@ enum Changelog {
                            "Changer ta date d'anniversaire après avoir reçu son \(egg) ne t'en donne plus un deuxième dans l'année.",
                            "Mudar seu aniversário depois de receber o \(egg) não dá mais um segundo no mesmo ano.",
                            "Wer seinen Geburtstag nach dem \(egg) ändert, bekommt im selben Jahr kein zweites mehr.",
-                           "Смена дня рождения после получения «\(egg)» больше не даёт второе в течение года.")
+                           "Смена дня рождения после получения \"\(egg)\" больше не даёт второе в течение года.")
             },
             .improved("2026-10-27-candies-as-you-go") { l in
                 let candy = l.itemName(.rareCandy)
@@ -816,7 +816,7 @@ enum Changelog {
                            "Les \(candy) arrivent au fil de tes limites d'utilisation, sans attendre 100 % : une session Pro entière en donne un, et un plan plus grand autant de fois qu'il vaut de plans Pro (une session Max 20x, un tous les 5 %).",
                            "Os \(candy) chegam conforme seus limites de uso enchem, sem esperar 100%: uma sessão Pro inteira dá um, e um plano maior dá tantos quantos planos Pro ele vale (uma sessão Max 20x, um a cada 5%).",
                            "\(candy) gibt es, während sich deine Nutzungslimits füllen, ohne auf 100 % zu warten: eine ganze Pro-Sitzung bringt eins, ein größerer Plan so viele, wie er Pro-Pläne enthält (eine Max-20x-Sitzung alle 5 %).",
-                           "«\(candy)» выдаются по мере заполнения лимитов, не дожидаясь 100%: целая сессия Pro даёт одну, а план больше столько, сколько планов Pro он вмещает (сессия Max 20x: одну каждые 5%).")
+                           "\"\(candy)\" выдаются по мере заполнения лимитов, не дожидаясь 100%: целая сессия Pro даёт одну, а план больше столько, сколько планов Pro он вмещает (сессия Max 20x: одну каждые 5%).")
             },
             .improved("2026-10-27-one-difficulty") { $0.t("성장·상점 난이도 설정이 없어지고 모두 10%로 플레이해요. 모두가 고른 값이에요. 지금 알이나 단계의 진행률은 그대로예요.",
                           "The growth and Shop difficulty settings are gone: everyone plays at 10%, the value every player had chosen. Your current egg or stage keeps its progress.",
@@ -851,7 +851,7 @@ enum Changelog {
                            "Diplômer Arceus rapporte la \(plate) : un \(rare) et un \(uncommon) dans ton sac.",
                            "Formar Arceus rende a \(plate): um \(rare) e um \(uncommon) na sua bolsa.",
                            "Arceus' Abschied bringt die \(plate): ein \(rare) und ein \(uncommon) in deinen Beutel.",
-                           "Выпуск Арсеуса приносит «\(plate)»: «\(rare)» и «\(uncommon)» в сумку.")
+                           "Выпуск Арсеуса приносит \"\(plate)\": \"\(rare)\" и \"\(uncommon)\" в сумку.")
             },
             .improved("2026-10-27-artifact-goals") { l in
                 let dna = l.itemName(.dnaSplicers), liberty = l.itemName(.libertyPass)
@@ -864,7 +864,7 @@ enum Changelog {
                            "Kyurem rejoint Reshiram et Zekrom pour le \(dna) ; Keldeo compte pour le \(liberty), Heatran avec Groudon pour la \(magma) et Pêchaminus pour le \(teal). L'\(incense) demande Manaphy et Kyogre.",
                            "Kyurem se junta a Reshiram e Zekrom para o \(dna); Keldeo conta para o \(liberty), Heatran com Groudon para a \(magma) e Pecharunt para a \(teal). O \(incense) pede Manaphy e Kyogre.",
                            "Kyurem kommt für den \(dna) zu Reshiram und Zekrom; Keldeo zählt für den \(liberty), Heatran mit Groudon für den \(magma) und Infamomo für die \(teal). Das \(incense) verlangt Manaphy und Kyogre.",
-                           "Кюрем теперь нужен для «\(dna)» вместе с Реширамом и Зекромом; Келдео засчитывается для «\(liberty)», Хитран с Граудоном для «\(magma)», Пичарант для «\(teal)». «\(incense)» требует Манафи и Кайогра.")
+                           "Кюрем теперь нужен для \"\(dna)\" вместе с Реширамом и Зекромом; Келдео засчитывается для \"\(liberty)\", Хитран с Граудоном для \"\(magma)\", Пичарант для \"\(teal)\". \"\(incense)\" требует Манафи и Кайогра.")
             },
         ]),
         ChangelogDay(date: "2026-10-26", entries: [
@@ -875,7 +875,7 @@ enum Changelog {
                           "Les Nouveautés signalent chaque changement arrivé avec une mise à jour, même sur un jour déjà lu.",
                           "Novidades marca cada mudança que chega com uma atualização, mesmo num dia já lido.",
                           "Neuigkeiten markieren jede Änderung aus einem Update, auch an einem schon gelesenen Tag.",
-                          "«Что нового» отмечает каждое изменение из обновления, даже за уже прочитанный день.") },
+                          "\"Что нового\" отмечает каждое изменение из обновления, даже за уже прочитанный день.") },
             .improved("2026-10-26-stone-egg-duplicates") { $0.t("돌 알에서 그 타입으로 이미 다 모은 라인은 4분의 1 확률로 나오고, 어떤 알도 방금 태어난 라인을 연달아 주지 않아요.",
                              "A stone's egg brings a line you already completed for its type a quarter as often, and no egg hatches the line you just hatched again.",
                              "石のタマゴでは、そのタイプで集め終えた系統は4分の1の確率で出て、どのタマゴも直前に生まれた系統を続けて出しません。",
@@ -936,10 +936,10 @@ enum Changelog {
                         "A \"New form\" badge on Home and in the catch log for a Pokémon that hatched in a form its line never had.",
                         "その系統にないフォルムで生まれたポケモンに、ホームと捕獲記録で「新しいフォルム」バッジ。",
                         "Una insignia \"Nueva forma\" en Inicio y en el registro para un Pokémon nacido en una forma nueva en su línea.",
-                        "Un badge « Nouvelle forme » sur l'accueil et dans le journal de capture pour un Pokémon né dans une forme inédite de sa lignée.",
+                        "Un badge \"Nouvelle forme\" sur l'accueil et dans le journal de capture pour un Pokémon né dans une forme inédite de sa lignée.",
                         "Um selo \"Nova forma\" no Início e no registro para um Pokémon nascido numa forma inédita na sua linha.",
-                        "Ein Abzeichen „Neue Form“ auf der Startseite und im Fangprotokoll für ein Pokémon in einer für seine Linie neuen Form.",
-                        "Значок «Новая форма» на главной и в журнале поимок у покемона, вылупившегося в новой для его линии форме.") },
+                        "Ein Abzeichen \"Neue Form\" auf der Startseite und im Fangprotokoll für ein Pokémon in einer für seine Linie neuen Form.",
+                        "Значок \"Новая форма\" на главной и в журнале поимок у покемона, вылупившегося в новой для его линии форме.") },
             .improved("2026-10-26-candy-window-tokens") { $0.t("한도를 채우면 그 창에 쓴 토큰에 맞춰 이상한 사탕을 받아요: 10분의 1, 최소 1개.",
                              "A full limit pays Rare Candy for the tokens it held: a tenth of them, at least one.",
                              "上限を使い切ると、そのウィンドウで使ったトークンに応じてふしぎなアメ：10分の1、最低1個。",
@@ -989,7 +989,7 @@ enum Changelog {
                         "Des œufs à eux : une gemme pour les garanties Peu commun et Rare, un par type, et l'Œuf de Type:0.",
                         "Ovos próprios: uma gema para as garantias Incomum e Raro, um por tipo e o Ovo de Type: Null.",
                         "Eigene Eier: ein Edelstein für Ungewöhnlich und Selten, eins pro Typ und das Typ:Null-Ei.",
-                        "Свои яйца: самоцвет для гарантий «Необычный» и «Редкий», по одному на тип и яйцо Тип: Ноль.") },
+                        "Свои яйца: самоцвет для гарантий \"Необычный\" и \"Редкий\", по одному на тип и яйцо Тип: Ноль.") },
             .fixed("2026-10-23-long-names") { $0.t("긴 포켓몬 이름이 홈에서 잘리지 않고, 희귀도는 그 위에 표시돼요.",
                           "A long Pokémon name shows whole on Home, its rarity above it.",
                           "長いポケモンの名前もホームで切れずに表示され、レア度はその上に。",
@@ -1212,10 +1212,10 @@ enum Changelog {
                         "A \"Duplicate\" badge in the catch log.",
                         "捕獲記録に「重複」バッジ。",
                         "Una insignia \"Repetido\" en el registro de capturas.",
-                        "Un badge « Doublon » dans le journal de capture.",
+                        "Un badge \"Doublon\" dans le journal de capture.",
                         "Um selo \"Repetido\" no registro de capturas.",
-                        "Ein Abzeichen „Doppelt“ im Fangprotokoll.",
-                        "Значок «Дубликат» в журнале поимок.") },
+                        "Ein Abzeichen \"Doppelt\" im Fangprotokoll.",
+                        "Значок \"Дубликат\" в журнале поимок.") },
             .new("2026-10-15-version-spinner") { $0.t("설정에 설치된 버전이 보이고, 업데이트 중에는 메뉴바에 진행 표시가 돌아요.",
                         "Settings show the installed version, and a spinner turns in the menu bar during updates.",
                         "設定にインストール中のバージョンを表示し、更新中はメニューバーに進行表示が回ります。",

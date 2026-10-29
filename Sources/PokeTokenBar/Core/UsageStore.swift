@@ -364,7 +364,7 @@ final class UsageStore {
     ///   the companion's numbers above today's usage. Never more than two lines.
     /// 한도 줄은 오늘 사용한 프로바이더만(`menuLimitLine`). 빈 배열이면 아이콘만.
     var menuLines: [String] {
-        guard lastUpdated != nil else { return ["—"] }
+        guard lastUpdated != nil else { return ["-"] }
         var companion: [String] = []
         if showEvolutionInMenu, let next = companionMenu?.toNext { companion.append("↑" + TokenFormatter.compact(next)) }
         if showShopInMenu, let shop = companionMenu?.shop { companion.append("¤" + TokenFormatter.compact(shop)) }

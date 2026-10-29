@@ -64,7 +64,7 @@ extension L {
         let name = eventEggName(egg)
         return t("\(name)이 아직 기다리고 있어요", "Your \(name) is still waiting", "\(name)がまだ待っています",
                  "Tu \(name) aún te espera", "Ton \(name) t'attend encore", "Seu \(name) ainda está esperando",
-                 "Dein \(name) wartet noch", "«\(name)» всё ещё ждёт вас")
+                 "Dein \(name) wartet noch", "\"\(name)\" всё ещё ждёт вас")
     }
 
     func eventEggBody(_ egg: EventEgg) -> String {
@@ -72,7 +72,7 @@ extension L {
         return t("\(name)이 기다리고 있어요. 무엇이 태어날까요?", "Your \(name) is waiting. What will hatch from it?",
                  "\(name)が待っています。なにが生まれるかな？", "Tu \(name) te espera. ¿Qué saldrá de él?",
                  "Ton \(name) t'attend. Qu'est-ce qui va en sortir ?", "Seu \(name) está esperando. O que vai sair dele?",
-                 "Dein \(name) wartet. Was wohl daraus schlüpft?", "Вас ждёт «\(name)». Кто из него вылупится?")
+                 "Dein \(name) wartet. Was wohl daraus schlüpft?", "Вас ждёт \"\(name)\". Кто из него вылупится?")
     }
 
     var eventEggClaim: String {
@@ -84,7 +84,7 @@ extension L {
         return t("\(name)을 가방에 넣었어요. 원할 때 써 보세요.", "The \(name) is in your Bag: use it whenever you like.",
                  "\(name)をバッグに入れました。好きなときに使ってね。", "El \(name) está en tu Bolsa: úsalo cuando quieras.",
                  "L'\(name) est dans ton Sac : utilise-le quand tu veux.", "O \(name) está na sua Bolsa: use quando quiser.",
-                 "Das \(name) ist in deinem Beutel: Nutze es, wann du willst.", "«\(name)» в вашей сумке: используйте, когда захотите.")
+                 "Das \(name) ist in deinem Beutel: Nutze es, wann du willst.", "\"\(name)\" в вашей сумке: используйте, когда захотите.")
     }
 
     /// The Bag's description: when it came, and that it sends the Pokémon off for it.
@@ -97,6 +97,6 @@ extension L {
                  "L'\(name). Laisse partir ton Pokémon actuel contre lui ; ce qui en sortira est une surprise.",
                  "O \(name). Solte seu Pokémon atual por ele; o que sair é surpresa.",
                  "Das \(name). Gib dein aktuelles Pokémon dafür ab; was schlüpft, ist eine Überraschung.",
-                 "«\(name)». Отпустите текущего покемона ради него; кто вылупится, это сюрприз.")
+                 "\"\(name)\". Отпустите текущего покемона ради него; кто вылупится, это сюрприз.")
     }
 }

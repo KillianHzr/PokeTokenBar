@@ -27,10 +27,10 @@ struct L {
     var collection: String { t("컬렉션", "Collection", "コレクション", "Colección", "Collection", "Coleção", "Sammlung", "Коллекция") }
 
     var costUnavailable: String { t("계산 불가", "Unavailable", "計算不可", "No disponible", "Indisponible", "Indisponível", "Nicht verfügbar", "Недоступно") }
-    var costEstimateHint: String { t("모델 단가로 환산한 추정 비용입니다. 구독료나 실제 청구액이 아닙니다.", "Estimated from model token rates; not a subscription fee or invoice. Service-tier and other unlogged charges are excluded.", "モデル単価による推定です。購読料や実際の請求額ではありません。", "Estimación por tarifas del modelo; no es la cuota ni la factura real.", "Estimation selon les tarifs du modèle, pas un abonnement ni une facture.", "Estimativa pelas tarifas do modelo; não é assinatura nem fatura.", "Schätzung anhand der Modellpreise, keine Abogebühr oder Rechnung.", "Оценка по тарифам моделей за токены — не плата за подписку и не счёт. Наценки за уровень обслуживания и другие незаписанные расходы не учтены.") }
+    var costEstimateHint: String { t("모델 단가로 환산한 추정 비용입니다. 구독료나 실제 청구액이 아닙니다.", "Estimated from model token rates; not a subscription fee or invoice. Service-tier and other unlogged charges are excluded.", "モデル単価による推定です。購読料や実際の請求額ではありません。", "Estimación por tarifas del modelo; no es la cuota ni la factura real.", "Estimation selon les tarifs du modèle, pas un abonnement ni une facture.", "Estimativa pelas tarifas do modelo; não é assinatura nem fatura.", "Schätzung anhand der Modellpreise, keine Abogebühr oder Rechnung.", "Оценка по тарифам моделей за токены, не плата за подписку и не счёт. Наценки за уровень обслуживания и другие незаписанные расходы не учтены.") }
     var costReportedHint: String { t("도구가 기록한 비용입니다. 실제 청구액과 다를 수 있습니다.", "Cost recorded by the tool; it may differ from the actual bill.", "ツールが記録したコストです。実際の請求額とは異なる場合があります。", "Coste registrado por la herramienta; puede diferir de la factura.", "Coût enregistré par l’outil, pouvant différer de la facture.", "Custo registrado pela ferramenta; pode diferir da fatura.", "Vom Tool gemeldete Kosten; die Rechnung kann abweichen.", "Стоимость по данным инструмента; счёт может отличаться.") }
     var costUnavailableHint: String { t("비용 기록이나 확인된 단가·토큰 구분이 없어 계산할 수 없습니다.", "No usable cost record or verified model rate and token breakdown is available.", "コスト記録、確認済み単価、またはトークン内訳がないため計算できません。", "Faltan el coste, la tarifa verificada o el desglose de tokens.", "Coût, tarif vérifié ou détail des tokens indisponible.", "Faltam custo, tarifa verificada ou detalhamento de tokens.", "Kostenangabe, bestätigter Preis oder Token-Aufteilung fehlen.", "Нет записи о стоимости, а также проверенного тарифа модели и разбивки по токенам.") }
-    var costPartialHint: String { t("일부 사용량은 계산할 수 없어 제외했습니다. 표시 금액은 계산 가능한 부분의 합계이며 청구액이 아닙니다.", "Some usage could not be priced and is excluded. This is the known portion of usage cost, not an invoice.", "計算できない使用量を除いた部分合計です。請求額ではありません。", "Total parcial: excluye uso sin precio; no es una factura.", "Total partiel hors usage non chiffrable, pas une facture.", "Total parcial sem o uso não calculável; não é uma fatura.", "Teilsumme ohne nicht berechenbare Nutzung, keine Rechnung.", "Часть расхода не удалось оценить, она исключена. Показана стоимость только известной части — это не счёт.") }
+    var costPartialHint: String { t("일부 사용량은 계산할 수 없어 제외했습니다. 표시 금액은 계산 가능한 부분의 합계이며 청구액이 아닙니다.", "Some usage could not be priced and is excluded. This is the known portion of usage cost, not an invoice.", "計算できない使用量を除いた部分合計です。請求額ではありません。", "Total parcial: excluye uso sin precio; no es una factura.", "Total partiel hors usage non chiffrable, pas une facture.", "Total parcial sem o uso não calculável; não é uma fatura.", "Teilsumme ohne nicht berechenbare Nutzung, keine Rechnung.", "Часть расхода не удалось оценить, она исключена. Показана стоимость только известной части. Это не счёт.") }
 
     // MARK: 헤더 (오늘/주/월)
     var todayTokens: String { t("오늘 사용한 토큰", "Today's tokens", "本日のトークン", "Tokens de hoy", "Tokens du jour", "Tokens de hoje", "Heute verbrauchte Tokens", "Токены за сегодня") }
@@ -57,21 +57,21 @@ struct L {
     var fiveHourNotStarted: String { t("다음 메시지부터 시작", "Starts with your next message", "次のメッセージから開始", "Empieza con tu próximo mensaje", "Démarre au prochain message", "Começa na próxima mensagem", "Beginnt mit der nächsten Nachricht", "Начнётся со следующего сообщения") }
     var fiveHourSession: String { t("5시간 세션", "5-hour session", "5時間セッション", "Sesión de 5 horas", "Session de 5 h", "Sessão de 5 horas", "5-Stunden-Sitzung", "5-часовая сессия") }
     var weekly: String { t("주간", "Weekly", "週間", "Semanal", "Hebdo", "Semanal", "Wöchentlich", "Неделя") }
-    var weeklyOpus: String { t("주간 Opus", "Weekly Opus", "週間 Opus", "Opus semanal", "Opus hebdo", "Opus semanal", "Opus – wöchentlich", "Opus — неделя") }
-    var weeklySonnet: String { t("주간 Sonnet", "Weekly Sonnet", "週間 Sonnet", "Sonnet semanal", "Sonnet hebdo", "Sonnet semanal", "Sonnet – wöchentlich", "Sonnet — неделя") }
+    var weeklyOpus: String { t("주간 Opus", "Weekly Opus", "週間 Opus", "Opus semanal", "Opus hebdo", "Opus semanal", "Opus: wöchentlich", "Opus: неделя") }
+    var weeklySonnet: String { t("주간 Sonnet", "Weekly Sonnet", "週間 Sonnet", "Sonnet semanal", "Sonnet hebdo", "Sonnet semanal", "Sonnet: wöchentlich", "Sonnet: неделя") }
     var claudeCurrentBlock: String { t("Claude 현재 5h 블록", "Claude current 5h block", "Claude 現在の5hブロック", "Bloque actual de 5h de Claude", "Bloc 5 h actuel de Claude", "Bloco atual de 5h do Claude", "Aktueller 5-Stunden-Block von Claude", "Текущий 5-часовой блок Claude") }
     var reset: String { t("리셋", "Reset", "リセット", "Reinicio", "Réinit.", "Renovação", "Zurücksetzen", "Сброс") }
     /// 페이스 눈금 툴팁. "적정 사용량"으로 부르지 않는다 — 덜 쓰라는 권고가 아니라 "이 속도면 리셋
     /// 전에 소진된다"는 기준선이고, 창을 다 채워 쓸 이유가 없는 날에 규범으로 읽히면 안 된다.
     func paceHint(_ percent: String) -> String {
-        t("페이스 — 창 시간만큼 균등하게 썼다면 지금 \(percent)입니다.",
-          "Pace — an even burn across this window would sit at \(percent) now.",
-          "ペース — この枠を均等に使っていれば今は \(percent) です。",
+        t("페이스: 창 시간만큼 균등하게 썼다면 지금 \(percent)입니다.",
+          "Pace: an even burn across this window would sit at \(percent) now.",
+          "ペース：この枠を均等に使っていれば今は \(percent) です。",
           "Ritmo: un consumo uniforme en esta ventana estaría en \(percent) ahora.",
-          "Rythme — une consommation régulière sur cette fenêtre serait à \(percent).",
-          "Ritmo — um consumo uniforme nesta janela estaria em \(percent) agora.",
-          "Tempo – bei gleichmäßigem Verbrauch in diesem Fenster wären es jetzt \(percent).",
-          "Темп — при равномерном расходе в этом окне сейчас было бы \(percent).")
+          "Rythme : une consommation régulière sur cette fenêtre serait à \(percent).",
+          "Ritmo: um consumo uniforme nesta janela estaria em \(percent) agora.",
+          "Tempo: bei gleichmäßigem Verbrauch in diesem Fenster wären es jetzt \(percent).",
+          "Темп: при равномерном расходе в этом окне сейчас было бы \(percent).")
     }
     /// 페이스 대비 단계 이름. paceHint 와 같은 이유로 "적정"처럼 규범적인 말은 피하고
     /// 소진 속도만 묘사한다.
@@ -136,7 +136,7 @@ struct L {
         case "weekly_scoped":
             // 모델명이 없으면 레거시 "주간" 행과 이름이 겹치므로 scoped 임을 구분 표기
             guard let model else { return t("주간 (모델별)", "Weekly (scoped)", "週間（モデル別）", "Semanal (por modelo)", "Hebdo (par modèle)", "Semanal (por modelo)", "Wöchentlich (pro Modell)", "Неделя (по моделям)") }
-            return t("주간 \(model)", "Weekly \(model)", "週間 \(model)", "Semanal \(model)", "Hebdo \(model)", "Semanal \(model)", "\(model) – wöchentlich", "\(model) — неделя")
+            return t("주간 \(model)", "Weekly \(model)", "週間 \(model)", "Semanal \(model)", "Hebdo \(model)", "Semanal \(model)", "\(model): wöchentlich", "\(model): неделя")
         default:
             let base = kind ?? "limit"
             let name = model.map { " \($0)" } ?? ""
@@ -241,14 +241,14 @@ struct L {
         t("\(count)일", "\(count)d", "\(count)日", "\(count) d", "\(count) j", "\(count) d", "\(count) T", "\(count) дн.")
     }
     func recapBestDayLine(_ day: String, _ tokens: String) -> String {
-        t("최고의 날은 \(day) — \(tokens) 토큰.",
-          "Your best day was \(day) — \(tokens) tokens.",
+        t("최고의 날은 \(day), \(tokens) 토큰.",
+          "Your best day was \(day): \(tokens) tokens.",
           "最高の日は \(day)、\(tokens) トークン。",
           "Tu mejor día fue el \(day): \(tokens) tokens.",
           "Ton meilleur jour, c'était \(day) : \(tokens) tokens.",
           "Seu melhor dia foi \(day): \(tokens) tokens.",
-          "Dein bester Tag war \(day) — \(tokens) Tokens.",
-          "Лучший день — \(day), токенов: \(tokens).")
+          "Dein bester Tag war \(day): \(tokens) Tokens.",
+          "Лучший день: \(day), токенов: \(tokens).")
     }
     var recapNoGraduates: String {
         t("이 기간에 졸업한 포켓몬이 없어요.", "No graduation in this period.", "この期間の卒業はありません。",
@@ -352,14 +352,14 @@ struct L {
     var floatingPetSectionTitle: String { t("플로팅 펫", "Floating Pet", "フローティングペット", "Mascota flotante", "Compagnon flottant", "Mascote flutuante", "Schwebendes Pokémon", "Питомец на экране") }
     var floatingPetEnableLabel: String { t("플로팅 펫 표시", "Show floating pet", "フローティングペットを表示", "Mostrar mascota flotante", "Afficher le compagnon flottant", "Mostrar mascote flutuante", "Schwebendes Pokémon anzeigen", "Показывать питомца на экране") }
     var floatingPetHint: String {
-        t("포켓몬이 화면 위에 떠 있어요 — 드래그로 위치를 옮길 수 있어요",
-          "Your Pokémon floats over the screen — drag to reposition",
-          "ポケモンが画面の上に浮かびます — ドラッグで移動できます",
-          "Tu Pokémon flota sobre la pantalla — arrástralo para moverlo",
-          "Ton Pokémon flotte au-dessus de l'écran — fais-le glisser pour le déplacer",
-          "Seu Pokémon flutua sobre a tela — arraste para reposicionar",
-          "Dein Pokémon schwebt über dem Bildschirm – zieh es an die gewünschte Stelle",
-          "Покемон парит поверх окон — перетащите, чтобы переместить")
+        t("포켓몬이 화면 위에 떠 있어요. 드래그로 위치를 옮길 수 있어요",
+          "Your Pokémon floats over the screen. Drag to reposition",
+          "ポケモンが画面の上に浮かびます。ドラッグで移動できます",
+          "Tu Pokémon flota sobre la pantalla. Arrástralo para moverlo",
+          "Ton Pokémon flotte au-dessus de l'écran. Fais-le glisser pour le déplacer",
+          "Seu Pokémon flutua sobre a tela. Arraste para reposicionar",
+          "Dein Pokémon schwebt über dem Bildschirm. Zieh es an die gewünschte Stelle",
+          "Покемон парит поверх окон. Перетащите, чтобы переместить")
     }
     var floatingPetSizeLabel: String { t("크기", "Size", "サイズ", "Tamaño", "Taille", "Tamanho", "Größe", "Размер") }
     /// 푸터 눈 아이콘의 툴팁(켜져 있을 때) — 켜는 쪽 문구는 floatingPetEnableLabel 을 그대로 쓴다.
@@ -390,9 +390,9 @@ struct L {
     }
 
     var disableKeychain: String { t("Keychain 접근 끄기", "Disable Keychain access", "Keychainアクセスを無効化", "Desactivar acceso a Keychain", "Désactiver l'accès au Keychain", "Desativar acesso ao Keychain", "Keychain-Zugriff deaktivieren", "Отключить доступ к Связке ключей") }
-    var disableKeychainHint: String { t("켜면 Keychain 접근 허용 팝업이 더 안 뜹니다 — 공식 한도(%)만 숨겨지고 토큰·비용은 그대로", "When on, no more Keychain permission pop-ups — only official limits (%) are hidden; tokens/cost stay", "オンにするとKeychain許可のポップアップが出なくなります — 公式上限(%)のみ非表示、トークン・費用はそのまま", "Al activarlo, ya no aparecerán los avisos de permiso de Keychain — solo se ocultan los límites oficiales (%), los tokens y el coste se mantienen", "Une fois activé, plus de pop-ups d'autorisation Keychain — seules les limites officielles (%) sont masquées ; les tokens et le coût restent visibles", "Ao ativar, os avisos de permissão do Keychain não aparecem mais — só os limites oficiais (%) ficam ocultos; tokens e custo continuam", "Wenn aktiviert, erscheinen keine Keychain-Berechtigungsfenster mehr – nur offizielle Limits (%) werden ausgeblendet; Tokens und Kosten bleiben sichtbar", "Если включено, запросов доступа к Связке ключей не будет — скрываются только официальные лимиты (%), токены и стоимость остаются") }
+    var disableKeychainHint: String { t("켜면 Keychain 접근 허용 팝업이 더 안 뜹니다. 공식 한도(%)만 숨겨지고 토큰·비용은 그대로", "When on, no more Keychain permission pop-ups. Only official limits (%) are hidden; tokens/cost stay", "オンにするとKeychain許可のポップアップが出なくなります。公式上限(%)のみ非表示、トークン・費用はそのまま", "Al activarlo, ya no aparecerán los avisos de permiso de Keychain. Solo se ocultan los límites oficiales (%), los tokens y el coste se mantienen", "Une fois activé, plus de pop-ups d'autorisation Keychain. Seules les limites officielles (%) sont masquées ; les tokens et le coût restent visibles", "Ao ativar, os avisos de permissão do Keychain não aparecem mais. Só os limites oficiais (%) ficam ocultos; tokens e custo continuam", "Wenn aktiviert, erscheinen keine Keychain-Berechtigungsfenster mehr. Nur offizielle Limits (%) werden ausgeblendet; Tokens und Kosten bleiben sichtbar", "Если включено, запросов доступа к Связке ключей не будет. Скрываются только официальные лимиты (%), токены и стоимость остаются") }
     var refreshLimitToken: String { t("한도 토큰 캐시 갱신", "Refresh limit token cache", "上限トークンキャッシュを更新", "Actualizar caché del token de límite", "Actualiser le cache du token de limite", "Atualizar cache do token de limite", "Limit-Token-Cache aktualisieren", "Обновить токен") }
-    var onlyOnPress: String { t("누를 때만 Keychain 을 읽어요 — 자동 폴링은 안 읽어 팝업이 안 떠요. 토큰 만료 후 이 버튼으로 한도 갱신", "Reads Keychain only when pressed — auto-polling never does, so no pop-ups. Refresh limits here after the token expires", "押した時のみKeychainを読みます — 自動更新では読まずポップアップも出ません。トークン期限切れ後はこのボタンで上限を更新", "Solo lee Keychain al pulsar — el sondeo automático nunca lo hace, así que no aparecen avisos. Usa este botón para actualizar los límites tras la expiración del token", "Lit le Keychain uniquement sur appui — le polling automatique ne le fait jamais, donc pas de pop-up. Actualise les limites ici après l'expiration du token", "Só lê o Keychain quando você clica no botão — a atualização automática nunca lê, então não aparecem avisos. Use este botão para atualizar os limites depois que o token expirar", "Keychain wird nur auf Knopfdruck gelesen – die automatische Abfrage greift nicht darauf zu, daher gibt es keine Pop-ups. Aktualisiere die Limits hier, wenn das Token abgelaufen ist", "Связка ключей читается только по нажатию — автообновление её не трогает, поэтому запросов не будет. Обновите лимиты здесь, когда токен истечёт") }
+    var onlyOnPress: String { t("누를 때만 Keychain 을 읽어요. 자동 폴링은 안 읽어 팝업이 안 떠요. 토큰 만료 후 이 버튼으로 한도 갱신", "Reads Keychain only when pressed. Auto-polling never does, so no pop-ups. Refresh limits here after the token expires", "押した時のみKeychainを読みます。自動更新では読まずポップアップも出ません。トークン期限切れ後はこのボタンで上限を更新", "Solo lee Keychain al pulsar. El sondeo automático nunca lo hace, así que no aparecen avisos. Usa este botón para actualizar los límites tras la expiración del token", "Lit le Keychain uniquement sur appui. Le polling automatique ne le fait jamais, donc pas de pop-up. Actualise les limites ici après l'expiration du token", "Só lê o Keychain quando você clica no botão. A atualização automática nunca lê, então não aparecem avisos. Use este botão para atualizar os limites depois que o token expirar", "Keychain wird nur auf Knopfdruck gelesen. Die automatische Abfrage greift nicht darauf zu, daher gibt es keine Pop-ups. Aktualisiere die Limits hier, wenn das Token abgelaufen ist", "Связка ключей читается только по нажатию. Автообновление её не трогает, поэтому запросов не будет. Обновите лимиты здесь, когда токен истечёт") }
     var launchAtLogin: String { t("로그인 시 자동 시작", "Launch at login", "ログイン時に自動起動", "Iniciar al arrancar sesión", "Lancer à l'ouverture de session", "Abrir ao iniciar sessão", "Bei der Anmeldung starten", "Запускать при входе в систему") }
     var bundledOnly: String { t(".app 번들로 설치된 경우에만 사용 가능 (scripts/build-app.sh)", "Available only when installed as an .app bundle (scripts/build-app.sh)", ".appバンドルでインストールした場合のみ利用可能 (scripts/build-app.sh)", "Disponible solo si se instaló como paquete .app (scripts/build-app.sh)", "Disponible uniquement si installé comme paquet .app (scripts/build-app.sh)", "Disponível apenas quando instalado como pacote .app (scripts/build-app.sh)", "Nur verfügbar, wenn die App als .app-Bundle installiert ist (scripts/build-app.sh)", "Доступно только при установке в виде .app (scripts/build-app.sh)") }
     var notificationsSection: String { t("알림", "Notifications", "通知", "Notificaciones", "Notifications", "Notificações", "Benachrichtigungen", "Уведомления") }
@@ -473,14 +473,14 @@ struct L {
 
     // MARK: 세션 키 만료 안내 — OAuth 만료와 처방이 다르므로 문구·행동을 따로 둔다
     var sessionKeyExpiredTitle: String {
-        t("claude.ai 세션 키 만료 — 한도가 갱신 안 돼요",
-          "claude.ai session key expired — limits aren't refreshing",
-          "claude.ai セッションキーの期限切れ — 上限が更新されません",
+        t("claude.ai 세션 키 만료: 한도가 갱신 안 돼요",
+          "claude.ai session key expired: limits aren't refreshing",
+          "claude.ai セッションキーの期限切れ：上限が更新されません",
           "La clave de sesión de claude.ai caducó: los límites no se actualizan",
-          "Clé de session claude.ai expirée — les limites ne s'actualisent plus",
-          "A chave de sessão do claude.ai expirou — os limites não estão atualizando",
-          "claude.ai-Sitzungsschlüssel abgelaufen – Limits werden nicht aktualisiert",
-          "Ключ сессии claude.ai истёк — лимиты не обновляются")
+          "Clé de session claude.ai expirée : les limites ne s'actualisent plus",
+          "A chave de sessão do claude.ai expirou: os limites não estão atualizando",
+          "claude.ai-Sitzungsschlüssel abgelaufen: Limits werden nicht aktualisiert",
+          "Ключ сессии claude.ai истёк: лимиты не обновляются")
     }
     /// Keychain 재조회를 권하지 않는다 — 세션 키가 죽은 상태에서 그건 아무것도 고치지 못하고,
     /// 하필 세션 키로 피하려던 그 팝업을 띄운다.
@@ -492,7 +492,7 @@ struct L {
           "Les valeurs affichées datent d'avant l'expiration. Copie une nouvelle sessionKey depuis ton navigateur et colle-la dans Réglages → Avancé.",
           "Os valores exibidos são de antes de expirar. Copie uma nova sessionKey do navegador e cole em Ajustes → Avançado.",
           "Die angezeigten Werte stammen von vor dem Ablauf. Kopiere einen neuen sessionKey aus deinem Browser und füge ihn unter Einstellungen → Erweitert ein.",
-          "Показаны данные, полученные до истечения ключа. Скопируйте новый sessionKey из браузера и вставьте его в «Настройки → Дополнительно».")
+          "Показаны данные, полученные до истечения ключа. Скопируйте новый sessionKey из браузера и вставьте его в \"Настройки → Дополнительно\".")
     }
     var sessionKeyExpiredBadge: String {
         t("만료됨", "Expired", "期限切れ", "Caducada", "Expirée", "Expirada", "Abgelaufen", "Истёк")
@@ -517,7 +517,7 @@ struct L {
           "Lorsque Claude CLI renouvelle les jetons en arrière-plan, macOS réinitialise l'autorisation 'Toujours autoriser'. L'enregistrement d'une clé de session permet de maintenir les limites à jour sans mot de passe.",
           "Quando o Claude CLI renova tokens em segundo plano, o macOS redefine a permissão 'Permitir Sempre'. Cadastrar uma chave de sessão mantém a atualização automática sem solicitar senha.",
           "Wenn Claude CLI Tokens im Hintergrund erneuert, setzt macOS die Berechtigung 'Immer erlauben' zurück. Ein registrierter Sitzungsschlüssel hält Limits ohne Passwortabfrage aktuell.",
-          "Когда Claude CLI в фоне обновляет токены, macOS сбрасывает разрешение «Разрешать всегда» в Связке ключей. Если добавить ключ сессии, лимиты будут обновляться в фоне без запросов пароля.")
+          "Когда Claude CLI в фоне обновляет токены, macOS сбрасывает разрешение \"Разрешать всегда\" в Связке ключей. Если добавить ключ сессии, лимиты будут обновляться в фоне без запросов пароля.")
     }
     var registerSessionKey: String {
         t("세션 키 등록",
@@ -573,7 +573,7 @@ struct L {
           "Les autres connexions Claude Code (CLAUDE_CONFIG_DIR) sont détectées dans les dossiers ~/.claude-* et depuis un CLAUDE_CONFIG_DIR exporté. Ajoute ici les dossiers de config rangés ailleurs, séparés par des virgules ou des retours à la ligne. Chaque compte a son onglet dans les limites officielles ; une actualisation manuelle peut demander l'accès au Keychain pour chaque dossier.",
           "Os outros logins do Claude Code (CLAUDE_CONFIG_DIR) são detectados nas pastas ~/.claude-* e num CLAUDE_CONFIG_DIR exportado. Adicione aqui pastas de configuração guardadas em outro lugar, separadas por vírgula ou quebra de linha. Cada conta ganha sua aba nos limites oficiais; uma atualização manual pode pedir acesso ao Keychain para cada pasta.",
           "Weitere Claude-Code-Anmeldungen (CLAUDE_CONFIG_DIR) werden in ~/.claude-*-Ordnern und über ein exportiertes CLAUDE_CONFIG_DIR erkannt. Füge hier Konfigurationsordner an anderen Orten hinzu, durch Kommas oder Zeilenumbrüche getrennt. Jedes Konto bekommt bei den offiziellen Limits einen eigenen Tab; eine manuelle Aktualisierung kann für jeden Ordner nach Keychain-Zugriff fragen.",
-          "Другие входы в Claude Code (CLAUDE_CONFIG_DIR) находятся автоматически в папках ~/.claude-* и по экспортированной переменной CLAUDE_CONFIG_DIR. Папки конфигурации в других местах добавьте здесь — через запятую или с новой строки. У каждого аккаунта своя вкладка в официальных лимитах; при ручном обновлении может запрашиваться доступ к Связке ключей для каждой папки.")
+          "Другие входы в Claude Code (CLAUDE_CONFIG_DIR) находятся автоматически в папках ~/.claude-* и по экспортированной переменной CLAUDE_CONFIG_DIR. Папки конфигурации в других местах добавьте здесь, через запятую или с новой строки. У каждого аккаунта своя вкладка в официальных лимитах; при ручном обновлении может запрашиваться доступ к Связке ключей для каждой папки.")
     }
     func additionalClaudeAccountsDetected(_ folders: String) -> String {
         t("자동 감지: \(folders)", "Detected: \(folders)", "自動検出: \(folders)", "Detectadas: \(folders)", "Détectés : \(folders)", "Detectadas: \(folders)", "Erkannt: \(folders)", "Найдено: \(folders)")
@@ -722,14 +722,14 @@ struct L {
     }
     var importConfirmReplace: String { t("대체", "Replace", "置き換える", "Reemplazar", "Remplacer", "Substituir", "Ersetzen", "Заменить") }
     func importSaveDone(dex: Int, tokens: String) -> String {
-        t("불러왔어요 — 도감 \(dex)마리 · 누적 \(tokens)",
-          "Imported — \(dex) in Pokédex · \(tokens) lifetime",
-          "読み込みました — 図鑑 \(dex)匹 · 累計 \(tokens)",
-          "Importado — Pokédex \(dex) · \(tokens) acumulados",
-          "Importé — Pokédex \(dex) · \(tokens) cumulés",
-          "Importado — Pokédex \(dex) · \(tokens) acumulados",
-          "Importiert – \(dex) im Pokédex · \(tokens) insgesamt",
-          "Импортировано — Покедекс \(dex) · \(tokens) за всё время")
+        t("불러왔어요. 도감 \(dex)마리 · 누적 \(tokens)",
+          "Imported: \(dex) in Pokédex · \(tokens) lifetime",
+          "読み込みました。図鑑 \(dex)匹 · 累計 \(tokens)",
+          "Importado: Pokédex \(dex) · \(tokens) acumulados",
+          "Importé : Pokédex \(dex) · \(tokens) cumulés",
+          "Importado: Pokédex \(dex) · \(tokens) acumulados",
+          "Importiert: \(dex) im Pokédex · \(tokens) insgesamt",
+          "Импортировано: Покедекс \(dex) · \(tokens) за всё время")
     }
 
     // MARK: 스냅샷 백업 (설정 → 자동 백업)
@@ -858,14 +858,14 @@ struct L {
           """)
     }
     func restoreDoneMessage(dex: Int, tokens: String) -> String {
-        t("복원되었습니다 — 도감 \(dex)마리 · 누적 \(tokens)",
-          "Restored — \(dex) in Pokédex · \(tokens) lifetime",
-          "復元しました — 図鑑 \(dex)匹 · 累計 \(tokens)",
-          "Restaurado — Pokédex \(dex) · \(tokens) acumulados",
-          "Restauré — Pokédex \(dex) · \(tokens) cumulés",
-          "Restaurado — Pokédex \(dex) · \(tokens) acumulados",
-          "Wiederhergestellt – \(dex) im Pokédex · \(tokens) insgesamt",
-          "Восстановлено — Покедекс \(dex) · \(tokens) за всё время")
+        t("복원되었습니다. 도감 \(dex)마리 · 누적 \(tokens)",
+          "Restored: \(dex) in Pokédex · \(tokens) lifetime",
+          "復元しました。図鑑 \(dex)匹 · 累計 \(tokens)",
+          "Restaurado: Pokédex \(dex) · \(tokens) acumulados",
+          "Restauré : Pokédex \(dex) · \(tokens) cumulés",
+          "Restaurado: Pokédex \(dex) · \(tokens) acumulados",
+          "Wiederhergestellt: \(dex) im Pokédex · \(tokens) insgesamt",
+          "Восстановлено: Покедекс \(dex) · \(tokens) за всё время")
     }
     var noSnapshotsYet: String {
         t("아직 저장된 스냅샷이 없습니다",
@@ -898,14 +898,14 @@ struct L {
           "Это не файл сохранения PokeTokenBar.")
     }
     var importErrorNewerSchema: String {
-        t("더 새로운 버전에서 만든 세이브예요 — 앱을 업데이트한 뒤 다시 시도해 주세요.",
-          "This save was made by a newer version — update the app and try again.",
-          "より新しいバージョンで作成されたセーブです — アプリを更新してから再試行してください。",
-          "Esta partida se creó con una versión más reciente — actualiza la app e inténtalo de nuevo.",
-          "Cette sauvegarde a été créée par une version plus récente — mets l'app à jour et réessaie.",
-          "Esse save foi criado por uma versão mais recente — atualize o app e tente de novo.",
-          "Dieser Spielstand wurde mit einer neueren Version erstellt – aktualisiere die App und versuche es erneut.",
-          "Сохранение создано более новой версией — обновите приложение и попробуйте снова.")
+        t("더 새로운 버전에서 만든 세이브예요. 앱을 업데이트한 뒤 다시 시도해 주세요.",
+          "This save was made by a newer version. Update the app and try again.",
+          "より新しいバージョンで作成されたセーブです。アプリを更新してから再試行してください。",
+          "Esta partida se creó con una versión más reciente. Actualiza la app e inténtalo de nuevo.",
+          "Cette sauvegarde a été créée par une version plus récente. Mets l'app à jour et réessaie.",
+          "Esse save foi criado por uma versão mais recente. Atualize o app e tente de novo.",
+          "Dieser Spielstand wurde mit einer neueren Version erstellt. Aktualisiere die App und versuche es erneut.",
+          "Сохранение создано более новой версией. Обновите приложение и попробуйте снова.")
     }
     /// 불러오기 실패 사유 → 사용자 문구. 뷰가 아니라 여기 두는 이유는 이 매핑이 테스트 가능해야 하기
     /// 때문이다 — 매핑이 어긋나면 `SaveTransferError` 는 LocalizedError 가 아니라서 "The operation
@@ -920,24 +920,24 @@ struct L {
         }
     }
     var importErrorTooLarge: String {
-        t("세이브 파일이라기엔 너무 커요 — 다른 파일을 고른 것 같아요.",
-          "That file is too large to be a save — it looks like the wrong file.",
-          "セーブファイルにしては大きすぎます — 別のファイルを選んだようです。",
-          "Ese archivo es demasiado grande para ser una partida — parece que elegiste el archivo equivocado.",
-          "Ce fichier est trop volumineux pour être une sauvegarde — ce n'est sans doute pas le bon fichier.",
-          "Esse arquivo é grande demais para ser um save — parece que você escolheu o arquivo errado.",
-          "Diese Datei ist zu groß für einen Spielstand – wahrscheinlich hast du die falsche Datei ausgewählt.",
-          "Файл слишком большой для сохранения — похоже, выбран не тот файл.")
+        t("세이브 파일이라기엔 너무 커요. 다른 파일을 고른 것 같아요.",
+          "That file is too large to be a save. It looks like the wrong file.",
+          "セーブファイルにしては大きすぎます。別のファイルを選んだようです。",
+          "Ese archivo es demasiado grande para ser una partida. Parece que elegiste el archivo equivocado.",
+          "Ce fichier est trop volumineux pour être une sauvegarde. Ce n'est sans doute pas le bon fichier.",
+          "Esse arquivo é grande demais para ser um save. Parece que você escolheu o arquivo errado.",
+          "Diese Datei ist zu groß für einen Spielstand. Wahrscheinlich hast du die falsche Datei ausgewählt.",
+          "Файл слишком большой для сохранения. Похоже, выбран не тот файл.")
     }
     /// 백업을 못 남기면 불러오기를 중단한다 — 되돌릴 수단 없이 진행을 대체하지 않기 위해서다.
     var importErrorBackupFailed: String {
-        t("현재 상태를 백업하지 못해 불러오기를 중단했어요 — 진행은 그대로예요. 디스크 여유 공간을 확인해 주세요.",
-          "Import stopped because the current state couldn't be backed up — your progress is untouched. Check free disk space.",
-          "現在の状態をバックアップできなかったため読み込みを中止しました — 進行はそのままです。ディスクの空き容量を確認してください。",
-          "Se detuvo la importación porque no se pudo hacer una copia de seguridad del estado actual — tu progreso no se ha tocado. Comprueba el espacio libre en disco.",
-          "Import interrompu car l'état actuel n'a pas pu être sauvegardé — ta progression est intacte. Vérifie l'espace disque disponible.",
-          "A importação foi interrompida porque não deu para fazer backup do estado atual — seu progresso está intacto. Verifique o espaço livre em disco.",
-          "Der Import wurde abgebrochen, weil der aktuelle Stand nicht gesichert werden konnte – dein Fortschritt ist unverändert. Prüfe den freien Speicherplatz.",
+        t("현재 상태를 백업하지 못해 불러오기를 중단했어요. 진행은 그대로예요. 디스크 여유 공간을 확인해 주세요.",
+          "Import stopped because the current state couldn't be backed up. Your progress is untouched. Check free disk space.",
+          "現在の状態をバックアップできなかったため読み込みを中止しました。進行はそのままです。ディスクの空き容量を確認してください。",
+          "Se detuvo la importación porque no se pudo hacer una copia de seguridad del estado actual. Tu progreso no se ha tocado. Comprueba el espacio libre en disco.",
+          "Import interrompu car l'état actuel n'a pas pu être sauvegardé. Ta progression est intacte. Vérifie l'espace disque disponible.",
+          "A importação foi interrompida porque não deu para fazer backup do estado atual. Seu progresso está intacto. Verifique o espaço livre em disco.",
+          "Der Import wurde abgebrochen, weil der aktuelle Stand nicht gesichert werden konnte. Dein Fortschritt ist unverändert. Prüfe den freien Speicherplatz.",
           "Импорт остановлен: не удалось сделать резервную копию текущего состояния. Прогресс не изменён. Проверьте свободное место на диске.")
     }
 
@@ -977,7 +977,7 @@ struct L {
     func reportMailBody(version: String, os: String) -> String {
         t("""
         문제 내용:
-        (겪으신 문제를 적어주세요 — 언제, 어떤 화면에서, 어떻게 되었는지)
+        (겪으신 문제를 적어주세요: 언제, 어떤 화면에서, 어떻게 되었는지)
 
 
         ---
@@ -987,7 +987,7 @@ struct L {
         """,
         """
         What happened:
-        (Describe the problem — when, on which screen, and what you saw)
+        (Describe the problem: when, on which screen, and what you saw)
 
 
         ---
@@ -1007,7 +1007,7 @@ struct L {
         """,
         """
         Descripción del problema:
-        (Describe lo que ocurrió — cuándo, en qué pantalla y qué viste)
+        (Describe lo que ocurrió: cuándo, en qué pantalla y qué viste)
 
 
         ---
@@ -1017,7 +1017,7 @@ struct L {
         """,
         """
         Ce qui s'est passé :
-        (Décris le problème — quand, sur quel écran, et ce que tu as vu)
+        (Décris le problème : quand, sur quel écran, et ce que tu as vu)
 
 
         ---
@@ -1027,7 +1027,7 @@ struct L {
         """,
         """
         Descrição do problema:
-        (Descreva o que aconteceu — quando, em qual tela e o que você viu)
+        (Descreva o que aconteceu: quando, em qual tela e o que você viu)
 
 
         ---
@@ -1037,7 +1037,7 @@ struct L {
         """,
         """
         Was ist passiert:
-        (Beschreibe das Problem – wann, auf welchem Bildschirm und was du gesehen hast)
+        (Beschreibe das Problem: wann, auf welchem Bildschirm und was du gesehen hast)
 
 
         ---
@@ -1047,7 +1047,7 @@ struct L {
         """,
         """
         Что произошло:
-        (Опишите проблему — когда, на каком экране и что вы увидели)
+        (Опишите проблему: когда, на каком экране и что вы увидели)
 
 
         ---
@@ -1073,13 +1073,13 @@ struct L {
     /// 알 부화 임계 도달 후 외부 데이터 요청이 실패한 동안의 다음 새로고침 안내.
     var eggHatchDelayed: String {
         t("⏳ 부화가 지연되고 있어요. 다음 새로고침에서 다시 시도해요",
-          "⏳ Hatching is delayed — retrying on the next refresh",
+          "⏳ Hatching is delayed; retrying on the next refresh",
           "⏳ 孵化が遅れています。次回の更新時に再試行します",
           "⏳ La eclosión se retrasa; se reintentará en la próxima actualización",
-          "⏳ L’éclosion est retardée — nouvel essai au prochain rafraîchissement",
-          "⏳ A eclosão está atrasada — nova tentativa na próxima atualização",
-          "⏳ Das Schlüpfen verzögert sich — neuer Versuch bei der nächsten Aktualisierung",
-          "⏳ Вылупление задерживается — повторим при следующем обновлении")
+          "⏳ L’éclosion est retardée : nouvel essai au prochain rafraîchissement",
+          "⏳ A eclosão está atrasada; nova tentativa na próxima atualização",
+          "⏳ Das Schlüpfen verzögert sich: neuer Versuch bei der nächsten Aktualisierung",
+          "⏳ Вылупление задерживается, повторим при следующем обновлении")
     }
     func toNextEvolution(_ amount: String) -> String { t("다음 진화까지 \(amount)", "\(amount) to next evolution", "次の進化まで \(amount)", "\(amount) para la siguiente evolución", "\(amount) avant la prochaine évolution", "\(amount) para a próxima evolução", "\(amount) bis zur nächsten Entwicklung", "Ещё \(amount) до следующей эволюции") }
     /// Tokens left before the next stage, named: "95M to Charmeleon".
@@ -1280,7 +1280,7 @@ struct L {
     var rarityUncommon: String { t("고급", "Uncommon", "アンコモン", "Poco común", "Peu commun", "Incomum", "Ungewöhnlich", "Необычный") }
     var rarityRare: String { t("희귀", "Rare", "レア", "Raro", "Rare", "Raro", "Selten", "Редкий") }
     var rarityLegendary: String { t("전설", "Legendary", "伝説", "Legendario", "Légendaire", "Lendário", "Legendär", "Легендарный") }
-    var dexFilterHint: String { t("탭하면 이 희귀도만 보기 · 다시 탭하면 전체", "Tap to show only this rarity · tap again to clear", "タップでこの希少度のみ表示・再タップで全体", "Toca para ver solo esta rareza · toca de nuevo para ver todo", "Touche pour n'afficher que cette rareté · touche à nouveau pour tout afficher", "Toque para ver só esta raridade · toque de novo para ver tudo", "Tippe, um nur diese Seltenheit zu sehen · tippe erneut für alle", "Нажмите — только эта редкость · ещё раз — сброс") }
+    var dexFilterHint: String { t("탭하면 이 희귀도만 보기 · 다시 탭하면 전체", "Tap to show only this rarity · tap again to clear", "タップでこの希少度のみ表示・再タップで全体", "Toca para ver solo esta rareza · toca de nuevo para ver todo", "Touche pour n'afficher que cette rareté · touche à nouveau pour tout afficher", "Toque para ver só esta raridade · toque de novo para ver tudo", "Tippe, um nur diese Seltenheit zu sehen · tippe erneut für alle", "Нажмите: только эта редкость · ещё раз: сброс") }
     /// 스프라이트 클릭 → 그 종의 도감 상세. 툴팁·접근성 라벨 공용.
     var dexOpenEntryHint: String { t("컬렉션에서 도감 항목 보기", "View entry in collection", "コレクションで図鑑を見る", "Ver entrada en la colección", "Voir la fiche dans la collection", "Ver registro na coleção", "Eintrag in der Sammlung ansehen", "Открыть запись в коллекции") }
     /// 도감 칸의 ✨ 를 읽어주는 명사 — 이모지는 스크린리더가 일관되게 읽지 못한다.
@@ -1289,8 +1289,8 @@ struct L {
     var sortTitle: String { t("정렬", "Sort", "並び替え", "Ordenar", "Trier", "Ordenar", "Sortieren", "Сортировка") }
     var sortDexNumberAsc: String { t("도감 번호 (낮은 순)", "Number (Low to High)", "図鑑番号（昇順）", "Nº de Pokédex (asc.)", "N° de Pokédex (croissant)", "Nº da Pokédex (crescente)", "Nummer (aufsteigend)", "Номер (по возрастанию)") }
     var sortDexNumberDesc: String { t("도감 번호 (높은 순)", "Number (High to Low)", "図鑑番号（降順）", "Nº de Pokédex (desc.)", "N° de Pokédex (décroissant)", "Nº da Pokédex (decrescente)", "Nummer (absteigend)", "Номер (по убыванию)") }
-    var sortNameAsc: String { t("이름 (가나다·A-Z)", "Name (A–Z)", "名前（五十音・A-Z）", "Nombre (A–Z)", "Nom (A–Z)", "Nome (A–Z)", "Name (A–Z)", "Имя (A–Z)") }
-    var sortNameDesc: String { t("이름 (역순)", "Name (Z–A)", "名前（逆順）", "Nombre (Z–A)", "Nom (Z–A)", "Nome (Z–A)", "Name (Z–A)", "Имя (Z–A)") }
+    var sortNameAsc: String { t("이름 (가나다·A-Z)", "Name (A-Z)", "名前（五十音・A-Z）", "Nombre (A-Z)", "Nom (A-Z)", "Nome (A-Z)", "Name (A-Z)", "Имя (A-Z)") }
+    var sortNameDesc: String { t("이름 (역순)", "Name (Z-A)", "名前（逆順）", "Nombre (Z-A)", "Nom (Z-A)", "Nome (Z-A)", "Name (Z-A)", "Имя (Z-A)") }
     var sortRarity: String { t("희귀도 순", "Rarity (High to Low)", "希少度順", "Rareza (mayor a menor)", "Rareté (décroissante)", "Raridade (maior a menor)", "Seltenheit (absteigend)", "Редкость (по убыванию)") }
     var sortDateDesc: String { t("최근 잡은 순", "Most Recent", "最近捕獲", "Más recientes", "Plus récents", "Mais recentes", "Neueste zuerst", "Сначала новые") }
     var sortDateAsc: String { t("오래된 순", "Oldest First", "古い順", "Más antiguos", "Plus anciens", "Mais antigos", "Älteste zuerst", "Сначала старые") }
@@ -1347,7 +1347,7 @@ struct L {
         case .male: return t("수컷", "Male", "オス", "Macho", "Mâle", "Macho", "Männlich", "Самец")
         case .female: return t("암컷", "Female", "メス", "Hembra", "Femelle", "Fêmea", "Weiblich", "Самка")
         case .genderless: return t("무성", "Genderless", "性別不明", "Sin género", "Asexué", "Sem gênero", "Geschlechtslos", "Бесполый")
-        case nil: return "—"
+        case nil: return "-"
         }
     }
     func statLabel(_ stat: String) -> String {
@@ -1421,25 +1421,25 @@ struct L {
     func notifEvolveBody(_ name: String) -> String { t("\(KoreanParticle.direction.attach(to: name)) 진화했어요!", "Evolved into \(name)!", "\(name) に進化しました！", "¡Evolucionó a \(name)!", "A évolué en \(name) !", "Evoluiu para \(name)!", "Hat sich zu \(name) entwickelt!", "Эволюционировал в \(name)!") }
     // 메타몽 위장 리빌 — 진화 못 하는 메타몽이 첫 진화 순간 정체를 드러낸다.
     var notifDittoRevealTitle: String { t("🎭 어라? 메타몽!", "🎭 Huh? It's Ditto!", "🎭 あれ？メタモン！", "🎭 ¿Eh? ¡Es Ditto!", "🎭 Hein ? C'est Métamorph !", "🎭 Ué? É um Ditto!", "🎭 Huch? Ditto!", "🎭 Что? Это Ditto!") }
-    func notifDittoRevealBody(_ disguise: String) -> String { t("\(disguise)인 줄 알았는데 — 사실은 메타몽이었어요!", "You thought it was \(disguise) — it was Ditto all along!", "\(disguise) だと思ってた… 実はメタモンでした！", "Pensabas que era \(disguise) — ¡en realidad era Ditto!", "Tu croyais que c'était \(disguise) — c'était Métamorph depuis le début !", "Você achava que era \(disguise) — era um Ditto o tempo todo!", "Du dachtest, es wäre \(disguise) – dabei war es die ganze Zeit Ditto!", "Думали, это \(disguise)? А это всё время был Ditto!") }
+    func notifDittoRevealBody(_ disguise: String) -> String { t("\(disguise)인 줄 알았는데, 사실은 메타몽이었어요!", "You thought it was \(disguise)… it was Ditto all along!", "\(disguise) だと思ってた… 実はメタモンでした！", "Pensabas que era \(disguise)… ¡en realidad era Ditto!", "Tu croyais que c'était \(disguise)… c'était Métamorph depuis le début !", "Você achava que era \(disguise)… era um Ditto o tempo todo!", "Du dachtest, es wäre \(disguise), dabei war es die ganze Zeit Ditto!", "Думали, это \(disguise)? А это всё время был Ditto!") }
     var notifShinyDittoRevealTitle: String { t("🎭✨ 어라? 이로치 메타몽!", "🎭✨ Huh? A shiny Ditto!", "🎭✨ あれ？色違いメタモン！", "🎭✨ ¿Eh? ¡Un Ditto variocolor!", "🎭✨ Hein ? Un Métamorph chromatique !", "🎭✨ Ué? Um Ditto shiny!", "🎭✨ Huch? Ein schillerndes Ditto!", "🎭✨ Что? Шайни-Ditto!") }
     /// 확률을 적지 않는다 — 이로치는 부화 때 굴렸고, 그때의 부적 보유 여부는 저장되지 않는다.
-    func notifShinyDittoRevealBody(_ disguise: String) -> String { t("\(disguise)인 줄 알았는데 — 이로치 메타몽이었어요!", "You thought it was \(disguise) — it was a shiny Ditto!", "\(disguise) だと思ってた… 色違いのメタモンでした！", "Pensabas que era \(disguise) — ¡era un Ditto variocolor!", "Tu croyais que c'était \(disguise) — c'était un Métamorph chromatique !", "Você achava que era \(disguise) — era um Ditto shiny!", "Du dachtest, es wäre \(disguise) – dabei war es ein schillerndes Ditto!", "Думали, это \(disguise)? А это шайни-Ditto!") }
+    func notifShinyDittoRevealBody(_ disguise: String) -> String { t("\(disguise)인 줄 알았는데, 이로치 메타몽이었어요!", "You thought it was \(disguise)… it was a shiny Ditto!", "\(disguise) だと思ってた… 色違いのメタモンでした！", "Pensabas que era \(disguise)… ¡era un Ditto variocolor!", "Tu croyais que c'était \(disguise)… c'était un Métamorph chromatique !", "Você achava que era \(disguise)… era um Ditto shiny!", "Du dachtest, es wäre \(disguise), dabei war es ein schillerndes Ditto!", "Думали, это \(disguise)? А это шайни-Ditto!") }
     var notifGraduateTitle: String { t("🎓 졸업!", "🎓 Graduated!", "🎓 卒業！", "🎓 ¡Graduado!", "🎓 Diplômé !", "🎓 Formatura!", "🎓 Abschied!", "🎓 Выпуск!") }
-    func notifGraduateBody(_ name: String) -> String { t("\(name) — 도감에 보존! 새 알이 도착했어요.", "\(name) — saved to your Pokédex! A new egg has arrived.", "\(name) — 図鑑に保存！新しいタマゴが届きました。", "\(name) — ¡guardado en tu Pokédex! Ha llegado un nuevo huevo.", "\(name) — conservé dans ton Pokédex ! Un nouvel œuf est arrivé.", "\(name) — guardado na sua Pokédex! Chegou um novo ovo.", "\(name) – in deinem Pokédex gespeichert! Ein neues Ei ist da.", "\(name) — запись в Покедексе! Появилось новое яйцо.") }
+    func notifGraduateBody(_ name: String) -> String { t("\(name): 도감에 보존! 새 알이 도착했어요.", "\(name): saved to your Pokédex! A new egg has arrived.", "\(name)：図鑑に保存！新しいタマゴが届きました。", "\(name): ¡guardado en tu Pokédex! Ha llegado un nuevo huevo.", "\(name) : conservé dans ton Pokédex ! Un nouvel œuf est arrivé.", "\(name): guardado na sua Pokédex! Chegou um novo ovo.", "\(name): in deinem Pokédex gespeichert! Ein neues Ei ist da.", "\(name): запись в Покедексе! Появилось новое яйцо.") }
 
     // MARK: Claude 한도 토큰 갱신 오류 (친절 안내)
     func limitRefreshHTTPError(_ status: Int) -> String {
         if status == 401 || status == 403 {
             return t(
-                "Claude 자격증명이 만료됐거나 권한이 없어요 (\(status)). Claude Code 로그인을 확인하세요. Codex만 쓴다면 무시해도 됩니다 — Codex 한도는 따로 표시돼요.",
-                "Claude credential is expired or unauthorized (\(status)). Check that you're signed in to Claude Code. If you only use Codex you can ignore this — Codex limits show separately.",
-                "Claude の認証情報が期限切れか権限がありません (\(status))。Claude Code にサインインしているか確認してください。Codex のみ使用する場合は無視できます — Codex の上限は別に表示されます。",
-                "La credencial de Claude expiró o no tiene permisos (\(status)). Comprueba que has iniciado sesión en Claude Code. Si solo usas Codex, puedes ignorar esto — los límites de Codex se muestran aparte.",
-                "L'identifiant Claude a expiré ou n'est pas autorisé (\(status)). Vérifie que tu es connecté à Claude Code. Si tu n'utilises que Codex, ignore ceci — les limites Codex s'affichent séparément.",
-                "A credencial do Claude expirou ou não tem permissão (\(status)). Verifique se você fez login no Claude Code. Se você só usa o Codex, pode ignorar — os limites do Codex aparecem à parte.",
-                "Deine Claude-Anmeldedaten sind abgelaufen oder nicht berechtigt (\(status)). Prüfe, ob du bei Claude Code angemeldet bist. Wenn du nur Codex verwendest, kannst du das ignorieren – Codex-Limits werden separat angezeigt.",
-                "Учётные данные Claude истекли или недействительны (\(status)). Проверьте, что вы вошли в Claude Code. Если вы пользуетесь только Codex, это можно игнорировать — лимиты Codex показываются отдельно.")
+                "Claude 자격증명이 만료됐거나 권한이 없어요 (\(status)). Claude Code 로그인을 확인하세요. Codex만 쓴다면 무시해도 됩니다. Codex 한도는 따로 표시돼요.",
+                "Claude credential is expired or unauthorized (\(status)). Check that you're signed in to Claude Code. If you only use Codex you can ignore this: Codex limits show separately.",
+                "Claude の認証情報が期限切れか権限がありません (\(status))。Claude Code にサインインしているか確認してください。Codex のみ使用する場合は無視できます。Codex の上限は別に表示されます。",
+                "La credencial de Claude expiró o no tiene permisos (\(status)). Comprueba que has iniciado sesión en Claude Code. Si solo usas Codex, puedes ignorar esto: los límites de Codex se muestran aparte.",
+                "L'identifiant Claude a expiré ou n'est pas autorisé (\(status)). Vérifie que tu es connecté à Claude Code. Si tu n'utilises que Codex, ignore ceci : les limites Codex s'affichent séparément.",
+                "A credencial do Claude expirou ou não tem permissão (\(status)). Verifique se você fez login no Claude Code. Se você só usa o Codex, pode ignorar: os limites do Codex aparecem à parte.",
+                "Deine Claude-Anmeldedaten sind abgelaufen oder nicht berechtigt (\(status)). Prüfe, ob du bei Claude Code angemeldet bist. Wenn du nur Codex verwendest, kannst du das ignorieren: Codex-Limits werden separat angezeigt.",
+                "Учётные данные Claude истекли или недействительны (\(status)). Проверьте, что вы вошли в Claude Code. Если вы пользуетесь только Codex, это можно игнорировать: лимиты Codex показываются отдельно.")
         }
         return t("Claude 한도 조회 실패 (\(status)).", "Failed to fetch Claude limits (\(status)).", "Claude の上限取得に失敗しました (\(status))。", "No se pudieron obtener los límites de Claude (\(status)).", "Échec de récupération des limites Claude (\(status)).", "Não foi possível obter os limites do Claude (\(status)).", "Claude-Limits konnten nicht abgerufen werden (\(status)).", "Не удалось получить лимиты Claude (\(status)).")
     }
@@ -1459,9 +1459,9 @@ struct L {
           "Claude の認証情報にアカウントのサインインが含まれていません。Claude Code で `/login` を実行して再度サインインすると上限が表示されます。",
           "Tu credencial de Claude no tiene una sesión de cuenta asociada. Ejecuta `/login` en Claude Code para volver a iniciar sesión y ver los límites.",
           "Ton identifiant Claude n'a pas de connexion de compte. Lance `/login` dans Claude Code pour te reconnecter et les limites apparaîtront.",
-          "A credencial do Claude não está associada a nenhuma conta. Rode `/login` no Claude Code para fazer login de novo — aí os limites aparecem.",
+          "A credencial do Claude não está associada a nenhuma conta. Rode `/login` no Claude Code para fazer login de novo. Aí os limites aparecem.",
           "Deine Claude-Anmeldedaten enthalten keine Kontoanmeldung. Führe `/login` in Claude Code aus, um dich erneut anzumelden und die Limits anzuzeigen.",
-          "В учётных данных Claude нет входа в аккаунт. Выполните `/login` в Claude Code, чтобы войти снова, — и лимиты появятся.")
+          "В учётных данных Claude нет входа в аккаунт. Выполните `/login` в Claude Code, чтобы войти снова, и лимиты появятся.")
     }
     var limitRefreshGeneric: String {
         t("Claude 한도 조회에 실패했어요. 잠시 후 다시 시도하세요.",
@@ -1486,14 +1486,14 @@ struct L {
 
     // MARK: Claude 세션 만료(401) 안내
     var claudeAuthExpiredTitle: String {
-        t("Claude 세션 만료 — 한도가 갱신 안 돼요",
-          "Claude session expired — limits can't refresh",
-          "Claude セッション期限切れ — 上限を更新できません",
-          "Sesión de Claude expirada — los límites no se pueden actualizar",
-          "Session Claude expirée — les limites ne s'actualisent pas",
-          "Sessão do Claude expirada — não dá para atualizar os limites",
-          "Claude-Sitzung abgelaufen – Limits können nicht aktualisiert werden",
-          "Сессия Claude истекла — лимиты не обновляются")
+        t("Claude 세션 만료: 한도가 갱신 안 돼요",
+          "Claude session expired: limits can't refresh",
+          "Claude セッション期限切れ：上限を更新できません",
+          "Sesión de Claude expirada: los límites no se pueden actualizar",
+          "Session Claude expirée : les limites ne s'actualisent pas",
+          "Sessão do Claude expirada: não dá para atualizar os limites",
+          "Claude-Sitzung abgelaufen: Limits können nicht aktualisiert werden",
+          "Сессия Claude истекла: лимиты не обновляются")
     }
     var claudeAuthExpiredHint: String {
         t("표시된 값은 만료 전 기준이에요. 다시 시도하거나, Claude Code 를 한 번 실행하면 자동 갱신됩니다.",
@@ -1503,7 +1503,7 @@ struct L {
           "Les valeurs affichées datent d'avant l'expiration. Réessaie, ou lance Claude Code une fois pour actualiser automatiquement.",
           "Os valores exibidos são de antes da expiração. Tente de novo ou rode o Claude Code uma vez para atualizá-los automaticamente.",
           "Die angezeigten Werte stammen von vor dem Ablauf. Versuch es erneut oder starte Claude Code einmal, um sie automatisch zu aktualisieren.",
-          "Показаны данные до истечения сессии. Повторите попытку или один раз запустите Claude Code — сессия обновится автоматически.")
+          "Показаны данные до истечения сессии. Повторите попытку или один раз запустите Claude Code: сессия обновится автоматически.")
     }
     func additionalAccountExpiredHint(_ folder: String) -> String {
         t("CLAUDE_CONFIG_DIR=\(folder) 로 Claude Code 를 한 번 실행한 뒤 다시 시도하세요.",
@@ -1519,14 +1519,14 @@ struct L {
 
     // MARK: Antigravity 세션 만료(401) 안내 — Claude 쪽과 동일 문안 구조로 통일
     var antigravityAuthExpiredTitle: String {
-        t("Antigravity 세션 만료 — 한도가 갱신 안 돼요",
-          "Antigravity session expired — limits can't refresh",
-          "Antigravity セッション期限切れ — 上限を更新できません",
-          "Sesión de Antigravity expirada — los límites no se pueden actualizar",
-          "Session Antigravity expirée — les limites ne s'actualisent pas",
-          "Sessão do Antigravity expirada — não dá para atualizar os limites",
-          "Antigravity-Sitzung abgelaufen – Limits können nicht aktualisiert werden",
-          "Сессия Antigravity истекла — лимиты не обновляются")
+        t("Antigravity 세션 만료: 한도가 갱신 안 돼요",
+          "Antigravity session expired: limits can't refresh",
+          "Antigravity セッション期限切れ：上限を更新できません",
+          "Sesión de Antigravity expirada: los límites no se pueden actualizar",
+          "Session Antigravity expirée : les limites ne s'actualisent pas",
+          "Sessão do Antigravity expirada: não dá para atualizar os limites",
+          "Antigravity-Sitzung abgelaufen: Limits können nicht aktualisiert werden",
+          "Сессия Antigravity истекла: лимиты не обновляются")
     }
     var antigravityAuthExpiredHint: String {
         t("인증 토큰이 만료됐어요. 다시 시도하거나, Antigravity IDE 를 한 번 실행하면 자동 갱신됩니다.",
@@ -1536,7 +1536,7 @@ struct L {
           "Le jeton d'authentification a expiré. Réessaie, ou lance Antigravity IDE une fois pour actualiser automatiquement.",
           "O token de autenticação expirou. Tente de novo, ou abra o Antigravity IDE uma vez para atualizar automaticamente.",
           "Das Authentifizierungs-Token ist abgelaufen. Versuch es erneut oder starte Antigravity IDE einmal, um es automatisch zu aktualisieren.",
-          "Токен авторизации истёк. Повторите попытку или один раз запустите Antigravity IDE — токен обновится автоматически.")
+          "Токен авторизации истёк. Повторите попытку или один раз запустите Antigravity IDE: токен обновится автоматически.")
     }
 
     // MARK: Cursor 공식 한도(월간 포함 allowance)
@@ -1553,14 +1553,14 @@ struct L {
         t("\(amount) 남음", "\(amount) left", "残り \(amount)", "Quedan \(amount)", "Reste \(amount)", "Restam \(amount)", "\(amount) übrig", "Осталось \(amount)")
     }
     var cursorAuthExpiredTitle: String {
-        t("Cursor 세션 만료 — 한도가 갱신 안 돼요",
-          "Cursor session expired — limits can't refresh",
-          "Cursor セッション期限切れ — 上限を更新できません",
-          "Sesión de Cursor expirada — los límites no se pueden actualizar",
-          "Session Cursor expirée — les limites ne s'actualisent pas",
-          "Sessão do Cursor expirada — não dá para atualizar os limites",
-          "Cursor-Sitzung abgelaufen – Limits können nicht aktualisiert werden",
-          "Сессия Cursor истекла — лимиты не обновляются")
+        t("Cursor 세션 만료: 한도가 갱신 안 돼요",
+          "Cursor session expired: limits can't refresh",
+          "Cursor セッション期限切れ：上限を更新できません",
+          "Sesión de Cursor expirada: los límites no se pueden actualizar",
+          "Session Cursor expirée : les limites ne s'actualisent pas",
+          "Sessão do Cursor expirada: não dá para atualizar os limites",
+          "Cursor-Sitzung abgelaufen: Limits können nicht aktualisiert werden",
+          "Сессия Cursor истекла: лимиты не обновляются")
     }
     var cursorAuthExpiredHint: String {
         t("Cursor IDE 에 다시 로그인하거나, 다시 시도해 주세요.",
@@ -1631,7 +1631,7 @@ struct L {
         t("\(name) 한도 \(percent) 사용", "\(name) at \(percent)", "\(name) 上限 \(percent) 使用", "\(name) al \(percent)", "\(name) à \(percent)", "\(name) em \(percent)", "\(name): \(percent) verbraucht", "\(name): \(percent)")
     }
     var claudeFiveHour: String { t("Claude 5시간 세션", "Claude 5-hour session", "Claude 5時間セッション", "Sesión de 5 horas de Claude", "Session de 5 h de Claude", "Sessão de 5 horas do Claude", "Claude-5-Stunden-Sitzung", "Claude: 5-часовая сессия") }
-    var claudeWeekly: String { t("Claude 주간", "Claude weekly", "Claude 週間", "Semanal de Claude", "Claude hebdo", "Semanal do Claude", "Claude – wöchentlich", "Claude: неделя") }
+    var claudeWeekly: String { t("Claude 주간", "Claude weekly", "Claude 週間", "Semanal de Claude", "Claude hebdo", "Semanal do Claude", "Claude: wöchentlich", "Claude: неделя") }
     var codexPersonalLimit: String { t("Codex 개인 한도", "Codex personal limit", "Codex 個人上限", "Límite personal de Codex", "Limite personnelle Codex", "Limite pessoal do Codex", "Persönliches Codex-Limit", "Личный лимит Codex") }
 
     // MARK: 가방 / 아이템
@@ -2196,7 +2196,7 @@ struct L {
                      "La récompense d'Arceus : en la réclamant, tu reçois un \(rare) et un \(uncommon) dans ton sac.",
                      "A recompensa de Arceus: ao resgatá-la, você recebe um \(rare) e um \(uncommon) na sua bolsa.",
                      "Arceus' Belohnung: Holst du sie ab, kommen ein \(rare) und ein \(uncommon) in deinen Beutel.",
-                     "Награда Арсеуса: получив её, вы найдёте в сумке «\(rare)» и «\(uncommon)».")
+                     "Награда Арсеуса: получив её, вы найдёте в сумке \"\(rare)\" и \"\(uncommon)\".")
         case .excavation:
             return t("바위 타입 포켓몬을 4종 졸업시킬 때마다 화석 알을 하나 발굴해요(진화 단계마다 한 종으로 세요). 알에서는 아직 졸업하지 않은 화석 계열이 태어나요. 화석 계열은 이 알과 우정 기념 알에서만 태어나고, 졸업한 뒤에는 모든 알에서 나올 수 있어요.",
                      "Every 4 Rock-type species you graduate dig up a Fossil Egg (each stage of a line counts as a species). It hatches a fossil line you haven't graduated yet: a fossil line hatches only from these eggs and the Friendship Egg, then from any egg once graduated.",
@@ -2276,7 +2276,7 @@ struct L {
                      "Laisse partir ton Pokémon actuel contre un œuf qui fera éclore à coup sûr un Pokémon de type \(type).",
                      "Solte seu Pokémon atual em troca de um ovo que com certeza vai chocar um Pokémon do tipo \(type).",
                      "Verabschiede dein aktuelles Pokémon für ein Ei, aus dem garantiert ein Pokémon vom Typ \(type) schlüpft.",
-                     "Отпустите текущего покемона и получите яйцо, из которого гарантированно вылупится покемон типа «\(type)».")
+                     "Отпустите текущего покемона и получите яйцо, из которого гарантированно вылупится покемон типа \"\(type)\".")
         }
     }
 
@@ -2304,7 +2304,7 @@ struct L {
     var spendableTokens: String { t("쓸 수 있는 토큰", "Spendable tokens", "使えるトークン", "Tokens disponibles", "Tokens disponibles", "Tokens disponíveis", "Verfügbare Tokens", "Доступно токенов") }
     var shopHint: String { t("사용한 토큰으로 아이템을 살 수 있어요.", "Spend the tokens you've used on items.", "使ったトークンでアイテムを購入できます。", "Usa los tokens que has consumido para comprar objetos.", "Dépense les tokens que tu as consommés pour acheter des objets.", "Compre itens com os tokens que você já usou.", "Mit deinen verbrauchten Tokens kannst du Gegenstände kaufen.", "Тратьте использованные токены на предметы.") }
     var buy: String { t("구매", "Buy", "購入", "Comprar", "Acheter", "Comprar", "Kaufen", "Купить") }
-    func buyConfirm(_ name: String) -> String { t("\(name) 구매할까요?", "Buy \(name)?", "\(name) を購入しますか？", "¿Comprar \(name)?", "Acheter \(name) ?", "Comprar \(name)?", "\(name) kaufen?", "Купить «\(name)»?") }
+    func buyConfirm(_ name: String) -> String { t("\(name) 구매할까요?", "Buy \(name)?", "\(name) を購入しますか？", "¿Comprar \(name)?", "Acheter \(name) ?", "Comprar \(name)?", "\(name) kaufen?", "Купить \"\(name)\"?") }
     var notEnoughTokens: String { t("토큰이 부족해요", "Not enough tokens", "トークンが足りません", "No tienes suficientes tokens", "Pas assez de tokens", "Tokens insuficientes", "Nicht genug Tokens", "Недостаточно токенов") }
     func ownedCount(_ n: Int) -> String { t("보유 ×\(n)", "Owned ×\(n)", "所持 ×\(n)", "En posesión ×\(n)", "Possédés ×\(n)", "Você tem ×\(n)", "Im Beutel ×\(n)", "Есть ×\(n)") }
     var shopPriceLabel: String { t("가격", "Price", "価格", "Precio", "Prix", "Preço", "Preis", "Цена") }
@@ -2817,13 +2817,13 @@ struct L {
     /// 의 "새 알로 다시 시작해요" 와 중복).
     var eggReleaseNote: String {
         t("놓아준 포켓몬도 도감에 남고, 같은 확률로 다시 만날 수 있어요. 키운 진행도만 사라져요.",
-          "A released Pokémon stays in your Pokédex and can hatch again at the same odds — only the growth progress is lost.",
+          "A released Pokémon stays in your Pokédex and can hatch again at the same odds; only the growth progress is lost.",
           "手放したポケモンも図鑑に残り、同じ確率でまた出会えます。失われるのは育てた進み具合だけです。",
           "El Pokémon liberado permanece en la Pokédex y puede volver a salir con la misma probabilidad; solo se pierde el progreso de crianza.",
           "Un Pokémon relâché reste dans le Pokédex et peut réapparaître avec la même probabilité ; seule la progression est perdue.",
           "O Pokémon solto continua na Pokédex e pode voltar a aparecer com a mesma chance; só o progresso de criação se perde.",
           "Ein freigelassenes Pokémon bleibt im Pokédex und kann mit gleicher Wahrscheinlichkeit wieder schlüpfen; nur der Aufzuchtfortschritt geht verloren.",
-          "Отпущенный покемон остаётся в Покедексе и может вылупиться снова с тем же шансом — теряется только прогресс роста.")
+          "Отпущенный покемон остаётся в Покедексе и может вылупиться снова с тем же шансом; теряется только прогресс роста.")
     }
     /// 인큐베이션 중 표시하는 보증 배지 — 어떤 알을 품고 있는지 한 줄로.
     func eggGuaranteeHint(_ tier: Rarity) -> String {
@@ -2839,7 +2839,7 @@ struct L {
           "Laisser partir \(monName) pour le \(eggName) ?",
           "Soltar \(monName) e trocar pelo \(eggName)?",
           "\(monName) verabschieden und gegen \(eggName) tauschen?",
-          "Отпустить \(monName) и взять «\(eggName)»?")
+          "Отпустить \(monName) и взять \"\(eggName)\"?")
     }
     var freshEggShinyWarning: String { t("⚠️ 이로치 포켓몬이에요! 정말 놓아줄까요?", "⚠️ This one is shiny! Really send it off?", "⚠️ 色違いです！本当に手放しますか？", "⚠️ ¡Este es variocolor! ¿Seguro que quieres soltarlo?", "⚠️ Celui-ci est chromatique ! Vraiment le laisser partir ?", "⚠️ Esse é shiny! Quer mesmo soltar?", "⚠️ Dieses Pokémon ist schillernd! Wirklich verabschieden?", "⚠️ Это шайни! Точно отпустить?") }
     var freshEggLegendaryWarning: String { t("⚠️ 전설 포켓몬이에요! 정말 놓아줄까요?", "⚠️ This is a Legendary Pokémon! Really send it off?", "⚠️ 伝説のポケモンです！本当に手放しますか？", "⚠️ ¡Es un Pokémon legendario! ¿Seguro que quieres soltarlo?", "⚠️ C'est un Pokémon légendaire ! Vraiment le laisser partir ?", "⚠️ Esse é um Pokémon lendário! Quer mesmo soltar?", "⚠️ Dieses Pokémon ist legendär! Wirklich verabschieden?", "⚠️ Это легендарный покемон! Точно отпустить?") }

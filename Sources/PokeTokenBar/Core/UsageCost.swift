@@ -30,7 +30,7 @@ struct UsageCost: Sendable, Equatable {
     }
 
     func text(_ l: L, compact: Bool = false) -> String {
-        if coverage.unknown && !coverage.hasKnown { return compact ? "$—" : l.costUnavailable }
+        if coverage.unknown && !coverage.hasKnown { return compact ? "$-" : l.costUnavailable }
         return compact ? TokenFormatter.costCompact(amount) : TokenFormatter.cost(amount)
     }
 

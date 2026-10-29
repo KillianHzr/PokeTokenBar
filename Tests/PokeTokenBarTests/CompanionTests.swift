@@ -2336,13 +2336,13 @@ final class CompanionIdentityTests: XCTestCase {
     func testLocalizationIncludesDelayedHatchRetry() {
         let expected = [
             "⏳ 부화가 지연되고 있어요. 다음 새로고침에서 다시 시도해요",
-            "⏳ Hatching is delayed — retrying on the next refresh",
+            "⏳ Hatching is delayed; retrying on the next refresh",
             "⏳ 孵化が遅れています。次回の更新時に再試行します",
             "⏳ La eclosión se retrasa; se reintentará en la próxima actualización",
-            "⏳ L’éclosion est retardée — nouvel essai au prochain rafraîchissement",
-            "⏳ A eclosão está atrasada — nova tentativa na próxima atualização",
-            "⏳ Das Schlüpfen verzögert sich — neuer Versuch bei der nächsten Aktualisierung",
-            "⏳ Вылупление задерживается — повторим при следующем обновлении",
+            "⏳ L’éclosion est retardée : nouvel essai au prochain rafraîchissement",
+            "⏳ A eclosão está atrasada; nova tentativa na próxima atualização",
+            "⏳ Das Schlüpfen verzögert sich: neuer Versuch bei der nächsten Aktualisierung",
+            "⏳ Вылупление задерживается, повторим при следующем обновлении",
         ]
         XCTAssertEqual(AppLanguage.allCases.count, expected.count)
         for (lang, copy) in zip(AppLanguage.allCases, expected) {

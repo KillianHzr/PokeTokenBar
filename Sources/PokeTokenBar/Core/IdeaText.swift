@@ -69,7 +69,7 @@ extension L {
           "La page GitHub s'ouvre déjà remplie : connecte-toi et appuie sur Envoyer.",
           "A página do GitHub abre preenchida: entre e toque em Enviar.",
           "Die GitHub-Seite öffnet sich ausgefüllt: Melde dich an und drücke auf Senden.",
-          "Откроется заполненная страница GitHub: войдите и нажмите «Отправить».")
+          "Откроется заполненная страница GitHub: войдите и нажмите \"Отправить\".")
     }
 
     var ideasSent: String {
