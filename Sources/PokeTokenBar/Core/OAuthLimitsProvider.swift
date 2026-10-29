@@ -117,6 +117,8 @@ struct OAuthLimitsProvider: ClaudeLimitsProviding, Sendable {
 struct AccountIdentity: Equatable, Sendable {
     let email: String
     let organizationName: String?
+    /// The seat's own tier, saved by Claude Code as `userRateLimitTier`: a Team seat can carry a Max tier.
+    var rateLimitTier: String? = nil
 }
 
 /// profile 조회 캐시 — 토큰이 바뀌지 않는 한 계정 주인도 바뀌지 않으므로 토큰당 1회만 네트워크를 탄다

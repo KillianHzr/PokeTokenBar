@@ -347,11 +347,11 @@ struct SessionKeyLimitsProvider: ClaudeLimitsProviding, SessionKeyManaging {
             case rateLimitTier = "rate_limit_tier"
         }
 
-        /// Max when the capabilities or the tier say so, Pro when the capabilities do, else unknown.
+        /// Max when the capabilities or the tier say so, Pro or Team (`raven`) when the capabilities do, else unknown.
         func plan(at date: Date) -> SessionKeyPlan {
             let capabilities = capabilities ?? []
             let type: String? = capabilities.contains("claude_max") || rateLimitTier?.contains("claude_max") == true
-                ? "max" : capabilities.contains("claude_pro") ? "pro" : nil
+                ? "max" : capabilities.contains("claude_pro") ? "pro" : capabilities.contains("raven") ? "team" : nil
             return SessionKeyPlan(subscriptionType: type, rateLimitTier: rateLimitTier, readAt: date)
         }
     }

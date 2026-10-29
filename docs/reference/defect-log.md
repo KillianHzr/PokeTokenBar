@@ -1141,6 +1141,19 @@ read_when:
   회귀 가드: `testAutoRefreshUsesNoPromptPathManualUsesPromptPath`. (완전 근절은 Developer ID
   notarization 으로 '항상 허용' 승인을 안정화하는 것뿐 — 신뢰된 서명 신원이라야 ACL 승인이 지속된다.
   미도입.)
+- **A second limits source must carry what the first one gave: the plan, the seat's tier and whose account it
+  is, for every account.** The OAuth path reads the plan and the seat's tier from the credential and the email from
+  the profile endpoint; a session key answer has none of them. The plan came back from the organization row, but
+  only for `claude_pro` and `claude_max`, so a Team organization (`raven`) showed no plan. That row also carries the
+  organization's tier (`default_raven`, no multiple), not the seat's: a Team seat on `default_claude_max_5x` was paid
+  a Pro plan's candies once a session key replaced the Keychain. Claude Code saves the seat's tier in `.claude.json`
+  (`userRateLimitTier`), and `fillIdentity` now takes it when it is worth more than the answer's. The saved login
+  came back through `fillIdentity` for the other folders, while the default account filled only the local copy that
+  merges duplicate tabs: loaded by a session key, its tab fell back to `~/.claude` with no account line. Each path
+  had its tests (a Pro row, a saved login on the placeholder tab), never the default account loaded by a session
+  key. Guards: `testATeamOrganizationReadsAsTeam`, `testLoadedDefaultLimitsWithoutAnEmailTakeTheSavedLogin`,
+  `testTheSavedSeatTierNeverLowersTheAnswersOwn`. Enterprise rows stay unmapped until a sample shows how they
+  differ from Team.
 - **Claude Keychain '항상 허용'은 ACL 리셋으로 유지되지 않는다 — 비간섭 상시 `(?)` 도움말로 세션 키 등록을 유도.**
   macOS 의 `security add-generic-password -U` 동작상 Claude CLI 가 토큰을 갱신할 때마다 기존 항목의 ACL(항상 허용)이
   날아간다. 사용자가 시스템 창에서 '항상 허용'을 눌렀음에도 다음 번에 또 암호를 묻는 것은 앱 버그가 아닌 macOS+CLI 한계이므로,

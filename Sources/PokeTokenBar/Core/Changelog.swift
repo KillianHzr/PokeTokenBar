@@ -334,6 +334,17 @@ enum Changelog {
                                                       "O custo de um dia passado não some mais das estatísticas quando uma leitura o lê pior.",
                                                       "Die Kosten eines vergangenen Tages verschwinden nicht mehr aus der Statistik, wenn eine Abfrage ihn schlechter liest.",
                                                       "Стоимость прошедшего дня больше не пропадает из статистики, когда запрос читает его хуже.") }),
+            .fixed("2026-10-29-session-key-account-details") { l in
+                let candy = l.itemName(.rareCandy)
+                return l.t("claude.ai 세션 키로 읽은 공식 한도에 이제 Team 플랜이 보이고, Max 등급의 Team 좌석은 Max 속도로 \(KoreanParticle.object.attach(to: candy)) 받아요. 기본 계정도 이름과 이메일이 보여요.",
+                           "Official limits read with a claude.ai session key now show a Team plan, a Team seat on a Max tier earns \(candy) at its Max pace, and the default account shows its name and email.",
+                           "claude.ai セッションキーで読んだ公式上限に Team プランが表示され、Max 枠の Team シートは Max のペースで\(candy)をもらえます。デフォルトのアカウントにも名前とメールが出ます。",
+                           "Los límites oficiales leídos con una clave de sesión de claude.ai ahora muestran el plan Team, un puesto Team con nivel Max gana \(candy) a ritmo Max, y la cuenta predeterminada muestra su nombre y su correo.",
+                           "Les limites officielles lues avec une clé de session claude.ai affichent maintenant le forfait Team, un siège Team au palier Max gagne ses \(candy) au rythme Max, et le compte par défaut montre son nom et son adresse.",
+                           "Os limites oficiais lidos com uma chave de sessão do claude.ai agora mostram o plano Team, um assento Team de nível Max ganha \(candy) no ritmo Max, e a conta padrão mostra seu nome e e-mail.",
+                           "Offizielle Limits, die mit einem claude.ai Sitzungsschlüssel gelesen werden, zeigen jetzt den Team-Tarif, ein Team-Platz mit Max-Stufe bekommt \(candy) im Max-Tempo, und das Standardkonto zeigt seinen Namen und seine E-Mail.",
+                           "Официальные лимиты, прочитанные по ключу сессии claude.ai, теперь показывают тариф Team, место Team с уровнем Max получает \"\(candy)\" в темпе Max, а основной аккаунт показывает имя и почту.")
+            },
             .new("2026-10-29-hatch-odds", { $0.t("상점과 가방의 알과 진화의 돌이 지금 부화하면 나올 확률을 보여 줘요: 등급별 확률과 새 종이 나올 확률.",
                                                  "Eggs and evolution stones in the Shop and the Bag show their odds if they hatched now: each rarity's share and the chance of a new species.",
                                                  "ショップとバッグのタマゴと進化の石に、いま孵った場合の確率が出ます。レア度ごとの確率と、新しい種が出る確率です。",
