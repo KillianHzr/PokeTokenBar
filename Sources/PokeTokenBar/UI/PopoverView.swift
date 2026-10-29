@@ -1473,9 +1473,13 @@ struct PopoverView: View {
                     Task { await store.refresh() }
                 }
                 if let updated = store.lastUpdated {
+                    // One line: with the calendar's button the six icons left it some 70 points, and "Mis à jour 3 s"
+                    // broke in two.
                     (Text("\(l.updated) ") + Text(updated, style: .relative))
                         .font(.caption)
                         .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
                 }
                 if store.lastErrorDescription != nil {
                     Image(systemName: "exclamationmark.triangle")
@@ -1483,23 +1487,25 @@ struct PopoverView: View {
                         .hoverTip(store.lastErrorMessage(l) ?? "")
                 }
             }
-            Spacer()
-            // 끄기는 펫 우클릭. 켜기는 여기 — 숨기면 우클릭할 대상이 없다(#301).
-            // Settings 체크박스와 같은 `floatingPetEnabled`. 홈 탭에만 두면 도감에서 못 켠다.
-            CircleIconButton(systemImage: store.floatingPetEnabled ? "eye" : "eye.slash",
-                             help: store.floatingPetEnabled ? l.floatingPetHideLabel : l.floatingPetEnableLabel) {
-                store.floatingPetEnabled.toggle()
-            }
-            CircleIconButton(systemImage: "lightbulb", help: l.ideasTitle) { nav.showingIdeas = true }
-            CircleIconButton(systemImage: "calendar", help: l.calendarTitle) { nav.showingCalendar = true }
-            CircleIconButton(systemImage: "newspaper", help: l.changelogTitle) { openChangelog() }
-                .overlay(alignment: .topTrailing) {
-                    if store.hasUnseenChangelog {
-                        Circle().fill(Color.red).frame(width: 7, height: 7).offset(x: 1, y: -1)
-                    }
+            Spacer(minLength: 4)
+            HStack(spacing: 6) {
+                // 끄기는 펫 우클릭. 켜기는 여기 — 숨기면 우클릭할 대상이 없다(#301).
+                // Settings 체크박스와 같은 `floatingPetEnabled`. 홈 탭에만 두면 도감에서 못 켠다.
+                CircleIconButton(systemImage: store.floatingPetEnabled ? "eye" : "eye.slash",
+                                 help: store.floatingPetEnabled ? l.floatingPetHideLabel : l.floatingPetEnableLabel) {
+                    store.floatingPetEnabled.toggle()
                 }
-            CircleIconButton(systemImage: "gearshape", help: l.settings) { nav.showSettings = true }
-            CircleIconButton(systemImage: "power", help: l.quit) { NSApplication.shared.terminate(nil) }
+                CircleIconButton(systemImage: "lightbulb", help: l.ideasTitle) { nav.showingIdeas = true }
+                CircleIconButton(systemImage: "calendar", help: l.calendarTitle) { nav.showingCalendar = true }
+                CircleIconButton(systemImage: "newspaper", help: l.changelogTitle) { openChangelog() }
+                    .overlay(alignment: .topTrailing) {
+                        if store.hasUnseenChangelog {
+                            Circle().fill(Color.red).frame(width: 7, height: 7).offset(x: 1, y: -1)
+                        }
+                    }
+                CircleIconButton(systemImage: "gearshape", help: l.settings) { nav.showSettings = true }
+                CircleIconButton(systemImage: "power", help: l.quit) { NSApplication.shared.terminate(nil) }
+            }
         }
     }
 }

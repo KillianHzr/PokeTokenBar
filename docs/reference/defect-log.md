@@ -1753,6 +1753,10 @@ read_when:
   place before. The strip keeps the page itself (`newsSelection`), the claims select their note (UI closure, no unit
   test).
 
+- **A button added to a full row takes its room from the row's text.** The events calendar's button made six icons
+  in the footer, which left the refresh time some 70 points: "Mis à jour 3 s" broke in two, seen on the PR's renders.
+  The icons sit 6 points apart and the time keeps one line (French, German and Russian rendered).
+
 ## 에너지 (상시 표시 애니메이션)
 
 - **절전용 정지 상태는 짝 알림 하나에만 복구를 맡기지 마라.** `screensDidSleep` 이 폴링 타이머를 끄고
