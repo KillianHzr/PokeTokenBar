@@ -51,7 +51,9 @@ enum CrashReporter {
         // A polite termination request quits as a Quit does (`willTerminate`, the marker removed).
         signal(SIGTERM, SIG_IGN)
         let terminate = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
-        terminate.setEventHandler { NSApplication.shared.terminate(nil) }
+        // Run on the main queue, so on the main actor, said so: the macOS 15 SDK's handler is not isolated, and CI's
+        // Xcode 16.4 refused the call that a later SDK lets through.
+        terminate.setEventHandler { MainActor.assumeIsolated { NSApplication.shared.terminate(nil) } }
         terminate.resume()
         terminationSource = terminate
 

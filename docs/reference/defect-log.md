@@ -1124,6 +1124,13 @@ read_when:
   `nonisolated(unsafe)` fixtures as `RareCandyTests` and `WindowCandyTests` do. The first fix called `super` and
   failed CI a second time. The sweep found no other sync `tearDown` touching main-actor state.
 
+- **The local toolchain is not CI's: CI's Xcode 16.4 is the floor.** The SIGTERM handler called
+  `NSApplication.shared.terminate` from a Dispatch handler: Swift 6.2 with the macOS 26 SDK let it through, CI's Xcode
+  16.4 (macOS 15 SDK, whose handler is not isolated) refused it, and PR #97 went red. **Why missed:** PRs into
+  `release` get no CI, and the local suite runs on the newer compiler only. A callback of Dispatch, AppKit or
+  NotificationCenter that touches the main actor says so (`MainActor.assumeIsolated` on a main-queue handler); the
+  `release → main` PR's CI is the first build on the floor toolchain, so its result is read before anything else.
+
 ## 자격증명·Keychain
 
 - **앱 소유 keychain 항목 금지.** 앱이 만든 keychain 항목은 코드서명(cdhash)이 바뀔 때마다(로컬 재빌드·
