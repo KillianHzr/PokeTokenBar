@@ -66,8 +66,8 @@ enum Changelog {
     }
 
     static let days: [ChangelogDay] = [
-        ChangelogDay(date: "2026-10-28", entries: [
-            .new("2026-10-28-hatch-odds", { $0.t("상점과 가방의 알과 진화의 돌이 지금 부화하면 나올 확률을 보여 줘요: 등급별 확률과 새 종이 나올 확률.",
+        ChangelogDay(date: "2026-10-29", entries: [
+            .new("2026-10-29-hatch-odds", { $0.t("상점과 가방의 알과 진화의 돌이 지금 부화하면 나올 확률을 보여 줘요: 등급별 확률과 새 종이 나올 확률.",
                                                  "Eggs and evolution stones in the Shop and the Bag show their odds if they hatched now: each rarity's share and the chance of a new species.",
                                                  "ショップとバッグのタマゴと進化の石に、いま孵った場合の確率が出ます。レア度ごとの確率と、新しい種が出る確率です。",
                                                  "Los huevos y las piedras evolutivas de la tienda y la mochila muestran sus probabilidades si eclosionaran ahora: cada rareza y la de una especie nueva.",
@@ -75,7 +75,7 @@ enum Changelog {
                                                  "Ovos e pedras de evolução da loja e da mochila mostram suas chances se chocassem agora: cada raridade e a chance de uma espécie nova.",
                                                  "Eier und Entwicklungssteine im Shop und im Beutel zeigen ihre Chancen, wenn sie jetzt schlüpfen würden: jede Seltenheit und die Chance auf eine neue Art.",
                                                  "Яйца и камни эволюции в магазине и сумке показывают шансы, если бы вылупились сейчас: каждая редкость и шанс нового вида.") }),
-            .new("2026-10-28-candy-notches") { l in
+            .new("2026-10-29-candy-notches") { l in
                 let candy = l.itemName(.rareCandy)
                 return l.t("한도마다 이번 창에서 받은 \(KoreanParticle.object.attach(to: candy)) 보여 줘요(\"5개 중 2개 · 다음: 60%\"). 창마다 다섯 개 이하면 막대에 눈금도 생겨요.",
                            "Each limit shows the \(candy) its window paid (\"2 of 5 · next at 60%\"), with notches on the bar for a window of five or fewer.",
@@ -86,7 +86,7 @@ enum Changelog {
                            "Jedes Limit zeigt die \(candy), die sein Fenster gezahlt hat (\"2 von 5 · nächstes bei 60%\"), mit Kerben auf dem Balken bei fünf oder weniger.",
                            "Каждый лимит показывает \"\(candy)\", полученные за его окно (\"2 из 5 · следующая при 60%\"), с засечками на полосе, если их пять или меньше.")
             },
-            .new("2026-10-28-time-to-evolve", { $0.t("포켓몬 아래에 지금 속도로 다음 진화까지 걸리는 시간이 보여요(지난 7일 평균).",
+            .new("2026-10-29-time-to-evolve", { $0.t("포켓몬 아래에 지금 속도로 다음 진화까지 걸리는 시간이 보여요(지난 7일 평균).",
                                                      "Under your Pokémon, the time to its next stage at your pace (the last seven days' average).",
                                                      "ポケモンの下に、いまのペースで次の段階までかかる時間が出ます（過去7日の平均）。",
                                                      "Bajo tu Pokémon, el tiempo hasta su siguiente etapa a tu ritmo (la media de los últimos siete días).",
@@ -94,7 +94,7 @@ enum Changelog {
                                                      "Abaixo do seu Pokémon, o tempo até a próxima etapa no seu ritmo (a média dos últimos sete dias).",
                                                      "Unter deinem Pokémon steht die Zeit bis zur nächsten Stufe in deinem Tempo (der Schnitt der letzten sieben Tage).",
                                                      "Под покемоном время до следующей стадии в вашем темпе (среднее за последние семь дней).") }),
-            .new("2026-10-28-token-candies") { l in
+            .new("2026-10-29-token-candies") { l in
                 let candy = l.itemName(.rareCandy)
                 return l.t("한도가 없는 도구(Cursor, Gemini CLI 등)도 이제 6,500만 토큰마다 \(KoreanParticle.object.attach(to: candy)) 1개 줘요. Claude Max 5x 요금제와 같은 속도예요.",
                            "Tools without limits (Cursor, Gemini CLI…) now pay a \(candy) every 65M tokens, the pace Claude pays a Max 5x plan.",
@@ -105,7 +105,7 @@ enum Changelog {
                            "Tools ohne Limit (Cursor, Gemini CLI …) geben jetzt alle 65M Tokens ein \(candy), im Tempo, in dem Claude einen Max-5x-Tarif bezahlt.",
                            "Инструменты без лимитов (Cursor, Gemini CLI…) теперь дают \"\(candy)\" за каждые 65M токенов, в темпе Claude на тарифе Max 5x.")
             },
-            .new("2026-10-28-raising-record", { $0.t("도감의 포켓몬 페이지에 육성 기록이 생겼어요: 부화와 졸업 시각, 걸린 시간, 도구별 토큰, 주로 쓴 모델, 사용한 사탕 수, 예상 비용. 이제부터 키우는 포켓몬에 기록돼요.",
+            .new("2026-10-29-raising-record", { $0.t("도감의 포켓몬 페이지에 육성 기록이 생겼어요: 부화와 졸업 시각, 걸린 시간, 도구별 토큰, 주로 쓴 모델, 사용한 사탕 수, 예상 비용. 이제부터 키우는 포켓몬에 기록돼요.",
                                                      "A raising record on each Pokémon's Pokédex page: when it hatched and graduated, how long it took, its tokens by tool, its main model, the candies used and an estimated cost. It is kept for the Pokémon raised from now on.",
                                                      "図鑑のポケモンのページに育成記録が付きました。孵化と卒業の時刻、かかった時間、ツールごとのトークン、主なモデル、使ったアメの数、推定コストです。これから育てるポケモンに記録されます。",
                                                      "Un diario de crianza en la página de cada Pokémon de la Pokédex: cuándo eclosionó y se graduó, cuánto tardó, sus tokens por herramienta, su modelo principal, los caramelos usados y un costo estimado. Se guarda para los Pokémon criados desde ahora.",
@@ -113,7 +113,7 @@ enum Changelog {
                                                      "Um diário de criação na página de cada Pokémon da Pokédex: quando chocou e se formou, quanto tempo levou, seus tokens por ferramenta, seu modelo principal, os doces usados e um custo estimado. Ele é mantido para os Pokémon criados a partir de agora.",
                                                      "Ein Aufzuchtbuch auf der Pokédex-Seite jedes Pokémon: wann es schlüpfte und verabschiedet wurde, wie lange es dauerte, seine Tokens je Tool, sein Hauptmodell, die verwendeten Bonbons und geschätzte Kosten. Es wird für die ab jetzt aufgezogenen Pokémon geführt.",
                                                      "Дневник выращивания на странице каждого покемона в покедексе: когда вылупился и был выпущен, сколько это заняло, токены по инструментам, основная модель, использованные конфеты и оценка стоимости. Ведётся для покемонов, выращенных с этого момента.") }),
-            .improved("2026-10-28-egg-items-growth") { l in
+            .improved("2026-10-29-egg-items-growth") { l in
                 let wing = l.itemName(.silverWing), orb = l.itemName(.teraOrb), incense = l.itemName(.seaIncense)
                 return l.t("\(KoreanParticle.subject.attach(to: wing)) 모든 포켓몬을 25% 더 빨리, \(KoreanParticle.subject.attach(to: orb)) 진화의 돌로 받은 포켓몬을, \(KoreanParticle.subject.attach(to: incense)) 등급 확정 알의 포켓몬을 30% 더 빨리 키워요.",
                            "The \(wing) now grows every Pokémon 25% faster, the \(orb) a Pokémon from a stone 30% faster, the \(incense) one from an egg of a guaranteed rarity 30% faster.",
@@ -124,14 +124,14 @@ enum Changelog {
                            "Der \(wing) lässt jetzt jedes Pokémon 25 % schneller wachsen, der \(orb) eines aus einem Stein 30 % und der \(incense) eines aus einem Ei mit garantierter Seltenheit 30 %.",
                            "\"\(wing)\" теперь ускоряет рост всех покемонов на 25%, \"\(orb)\" покемонов из камня на 30%, \"\(incense)\" покемонов из яйца с гарантией редкости на 30%.")
             },
-            .improved("2026-10-28-mint-retired") { l in
+            .improved("2026-10-29-mint-retired") { l in
                 let mint = l.itemName(.mint)
                 return l.t("\(KoreanParticle.subject.attach(to: mint)) 상점과 가방에서 빠졌어요.", "The \(mint) is no longer in the Shop or the Bag.",
                            "\(mint)はショップとバッグからなくなりました。", "La \(mint) ya no está en la tienda ni en la mochila.",
                            "La \(mint) n'est plus dans la boutique ni dans le sac.", "A \(mint) não está mais na loja nem na mochila.",
                            "Die \(mint) ist nicht mehr im Shop und nicht mehr im Beutel.", "\"\(mint)\" больше нет в магазине и в сумке.")
             },
-            .fixed("2026-10-28-launch-at-login", { $0.t("업데이트 뒤에도 로그인 시 실행이 계속 동작해요. 다음 로그인부터 적용돼요.",
+            .fixed("2026-10-29-launch-at-login", { $0.t("업데이트 뒤에도 로그인 시 실행이 계속 동작해요. 다음 로그인부터 적용돼요.",
                                                         "Launch at login keeps working after an update, from your next login.",
                                                         "アップデート後もログイン時の起動が動き続けます。次のログインから有効です。",
                                                         "El inicio al iniciar sesión sigue funcionando tras actualizar, desde tu próximo inicio de sesión.",
@@ -139,14 +139,14 @@ enum Changelog {
                                                         "Abrir ao iniciar a sessão continua funcionando depois de atualizar, a partir da próxima sessão.",
                                                         "Der Start bei der Anmeldung funktioniert auch nach einem Update, ab deiner nächsten Anmeldung.",
                                                         "Запуск при входе снова работает после обновления, со следующего входа.") }),
-            .improved("2026-10-28-shiny-charm-owned") { l in
+            .improved("2026-10-29-shiny-charm-owned") { l in
                 let charm = l.itemName(.shinyCharm)
                 return l.t("산 \(KoreanParticle.subject.attach(to: charm)) 상점에서 사라지고 가방에만 있어요.", "A \(charm) bought leaves the Shop: it is in your Bag.",
                            "買った\(charm)はショップから消え、バッグにだけあります。", "El \(charm) comprado sale de la tienda: está en tu mochila.",
                            "Un \(charm) acheté quitte la boutique : il est dans ton sac.", "O \(charm) comprado sai da loja: ele está na sua mochila.",
                            "Ein gekaufter \(charm) verschwindet aus dem Shop: Er ist in deinem Beutel.", "Купленный \"\(charm)\" пропадает из магазина: он в сумке.")
             },
-            .improved("2026-10-28-reins-not-common") { l in
+            .improved("2026-10-29-reins-not-common") { l in
                 let reins = l.itemName(.reinsOfUnity)
                 let candy = l.itemName(.rareCandy)
                 return l.t("\(KoreanParticle.subject.attach(to: reins)) 이제 일반 등급을 뺀 포켓몬이 졸업할 때마다 \(KoreanParticle.object.attach(to: candy)) 줘요.",
@@ -158,7 +158,7 @@ enum Changelog {
                            "Die \(reins) geben jetzt für jeden Abschluss ein \(candy), außer für gewöhnliche Pokémon.",
                            "\"\(reins)\" теперь дают \"\(candy)\" за каждый выпуск, кроме обычных покемонов.")
             },
-            .fixed("2026-10-28-friendship-egg-ditto") { l in
+            .fixed("2026-10-29-friendship-egg-ditto") { l in
                 let egg = l.eventEggName(.companion)
                 return l.t("첫 포켓몬이 메타몽이었어도 \(KoreanParticle.subject.attach(to: egg)) 부화해요. 다음에 잡은 포켓몬의 라인이 나와요.",
                            "The \(egg) hatches even when your first Pokémon was a Ditto: it brings back your next catch's line.",
@@ -169,7 +169,7 @@ enum Changelog {
                            "Das \(egg) schlüpft, auch wenn dein erstes Pokémon ein Ditto war: Es bringt die Linie deines nächsten Fangs.",
                            "\"\(egg)\" вылупляется, даже если первым покемоном был Дитто: оно приносит линию следующей поимки.")
             },
-            .fixed("2026-10-28-safe-update", { $0.t("업데이트가 실패해도 지금 앱은 그대로 남고 다시 열리며, 이유를 알려 줘요.",
+            .fixed("2026-10-29-safe-update", { $0.t("업데이트가 실패해도 지금 앱은 그대로 남고 다시 열리며, 이유를 알려 줘요.",
                                                     "A failed update now leaves your app as it was, reopens it and tells you why.",
                                                     "アップデートに失敗しても、いまのアプリはそのまま残って再び開き、理由を表示します。",
                                                     "Si una actualización falla, tu app queda como estaba, se vuelve a abrir y te dice por qué.",
@@ -177,7 +177,7 @@ enum Changelog {
                                                     "Uma atualização que falha agora deixa seu app como estava, reabre e diz por quê.",
                                                     "Ein fehlgeschlagenes Update lässt deine App jetzt unverändert, öffnet sie wieder und sagt dir, warum.",
                                                     "Неудачное обновление теперь оставляет приложение как было, снова открывает его и объясняет причину.") }),
-            .fixed("2026-10-28-candy-accounts") { l in
+            .fixed("2026-10-29-candy-accounts") { l in
                 let candy = l.itemName(.rareCandy)
                 return l.t("같은 폴더에서 계정을 바꾸거나, 백업을 복원하거나, 자정 뒤 서쪽 시간대로 이동해도 토큰과 \(candy) 개수가 바르게 계산돼요.",
                            "Tokens and \(candy) counts are now right when you switch accounts in the same folder, restore a backup, or move to a time zone to the west after midnight.",
@@ -188,7 +188,7 @@ enum Changelog {
                            "Tokens und der Zähler für \(candy) stimmen jetzt, wenn du im selben Ordner das Konto wechselst, ein Backup wiederherstellst oder nach Mitternacht in eine Zeitzone weiter westlich wechselst.",
                            "Токены и счёт \"\(candy)\" теперь верны при смене аккаунта в той же папке, восстановлении копии или переходе после полуночи в часовой пояс западнее.")
             },
-            .improved("2026-10-28-lighter-saves", { $0.t("앱이 바뀐 게 있을 때만 저장해서 디스크를 덜 쓰고, 설정도 더 빨리 열려요.",
+            .improved("2026-10-29-lighter-saves", { $0.t("앱이 바뀐 게 있을 때만 저장해서 디스크를 덜 쓰고, 설정도 더 빨리 열려요.",
                                                          "The app saves only when something changed, writing far less to disk, and Settings open faster.",
                                                          "変化があったときだけ保存するので、ディスクへの書き込みがずっと減り、設定も速く開きます。",
                                                          "La app solo guarda cuando algo cambió, escribe mucho menos en disco y los Ajustes se abren más rápido.",
@@ -196,7 +196,7 @@ enum Changelog {
                                                          "O app só salva quando algo mudou, grava bem menos no disco e os Ajustes abrem mais rápido.",
                                                          "Die App speichert nur noch, wenn sich etwas geändert hat, schreibt viel weniger auf die Festplatte, und die Einstellungen öffnen sich schneller.",
                                                          "Приложение сохраняет данные только при изменениях, гораздо меньше пишет на диск, а настройки открываются быстрее.") }),
-            .improved("2026-10-28-rotom-catalog-graduation") { l in
+            .improved("2026-10-29-rotom-catalog-graduation") { l in
                 let catalog = l.itemName(.rotomCatalog)
                 return l.t("\(catalog)의 이상한 사탕은 이제 그 진화 라인이 처음 졸업시키는 폼으로 포켓몬이 졸업할 때, 폼마다 한 번 받아요.",
                            "The \(catalog) now gives its Rare Candy when a Pokémon graduates in a form its line had never graduated, once per form.",
@@ -207,7 +207,7 @@ enum Changelog {
                            "Der \(catalog) gibt sein Sonderbonbon jetzt, wenn ein Pokémon in einer Form verabschiedet wird, die seine Linie noch nie verabschiedet hat, einmal pro Form.",
                            "\"\(catalog)\" теперь даёт Редкую конфету, когда покемона выпускают в форме, которую его линия ещё не выпускала, по разу за форму.")
             },
-            .fixed("2026-10-28-fossil-egg-in-progress") { l in
+            .fixed("2026-10-29-fossil-egg-in-progress") { l in
                 let egg = l.itemName(.fossilEgg)
                 return l.t("\(egg)에서 태어난 포켓몬을 키우는 동안에는 \(egg)을 쓸 수 없어요. 진화의 돌이나 다른 알로 놓아줄 수 있어요.",
                            "The \(egg) is greyed out while a Pokémon from a \(egg) grows: a stone or another egg can still send it off.",
@@ -218,7 +218,7 @@ enum Changelog {
                            "Das \(egg) ist ausgegraut, solange ein Pokémon aus einem \(egg) wächst: Ein Stein oder ein anderes Ei kann es weiterhin freilassen.",
                            "\"\(egg)\" недоступно, пока растёт покемон из \"\(egg)\": камень или другое яйцо всё ещё могут его отпустить.")
             },
-            .improved("2026-10-28-shop-eggs-to-bag") { $0.t("상점에서 산 알은 이제 가방에 들어가요. 지금 포켓몬을 놓아줄 때를 직접 골라 가방에서 쓰면 돼요.",
+            .improved("2026-10-29-shop-eggs-to-bag") { $0.t("상점에서 산 알은 이제 가방에 들어가요. 지금 포켓몬을 놓아줄 때를 직접 골라 가방에서 쓰면 돼요.",
                                                          "An egg bought in the Shop now goes in your Bag: use it from there when you choose to send off your current Pokémon.",
                                                          "ショップで買ったタマゴはバッグに入るようになりました。いまのポケモンを手放すタイミングを選んで、バッグから使えます。",
                                                          "El huevo comprado en la tienda ahora va a tu mochila: úsalo desde ahí cuando decidas soltar a tu Pokémon actual.",
@@ -226,7 +226,7 @@ enum Changelog {
                                                          "O ovo comprado na loja agora vai para a sua mochila: use de lá quando decidir soltar seu Pokémon atual.",
                                                          "Ein im Shop gekauftes Ei kommt jetzt in deinen Beutel: Benutze es dort, wenn du dein aktuelles Pokémon verabschieden willst.",
                                                          "Яйцо из магазина теперь попадает в сумку: используйте его оттуда, когда решите отпустить текущего покемона.") },
-            .fixed("2026-10-28-smooth-move-list") { $0.t("도감에서 포켓몬의 전체 기술 목록이 이제 끊기지 않고 부드럽게 스크롤돼요.",
+            .fixed("2026-10-29-smooth-move-list") { $0.t("도감에서 포켓몬의 전체 기술 목록이 이제 끊기지 않고 부드럽게 스크롤돼요.",
                                                      "A Pokémon's full move list in the Pokédex now scrolls smoothly instead of lagging.",
                                                      "図鑑のポケモンのわざ一覧が、引っかからずになめらかにスクロールするようになりました。",
                                                      "La lista completa de movimientos de un Pokémon en la Pokédex ahora se desplaza con fluidez, sin tirones.",
@@ -234,6 +234,8 @@ enum Changelog {
                                                      "A lista completa de golpes de um Pokémon na Pokédex agora rola com fluidez, sem travar.",
                                                      "Die vollständige Attackenliste eines Pokémon im Pokédex scrollt jetzt flüssig statt zu ruckeln.",
                                                      "Полный список приёмов покемона в покедексе теперь прокручивается плавно, без рывков.") },
+        ]),
+        ChangelogDay(date: "2026-10-28", entries: [
             .improved("2026-10-28-season-eggs") { $0.t("계절 알은 이제 그 계절 동안 언제든, 계절마다 한 번 받을 수 있어요. 이번 가을 알도 지금 배너에 있어요.",
                                                     "A season's egg now waits any day of its season, once per season: this autumn's is in the banner now.",
                                                     "季節のタマゴは、その季節のあいだいつでも、季節ごとに1回受け取れるようになりました。この秋のタマゴもいまバナーにあります。",
