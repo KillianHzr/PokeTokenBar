@@ -599,7 +599,11 @@ final class SaveTransferTests: XCTestCase {
                                      "lastHatchedBaseID",
                                      // The tokens of tools without limits toward the next candy, and the candies
                                      // they paid: counted already, they follow the save.
-                                     "tokenCandyTokens", "tokenCandiesEarned"]
+                                     "tokenCandyTokens", "tokenCandiesEarned",
+                                     // What the Old Amber kept for the egg incubating, the graduations toward the
+                                     // Explorer Kit's next treasure and the treasures not seen yet: they follow the egg,
+                                     // the count and the Bag they belong to.
+                                     "amberCarry", "graduationsTowardTreasure", "unseenTreasures"]
         let deviceLedger: Set<String> = ["installBaselineSet", "claimedTodayTokensByProvider", "lastDate"]
         let accountLedger: Set<String> = ["candyGrantTier", "candyWindowEpoch", "candyWindowPlan", "candyFeatureSeeded",
                                           "candyGrantsAsYouGo"]

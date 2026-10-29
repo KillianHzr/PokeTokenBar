@@ -79,7 +79,7 @@ final class AchievementsRenderingTests: XCTestCase {
             state.dex = Self.everySpeciesTwiceMewtwo
             try JSONEncoder().encode(state).write(to: file)
             let store = CompanionStore(provider: AchievementsStubProvider(), fileURL: file, defaults: defaults)
-            XCTAssertEqual(categories.map { AchievementsView.readyCount($0, store) }, [10, 161, 45, 10])
+            XCTAssertEqual(categories.map { AchievementsView.readyCount($0, store) }, [11, 161, 46, 10])
             for category in categories {
                 let title = AchievementsView.tabTitle(category, store)
                 let width = (title as NSString).size(withAttributes: [.font: font]).width

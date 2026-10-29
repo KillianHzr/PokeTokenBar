@@ -1247,6 +1247,12 @@ read_when:
   it away. **Why missed:** the test had an older read answering late, never a newer one failing early. A failure is
   written only when no newer answer came, and does not lead (`testAPollThatFailsDoesNotThrowAwayTheManualRead`).
 
+- **Never read `state` on the right of a write into it through an optional chain.** `state.active?.usedAtStage =
+  min(..., stageThreshold(for: mon))` begins the write before the right side runs, and `stageThreshold` reads
+  `state`: a "Fatal access conflict" trap at the first Old Amber hatch, caught by its test before any commit. The value
+  is computed into a local first. **Sweep:** no other optional-chained write of `CompanionStore` reads `state` on its
+  right (`grep -nE 'state\.active\?\.[A-Za-z]+ (=|\+=) '`).
+
 ## 프로세스·인스턴스
 
 - **로그인 실행을 LaunchAgent 로 등록하면 "등록하는 순간" 앱이 한 번 더 뜬다.** plist 의 `RunAtLoad` 는

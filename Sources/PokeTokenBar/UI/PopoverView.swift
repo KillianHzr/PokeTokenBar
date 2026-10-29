@@ -378,6 +378,37 @@ struct PopoverView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
+    /// What the Explorer Kit dug up, until the Bag is opened or the page closed. A Legendary Egg is the jackpot, in its
+    /// own color and title.
+    @ViewBuilder
+    private var treasureBanner: some View {
+        let treasures = companion.unseenTreasures
+        if let first = treasures.first {
+            let jackpot = first.kind == .legendaryEgg
+            let tint: Color = jackpot ? .purple : .orange
+            HStack(spacing: 8) {
+                ItemIconView(kind: first.kind, size: 32)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(jackpot ? l.treasureJackpotTitle : l.treasureTitle).font(.callout.weight(.bold))
+                    Text(l.treasureBody(treasures)).font(.caption).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 4)
+                Button(l.treasureOpenBag) {
+                    companion.markTreasuresSeen()
+                    nav.tab = .bag
+                }
+                .buttonStyle(.borderedProminent).controlSize(.small).tint(tint)
+                Button { companion.markTreasuresSeen() } label: { Image(systemName: "xmark") }
+                    .buttonStyle(.borderless).controlSize(.small).foregroundStyle(.secondary)
+                    .accessibilityLabel(l.close)
+            }
+            .padding(8)
+            .background(tint.opacity(0.14))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+    }
+
     /// Where the egg just taken went, until closed.
     @ViewBuilder
     private var eventEggTakenBanner: some View {
@@ -429,13 +460,15 @@ struct PopoverView: View {
 
     /// One of the news above the tabs.
     private enum NewsPage: Hashable {
-        case update, birthday, eventEgg(EventEgg), eventEggTaken, changelog
+        case treasure, update, birthday, eventEgg(EventEgg), eventEggTaken, changelog
     }
 
     /// The news waiting, the eggs to take first: every event egg waiting has its page (autumn and Halloween together;
     /// only the first showed until it was taken).
     private var newsPages: [NewsPage] {
         var pages: [NewsPage] = []
+        // The Explorer Kit's treasures first: what just came, which the other news does not hide.
+        if !companion.unseenTreasures.isEmpty { pages.append(.treasure) }
         if updater.isUpdating || updater.updateError != nil
             || (updater.available != nil && store.updateNotificationsEnabled) { pages.append(.update) }
         pages += companion.eventEggs.map { .eventEgg($0.egg) }
@@ -478,6 +511,7 @@ struct PopoverView: View {
     @ViewBuilder
     private func newsPage(_ page: NewsPage) -> some View {
         switch page {
+        case .treasure: treasureBanner
         case .update: updateBanner
         case .birthday: birthdayBanner
         case .eventEgg(let egg):

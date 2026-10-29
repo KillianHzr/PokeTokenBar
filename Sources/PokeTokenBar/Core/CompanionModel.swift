@@ -192,6 +192,9 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     case zRing
     case scrollOfDarkness
     case relicVase
+    /// Every species of the explorers of the depths graduated (`SpeciesGoal.explorers`): every few Pokémon graduated
+    /// dig up a treasure (`ExplorerKit`).
+    case explorerKit
     /// Arceus's achievement: claiming it puts a Rare Egg and an Uncommon Egg in the Bag, not the Plate itself.
     case legendPlate
     /// The forms achievements (`ItemUnlock.forms`): every form of one species graduated. The Rotom Catalog stays and
@@ -201,6 +204,9 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
     case vivillonPatterns, whippedDream, unownLetters
     /// The excavation (`FossilDig`): a Fossil Egg for every few Rock-type Pokémon graduated, one dig per fossil line.
     case excavation
+    /// Every fossil line graduated: a Pokémon sent off for an egg gives part of its stage's EXP to the one that hatches
+    /// (`CollectorBonus.oldAmberKeptPercent`).
+    case oldAmber
     /// What a dig gives: it hatches a fossil line not graduated yet, at random.
     case fossilEgg
     case typeNullEgg
@@ -321,6 +327,8 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .zRing: return "z-ring"
         case .scrollOfDarkness: return "scroll-of-darkness"
         case .relicVase: return "relic-vase"
+        case .explorerKit: return "explorer-kit"
+        case .oldAmber: return "old-amber"
         case .legendPlate: return "legend-plate"
         case .rotomCatalog: return "rotom-catalog"
         case .cometShard: return "comet-shard"
@@ -384,6 +392,8 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .zRing: return "💍"
         case .scrollOfDarkness: return "📜"
         case .relicVase: return "⚱️"
+        case .explorerKit: return "🧰"
+        case .oldAmber: return "🟠"
         case .legendPlate: return "🌌"
         case .rotomCatalog: return "📖"
         case .cometShard: return "☄️"
@@ -492,7 +502,7 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .rareCandy, .mint, .shinyCharm, .birthdayEgg, .pokemonEgg, .uncommonEgg, .rareEgg, .fossilEgg: return nil
         case .newYearEgg, .valentineEgg, .pokemonDayEgg, .easterEgg, .halloweenEgg, .christmasEgg, .companionEgg, .springEgg, .summerEgg, .autumnEgg, .winterEgg: return nil
         case .rotomCatalog, .cometShard, .redNectar, .smoothRock, .sawsbuckSeasons, .fairyFeather, .furfrouTrims, .vivillonPatterns, .whippedDream, .unownLetters: return .forms
-        case .excavation: return .evolutionStones   // rocks and stones, side by side
+        case .excavation, .oldAmber: return .evolutionStones   // rocks and stones, side by side
         default: return .legendaryArtifacts
         }
     }
@@ -554,6 +564,8 @@ enum ItemKind: String, Codable, Sendable, CaseIterable {
         case .relicVase:   return .species([SpeciesGoal([1001, 1002, 1003, 1004])]) // Treasures of Ruin
         case .legendPlate: return .species([SpeciesGoal([493])])                // Arceus
         case .excavation: return regionGoals.map { .species($0.map(\.goal)) }
+        case .oldAmber: return .species([SpeciesGoal(SpeciesGoal.fossils)])           // every fossil line
+        case .explorerKit: return .species([SpeciesGoal(SpeciesGoal.explorers)])      // the explorers of the depths
         case .rotomCatalog: return .forms(FormGoal(479))                        // Rotom's six appliances
         case .cometShard: return .forms(FormGoal(774, excluding: ["meteor"]))   // Minior's seven cores
         case .redNectar: return .forms(FormGoal(741))                           // Oricorio's four styles
@@ -633,6 +645,9 @@ struct SpeciesGoal: Equatable, Sendable {
                               482, 483, 484, 485, 486, 487, 488, 638, 639, 640, 641, 642, 643, 644, 645, 646, 716, 717, 718,
                               772, 785, 786, 787, 788, 789, 800, 888, 889, 890, 891, 894, 895, 896, 897, 898, 905, 1001,
                               1002, 1003, 1004, 1007, 1008, 1014, 1015, 1016, 1017, 1024]
+    /// The explorers of the depths, all Rare: Steelix digs through the earth, Larvitar is born underground, Gible
+    /// lives in caves, Sableye digs them for gems, Orthworm burrows. The Explorer Kit asks for every one.
+    static let explorers = [208, 248, 445, 302, 968]
     /// Paradox Pokémon of Scarlet and Violet and their DLC, ancient then future.
     static let paradoxes = Array(984...995) + [1005, 1006, 1009, 1010] + Array(1020...1023)
 
@@ -655,12 +670,13 @@ enum BonusTheme: CaseIterable, Sendable {
         switch kind {
         case .oldSeaMap, .dnaSplicers, .zygardeCube, .clearBell, .griseousOrb, .prisonBottle, .sparklingStone,
              .sunFlute, .gracidea, .relicStatue, .beastBall, .rustedSword, .boosterEnergy, .tealMask,
-             .magmaStone, .libertyPass, .lunarWing, .oaksLetter, .shockDrive, .zRing, .scrollOfDarkness, .relicVase:
+             .magmaStone, .libertyPass, .lunarWing, .oaksLetter, .shockDrive, .zRing, .scrollOfDarkness, .relicVase,
+             .oldAmber:
             return .growth
         case .silverWing, .teraOrb, .seaIncense, .legendCharm, .ovalCharm: return .eggs
         case .shinyCharm, .revealGlass, .glimmeringCharm: return .shiny
         case .rainbowWing, .jadeOrb: return .shop
-        case .soulDew, .reinsOfUnity, .meteorite, .rotomCatalog: return .candies
+        case .soulDew, .reinsOfUnity, .meteorite, .rotomCatalog, .explorerKit: return .candies
         default: return nil
         }
     }
@@ -727,6 +743,9 @@ enum CollectorBonus {
     static let meteoriteWindowCandies = 1
     /// Rare Candies the Rotom Catalog gives for each Pokémon graduated in a form its line never graduated in.
     static let rotomCatalogNewFormCandies = 1
+    /// Old Amber: the share of its stage's EXP a Pokémon sent off for an egg gives the one that hatches, short of its
+    /// first evolution.
+    static let oldAmberKeptPercent = 50
     /// Oak's Letter: the starters of every region, at every stage.
     static let oaksLetterStarter = 1.25
     static let starterLines: Set<Int> = Set([1, 152, 252, 387, 495, 650, 722, 810, 906].flatMap { $0...($0 + 8) })
@@ -742,6 +761,26 @@ enum CollectorBonus {
     /// Growth bonus of one regional tier of a gym badge, for Pokémon weak to its type: 2.5% per region, so
     /// 22.5% with the nine regions (20% for Dark, which has no Kanto tier).
     static let badgeRegionBonus = 0.025
+}
+
+/// The Explorer Kit's treasures: one for every `graduationsPerTreasure` Pokémon graduated while it is owned.
+enum ExplorerKit {
+    static let graduationsPerTreasure = 5
+    /// Out of `rollRange`: 1 Legendary Egg (0.01%), 500 Rare Eggs (5%), 2,000 Uncommon Eggs (20%), and the rest, 3
+    /// Rare Candies (74.99%). Pure bonuses: nothing here changes what hatches.
+    static let rollRange = 10_000
+    static let legendaryEggRolls = 1
+    static let rareEggRolls = 500
+    static let uncommonEggRolls = 2_000
+    static let candies = 3
+
+    /// The treasure of one roll in `0..<rollRange`.
+    static func treasure(roll: Int) -> (kind: ItemKind, count: Int) {
+        if roll < legendaryEggRolls { return (.legendaryEgg, 1) }
+        if roll < legendaryEggRolls + rareEggRolls { return (.rareEgg, 1) }
+        if roll < legendaryEggRolls + rareEggRolls + uncommonEggRolls { return (.uncommonEgg, 1) }
+        return (.rareCandy, candies)
+    }
 }
 
 /// Azure Flute balance constant (passive collector item).
@@ -1456,6 +1495,12 @@ struct CompanionState: Codable, Sendable, Equatable {
     /// the calendar says what came out of each egg taken.
     var eggEventKey: String?
     var eventEggHatches: [String: Int] = [:]
+    /// The EXP the Old Amber kept of the Pokémon sent off for the egg incubating, given to the one that hatches.
+    var amberCarry = 0
+    /// Pokémon graduated toward the Explorer Kit's next treasure, and the treasures not seen yet (item, count), which
+    /// the news strip shows until the player opens the Bag or closes it.
+    var graduationsTowardTreasure = 0
+    var unseenTreasures: [String: Int] = [:]
     /// The year of the last birthday the gift was announced for, so the notification comes once.
     var birthdayNotifiedYear: Int?
     // 알 상태에서 미리 롤해둔 부화 종(프리패칭) — 부화 순간 네트워크 딜레이 제거. 재시작에도 유지.
@@ -1584,6 +1629,9 @@ struct CompanionState: Codable, Sendable, Equatable {
         writer = c.lenientOptional(SaveWriter.self, forKey: .writer)
         eggEventKey = c.lenientOptional(String.self, forKey: .eggEventKey)
         eventEggHatches = c.lenient([String: Int].self, forKey: .eventEggHatches, default: [:])
+        amberCarry = c.lenient(Int.self, forKey: .amberCarry, default: 0)
+        graduationsTowardTreasure = c.lenient(Int.self, forKey: .graduationsTowardTreasure, default: 0)
+        unseenTreasures = c.lenient([String: Int].self, forKey: .unseenTreasures, default: [:])
     }
 
     /// 졸업 기록 또는 현재 개체가 실제로 도달한 단계에 이 종이 포함되는가.

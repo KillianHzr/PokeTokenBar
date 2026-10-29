@@ -1953,6 +1953,7 @@ final class CompanionStore {
             let received = addRareCandies(CollectorBonus.reinsOfUnityCandies)
             AppLog.write("graduate: reins of unity +\(received) rare candy")
         }
+        if itemCount(.explorerKit) > 0 { digTreasureIfDue() }
         let name = formDisplayName(currentLine?.localizedName(finalID, state.language) ?? "",
                                    speciesID: finalID, form: a.form)
         justGraduated = name
@@ -2213,6 +2214,37 @@ final class CompanionStore {
 
     /// Adds Rare Candies from any source. Returns how many landed in the bag.
     @discardableResult
+    /// The Explorer Kit counts the graduations: every `ExplorerKit.graduationsPerTreasure` dig up a treasure, put in the
+    /// Bag and shown in the news strip until seen.
+    private func digTreasureIfDue() {
+        // Bounded: a hand-edited count would pay a treasure at every graduation until it ran down.
+        let counted = min(max(0, state.graduationsTowardTreasure), ExplorerKit.graduationsPerTreasure - 1)
+        state.graduationsTowardTreasure = counted + 1
+        guard state.graduationsTowardTreasure >= ExplorerKit.graduationsPerTreasure else { return }
+        state.graduationsTowardTreasure -= ExplorerKit.graduationsPerTreasure
+        let treasure = ExplorerKit.treasure(roll: Int(rng.next() % UInt64(ExplorerKit.rollRange)))
+        state.inventory[treasure.kind.rawValue, default: 0] += treasure.count
+        state.unseenTreasures[treasure.kind.rawValue, default: 0] += treasure.count
+        AppLog.write("graduate: explorer kit dug up \(treasure.count) \(treasure.kind.rawValue)")
+        notifyCompanionEvent(treasure.kind == .legendaryEgg ? l.treasureJackpotTitle : l.treasureTitle,
+                             l.treasureBody([(treasure.kind, treasure.count)]))
+    }
+
+    /// The treasures not seen yet, the rarest first.
+    var unseenTreasures: [(kind: ItemKind, count: Int)] {
+        let order: [ItemKind] = [.legendaryEgg, .rareEgg, .uncommonEgg, .rareCandy]
+        return state.unseenTreasures.compactMap { key, count in ItemKind(rawValue: key).map { ($0, count) } }
+            .filter { $0.count > 0 }
+            .sorted { (order.firstIndex(of: $0.kind) ?? order.count) < (order.firstIndex(of: $1.kind) ?? order.count) }
+    }
+
+    /// The treasures were seen: the Bag opened, or the strip's page closed.
+    func markTreasuresSeen() {
+        guard !state.unseenTreasures.isEmpty else { return }
+        state.unseenTreasures = [:]
+        save()
+    }
+
     private func addRareCandies(_ count: Int) -> Int {
         state.inventory[ItemKind.rareCandy.rawValue, default: 0] += count
         return count
@@ -2980,6 +3012,11 @@ final class CompanionStore {
     /// (kept in the Pokédex) and starts a new egg carrying the guarantee.
     private func replaceActiveWithEgg(price: Int, tier: Rarity?, type: PokemonType?) {
         state.spentTokens += price
+        // The Old Amber keeps part of what the Pokémon sent off grew at its stage, for the one that hatches. Read
+        // before the write: `state` is not read inside its own assignment.
+        let kept = itemCount(.oldAmber) > 0
+            ? (state.active.map { max(0, $0.usedAtStage) / 100 * CollectorBonus.oldAmberKeptPercent } ?? 0) : 0
+        state.amberCarry = kept
         if let a = state.active {
             state.dex.append(releasedDexEntry(from: a))   // 놓아줌 기록 — 도감에서 종이 사라지지 않게
             // A Fossil Egg's Pokémon sent off before it graduates gives its egg back: its line has no other egg.
@@ -3578,6 +3615,13 @@ final class CompanionStore {
         state.active?.raising = RaisingRecord(hatchedAt: clock())
         state.active?.fromStoneEgg = typeGuarantee != nil && event == nil
         state.active?.fromRarityEgg = fromRarityEgg
+        // What the Old Amber kept, short of the first evolution: the amber alone never evolves it as it hatches.
+        if state.amberCarry > 0, let mon = state.active {
+            let given = min(state.amberCarry, max(0, stageThreshold(for: mon) - 1))
+            state.active?.usedAtStage = given
+            AppLog.write("hatch: old amber gave \(given) of \(state.amberCarry)")
+        }
+        state.amberCarry = 0
         state.lastHatchedBaseID = line.baseID
         // A disguised Ditto is not the species it shows: nothing unlocks until it is revealed.
         if dittoDisguise == nil { announceFormUnlocks(since: unlockedForms) }

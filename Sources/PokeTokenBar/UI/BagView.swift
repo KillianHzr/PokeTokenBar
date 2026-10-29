@@ -23,6 +23,8 @@ struct BagView: View {
 
     var body: some View {
         content.task { await store.loadHatchIndex() }
+            // The treasures the news strip announces are here: seen.
+            .onAppear { store.markTreasuresSeen() }
     }
 
     @ViewBuilder
@@ -348,6 +350,9 @@ extension CompanionStore {
         case .zRing: return l.zRingEffectHint
         case .scrollOfDarkness: return l.scrollOfDarknessEffectHint
         case .relicVase: return l.relicVaseEffectHint
+        case .explorerKit:
+            return l.explorerKitEffectHint(state.graduationsTowardTreasure, of: ExplorerKit.graduationsPerTreasure)
+        case .oldAmber: return l.oldAmberEffectHint
         case .legendPlate: return l.legendPlateHint
         case .rotomCatalog: return l.rotomCatalogEffectHint
         case .cometShard, .redNectar, .smoothRock, .sawsbuckSeasons, .fairyFeather, .furfrouTrims, .vivillonPatterns,

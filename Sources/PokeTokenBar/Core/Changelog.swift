@@ -67,6 +67,28 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-29", entries: [
+            .new("2026-10-29-explorer-kit") { l in
+                let kit = l.itemName(.explorerKit)
+                return l.t("새 업적 \(kit): 땅속 탐험가 다섯 마리(모두 희귀)를 졸업시키면 받아요. 그다음엔 포켓몬을 5마리 졸업시킬 때마다 보물을 발굴하고, 소식 맨 앞에 떠요.",
+                           "New achievement, the \(kit): graduate the five explorers of the depths, all Rare. Then every 5 Pokémon you graduate dig up a treasure, shown first in the news.",
+                           "新しい実績、\(kit)：地底の探検家5匹（すべてレア）を卒業させるともらえます。その後はポケモンを5匹卒業させるたびに宝物を掘り当て、お知らせの先頭に出ます。",
+                           "Nuevo logro, el \(kit): gradúa a los cinco exploradores de las profundidades, todos raros. Después, cada 5 Pokémon graduados desentierran un tesoro, que sale primero en las noticias.",
+                           "Nouveau succès, le \(kit) : diplôme les cinq explorateurs des profondeurs, tous Rares. Ensuite, tous les 5 Pokémon diplômés, tu déterres un trésor, annoncé en tête des nouvelles.",
+                           "Nova conquista, o \(kit): forme os cinco exploradores das profundezas, todos raros. Depois, a cada 5 Pokémon formados, você desenterra um tesouro, mostrado primeiro nas novidades.",
+                           "Neuer Erfolg, das \(kit): Verabschiede die fünf Entdecker der Tiefe, alle selten. Danach gräbst du alle 5 verabschiedeten Pokémon einen Schatz aus, ganz vorne in den Neuigkeiten.",
+                           "Новый успех, \"\(kit)\": выпустите пятерых исследователей глубин, все редкие. Затем каждые 5 выпущенных покемонов приносят сокровище, оно первым показывается в новостях.")
+            },
+            .new("2026-10-29-old-amber") { l in
+                let amber = l.itemName(.oldAmber)
+                return l.t("새 업적 \(amber): 화석 계열 15개를 모두 졸업시키면 받아요. 알과 바꾸려고 놓아준 포켓몬이 지금 단계에서 쌓은 경험치의 절반을 새로 태어나는 포켓몬에게 넘겨줘요.",
+                           "New achievement, the \(amber): graduate all 15 fossil lines. A Pokémon you send off for an egg passes half the EXP of its stage to the one that hatches.",
+                           "新しい実績、\(amber)：化石の系統15をすべて卒業させるともらえます。タマゴと引き換えに手放したポケモンの今の段階の経験値の半分が、生まれるポケモンに引き継がれます。",
+                           "Nuevo logro, el \(amber): gradúa las 15 líneas fósiles. Un Pokémon que sueltas por un huevo pasa la mitad de la experiencia de su etapa al que nace.",
+                           "Nouveau succès, le \(amber) : diplôme les 15 lignées fossiles. Un Pokémon que tu laisses partir contre un œuf transmet la moitié de l'expérience de son stade à celui qui éclot.",
+                           "Nova conquista, o \(amber): forme as 15 linhas fósseis. Um Pokémon que você solta por um ovo passa metade da experiência do estágio dele ao que nasce.",
+                           "Neuer Erfolg, der \(amber): Verabschiede alle 15 Fossil-Linien. Ein Pokémon, das du für ein Ei abgibst, gibt die Hälfte der Erfahrung seiner Stufe an das weiter, das schlüpft.",
+                           "Новый успех, \"\(amber)\": выпустите все 15 линий окаменелостей. Покемон, отпущенный ради яйца, передаёт половину опыта своей стадии тому, кто вылупится.")
+            },
             .new("2026-10-29-goals-of-the-pokemon", { $0.t("홈에서 지금 포켓몬이 채워 주는 목표(지역 배지, 발굴, 전설의 알 등)를 보여 주고, 놓아주기 전 확인에서도 알려 줘요.",
                                                            "Home shows the goals your Pokémon counts toward (a region's badge, the dig, the Legendary Egg…), and so does the confirmation before sending it off.",
                                                            "ホームに、いまのポケモンが進める目標（地方のバッジ、発掘、伝説のタマゴなど）が出ます。手放す前の確認にも出ます。",

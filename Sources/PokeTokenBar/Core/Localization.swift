@@ -1437,6 +1437,27 @@ struct L {
     var notifShinyDittoRevealTitle: String { t("🎭✨ 어라? 이로치 메타몽!", "🎭✨ Huh? A shiny Ditto!", "🎭✨ あれ？色違いメタモン！", "🎭✨ ¿Eh? ¡Un Ditto variocolor!", "🎭✨ Hein ? Un Métamorph chromatique !", "🎭✨ Ué? Um Ditto shiny!", "🎭✨ Huch? Ein schillerndes Ditto!", "🎭✨ Что? Шайни-Ditto!") }
     /// 확률을 적지 않는다 — 이로치는 부화 때 굴렸고, 그때의 부적 보유 여부는 저장되지 않는다.
     func notifShinyDittoRevealBody(_ disguise: String) -> String { t("\(disguise)인 줄 알았는데, 이로치 메타몽이었어요!", "You thought it was \(disguise)… it was a shiny Ditto!", "\(disguise) だと思ってた… 色違いのメタモンでした！", "Pensabas que era \(disguise)… ¡era un Ditto variocolor!", "Tu croyais que c'était \(disguise)… c'était un Métamorph chromatique !", "Você achava que era \(disguise)… era um Ditto shiny!", "Du dachtest, es wäre \(disguise), dabei war es ein schillerndes Ditto!", "Думали, это \(disguise)? А это шайни-Ditto!") }
+    // MARK: Explorer Kit treasures
+
+    var treasureTitle: String { t("새 보물!", "New treasure!", "新しい宝物！", "¡Nuevo tesoro!", "Nouveau trésor !", "Novo tesouro!", "Neuer Schatz!", "Новое сокровище!") }
+    /// A Legendary Egg dug up: the jackpot, said without its odds.
+    var treasureJackpotTitle: String { t("대박!", "Jackpot!", "大当たり！", "¡Premio gordo!", "Gros lot !", "Sorte grande!", "Hauptgewinn!", "Джекпот!") }
+    /// What the Explorer Kit dug up, "Rare Candy ×6, Uncommon Egg": a list, so no count or article to agree.
+    func treasureBody(_ treasures: [(kind: ItemKind, count: Int)]) -> String {
+        let kit = itemName(.explorerKit)
+        let list = treasures.map { $0.count > 1 ? "\(itemName($0.kind)) ×\($0.count)" : itemName($0.kind) }
+            .joined(separator: t(", ", ", ", "、", ", ", ", ", ", ", ", ", ", "))
+        return t("\(KoreanParticle.direction.attach(to: kit)) 발굴한 보물: \(list). 가방에 들어 있어요.",
+                 "Your \(kit) dug up: \(list). It's all in your Bag.",
+                 "\(kit)で掘り当てました：\(list)。バッグに入っています。",
+                 "Tu \(kit) desenterró: \(list). Ya está en tu bolsa.",
+                 "Ton \(kit) a déterré : \(list). Tout est dans ton Sac.",
+                 "Seu \(kit) desenterrou: \(list). Já está na sua bolsa.",
+                 "Dein \(kit) hat ausgegraben: \(list). Alles liegt in deinem Beutel.",
+                 "\"\(kit)\" откопал: \(list). Всё уже в сумке.")
+    }
+    var treasureOpenBag: String { t("가방 보기", "Open the Bag", "バッグを見る", "Ver la bolsa", "Voir le Sac", "Ver a bolsa", "Beutel öffnen", "Открыть сумку") }
+
     var notifGraduateTitle: String { t("🎓 졸업!", "🎓 Graduated!", "🎓 卒業！", "🎓 ¡Graduado!", "🎓 Diplômé !", "🎓 Formatura!", "🎓 Abschied!", "🎓 Выпуск!") }
     func notifGraduateBody(_ name: String) -> String { t("\(name): 도감에 보존! 새 알이 도착했어요.", "\(name): saved to your Pokédex! A new egg has arrived.", "\(name)：図鑑に保存！新しいタマゴが届きました。", "\(name): ¡guardado en tu Pokédex! Ha llegado un nuevo huevo.", "\(name) : conservé dans ton Pokédex ! Un nouvel œuf est arrivé.", "\(name): guardado na sua Pokédex! Chegou um novo ovo.", "\(name): in deinem Pokédex gespeichert! Ein neues Ei ist da.", "\(name): запись в Покедексе! Появилось новое яйцо.") }
 
@@ -1759,6 +1780,8 @@ struct L {
         case .zRing: return t("Z링", "Z-Ring", "Ｚリング", "Pulsera Z", "Bracelet Z", "Pulseira Z", "Z-Ring", "Z-кольцо")
         case .scrollOfDarkness: return t("악의 족자", "Scroll of Darkness", "あくのかけじく", "Manuscrito Sombras", "Rouleau des Ténèbres", "Pergaminho das Trevas", "Unlicht-Schriftrolle", "Свиток тьмы")
         case .relicVase: return t("고대의항아리", "Relic Vase", "こだいのツボ", "Ánfora", "Vieux Vase", "Vaso Antigo", "Alte Vase", "Древняя ваза")
+        case .explorerKit: return t("탐험세트", "Explorer Kit", "たんけんセット", "Kit Explorador", "Kit Explorateur", "Kit de Explorador", "Forscherset", "Набор исследователя")
+        case .oldAmber: return t("비밀의호박", "Old Amber", "ひみつのコハク", "Ámbar Viejo", "Vieil Ambre", "Âmbar Antigo", "Altbernstein", "Старый янтарь")
         case .legendPlate: return t("레전드플레이트", "Legend Plate", "レジェンドプレート", "Tabla Legendaria", "Plaque Légende", "Placa Lendária", "Legendentafel", "Легендарная плита")
         case .rotomCatalog: return t("로토무카탈로그", "Rotom Catalog", "ロトムのカタログ", "Catálogo Rotom", "Moti-Catalogue", "Catálogo Rotom", "Rotom-Katalog", "Каталог Ротома")
         case .cometShard: return t("혜성조각", "Comet Shard", "すいせいのかけら", "Fragmento Cometa", "Morceau Comète", "Fragmento de Cometa", "Kometstück", "Осколок кометы")
@@ -2199,6 +2222,26 @@ struct L {
                      "Enquanto estiver na bolsa, um Pokémon no estágio intermediário cresce 25% mais rápido.",
                      "Lässt im Beutel Pokémon in ihrer mittleren Stufe 25% schneller wachsen.",
                      "Пока она у вас, покемон на промежуточной стадии растёт на 25% быстрее.")
+        case .explorerKit:
+            let candy = itemName(.rareCandy), uncommon = eggName(.uncommon), rare = eggName(.rare)
+            let legendary = itemName(.legendaryEgg), n = ExplorerKit.graduationsPerTreasure, c = ExplorerKit.candies
+            return t("보유하면 포켓몬을 \(n)마리 졸업시킬 때마다 보물을 하나 발굴해요: \(candy) ×\(c), \(uncommon), \(rare), 아주 드물게 \(legendary).",
+                     "While owned, every \(n) Pokémon you graduate dig up a treasure: \(candy) ×\(c), an \(uncommon), a \(rare) or, very rarely, a \(legendary).",
+                     "持っていると、ポケモンを\(n)匹卒業させるたびに宝物を1つ掘り当てます：\(candy)×\(c)、\(uncommon)、\(rare)、ごくまれに\(legendary)。",
+                     "Mientras lo tengas, cada \(n) Pokémon que gradúas desentierran un tesoro: \(candy) ×\(c), un \(uncommon), un \(rare) o, muy rara vez, un \(legendary).",
+                     "Tant que tu l'as, tous les \(n) Pokémon diplômés, tu déterres un trésor : \(candy) ×\(c), un \(uncommon), un \(rare) ou, très rarement, un \(legendary).",
+                     "Enquanto estiver na bolsa, a cada \(n) Pokémon que você forma, você desenterra um tesouro: \(candy) ×\(c), um \(uncommon), um \(rare) ou, muito raramente, um \(legendary).",
+                     "Im Beutel gräbst du alle \(n) verabschiedeten Pokémon einen Schatz aus: \(candy) ×\(c), ein \(uncommon), ein \(rare) oder, sehr selten, ein \(legendary).",
+                     "Пока он у вас, каждые \(n) выпущенных покемонов приносят сокровище: \"\(candy)\" ×\(c), \"\(uncommon)\", \"\(rare)\" или, очень редко, \"\(legendary)\".")
+        case .oldAmber:
+            return t("보유하면 알과 바꾸려고 놓아준 포켓몬이 지금 단계에서 쌓은 경험치의 절반을 새로 태어나는 포켓몬에게 넘겨줘요. 태어나자마자 진화하지는 않아요.",
+                     "While owned, a Pokémon you send off for an egg gives half the EXP of its stage to the Pokémon that hatches, short of evolving it at once.",
+                     "持っていると、タマゴと引き換えに手放したポケモンが今の段階でためた経験値の半分を、生まれるポケモンに引き継ぎます。生まれてすぐ進化はしません。",
+                     "Mientras lo tengas, un Pokémon que sueltas por un huevo da la mitad de la experiencia de su etapa al Pokémon que nace, sin que evolucione nada más nacer.",
+                     "Tant que tu l'as, un Pokémon que tu laisses partir contre un œuf donne la moitié de l'expérience de son stade au Pokémon qui éclot, sans le faire évoluer dès l'éclosion.",
+                     "Enquanto estiver na bolsa, um Pokémon que você solta por um ovo passa metade da experiência do estágio dele ao Pokémon que nasce, sem fazê-lo evoluir ao nascer.",
+                     "Im Beutel gibt ein Pokémon, das du für ein Ei abgibst, die Hälfte der Erfahrung seiner Stufe an das Pokémon weiter, das schlüpft, ohne dass es sich gleich entwickelt.",
+                     "Пока он у вас, покемон, отпущенный ради яйца, передаёт половину опыта своей стадии покемону, который вылупится, но тот не эволюционирует сразу.")
         case .legendPlate:
             let rare = eggName(.rare), uncommon = eggName(.uncommon)
             return t("아르세우스의 보상. 받으면 가방에 \(rare)과 \(uncommon)이 하나씩 들어와요.",
@@ -2650,6 +2693,18 @@ struct L {
         return t("\(fighting) 성장 +30% · 적용 중", "\(fighting) growth +30% · active", "\(fighting)育成 +30% · 適用中", "Crec. \(fighting) +30% · activo", "Croissance \(fighting) +30% · actif", "Cresc. \(fighting) +30% · ativo", "\(fighting) +30% · aktiv", "Рост: \(fighting) +30% · активен")
     }
     var relicVaseEffectHint: String { t("중간 단계 +25% · 적용 중", "Middle stage +25% · active", "中間段階 +25% · 適用中", "Etapa intermedia +25% · activo", "Stade intermédiaire +25% · actif", "Estágio intermediário +25% · ativo", "Mittlere Stufe +25% · aktiv", "Средняя стадия +25% · активна") }
+    /// The Explorer Kit: the graduations toward its next treasure.
+    func explorerKitEffectHint(_ done: Int, of total: Int) -> String {
+        t("다음 보물 \(done)/\(total) · 적용 중", "Next treasure \(done)/\(total) · active", "次の宝物 \(done)/\(total) · 適用中",
+          "Próximo tesoro \(done)/\(total) · activo", "Prochain trésor \(done)/\(total) · actif",
+          "Próximo tesouro \(done)/\(total) · ativo", "Nächster Schatz \(done)/\(total) · aktiv",
+          "Следующее сокровище \(done)/\(total) · активен")
+    }
+    var oldAmberEffectHint: String {
+        t("경험치 50% 이어받기 · 적용 중", "50% of the EXP passed on · active", "経験値50%引き継ぎ · 適用中",
+          "50% de la experiencia transmitida · activo", "50 % de l'expérience transmise · actif",
+          "50% da experiência passada · ativo", "50% der Erfahrung weitergegeben · aktiv", "50% опыта передаётся · активен")
+    }
     /// The Legend Plate never sits in the Bag: its claim gives these two eggs.
     var legendPlateHint: String { "\(eggName(.rare)) + \(eggName(.uncommon))" }
     var fossilEggHint: String {
