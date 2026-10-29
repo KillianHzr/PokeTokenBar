@@ -69,14 +69,14 @@ enum Changelog {
         ChangelogDay(date: "2026-10-29", entries: [
             .new("2026-10-29-explorer-kit") { l in
                 let kit = l.itemName(.explorerKit)
-                return l.t("새 업적 \(kit): 땅속 탐험가 다섯 마리(모두 희귀)를 졸업시키면 받아요. 그다음엔 포켓몬을 5마리 졸업시킬 때마다 보물을 발굴하고, 소식 맨 앞에 떠요.",
-                           "New achievement, the \(kit): graduate the five explorers of the depths, all Rare. Then every 5 Pokémon you graduate dig up a treasure, shown first in the news.",
-                           "新しい実績、\(kit)：地底の探検家5匹（すべてレア）を卒業させるともらえます。その後はポケモンを5匹卒業させるたびに宝物を掘り当て、お知らせの先頭に出ます。",
-                           "Nuevo logro, el \(kit): gradúa a los cinco exploradores de las profundidades, todos raros. Después, cada 5 Pokémon graduados desentierran un tesoro, que sale primero en las noticias.",
-                           "Nouveau succès, le \(kit) : diplôme les cinq explorateurs des profondeurs, tous Rares. Ensuite, tous les 5 Pokémon diplômés, tu déterres un trésor, annoncé en tête des nouvelles.",
-                           "Nova conquista, o \(kit): forme os cinco exploradores das profundezas, todos raros. Depois, a cada 5 Pokémon formados, você desenterra um tesouro, mostrado primeiro nas novidades.",
-                           "Neuer Erfolg, das \(kit): Verabschiede die fünf Entdecker der Tiefe, alle selten. Danach gräbst du alle 5 verabschiedeten Pokémon einen Schatz aus, ganz vorne in den Neuigkeiten.",
-                           "Новый успех, \"\(kit)\": выпустите пятерых исследователей глубин, все редкие. Затем каждые 5 выпущенных покемонов приносят сокровище, оно первым показывается в новостях.")
+                return l.t("새 업적 \(kit): 땅속 탐험가 다섯 마리(모두 희귀)와 히드런을 졸업시키면 받아요. 그다음엔 포켓몬을 5마리 졸업시킬 때마다 보물을 발굴하고, 소식 맨 앞에 떠요.",
+                           "New achievement, the \(kit): graduate the five explorers of the depths, all Rare, and Heatran. Then every 5 Pokémon you graduate dig up a treasure, shown first in the news.",
+                           "新しい実績、\(kit)：地底の探検家5匹（すべてレア）とヒードランを卒業させるともらえます。その後はポケモンを5匹卒業させるたびに宝物を掘り当て、お知らせの先頭に出ます。",
+                           "Nuevo logro, el \(kit): gradúa a los cinco exploradores de las profundidades, todos raros, y a Heatran. Después, cada 5 Pokémon graduados desentierran un tesoro, que sale primero en las noticias.",
+                           "Nouveau succès, le \(kit) : diplôme les cinq explorateurs des profondeurs, tous Rares, et Heatran. Ensuite, tous les 5 Pokémon diplômés, tu déterres un trésor, annoncé en tête des nouvelles.",
+                           "Nova conquista, o \(kit): forme os cinco exploradores das profundezas, todos raros, e Heatran. Depois, a cada 5 Pokémon formados, você desenterra um tesouro, mostrado primeiro nas novidades.",
+                           "Neuer Erfolg, das \(kit): Verabschiede die fünf Entdecker der Tiefe, alle selten, und Heatran. Danach gräbst du alle 5 verabschiedeten Pokémon einen Schatz aus, ganz vorne in den Neuigkeiten.",
+                           "Новый успех, \"\(kit)\": выпустите пятерых исследователей глубин, все редкие, и Хитрана. Затем каждые 5 выпущенных покемонов приносят сокровище, оно первым показывается в новостях.")
             },
             .new("2026-10-29-old-amber") { l in
                 let amber = l.itemName(.oldAmber)

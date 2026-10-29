@@ -645,9 +645,10 @@ struct SpeciesGoal: Equatable, Sendable {
                               482, 483, 484, 485, 486, 487, 488, 638, 639, 640, 641, 642, 643, 644, 645, 646, 716, 717, 718,
                               772, 785, 786, 787, 788, 789, 800, 888, 889, 890, 891, 894, 895, 896, 897, 898, 905, 1001,
                               1002, 1003, 1004, 1007, 1008, 1014, 1015, 1016, 1017, 1024]
-    /// The explorers of the depths, all Rare: Steelix digs through the earth, Larvitar is born underground, Gible
-    /// lives in caves, Sableye digs them for gems, Orthworm burrows. The Explorer Kit asks for every one.
-    static let explorers = [208, 248, 445, 302, 968]
+    /// The explorers of the depths: Steelix digs through the earth, Larvitar is born underground, Gible lives in caves,
+    /// Sableye digs them for gems, Orthworm burrows (all Rare), and Heatran, from the depths of Sinnoh's volcano like the
+    /// Kit: a legendary, so that the treasures every few graduations are earned. The Explorer Kit asks for every one.
+    static let explorers = [208, 248, 445, 302, 968, 485]
     /// Paradox Pokémon of Scarlet and Violet and their DLC, ancient then future.
     static let paradoxes = Array(984...995) + [1005, 1006, 1009, 1010] + Array(1020...1023)
 

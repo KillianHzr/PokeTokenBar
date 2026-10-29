@@ -11,7 +11,7 @@ private struct OneStageLines: PokeProviding {
     func baseSpecies(id: Int) async throws -> BaseSpecies? { BaseSpecies(id: id, captureRate: 45) }
 }
 
-/// The Old Amber (every fossil line graduated) and the Explorer Kit (the five explorers of the depths).
+/// The Old Amber (every fossil line graduated) and the Explorer Kit (the five explorers of the depths and Heatran).
 @MainActor
 final class TreasureAndAmberTests: XCTestCase {
     private let now = Date(timeIntervalSince1970: 1_793_300_000)
@@ -32,7 +32,7 @@ final class TreasureAndAmberTests: XCTestCase {
         ids.map { DexEntry(baseID: $0, finalID: $0, chainOrder: [$0], rarity: rarity, caughtAt: now) }
     }
 
-    /// Every fossil line for the Amber, every one of the five explorers for the Kit: one missing keeps it locked.
+    /// Every fossil line for the Amber, all six of the Kit: one missing keeps it locked.
     func testBothAskForTheWholeSet() {
         XCTAssertEqual(ItemKind.oldAmber.collectorGroup, .evolutionStones, "beside the Excavation")
         XCTAssertEqual(ItemKind.explorerKit.collectorGroup, .legendaryArtifacts)
@@ -40,10 +40,11 @@ final class TreasureAndAmberTests: XCTestCase {
         XCTAssertTrue(ItemKind.explorerKit.isPassive)
         XCTAssertTrue(store(dex: entries(SpeciesGoal.fossils)).isUnlocked(.oldAmber))
         XCTAssertFalse(store(dex: entries(Array(SpeciesGoal.fossils.dropLast()))).isUnlocked(.oldAmber))
-        XCTAssertEqual(SpeciesGoal.explorers.count, 5)
+        XCTAssertEqual(SpeciesGoal.explorers.count, 6)
+        XCTAssertTrue(SpeciesGoal.explorers.contains(485), "Heatran, the legendary that balances the Kit")
         XCTAssertTrue(store(dex: entries(SpeciesGoal.explorers)).isUnlocked(.explorerKit))
         XCTAssertFalse(store(dex: entries(Array(SpeciesGoal.explorers.dropLast()))).isUnlocked(.explorerKit),
-                       "the five, not four of them")
+                       "all six, not five of them")
     }
 
     /// One roll in ten thousand is the Legendary Egg, 500 a Rare Egg, 2,000 an Uncommon Egg, the rest 3 Rare Candies.
