@@ -218,7 +218,7 @@ Pi는 모델 여러 개를 세션 로그 하나로 흘려보낼 수 있습니다
 | **운석** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/meteorite.png" width="28" height="28" alt="운석"> | 지라치, 테오키스 | 토큰 한도를 다 채울 때마다 이상한 사탕 1개 더 |
 | **오박사의편지** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/oaks-letter.png" width="28" height="28" alt="오박사의편지"> | 세레비, 쉐이미 | 모든 지방의 스타팅 포켓몬이 어느 단계든 25% 빨리 자라요 |
 | **바닷물향로** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sea-incense.png" width="28" height="28" alt="바닷물향로"> | 마나피 (피오네가 진화해요), 가이오가 | 등급이 확정된 알(상점, 레전드플레이트)이 2배 빨리 부화해요 |
-| **번개카세트** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/shock-drive.png" width="28" height="28" alt="번개카세트"> | 비크티니, 메로엣타, 게노세크트 | 화석 포켓몬¹이 어느 단계든 50% 빨리 자라요 |
+| **번개카세트** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/shock-drive.png" width="28" height="28" alt="번개카세트"> | 비크티니, 메로엣타, 게노세크트 | 이상한 사탕을 쓸 때마다 4번에 1번은 그 사탕이 가방에 남아요 |
 | **Z링** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/z-ring.png" width="28" height="28" alt="Z링"> | 실버디, 마기아나, 마샤도, 제라오라, 멜메탈 중 4마리 | 강철·전기타입 포켓몬이 30% 더 빨리 성장해요 |
 | **악의 족자** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/scroll-of-darkness.png" width="28" height="28" alt="악의 족자"> | 우라오스, 자루도 | 격투타입 포켓몬이 30% 더 빨리 성장해요 |
 | **고대의항아리** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-vase.png" width="28" height="28" alt="고대의항아리"> | 총지엔, 파오젠, 딩루, 위유이 | 중간 진화 단계의 포켓몬이 25% 빨리 자라요 |

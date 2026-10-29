@@ -2185,14 +2185,15 @@ struct L {
                      "Lässt im Beutel Eier mit garantierter Seltenheit (aus dem Laden oder von einem Erfolg) doppelt so schnell schlüpfen, und ihre Pokémon wachsen 30 % schneller.",
                      "Пока он у вас, яйца гарантированной редкости (из магазина или за достижение) вылупляются в 2 раза быстрее, а их покемоны растут на 30% быстрее.")
         case .shockDrive:
-            return t("보유하면 화석 포켓몬이 50% 더 빨리 성장합니다.",
-                     "While owned, fossil Pokémon grow 50% faster.",
-                     "持っていると化石ポケモンが50%早く育ちます。",
-                     "Mientras lo tengas, los Pokémon fósiles crecen un 50% más rápido.",
-                     "Tant que tu le possèdes, les Pokémon fossiles grandissent 50% plus vite.",
-                     "Enquanto estiver na bolsa, Pokémon fósseis crescem 50% mais rápido.",
-                     "Lässt im Beutel Fossil-Pokémon 50% schneller wachsen.",
-                     "Пока он у вас, ископаемые покемоны растут на 50% быстрее.")
+            let candy = itemName(.rareCandy), n = CollectorBonus.shockDriveRechargeOneIn
+            return t("보유하면 \(candy) 하나를 쓸 때마다 \(n)번에 1번은 그 사탕이 가방에 그대로 남아요.",
+                     "While owned, each \(candy) you use has 1 chance in \(n) to stay in your Bag.",
+                     "持っていると、\(candy)を使うたびに\(n)回に1回はそのアメがバッグに残ります。",
+                     "Mientras lo tengas, cada \(candy) que usas tiene 1 posibilidad entre \(n) de quedarse en tu bolsa.",
+                     "Tant que tu l'as, chaque \(candy) utilisé a 1 chance sur \(n) de rester dans ton sac.",
+                     "Enquanto estiver na bolsa, cada \(candy) usado tem 1 chance em \(n) de continuar na sua bolsa.",
+                     "Im Beutel bleibt jedes verwendete \(candy) mit einer Chance von 1 zu \(n) im Beutel.",
+                     "Пока он у вас, каждая использованная \"\(candy)\" с шансом 1 из \(n) остаётся в сумке.")
         case .zRing:
             let steel = typeName(.steel), electric = typeName(.electric)
             return t("보유하면 \(steel)·\(electric) 타입 포켓몬이 30% 더 빨리 성장합니다.",
@@ -2690,7 +2691,13 @@ struct L {
     var meteoriteEffectHint: String { t("한도마다 사탕 +1 · 적용 중", "+1 candy per limit · active", "上限ごとにアメ+1 · 適用中", "+1 caramelo por límite · activo", "+1 bonbon par limite · actif", "+1 doce por limite · ativo", "+1 Bonbon pro Limit · aktiv", "+1 конфета за лимит · активен") }
     var oaksLetterEffectHint: String { t("스타팅 +25% · 적용 중", "Starters +25% · active", "御三家 +25% · 適用中", "Iniciales +25% · activo", "Pokémon de départ +25% · actif", "Iniciais +25% · ativo", "Starter +25% · aktiv", "Стартовые +25% · активно") }
     var seaIncenseEffectHint: String { t("확정 알 ½ · 그 포켓몬 +30% · 적용 중", "Guaranteed egg ½ · its Pokémon +30% · active", "確定タマゴ½ · そのポケモン+30% · 適用中", "Huevo garantizado ½ · su Pokémon +30% · activo", "Œuf à rareté garantie ½ · son Pokémon +30 % · actif", "Ovo garantido ½ · seu Pokémon +30% · ativo", "Garantie-Ei ½ · sein Pokémon +30 % · aktiv", "Яйцо с гарантией ½ · его покемон +30% · активен") }
-    var shockDriveEffectHint: String { t("화석 +50% · 적용 중", "Fossils +50% · active", "化石 +50% · 適用中", "Fósiles +50% · activo", "Fossiles +50% · actif", "Fósseis +50% · ativo", "Fossilien +50% · aktiv", "Ископаемые +50% · активен") }
+    var shockDriveEffectHint: String {
+        let n = CollectorBonus.shockDriveRechargeOneIn
+        return t("사탕 \(n)개 중 1개 충전 · 적용 중", "1 candy in \(n) recharged · active", "アメ\(n)個に1個チャージ · 適用中",
+                 "1 caramelo de cada \(n) recargado · activo", "1 bonbon sur \(n) rechargé · actif",
+                 "1 doce em \(n) recarregado · ativo", "1 von \(n) Bonbons aufgeladen · aktiv",
+                 "1 конфета из \(n) восстанавливается · активен")
+    }
     var zRingEffectHint: String {
         let names = "\(typeName(.steel))·\(typeName(.electric))"
         return t("\(names) +30% · 적용 중", "\(names) +30% · active", "\(names) +30% · 適用中", "\(names) +30% · activo", "\(names) +30% · actif", "\(names) +30% · ativo", "\(names) +30% · aktiv", "\(names) +30% · активно")

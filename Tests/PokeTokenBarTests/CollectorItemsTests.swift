@@ -414,7 +414,6 @@ final class CollectorItemsTests: XCTestCase {
             (.lunarWing, mon(63), mon(19), CollectorBonus.lunarWingPsychicDark),             // Abra
             (.lunarWing, mon(261), mon(19), CollectorBonus.lunarWingPsychicDark),            // Poochyena
             (.oaksLetter, mon(5, stage: 1), mon(19), CollectorBonus.oaksLetterStarter),       // Charmeleon
-            (.shockDrive, mon(138), mon(19), CollectorBonus.shockDriveFossil),                // Omanyte
             (.zRing, mon(81), mon(19), CollectorBonus.zRingSteelElectric),                    // Magnemite
             (.zRing, mon(25), mon(19), CollectorBonus.zRingSteelElectric),                    // Pikachu
             (.scrollOfDarkness, mon(66), mon(19), CollectorBonus.scrollOfDarknessFighting),   // Machop

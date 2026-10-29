@@ -218,7 +218,7 @@ Pi は複数のモデルを一つのセッションログに流すことがあ�
 | **いんせき** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/meteorite.png" width="28" height="28" alt="いんせき"> | ジラーチ、デオキシス | トークン上限を使い切るたびにふしぎなアメが1個多くもらえる |
 | **オーキドのてがみ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/oaks-letter.png" width="28" height="28" alt="オーキドのてがみ"> | セレビィ、シェイミ | すべての地方の御三家がどの段階でも25%早く育つ |
 | **うしおのおこう** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/sea-incense.png" width="28" height="28" alt="うしおのおこう"> | マナフィ(フィオネが進化する)、カイオーガ | レア度確定のタマゴ(ショップ、レジェンドプレート)が2倍早くかえる |
-| **イナズマカセット** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/shock-drive.png" width="28" height="28" alt="イナズマカセット"> | ビクティニ、メロエッタ、ゲノセクト | 化石ポケモン¹がどの段階でも50%早く育つ |
+| **イナズマカセット** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/shock-drive.png" width="28" height="28" alt="イナズマカセット"> | ビクティニ、メロエッタ、ゲノセクト | ふしぎなアメを使うたびに4回に1回はバッグに残る |
 | **Ｚリング** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/z-ring.png" width="28" height="28" alt="Ｚリング"> | シルヴァディ、マギアナ、マーシャドー、ゼラオラ、メルメタルのうち4匹 | はがね・でんきタイプのポケモンが30%早く育つ |
 | **あくのかけじく** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/scroll-of-darkness.png" width="28" height="28" alt="あくのかけじく"> | ウーラオス、ザルード | かくとうタイプのポケモンが30%早く育つ |
 | **こだいのツボ** | <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/relic-vase.png" width="28" height="28" alt="こだいのツボ"> | チオンジェン、パオジアン、ディンルー、イーユイ | 中間の進化段階のポケモンが25%早く育つ |

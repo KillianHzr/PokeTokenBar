@@ -67,6 +67,17 @@ enum Changelog {
 
     static let days: [ChangelogDay] = [
         ChangelogDay(date: "2026-10-29", entries: [
+            .improved("2026-10-29-shock-drive-recharge") { l in
+                let drive = l.itemName(.shockDrive), candy = l.itemName(.rareCandy)
+                return l.t("\(drive)의 효과가 바뀌었어요: 화석 포켓몬 성장 대신, 이제 \(candy) 하나를 쓸 때마다 4번에 1번은 그 사탕이 가방에 그대로 남아요.",
+                           "The \(drive) changes: instead of growing fossil Pokémon faster, each \(candy) you use has 1 chance in 4 to stay in your Bag.",
+                           "\(drive)の効果が変わりました。化石ポケモンを早く育てる代わりに、\(candy)を使うたびに4回に1回はバッグに残ります。",
+                           "El \(drive) cambia: en lugar de acelerar a los Pokémon fósiles, cada \(candy) que usas tiene 1 posibilidad entre 4 de quedarse en tu bolsa.",
+                           "Le \(drive) change : au lieu d'accélérer les Pokémon fossiles, chaque \(candy) utilisé a 1 chance sur 4 de rester dans ton sac.",
+                           "O \(drive) muda: em vez de acelerar os Pokémon fósseis, cada \(candy) usado tem 1 chance em 4 de continuar na sua bolsa.",
+                           "Das \(drive) ändert sich: Statt Fossil-Pokémon schneller wachsen zu lassen, bleibt jedes verwendete \(candy) mit einer Chance von 1 zu 4 im Beutel.",
+                           "\"\(drive)\" теперь работает иначе: вместо ускорения покемонов-окаменелостей каждая использованная \"\(candy)\" с шансом 1 из 4 остаётся в сумке.")
+            },
             .improved("2026-10-29-old-amber-artifacts") { l in
                 let amber = l.itemName(.oldAmber)
                 return l.t("\(KoreanParticle.subject.attach(to: amber)) 업적과 가방에서 다른 유물들과 함께 있어요.",

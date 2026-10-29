@@ -974,6 +974,7 @@ struct CompanionHeader: View {
     @State private var seenCandySeq = -1
     @State private var candyXPShown = false
     @State private var candyXPAmount = 0     // 표시 순간 캡처(consume 후에도 텍스트 유지)
+    @State private var candyRechargedAmount = 0
     // 민트 사용 시 "반짝" 스파클 (성격 변경 피드백 — 텍스트 없이 짧은 이펙트)
     @State private var seenMintSeq = -1
     @State private var mintSparkle = false
@@ -1067,7 +1068,11 @@ struct CompanionHeader: View {
                     }
                     .overlay(alignment: .top) {
                         if candyXPShown {
-                            Text("+\(TokenFormatter.compact(candyXPAmount)) XP")
+                            // The Shock Drive's recharged candies, a bolt as on its sprite: no words to translate.
+                            (Text("+\(TokenFormatter.compact(candyXPAmount)) XP")
+                                + (candyRechargedAmount > 0
+                                    ? Text("  ") + Text(Image(systemName: "bolt.fill")) + Text("+\(candyRechargedAmount)")
+                                    : Text("")))
                                 .font(.caption.weight(.bold)).foregroundStyle(Color.readableOrange)
                                 .padding(.horizontal, 6).padding(.vertical, 2)
                                 .background(.regularMaterial, in: Capsule())
@@ -1242,6 +1247,7 @@ struct CompanionHeader: View {
         guard store.candyFeedbackAmount > 0, store.candyFeedbackSeq != seenCandySeq else { return }
         seenCandySeq = store.candyFeedbackSeq
         candyXPAmount = store.candyFeedbackAmount
+        candyRechargedAmount = store.candyFeedbackRecharged
         store.consumeCandyFeedback()
         withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) { candyXPShown = true }
         Task { @MainActor in
