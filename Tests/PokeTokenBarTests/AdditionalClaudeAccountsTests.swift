@@ -316,11 +316,11 @@ final class ClaudeConfigDiscoveryTests: XCTestCase {
     }
 
     func testTheDefaultLoginIsReadFromHomeOnlyInsideTheApp() throws {
-        try Data(#"{"oauthAccount":{"emailAddress":"me@corp.example","organizationName":"Corp"}}"#.utf8)
+        try Data(#"{"oauthAccount":{"emailAddress":"me@corp.example","organizationName":"Corp","userRateLimitTier":"default_claude_max_5x"}}"#.utf8)
             .write(to: home.appendingPathComponent(".claude.json"))
         XCTAssertNil(ClaudeAccountRoots.installedDefaultIdentity(isBundledApp: false, home: home))
         XCTAssertEqual(ClaudeAccountRoots.installedDefaultIdentity(isBundledApp: true, home: home),
-                       AccountIdentity(email: "me@corp.example", organizationName: "Corp"))
+                       AccountIdentity(email: "me@corp.example", organizationName: "Corp", rateLimitTier: "default_claude_max_5x"))
 
         try Data(#"{"oauthAccount":{"emailAddress":"me@example.com","organizationName":""}}"#.utf8)
             .write(to: home.appendingPathComponent(".claude.json"))
@@ -682,14 +682,24 @@ final class AdditionalClaudeAccountsStoreTests: XCTestCase {
 
     /// A session key answers without an email, so the default tab takes the login saved in `~/.claude.json`.
     func testLoadedDefaultLimitsWithoutAnEmailTakeTheSavedLogin() async {
-        let identity = AccountIdentity(email: "main@example.com", organizationName: "Main Corp")
+        let identity = AccountIdentity(email: "main@example.com", organizationName: "Main Corp",
+                                       rateLimitTier: "default_claude_max_5x")
         for folders in [[:], [work: ScriptedLimits([.success(limitStatus(fiveHour: 20, email: "work@example.com"))])]] {
             let store = makeStore(primary: ScriptedLimits([.success(limitStatus(fiveHour: 10, email: nil))]),
                                   folders: folders, defaultIdentity: identity)
             await store.refresh(scheduleEmptyRetry: false)
             XCTAssertEqual(store.claudeAccounts.first?.title, "Main Corp", "\(folders.count) other folder(s)")
             XCTAssertEqual(store.claudeAccounts.first?.status.accountDisplay, "main@example.com · Main Corp")
+            XCTAssertEqual(store.claudeAccounts.first?.status.planMultiplier, 5, "the seat's tier pays the candies")
         }
+    }
+
+    func testTheSavedSeatTierNeverLowersTheAnswersOwn() {
+        var status = limitStatus(fiveHour: 10, email: nil)
+        status.rateLimitTier = "default_claude_max_20x"
+        status.fillIdentity(from: AccountIdentity(email: "main@example.com", organizationName: nil,
+                                                  rateLimitTier: "default_claude_max_5x"))
+        XCTAssertEqual(status.planMultiplier, 20)
     }
 
     func testAutomaticRefreshNeverPromptsManualRefreshDoes() async {

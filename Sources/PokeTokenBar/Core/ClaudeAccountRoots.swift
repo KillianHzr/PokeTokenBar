@@ -130,7 +130,9 @@ enum ClaudeAccountRoots {
             }
             let org = (account["organizationName"] as? String).flatMap { $0.isEmpty ? nil : $0 }
             let orgID = (account["organizationUuid"] as? String).flatMap { $0.isEmpty ? nil : $0 }
-            return SavedLogin(identity: AccountIdentity(email: email, organizationName: org), organizationID: orgID)
+            return SavedLogin(identity: AccountIdentity(email: email, organizationName: org,
+                                                        rateLimitTier: account["userRateLimitTier"] as? String),
+                              organizationID: orgID)
         }
     }
 
@@ -240,11 +242,15 @@ enum ClaudeTrackedAccountMode: Equatable, Sendable, Hashable {
 }
 
 extension LimitStatus {
-    /// Names the account from its saved login when the profile endpoint gave nothing.
+    /// Names the account from its saved login when the profile endpoint gave nothing, and takes the seat's tier
+    /// when it is worth more than the answer's (a session key reads the organization's).
     mutating func fillIdentity(from saved: AccountIdentity?) {
         guard accountEmail == nil, let saved else { return }
         accountEmail = saved.email
         accountOrganizationName = saved.organizationName
+        var seat = self
+        seat.rateLimitTier = saved.rateLimitTier
+        if seat.planMultiplier > planMultiplier { rateLimitTier = saved.rateLimitTier }
     }
 
     /// Every official window this status carries: legacy fields, then the scoped entries.
