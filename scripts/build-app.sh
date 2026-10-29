@@ -120,8 +120,16 @@ if ! cp -R "$APP" "$STAGED" || ! codesign --verify "$STAGED"; then
     echo "   ✗ copy to /Applications failed, the installed app is untouched" >&2
     exit 1
 fi
+# SIGTERM asks the app to quit, and it ends as a Quit does (its crash marker cleaned). One that does not within ten
+# seconds (a hung main thread) is killed.
 pkill -x "$APP_NAME" 2>/dev/null || true
 pkill -x "PokeTokenBar" 2>/dev/null || true
+for _ in $(seq 1 20); do
+    pgrep -x "$APP_NAME" >/dev/null 2>&1 || pgrep -x "PokeTokenBar" >/dev/null 2>&1 || break
+    sleep 0.5
+done
+pkill -9 -x "$APP_NAME" 2>/dev/null || true
+pkill -9 -x "PokeTokenBar" 2>/dev/null || true
 if [[ -d "$DEST" ]] && ! mv "$DEST" "$PREVIOUS"; then
     rm -rf "$STAGED"
     echo "   ✗ could not move the installed app aside, left as it was" >&2

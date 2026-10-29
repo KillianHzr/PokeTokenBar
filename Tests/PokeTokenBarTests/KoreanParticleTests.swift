@@ -30,6 +30,17 @@ final class KoreanParticleTests: XCTestCase {
         XCTAssertEqual(KoreanParticle.subject.attach(to: ""), "이(가)")
     }
 
+    /// [Regression] A commit id or a version ends as it is read, character by character: "abc1234" (사) takes 를,
+    /// "25dff17" (칠) and "v2.5.0" (영) take 을. The skipped-update line took 을 whatever the id.
+    func testAnIdentifierEndsAsItIsRead() {
+        XCTAssertEqual(KoreanParticle.object.attach(to: "abc1234"), "abc1234를")
+        XCTAssertEqual(KoreanParticle.object.attach(to: "25dff17"), "25dff17을")
+        XCTAssertEqual(KoreanParticle.object.attach(to: "v2.5.0"), "v2.5.0을")
+        XCTAssertEqual(KoreanParticle.object.attach(to: "deadbeef"), "deadbeef를")
+        XCTAssertEqual(L(.ko).skippedVersion("25dff19"), "25dff19를 건너뛰었어요")
+        XCTAssertEqual(KoreanParticle.object.attach(to: "#123"), "#123을(를)", "a Pokédex number is read as a number")
+    }
+
     /// 실제 문구 — 스크린샷으로 보고된 "유니란이(가)"·"듀란(으)로"·"란쿨루스(으)로"가 사라진다.
     func testKoreanCopyUsesTheMatchingParticle() {
         let l = L(.ko)

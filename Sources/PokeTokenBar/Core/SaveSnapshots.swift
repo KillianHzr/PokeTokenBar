@@ -102,7 +102,9 @@ enum SaveSnapshotManager {
         guard let data = try? Data(contentsOf: url) else { return nil }
         let st: CompanionState
         let date: Date
-        if let envelope = try? SaveTransfer.decode(data) {
+        if SaveTransfer.isEnvelope(data) {
+            // An envelope this build cannot read (a later schema) is left out, never shown as an empty game.
+            guard let envelope = try? SaveTransfer.decode(data, maxBytes: .max) else { return nil }
             st = envelope.state
             date = envelope.exportedAt
         } else if let bare = try? JSONDecoder().decode(CompanionState.self, from: data) {
@@ -119,9 +121,8 @@ enum SaveSnapshotManager {
     /// Loads and returns the SaveEnvelope from a snapshot file.
     static func loadEnvelope(from url: URL) throws -> SaveEnvelope {
         let data = try Data(contentsOf: url)
-        if let envelope = try? SaveTransfer.decode(data) {
-            return envelope
-        }
+        // An envelope fails with its own reason (a later schema): read as a bare state, it restored an empty game.
+        if SaveTransfer.isEnvelope(data) { return try SaveTransfer.decode(data, maxBytes: .max) }
         if let st = try? JSONDecoder().decode(CompanionState.self, from: data) {
             let date = parseStamp(url.lastPathComponent)
                 ?? (try? url.resourceValues(forKeys: [.creationDateKey]).creationDate)
@@ -163,7 +164,8 @@ enum SaveSnapshotManager {
             }
             targetURL = dir.appendingPathComponent("\(base)-\(counter).json")
         }
-        let data = try SaveTransfer.encode(state: state, appVersion: appVersion, deviceName: deviceName, now: date)
+        let data = try SaveTransfer.encode(state: state, appVersion: appVersion, deviceName: deviceName, now: date,
+                                           pretty: false)
         try data.write(to: targetURL, options: .atomic)
         pruneOldSnapshots(for: stateFileURL)
         return SaveSnapshot(
@@ -192,9 +194,12 @@ enum SaveSnapshotManager {
         listSnapshots(for: stateFileURL).first
     }
 
-    /// Loads the latest valid snapshot as CompanionState, if available.
+    /// Loads the latest snapshot that reads as CompanionState, if any: the newest one failing (a later schema) does not
+    /// end the recovery of a broken save.
     static func loadLatestValidSnapshot(for stateFileURL: URL) -> CompanionState? {
-        guard let latest = latestSnapshot(for: stateFileURL) else { return nil }
-        return loadState(from: latest.fileURL)
+        for snapshot in listSnapshots(for: stateFileURL) {
+            if let state = loadState(from: snapshot.fileURL) { return state }
+        }
+        return nil
     }
 }

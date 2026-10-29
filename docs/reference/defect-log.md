@@ -711,6 +711,10 @@ read_when:
   Pokémon whose line starts with a later baby (Pikachu, Snorlax, the Hitmons...): `EventEgg.kantoBabyLines`,
   `testPokemonDaysEggAdmitsKantoLinesFromALaterBaby`.
 
+- **A particle after an identifier follows its reading.** The skipped-update line fixed 을 after any commit id
+  ("abc1234을"). An id or a version is read character by character, so its last one decides
+  (`testAnIdentifierEndsAsItIsRead`); other Latin words keep the paired form.
+
 ## 외부 로그·사용량 소스
 
 - **토큰 파일 파서는 외부 도구의 실제 직렬화 구조체(중첩 객체)를 반영해야 한다.** `jetski-standalone-oauth-token`
@@ -1890,6 +1894,31 @@ read_when:
   **스윕:** `CompanionStore` 의 나머지(`claimedTodayTokensByProvider` 키)는 딕셔너리 키라 유일하다. 세이브
   밖의 사용처(로그 스캔·PokéAPI 스탯)는 이 입력 경로가 아니라 범위 밖.
 
+- **A lenient decoder must never be the fallback of a strict one.** A snapshot the envelope decoder refused (over
+  8 MB, a later schema) was then decoded as a bare `CompanionState`, which the lenient decoding accepted as an empty
+  game, restored as such, and used by the recovery of a broken save. An envelope is told apart by its `format` key
+  and only ever read as one; the app's own snapshots have no size limit and are written compact; the recovery takes
+  the newest snapshot that reads (`testASnapshotThisBuildCannotReadIsNeverAnEmptyGame`,
+  `testALargeSnapshotStillRestoresAndIsCompact`).
+
+- **A file there but unreadable is not a new install.** `load()` treated any read failure as no file, started a fresh
+  game and wrote it over the save (permissions, a disk error). It locks the writes and says so
+  (`testAnUnreadableSaveIsNotWrittenOver`).
+
+- **A save must know who wrote it.** An older build dropped the fields it did not know and wrote the rest. The save
+  keeps its writer (commit and date, `CompanionState.writer`); a build older than it writes nothing and says so
+  (`testASaveFromALaterBuildIsNotWrittenOver`). What the lenient decoding left out is recorded (`LenientDecoding`) and
+  the file kept beside the save before the first write; a nature this build cannot read no longer drops the Pokémon
+  raised (`testAFieldLeftOutKeepsTheOriginalAndTheActivePokemon`).
+
+- **The newest of a set is not the newest in the past.** A snapshot dated in the future (the clock set ahead to try
+  an event) held the automatic snapshots back until that date: the interval counts from the newest one not after
+  now (`testAFutureSnapshotDoesNotHoldTheAutomaticOnesBack`).
+
+- **An undo must be in the format the restore reads.** The import's copy of the replaced state was a bare state, which
+  the import refuses: the promised undo did not exist. An import keeps it as a snapshot, which Settings restores
+  (`testAnImportKeepsTheReplacedStateAsASnapshot`).
+
 ## 렌더 기하 (스프라이트·이미지)
 
 - **`.resizable()` + `.frame(w:h:)` 는 "맞춤"이 아니라 "늘여 채움"이다.** 대조 없이 정사각 프레임에 넣으면
@@ -1938,6 +1967,22 @@ read_when:
   the box, not counts. The other render tests' absolute thresholds (`DrawnEggTests`' "an egg is drawn") hold at 1×.
 
 ## 프로세스 제어·업데이트
+
+- **Offer what passed, build what was offered.** The updater offered `main`'s head whatever its CI, and the script
+  built `main` as it was when it ran, so a commit pushed meanwhile could be installed. It offers the newest commit
+  whose check runs all passed (`firstGreen`, `testOnlyAGreenCommitIsOffered`), passes that commit to the script, which
+  resets to it, says success only once the app reopened, and the app gives up an update that never reports after 20
+  minutes (`testTheScriptBuildsTheOfferedCommitAndReportsTheReopen`). A failed check waits ten minutes, not the next
+  popover opening (`testFailedCheckWaitsTenMinutesNotThirty`): GitHub allows 60 calls an hour unauthenticated. The
+  local patch was applied by the script and again by `build-app.sh`; only the latter does now.
+
+- **SIGTERM is a request to quit.** `build-app.sh` stopped the app with `pkill`, which left the crash marker, so every
+  update read as a crash at the next launch and buried the real ones. The app quits through `terminate` on SIGTERM;
+  `build-app.sh` waits ten seconds before SIGKILL.
+
+- **A copied script must not release someone else's project.** `release.sh` targets the upstream repository, cask and
+  `git push origin`; in PokeTokenLBI, which ships by its in-app update, it only runs `--check-only` unless
+  `PTB_UPSTREAM_RELEASE=1`.
 
 - **Never quit or delete the working app before the new one is in place.** `build-app.sh` quit the app, deleted it,
   then copied the new bundle: a failed copy left no app and no message, and `updateError` was set but never shown. The

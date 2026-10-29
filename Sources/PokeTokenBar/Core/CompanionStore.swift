@@ -80,7 +80,9 @@ final class CompanionStore {
          rng: any RandomNumberGenerator = SystemRandomNumberGenerator(),
          dittoDisguiseRollingEnabled: Bool = AppEnv.isBundledApp,
          defaults: UserDefaults = .standard,
-         difficulty: Double = PokemonBalance.difficulty) {
+         difficulty: Double = PokemonBalance.difficulty,
+         writer: SaveWriter? = SaveWriter.current) {
+        self.writer = writer
         self.provider = provider
         self.detailProvider = detailProvider ?? (provider as? any PokemonDetailProviding)
         self.clock = clock
@@ -102,6 +104,19 @@ final class CompanionStore {
         refreshSnapshots()
         if state.active != nil { displayState = .idle }
     }
+
+    /// Why the save is not written: it could not be read, or a later build wrote it. Shown above the tabs; nothing is
+    /// written meanwhile, so nothing of it is lost.
+    enum SaveLock: Equatable, Sendable {
+        /// The file is there but cannot be read (permissions, a disk error): it read as a new install, then was
+        /// written over.
+        case unreadable
+        /// A later build wrote it (its commit): this one would drop what it does not know.
+        case newerBuild(commit: String)
+    }
+    private(set) var saveLock: SaveLock?
+    /// This build, stamped in the save at each write (`CompanionState.writer`).
+    @ObservationIgnored private let writer: SaveWriter?
 
     static func defaultURL() -> URL {
         // 상태 파일 위치. 기본은 Application Support/PokeTokenBar. `PTB_STATE_DIR` 환경변수가 있으면
@@ -3817,9 +3832,15 @@ final class CompanionStore {
     /// 검증된 세이브를 이 기기에 적용 — 기존 상태 백업 → 기기 기준 재정렬 → 저장 → 라인 재로딩.
     /// 백업을 못 남기면 **적용하지 않고** throw 한다 — 확인창이 "직전 상태가 남는다"고 약속하므로,
     /// 그 약속을 못 지키는 채로 덮어쓰면 사용자는 되돌릴 수단 없이 진행을 잃는다.
+    /// `snapshotFirst`: an import keeps the state it replaces as a snapshot too, which Settings lists and restores: the
+    /// copy beside the save (`backupStateBeforeImport`) is a bare state the import refuses. A restore made its own.
     func applySave(_ envelope: SaveEnvelope, todayTokensByProvider: [String: Int], todayDate: String,
-                   hasUsageData: Bool) throws {
+                   hasUsageData: Bool, snapshotFirst: Bool = true) throws {
+        guard saveLock == nil else { throw SaveTransferError.backupFailed }
         try backupStateBeforeImport()
+        if snapshotFirst {
+            do { try createManualSnapshot() } catch { AppLog.write("save import: no snapshot of the state replaced: \(error)") }
+        }
         state = SaveTransfer.rebasedForThisDevice(envelope.state,
                                                   current: state,
                                                   todayTokensByProvider: todayTokensByProvider,
@@ -3906,7 +3927,9 @@ final class CompanionStore {
 
     func autoSnapshotIfNeeded(now: Date? = nil) {
         let timestamp = now ?? clock()
-        let newest = availableSnapshots.first
+        // A snapshot dated after now (the Mac's clock set ahead to try an event) is not the newest: counted, it held
+        // the automatic snapshots back until that date.
+        let newest = availableSnapshots.first { $0.date <= timestamp }
 
         guard newest == nil ||
               timestamp.timeIntervalSince(newest!.date) >= automaticSnapshotInterval
@@ -3933,7 +3956,8 @@ final class CompanionStore {
         try applySave(envelope,
                       todayTokensByProvider: todayTokensByProvider,
                       todayDate: todayDate,
-                      hasUsageData: hasUsageData)
+                      hasUsageData: hasUsageData,
+                      snapshotFirst: false)
         refreshSnapshots()
         AppLog.write("snapshot restored: \(snapshot.id)")
     }
@@ -4098,8 +4122,19 @@ final class CompanionStore {
 
     // MARK: 영속
     private func load() {
-        guard let data = try? Data(contentsOf: fileURL) else { return }   // 파일 없음 = 신규 설치
-        guard let s = try? JSONDecoder().decode(CompanionState.self, from: data) else {
+        let data: Data
+        do {
+            data = try Data(contentsOf: fileURL)
+        } catch {
+            // 파일 없음 = 신규 설치. A file there but unreadable is no new install: it was written over.
+            if FileManager.default.fileExists(atPath: fileURL.path) {
+                saveLock = .unreadable
+                AppLog.write("companion state unreadable, nothing is written until it reads: \(error)")
+            }
+            return
+        }
+        let decoded = LenientDecoding.recordingLosses { try? JSONDecoder().decode(CompanionState.self, from: data) }
+        guard let s = decoded.value else {
             // 디코드 실패(전면 손상/미래 스키마) → 원본을 .corrupt 로 백업 후 유효한 스냅샷으로 복구 시도.
             let backup = fileURL.appendingPathExtension("corrupt")
             try? FileManager.default.removeItem(at: backup)
@@ -4124,13 +4159,43 @@ final class CompanionStore {
         // 극단값은 그대로 남아, 앱이 매 기동마다 같은 값을 읽어 산술 트랩으로 죽는 상태를 못 벗어난다
         // (디코드는 *성공*하므로 위의 .corrupt 복구도 발동하지 않는다). 여기서 걸면 자가 복구된다.
         state = SaveTransfer.sanitized(s)
+        if let saved = s.writer, let writer, saved.isNewer(than: writer) {
+            saveLock = .newerBuild(commit: String(saved.commit.prefix(7)))
+            AppLog.write("companion state written by a later build \(saved.commit.prefix(7)) (\(saved.date)), this one "
+                + "(\(writer.commit.prefix(7)), \(writer.date)) writes nothing")
+        } else if !decoded.losses.isEmpty {
+            keepLossyCopy(of: data, losses: decoded.losses)
+        }
     }
+
+    /// The file as it was, beside it, before a write drops what the decoding left out: written by a version that knew
+    /// more, it held fields this one cannot read. The last three are kept.
+    private func keepLossyCopy(of data: Data, losses: [String]) {
+        let dir = fileURL.deletingLastPathComponent()
+        let stamp = SaveSnapshotManager.snapshotFileName(date: clock())
+            .replacingOccurrences(of: SaveSnapshotManager.snapshotPrefix, with: "")
+        let copy = dir.appendingPathComponent(Self.lossyCopyPrefix + stamp)
+        do {
+            try data.write(to: copy, options: .atomic)
+            AppLog.write("companion state read with \(losses.count) field(s) left out (\(losses.prefix(5).joined(separator: ", "))), "
+                + "original kept as \(copy.lastPathComponent)")
+        } catch {
+            AppLog.write("companion state: could not keep the lossy original: \(error)")
+        }
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? []
+        for stale in names.filter({ $0.hasPrefix(Self.lossyCopyPrefix) }).sorted().dropLast(3) {
+            try? FileManager.default.removeItem(at: dir.appendingPathComponent(stale))
+        }
+    }
+    static let lossyCopyPrefix = "companion-state.lossy-"
     /// What the file holds, as last written. Every refresh ends with a save: a refresh that changed nothing rewrote
     /// the whole file all the same (660 KB for 571 Pokédex entries, twice a minute while tokens flow).
     private var savedState: CompanionState?
 
     private func save() {
         refreshRepresentativeSubject()
+        guard saveLock == nil else { return }
+        if let writer, state.writer != writer { state.writer = writer }
         guard state != savedState else { return }
         guard let data = try? JSONEncoder().encode(state) else { return }
         do {

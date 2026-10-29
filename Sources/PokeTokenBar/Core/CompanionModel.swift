@@ -1206,7 +1206,8 @@ struct MonState: Codable, Sendable, Equatable {
         rarity = try c.decode(Rarity.self, forKey: .rarity)
         totalForms = try c.decode(Int.self, forKey: .totalForms)
         isShiny = try c.decodeIfPresent(Bool.self, forKey: .isShiny) ?? false
-        nature = try c.decodeIfPresent(PokemonNature.self, forKey: .nature)
+        // A nature this version cannot read is dropped, not the whole individual (the Pokémon raised was lost).
+        nature = c.lenientOptional(PokemonNature.self, forKey: .nature)
         // 손상된 신규 프로필 하나 때문에 기존 성장 상태 전체를 잃지 않는다. nil이면 스토어가 재마이그레이션한다.
         profile = (try? c.decodeIfPresent(PokemonProfile.self, forKey: .profile)) ?? nil
         hasGrowthBoost = try c.decodeIfPresent(Bool.self, forKey: .hasGrowthBoost) ?? false
@@ -1299,7 +1300,8 @@ struct DexEntry: Codable, Sendable, Identifiable, Equatable {
         rarity = try c.decode(Rarity.self, forKey: .rarity)
         caughtAt = try c.decodeIfPresent(Date.self, forKey: .caughtAt)
         isShiny = try c.decodeIfPresent(Bool.self, forKey: .isShiny) ?? false
-        nature = try c.decodeIfPresent(PokemonNature.self, forKey: .nature)
+        // A nature this version cannot read is dropped, not the whole individual (the Pokémon raised was lost).
+        nature = c.lenientOptional(PokemonNature.self, forKey: .nature)
         // 프로필만 손상되면 개체 기록은 보존하고 프로필을 다시 생성한다.
         profile = (try? c.decodeIfPresent(PokemonProfile.self, forKey: .profile)) ?? nil
         // try? — 구버전(최종체 단일 [String:String]) 형식이 남아 있어도 종별 맵 디코딩 실패 시 nil 로
@@ -1314,21 +1316,74 @@ struct DexEntry: Codable, Sendable, Identifiable, Equatable {
     }
 }
 
+/// A build of the app: its commit and that commit's date ("yyyy-MM-dd HH:mm", which sorts by time), from its
+/// Info.plist (`scripts/build-app.sh`). Nil for a build without them (`swift run`, the tests).
+struct SaveWriter: Codable, Equatable, Sendable {
+    var commit: String
+    var date: String
+
+    static let current: SaveWriter? = {
+        guard let commit = Bundle.main.object(forInfoDictionaryKey: "PTBCommitSHA") as? String,
+              !commit.isEmpty, commit != "unknown",
+              let date = Bundle.main.object(forInfoDictionaryKey: "PTBCommitDate") as? String, !date.isEmpty
+        else { return nil }
+        return SaveWriter(commit: commit, date: date)
+    }()
+
+    /// Whether a save this writer wrote comes from a build later than `build`.
+    func isNewer(than build: SaveWriter) -> Bool { commit != build.commit && date > build.date }
+}
+
 /// 배열 항목별 격리 디코딩 래퍼 — 손상된 한 항목이 배열 전체(및 상위 상태) 디코드를 실패시키지 않게.
 /// 각 항목을 `try?` 로 감싸므로 실패 항목은 `value == nil` 이 되고 배열 디코드 자체는 성공한다.
 private struct Lossy<T: Decodable>: Decodable {
     let value: T?
-    init(from decoder: Decoder) throws { value = try? decoder.singleValueContainer().decode(T.self) }
+    init(from decoder: Decoder) throws {
+        value = try? decoder.singleValueContainer().decode(T.self)
+        if value == nil { LenientDecoding.lost(decoder.codingPath.map(\.stringValue).joined(separator: ".")) }
+    }
+}
+
+/// What the lenient decoding left out while a load records it: a field of another shape (a save a newer version wrote,
+/// a broken one) falls back to its default, and the load copies the file aside before writing over it. Kept per
+/// thread, so a decode elsewhere (a snapshot's summary) is not counted.
+enum LenientDecoding {
+    private static let key = "PokeTokenBar.LenientDecoding.losses"
+
+    static func recordingLosses<T>(_ body: () throws -> T) rethrows -> (value: T, losses: [String]) {
+        let thread = Thread.current
+        let outer = thread.threadDictionary[key]
+        let losses = NSMutableArray()
+        thread.threadDictionary[key] = losses
+        defer { thread.threadDictionary[key] = outer }
+        let value = try body()
+        return (value, losses.compactMap { $0 as? String })
+    }
+
+    static func lost(_ path: String) {
+        (Thread.current.threadDictionary[key] as? NSMutableArray)?.add(path.isEmpty ? "?" : path)
+    }
 }
 
 private extension KeyedDecodingContainer {
     /// 관대 디코드 — 키 없음/null/타입 불일치를 모두 기본값으로 흡수한다. 한 필드 손상이 상태 전체
     /// (도감·인벤토리)를 날리지 않게(부분 복원 > 전면 리셋). 최상위가 JSON 객체가 아닌 전면 손상은 여전히 throw.
+    /// A value present but of another shape is a loss (`LenientDecoding`); a key absent or null is not.
     func lenient<T: Decodable>(_ type: T.Type, forKey key: Key, default def: T) -> T {
-        (try? decode(type, forKey: key)) ?? def
+        do { return try decode(type, forKey: key) } catch {
+            noteLoss(key)
+            return def
+        }
     }
     func lenientOptional<T: Decodable>(_ type: T.Type, forKey key: Key) -> T? {
-        try? decode(type, forKey: key)
+        do { return try decode(type, forKey: key) } catch {
+            noteLoss(key)
+            return nil
+        }
+    }
+    func noteLoss(_ key: Key) {
+        guard contains(key), (try? decodeNil(forKey: key)) != true else { return }
+        LenientDecoding.lost((codingPath + [key]).map(\.stringValue).joined(separator: "."))
     }
 }
 
@@ -1370,6 +1425,9 @@ struct CompanionState: Codable, Sendable, Equatable {
     var lastHatchedBaseID: Int?
     /// The player's birthday, without the year; nil until they enter it in Settings.
     var birthday: Birthday?
+    /// The build that wrote the save last (`SaveWriter.current`): a build older than it does not write over what it
+    /// may not understand.
+    var writer: SaveWriter?
     /// The year of the last birthday whose gift was claimed; nil for a save that never got one.
     var lastBirthdayGiftYear: Int?
     /// When that gift was claimed: a December birthday's gift claimed in January counts for the year before.
@@ -1510,6 +1568,7 @@ struct CompanionState: Codable, Sendable, Equatable {
         eventEggsNotified = c.lenient(Set<String>.self, forKey: .eventEggsNotified, default: [])
         eggEvent = c.lenientOptional(EventEgg.self, forKey: .eggEvent)
         birthdayNotifiedYear = c.lenientOptional(Int.self, forKey: .birthdayNotifiedYear)
+        writer = c.lenientOptional(SaveWriter.self, forKey: .writer)
     }
 
     /// 졸업 기록 또는 현재 개체가 실제로 도달한 단계에 이 종이 포함되는가.

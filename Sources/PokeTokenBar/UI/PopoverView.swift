@@ -414,9 +414,33 @@ struct PopoverView: View {
         }
     }
 
+    /// Why the save is not written (`CompanionStore.SaveLock`): stays until the cause is gone.
+    @ViewBuilder
+    private var saveLockBanner: some View {
+        if let lock = companion.saveLock {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Color.readableOrange)
+                Text(saveLockText(lock))
+                    .font(.caption)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .padding(8)
+            .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 8))
+        }
+    }
+
+    private func saveLockText(_ lock: CompanionStore.SaveLock) -> String {
+        switch lock {
+        case .unreadable: return l.saveLockUnreadable
+        case .newerBuild(let commit): return l.saveLockNewerBuild(commit)
+        }
+    }
+
     private var mainContent: some View {
         @Bindable var nav = nav
         return VStack(alignment: .leading, spacing: 12) {
+            saveLockBanner
             updateBanner
             birthdayBanner
             eventEggBanner
@@ -1372,7 +1396,7 @@ struct PopoverView: View {
     }
 }
 
-/// Per-provider stacking of the daily bars (the Stats page) — pure, so the ordering and the height split can be
+/// Per-provider stacking of the daily bars (the Stats page), pure so the ordering and the height split can be
 /// checked headlessly. The split is where a view-local version goes quietly wrong: independently scaled segments do
 /// not sum to the bar, and the stacked bar then disagrees with the single-color bar's height for the same day.
 enum DailyTrendStack {

@@ -96,7 +96,9 @@ enum SaveTransfer {
     private static func dayStamp(_ date: Date) -> String { stamp(date, "yyyy-MM-dd") }
     private static func secondStamp(_ date: Date) -> String { stamp(date, "yyyy-MM-dd-HHmmss") }
 
-    static func encode(state: CompanionState, appVersion: String, deviceName: String, now: Date) throws -> Data {
+    /// `pretty`: indented for a person to read (an export); the app's own snapshots are written compact.
+    static func encode(state: CompanionState, appVersion: String, deviceName: String, now: Date,
+                       pretty: Bool = true) throws -> Data {
         let envelope = SaveEnvelope(format: SaveEnvelope.formatID,
                                     schema: SaveEnvelope.schemaVersion,
                                     appVersion: appVersion,
@@ -105,14 +107,23 @@ enum SaveTransfer {
                                     state: state)
         let encoder = JSONEncoder()
         // 사람이 열어봤을 때 읽히도록(무엇이 옮겨가는지 확인 가능) — 4KB 라 크기는 무의미.
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.outputFormatting = pretty ? [.prettyPrinted, .sortedKeys] : [.sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
         return try encoder.encode(envelope)
     }
 
-    static func decode(_ data: Data) throws -> SaveEnvelope {
-        guard data.count <= maxFileBytes else {
-            throw SaveTransferError.fileTooLarge(bytes: data.count, limit: maxFileBytes)
+    /// Whether the file is an envelope (it has a `format`), whatever its schema, size or state: such a file is never
+    /// read as a bare state, which the lenient decoding turned into an empty game.
+    static func isEnvelope(_ data: Data) -> Bool {
+        struct Probe: Decodable { let format: String }
+        return (try? JSONDecoder().decode(Probe.self, from: data)) != nil
+    }
+
+    /// `maxBytes`: the limit of a file picked by the player; the app's own snapshots have none (they grow by about
+    /// 21 KB a day, and refused past 8 MB they were restored as an empty game).
+    static func decode(_ data: Data, maxBytes: Int = maxFileBytes) throws -> SaveEnvelope {
+        guard data.count <= maxBytes else {
+            throw SaveTransferError.fileTooLarge(bytes: data.count, limit: maxBytes)
         }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -215,6 +226,8 @@ enum SaveTransfer {
                                      hasUsageData: Bool) -> CompanionState {
         var state = imported
         state.language = current.language
+        // The build that writes is this Mac's, not the exporting one's (`CompanionState.writer`).
+        state.writer = current.writer
         let (importedLedger, currentLedger) = withoutEndedWindows(imported, current)
         state.candyGrantTier = mergedGrantTier(importedLedger.candyGrantTier, currentLedger.candyGrantTier)
         state.candyWindowEpoch = mergedWindowEpochs(

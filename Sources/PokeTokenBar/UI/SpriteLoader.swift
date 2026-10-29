@@ -457,7 +457,7 @@ enum SpriteLoader {
         return img
     }
 
-    /// 비투명(alpha>0) 콘텐츠 경계로 크롭 — 큰 투명 여백 제거. 1회만 수행(메모이즈). The alpha is read from one bitmap
+    /// 비투명(alpha>0) 콘텐츠 경계로 크롭: 큰 투명 여백 제거. 1회만 수행(메모이즈). The alpha is read from one bitmap
     /// buffer: `colorAt` made an NSColor per pixel, on the main thread, for every placeholder.
     static func cropToContent(_ image: NSImage) -> NSImage {
         guard let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil), cg.width > 0, cg.height > 0

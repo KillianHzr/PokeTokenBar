@@ -603,7 +603,8 @@ final class SaveTransferTests: XCTestCase {
         let deviceLedger: Set<String> = ["installBaselineSet", "claimedTodayTokensByProvider", "lastDate"]
         let accountLedger: Set<String> = ["candyGrantTier", "candyWindowEpoch", "candyWindowPlan", "candyFeatureSeeded",
                                           "candyGrantsAsYouGo"]
-        let devicePreference: Set<String> = ["language"]
+        // The build that wrote the save: this Mac's, stamped at its next write.
+        let devicePreference: Set<String> = ["language", "writer"]
 
         let classified = progress.union(deviceLedger).union(accountLedger).union(devicePreference)
         let actual = Set(Mirror(reflecting: CompanionState()).children.compactMap(\.label))

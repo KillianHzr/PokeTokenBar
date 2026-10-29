@@ -87,10 +87,10 @@ final class UpdateCheckerTests: XCTestCase {
         return UserDefaults(suiteName: suite)!
     }
 
-    /// A failed GitHub lookup must not start the 30-minute cooldown: otherwise opening the
-    /// popover again stays silent until the timer expires, even though no release was seen.
+    /// A failed GitHub lookup must not start the 30-minute cooldown, but neither is it retried at every popover
+    /// opening: unauthenticated, GitHub allows 60 calls an hour. It is retried ten minutes later.
     @MainActor
-    func testFailedCheckDoesNotStartTheCooldown() async {
+    func testFailedCheckWaitsTenMinutesNotThirty() async {
         var now = Date(timeIntervalSince1970: 1_700_000_000)
         var fetches = 0
         let checker = UpdateChecker(currentVersion: "2.5.3", clock: { now }, defaults: isolatedDefaults()) {
@@ -104,7 +104,46 @@ final class UpdateCheckerTests: XCTestCase {
 
         now = now.addingTimeInterval(5)
         await checker.check(minInterval: 1_800)
-        XCTAssertEqual(fetches, 2, "a failed check must not suppress the next attempt")
+        XCTAssertEqual(fetches, 1, "not again at the next opening")
+        now = now.addingTimeInterval(UpdateChecker.failedCheckInterval)
+        await checker.check(minInterval: 1_800)
+        XCTAssertEqual(fetches, 2, "ten minutes on, well before the half-hour cooldown")
+    }
+
+    /// Only a commit whose checks all passed is offered: a red or running one was installed all the same. The walk
+    /// stops at the installed commit, and a failed request offers nothing.
+    func testOnlyAGreenCommitIsOffered() async {
+        func commit(_ sha: String) -> UpdateChecker.LatestCommit {
+            UpdateChecker.LatestCommit(sha: sha, url: "https://github.com/KillianHzr/PokeTokenLBI/commit/\(sha)")
+        }
+        let green: [[String: Any]] = [["status": "completed", "conclusion": "success"],
+                                      ["status": "completed", "conclusion": "skipped"]]
+        let runs: [String: [[String: Any]]] = [
+            "c" + String(repeating: "0", count: 39): [["status": "completed", "conclusion": "failure"]],
+            "b" + String(repeating: "0", count: 39): [["status": "in_progress"]],
+            "a" + String(repeating: "0", count: 39): green,
+        ]
+        let commits = ["c", "b", "a"].map { commit($0 + String(repeating: "0", count: 39)) }
+        let picked = await UpdateChecker.firstGreen(commits, current: "dev") { runs[$0] }
+        XCTAssertEqual(picked?.sha.first, "a", "the newest green one")
+        let installed = await UpdateChecker.firstGreen(commits, current: "b000000") { runs[$0] }
+        XCTAssertEqual(installed?.sha.first, "b", "the installed one comes first: nothing older is offered")
+        let offline = await UpdateChecker.firstGreen(commits, current: "dev") { _ in nil }
+        XCTAssertNil(offline)
+        XCTAssertFalse(UpdateChecker.isGreen([]), "no check at all is not a pass")
+    }
+
+    /// The script builds the commit offered, applies the local patch once (build-app.sh does), and says success only
+    /// once the app reopened.
+    func testTheScriptBuildsTheOfferedCommitAndReportsTheReopen() {
+        let script = UpdateChecker.detachedUpgradeScript
+        XCTAssertTrue(script.contains("TARGET=\"$3\""))
+        XCTAssertTrue(script.contains("git reset --hard \"$TARGET\""))
+        XCTAssertFalse(script.contains("git apply"), "build-app.sh applies the local patch")
+        let tail = script.components(separatedBy: "Re-opening app").last ?? ""
+        XCTAssertTrue(tail.contains("OPENED"))
+        XCTAssertLessThan(tail.range(of: "did not reopen")?.lowerBound ?? tail.endIndex,
+                          tail.range(of: "echo \"success\"")?.lowerBound ?? tail.startIndex)
     }
 
     @MainActor
@@ -133,20 +172,21 @@ final class UpdateCheckerTests: XCTestCase {
     @MainActor
     func testRejectedReleaseUrlDoesNotStartTheCooldown() async {
         var fetches = 0
-        let checker = UpdateChecker(currentVersion: "2.5.3", clock: { Date(timeIntervalSince1970: 1_700_000_000) },
-                                    defaults: isolatedDefaults()) {
+        var now = Date(timeIntervalSince1970: 1_700_000_000)
+        let checker = UpdateChecker(currentVersion: "2.5.3", clock: { now }, defaults: isolatedDefaults()) {
             fetches += 1
             return UpdateChecker.LatestRelease(tag: "v2.5.5", url: "http://evil.example/x")
         }
 
         await checker.check(minInterval: 1_800)
         XCTAssertNil(checker.available)
+        now = now.addingTimeInterval(UpdateChecker.failedCheckInterval)
         await checker.check(minInterval: 1_800)
-        XCTAssertEqual(fetches, 2, "an unsafe URL is a failed check, not a cooldown start")
+        XCTAssertEqual(fetches, 2, "an unsafe URL is a failed check: retried after ten minutes, not the cooldown")
     }
 
     /// Malformed tags and unsupported prerelease tags are failed checks: nothing is applied, and the
-    /// very next attempt fetches again and applies a valid release instead of waiting 30 minutes.
+    /// attempt ten minutes later fetches again and applies a valid release instead of waiting 30 minutes.
     @MainActor
     func testMalformedOrPrereleaseTagIsAFailedCheckAndDoesNotBlockTheNextOne() async {
         let badTags = ["", "latest", "v", "v2.5", "2.5.5.1", "v2..5", "2.5.x", "release-2.5.5", "v 2.5.5",
@@ -155,8 +195,8 @@ final class UpdateCheckerTests: XCTestCase {
         for bad in badTags {
             var tag = bad
             var fetches = 0
-            let checker = UpdateChecker(currentVersion: "2.5.3", clock: { Date(timeIntervalSince1970: 1_700_000_000) },
-                                        defaults: isolatedDefaults()) {
+            var now = Date(timeIntervalSince1970: 1_700_000_000)
+            let checker = UpdateChecker(currentVersion: "2.5.3", clock: { now }, defaults: isolatedDefaults()) {
                 fetches += 1
                 return UpdateChecker.LatestRelease(tag: tag, url: Self.releaseURL)
             }
@@ -166,6 +206,7 @@ final class UpdateCheckerTests: XCTestCase {
             XCTAssertEqual(checker.settingsNotice, .current, "\(bad.debugDescription)")
 
             tag = "v2.5.5"
+            now = now.addingTimeInterval(UpdateChecker.failedCheckInterval)
             await checker.check(minInterval: 1_800)
             XCTAssertEqual(fetches, 2, "\(bad.debugDescription) must not start the cooldown")
             XCTAssertEqual(checker.available?.version, "2.5.5", "the next valid release applies at once")
@@ -186,7 +227,8 @@ final class UpdateCheckerTests: XCTestCase {
     func testOverlappingChecksShareOneFetch() async {
         var fetches = 0
         var release: CheckedContinuation<Void, Never>?
-        let checker = UpdateChecker(currentVersion: "2.5.3", defaults: isolatedDefaults()) {
+        var now = Date(timeIntervalSince1970: 1_700_000_000)
+        let checker = UpdateChecker(currentVersion: "2.5.3", clock: { now }, defaults: isolatedDefaults()) {
             fetches += 1
             if fetches == 1 { await withCheckedContinuation { release = $0 } }
             return nil
@@ -198,6 +240,7 @@ final class UpdateCheckerTests: XCTestCase {
 
         release?.resume()
         await first.value
+        now = now.addingTimeInterval(UpdateChecker.failedCheckInterval)
         await checker.check(minInterval: 1_800)
         XCTAssertEqual(fetches, 2, "once the in-flight check finished (failed), the next one fetches")
     }

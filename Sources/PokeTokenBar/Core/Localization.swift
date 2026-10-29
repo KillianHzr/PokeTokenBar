@@ -601,6 +601,26 @@ struct L {
         t("계정 폴더 \(n)개 찾음", "\(n) account folder(s) found", "アカウントフォルダが\(n)個見つかりました", "\(n) carpeta(s) de cuenta encontrada(s)", "\(n) dossier(s) de compte trouvé(s)", "\(n) pasta(s) de conta encontrada(s)", "Gefundene Kontoordner: \(n)", "Найдено папок аккаунтов: \(n)")
     }
     var close: String { t("닫기", "Close", "閉じる", "Cerrar", "Fermer", "Fechar", "Schließen", "Закрыть") }
+    var saveLockUnreadable: String {
+        t("저장 파일을 읽을 수 없어요(권한 또는 디스크 문제). 덮어쓰지 않도록 아무것도 저장하지 않아요. 파일을 확인한 뒤 앱을 다시 실행해 주세요.",
+          "Your save can't be read (permissions or a disk error). Nothing is written so it isn't overwritten: check the file, then relaunch the app.",
+          "セーブファイルを読み込めません（権限またはディスクの問題）。上書きしないよう何も保存しません。ファイルを確認してからアプリを再起動してください。",
+          "Tu partida guardada no se puede leer (permisos o un error del disco). No se escribe nada para no sobrescribirla: revisa el archivo y vuelve a abrir la app.",
+          "Ta sauvegarde ne peut pas être lue (droits ou erreur du disque). Rien n'est écrit pour ne pas l'écraser : vérifie le fichier, puis relance l'app.",
+          "Seu salvamento não pode ser lido (permissões ou erro no disco). Nada é gravado para não sobrescrevê-lo: verifique o arquivo e abra o app de novo.",
+          "Dein Spielstand lässt sich nicht lesen (Rechte oder ein Festplattenfehler). Nichts wird gespeichert, damit er nicht überschrieben wird: Prüfe die Datei und starte die App neu.",
+          "Сохранение не читается (права или ошибка диска). Ничего не записывается, чтобы его не затереть: проверьте файл и перезапустите приложение.")
+    }
+    func saveLockNewerBuild(_ commit: String) -> String {
+        t("이 저장 파일은 더 새로운 버전의 앱(\(commit))이 썼어요. 잃지 않도록 아무것도 저장하지 않아요. 앱을 업데이트해 주세요.",
+          "This save was written by a newer version of the app (\(commit)). Nothing is written so nothing is lost: update the app.",
+          "このセーブはより新しいバージョンのアプリ（\(commit)）が書き込みました。何も失わないよう保存しません。アプリをアップデートしてください。",
+          "Esta partida la escribió una versión más reciente de la app (\(commit)). No se escribe nada para no perder nada: actualiza la app.",
+          "Cette sauvegarde vient d'une version plus récente de l'app (\(commit)). Rien n'est écrit pour ne rien perdre : mets l'app à jour.",
+          "Este salvamento foi gravado por uma versão mais nova do app (\(commit)). Nada é gravado para nada se perder: atualize o app.",
+          "Dieser Spielstand stammt von einer neueren App-Version (\(commit)). Nichts wird gespeichert, damit nichts verloren geht: Aktualisiere die App.",
+          "Это сохранение записала более новая версия приложения (\(commit)). Ничего не записывается, чтобы ничего не потерять: обновите приложение.")
+    }
     /// A purchase or a release that did not go through (the wallet or the Pokémon changed meanwhile).
     var actionFailed: String {
         t("실패했어요. 다시 해 보세요.", "That didn't work. Try again.", "うまくいきませんでした。もう一度お試しください。",
@@ -1568,7 +1588,7 @@ struct L {
     var skipThisVersion: String { t("이 버전 건너뛰기", "Skip this version", "このバージョンをスキップ", "Omitir esta versión", "Ignorer cette version", "Ignorar esta versão", "Diese Version überspringen", "Пропустить эту версию") }
     func skippedVersion(_ version: String) -> String {
         let prefix = version.contains(".") ? "v" : ""
-        return t("\(prefix)\(version)을 건너뛰었어요",
+        return t("\(KoreanParticle.object.attach(to: prefix + version)) 건너뛰었어요",
           "You skipped \(prefix)\(version)",
           "\(prefix)\(version) をスキップしました",
           "Omitiste la \(prefix)\(version)",
@@ -1836,14 +1856,14 @@ struct L {
                      "Lässt im Beutel jedes Pokémon 25 % schneller wachsen und Eier doppelt so schnell schlüpfen.",
                      "Пока оно у вас, все покемоны растут на 25% быстрее, а яйца вылупляются в 2 раза быстрее.")
         case .oldSeaMap:
-            return t("보유하면 토큰 소모를 통한 포켓몬 성장 경험치가 추가로 증가합니다.",
-                     "While owned, grants bonus growth EXP from token usage.",
-                     "持っているとトークン消費によるポケモンの成長経験値が増加します。",
-                     "Mientras lo tengas, otorga EXP de crecimiento adicional por gasto de tokens.",
-                     "Tant que tu la possèdes, augmente l'EXP de croissance reçue via tes tokens.",
-                     "Enquanto estiver na bolsa, concede bônus de EXP de crescimento ao gastar tokens.",
-                     "Verleiht im Beutel zusätzliche Wachstums-EP durch Token-Verbrauch.",
-                     "Пока она у вас, даёт дополнительный опыт роста за расход токенов.")
+            return t("보유하면 토큰으로 얻는 포켓몬 성장 경험치가 20% 늘어납니다.",
+                     "While owned, the tokens you use grow your Pokémon 20% faster.",
+                     "持っているとトークンで得るポケモンの成長経験値が20%増えます。",
+                     "Mientras lo tengas, los tokens que usas hacen crecer a tu Pokémon un 20% más rápido.",
+                     "Tant que tu la possèdes, les tokens que tu utilises font grandir ton Pokémon 20 % plus vite.",
+                     "Enquanto estiver na bolsa, os tokens que você usa fazem seu Pokémon crescer 20% mais rápido.",
+                     "Lässt im Beutel dein Pokémon durch verbrauchte Tokens 20 % schneller wachsen.",
+                     "Пока она у вас, токены растят покемона на 20% быстрее.")
         case .clearBell:
             return t("보유하면 희귀(Rare) 등급 포켓몬이 25% 더 빨리 성장합니다.",
                      "While owned, Rare Pokémon grow 25% faster.",
@@ -1854,14 +1874,14 @@ struct L {
                      "Lässt im Beutel seltene Pokémon 25% schneller wachsen.",
                      "Пока он у вас, редкие покемоны растут на 25% быстрее.")
         case .rainbowWing:
-            return t("보유하면 토큰 상점의 모든 아이템을 할인된 가격으로 구매할 수 있습니다.",
-                     "While owned, grants a discount on all shop purchases.",
-                     "持っているとショップの全商品を割引価格で購入できます。",
-                     "Mientras lo tengas, otorga un descuento en todos los artículos de la tienda.",
-                     "Tant que tu l'as, offre une réduction sur tous les articles de la boutique de tokens.",
-                     "Enquanto estiver na bolsa, concede desconto em todas as compras da loja.",
-                     "Gewährt im Beutel einen Rabatt auf alle Einkäufe im Token-Laden.",
-                     "Пока оно у вас, даёт скидку на все покупки в магазине.")
+            return t("보유하면 상점의 모든 상품이 25% 할인됩니다.",
+                     "While owned, everything in the Shop costs 25% less.",
+                     "持っているとショップの全商品が25%安くなります。",
+                     "Mientras lo tengas, todo en la tienda cuesta un 25% menos.",
+                     "Tant que tu l'as, tout coûte 25 % de moins dans la boutique.",
+                     "Enquanto estiver na bolsa, tudo na loja custa 25% menos.",
+                     "Im Beutel kostet alles im Shop 25 % weniger.",
+                     "Пока оно у вас, всё в магазине стоит на 25% дешевле.")
         case .magmaStone:
             return t("보유하면 이 모습으로 이미 졸업시킨 적 있는 라인을 육성할 때 토큰 소모가 25% 감소합니다.",
                      "While owned, reduces token cost by 25% when raising a line you have already graduated in this form.",
@@ -1917,14 +1937,15 @@ struct L {
                      "Reduziert im Beutel die Token-Kosten um 25%, wenn eine in dieser Form noch nie verabschiedete Entwicklungsreihe trainiert wird.",
                      "Пока он у вас, снижает расход токенов на 25% при выращивании линии, которую вы ещё не выпускали в этой форме.")
         case .revealGlass:
-            return t("보유하면 이로치 확률 계산 시 분모가 절반으로 줄어듭니다.",
-                     "While owned, halves the denominator in shiny rate calculations.",
-                     "持っていると色違い確率計算の分母が半分になります。",
-                     "Mientras lo tengas, reduce a la mitad el denominador en el cálculo de la probabilidad variocolor.",
-                     "Tant que tu l'as, divise par deux le dénominateur du taux chromatique.",
-                     "Enquanto estiver na bolsa, reduz pela metade o denominador no cálculo de chance shiny.",
-                     "Halbiert im Beutel den Nenner bei der Berechnung der Schillerchance.",
-                     "Пока оно у вас, вдвое снижает знаменатель шанса на шайни.")
+            let charm = itemName(.shinyCharm)
+            return t("보유하면 이로치 확률이 두 배가 돼요: 64분의 1이 32분의 1로, \(charm) 보유 시 48분의 1이 24분의 1로.",
+                     "While owned, shiny odds double: 1 in 64 becomes 1 in 32, or 1 in 48 becomes 1 in 24 with the \(charm).",
+                     "持っていると色違いの確率が2倍になります。64分の1が32分の1に、\(charm)と一緒なら48分の1が24分の1になります。",
+                     "Mientras lo tengas, la probabilidad variocolor se duplica: 1 de 64 pasa a 1 de 32, o 1 de 48 a 1 de 24 con el \(charm).",
+                     "Tant que tu l'as, les chances de chromatique doublent : 1 sur 64 devient 1 sur 32, ou 1 sur 48 devient 1 sur 24 avec le \(charm).",
+                     "Enquanto estiver na bolsa, a chance de shiny dobra: 1 em 64 vira 1 em 32, ou 1 em 48 vira 1 em 24 com o \(charm).",
+                     "Im Beutel verdoppelt sich die Schillerchance: aus 1 zu 64 wird 1 zu 32, mit dem \(charm) aus 1 zu 48 wird 1 zu 24.",
+                     "Пока оно у вас, шанс на шайни удваивается: 1 из 64 становится 1 из 32, а с \"\(charm)\" 1 из 48 становится 1 из 24.")
         case .dnaSplicers:
             return t("보유하면 토큰 소모를 통한 포켓몬 성장 경험치가 대폭 증가합니다 (+50%).",
                      "While owned, massively boosts growth EXP from token usage (+50%).",
@@ -2306,7 +2327,7 @@ struct L {
           "\(count) achievement rewards added to your bag.",
           "実績の報酬 \(count) 件をバッグに受け取りました。",
           "¡\(count) recompensas de logros añadidas a tu bolsa!",
-          "\(count) récompenses de succès ajoutées à votre sac.",
+          "\(count) récompenses de succès sont dans ton sac.",
           "\(count) recompensas de conquistas adicionadas à sua bolsa.",
           "\(count) Erfolgsbelohnungen wurden deinem Beutel hinzugefügt.",
           "Наград за успехи получено: \(count).")
@@ -2350,10 +2371,10 @@ struct L {
           "Obtained \(shown) in your bag.",
           "\(shown) をバッグに獲得しました。",
           "¡Obtuviste \(shown) en tu bolsa!",
-          "\(shown) a été ajouté à votre sac.",
+          "\(shown) est dans ton sac.",
           "Você obteve \(shown) na sua bolsa.",
           "\(shown) wurde deinem Beutel hinzugefügt.",
-          "«\(shown)» добавлен в ваш инвентарь.")
+          "\"\(shown)\" теперь в вашей сумке.")
     }
 
     /// The Legend Plate's claim: its two eggs, not the Plate.
@@ -2365,8 +2386,8 @@ struct L {
     func notifRewardsBody(_ rewards: [(kind: ItemKind, count: Int)]) -> String {
         let list = rewardsList(rewards)
         return t("가방에 획득했어요: \(list)", "Obtained in your bag: \(list).", "バッグに獲得しました：\(list)",
-                 "¡Obtuviste en tu bolsa: \(list)!", "Ajouté à votre sac : \(list).", "Você obteve na sua bolsa: \(list).",
-                 "Deinem Beutel hinzugefügt: \(list).", "Добавлено в ваш инвентарь: \(list).")
+                 "¡Obtuviste en tu bolsa: \(list)!", "Dans ton sac : \(list).", "Você obteve na sua bolsa: \(list).",
+                 "Deinem Beutel hinzugefügt: \(list).", "Теперь в вашей сумке: \(list).")
     }
 
     /// The goal of a forms achievement.
@@ -2381,10 +2402,10 @@ struct L {
                  "Obtained a \(rare) and an \(uncommon) in your bag.",
                  "\(rare)と\(uncommon)をバッグに獲得しました。",
                  "¡Obtuviste un \(rare) y un \(uncommon) en tu bolsa!",
-                 "Un \(rare) et un \(uncommon) ont été ajoutés à votre sac.",
+                 "Un \(rare) et un \(uncommon) sont dans ton sac.",
                  "Você obteve um \(rare) e um \(uncommon) na sua bolsa.",
                  "Ein \(rare) und ein \(uncommon) wurden deinem Beutel hinzugefügt.",
-                 "«\(rare)» и «\(uncommon)» добавлены в ваш инвентарь.")
+                 "\"\(rare)\" и \"\(uncommon)\" теперь в вашей сумке.")
     }
 
     /// Section titles of the Achievements tab. Kept to one word: the three segments and their counts
