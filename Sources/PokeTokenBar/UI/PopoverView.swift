@@ -113,6 +113,8 @@ final class PopoverNavigation {
     var dexScope: DexScope = .all
     /// The ideas page (`IdeasScreen`) too.
     var showingIdeas = false { didSet { if showingIdeas { dexDetailCollectionID = nil } } }
+    /// The events' calendar (`EventCalendarScreen`) too.
+    var showingCalendar = false { didSet { if showingCalendar { dexDetailCollectionID = nil } } }
     /// The changelog entries seen before it was opened: the others are marked new on it.
     var changelogSeenBefore: Set<String> = []
     /// The Collection tab's open Pokédex detail page (`DexSpecies.collectionID`); nil = grid or log.
@@ -164,6 +166,7 @@ final class PopoverNavigation {
         showingBonuses = false
         showingChangelog = false
         showingIdeas = false
+        showingCalendar = false
         tab = .home
     }
 
@@ -203,6 +206,8 @@ struct PopoverView: View {
     @State private var birthdayGiftOpened = false
     /// The event egg just taken: the banner says where it went until it is dismissed.
     @State private var eventEggTaken: EventEgg?
+    /// The news shown in the strip above the tabs (`newsPages`), by its place.
+    @State private var newsIndex = 0
 
     var body: some View {
         // NOTE: 설정을 .sheet 로 띄우면 transient 팝오버가 닫힐 때 시트가 고아로 남아
@@ -231,6 +236,8 @@ struct PopoverView: View {
                 }
             } else if nav.showingIdeas {
                 IdeasScreen(l: l) { nav.showingIdeas = false }
+            } else if nav.showingCalendar {
+                EventCalendarScreen(store: companion) { nav.showingCalendar = false }
             } else {
                 mainContent
             }
@@ -339,36 +346,40 @@ struct PopoverView: View {
         }
     }
 
-    /// The event egg waiting, the earliest event's first, above the tabs whatever the tab: the event's wish while it
+    /// One event egg waiting, on its page of the news strip: the event's wish while it
     /// is on, then that it still waits, two weeks more. Then where it went. It never tells what hatches.
     @ViewBuilder
-    private var eventEggBanner: some View {
-        if let pending = companion.eventEggs.first {
-            let egg = pending.egg
-            let colors = egg.bannerColors
-            HStack(spacing: 10) {
-                SpriteView(speciesID: nil, size: 40, animated: true, egg: .event(egg))
-                    .frame(width: 40, height: 40)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(companion.isEventOn(egg, year: pending.year) ? l.eventEggWish(egg) : l.eventEggStillWaiting(egg))
-                        .font(.callout.weight(.bold))
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(l.eventEggBody(egg)).font(.caption).foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: 4)
-                Button(l.eventEggClaim) {
-                    guard companion.claimEventEgg(egg) else { return }
-                    eventEggTaken = egg
-                    nav.tab = .bag
-                }
-                .buttonStyle(.borderedProminent).controlSize(.small).tint(colors.0)
+    private func eventEggBanner(_ pending: (egg: EventEgg, year: Int)) -> some View {
+        let egg = pending.egg
+        let colors = egg.bannerColors
+        HStack(spacing: 10) {
+            SpriteView(speciesID: nil, size: 40, animated: true, egg: .event(egg))
+                .frame(width: 40, height: 40)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(companion.isEventOn(egg, year: pending.year) ? l.eventEggWish(egg) : l.eventEggStillWaiting(egg))
+                    .font(.callout.weight(.bold))
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(l.eventEggBody(egg)).font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(8)
-            .background(LinearGradient(colors: [colors.0.opacity(0.22), colors.1.opacity(0.14)],
-                                       startPoint: .leading, endPoint: .trailing))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-        } else if let egg = eventEggTaken {
+            Spacer(minLength: 4)
+            Button(l.eventEggClaim) {
+                guard companion.claimEventEgg(egg) else { return }
+                eventEggTaken = egg
+                nav.tab = .bag
+            }
+            .buttonStyle(.borderedProminent).controlSize(.small).tint(colors.0)
+        }
+        .padding(8)
+        .background(LinearGradient(colors: [colors.0.opacity(0.22), colors.1.opacity(0.14)],
+                                   startPoint: .leading, endPoint: .trailing))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    /// Where the egg just taken went, until closed.
+    @ViewBuilder
+    private var eventEggTakenBanner: some View {
+        if let egg = eventEggTaken {
             HStack(spacing: 8) {
                 Text("🥚").font(.callout)
                 Text(l.eventEggClaimed(egg)).font(.caption).fixedSize(horizontal: false, vertical: true)
@@ -414,6 +425,66 @@ struct PopoverView: View {
         }
     }
 
+    /// One of the news above the tabs.
+    private enum NewsPage: Hashable {
+        case update, birthday, eventEgg(EventEgg), eventEggTaken, changelog
+    }
+
+    /// The news waiting, the eggs to take first: every event egg waiting has its page (autumn and Halloween together;
+    /// only the first showed until it was taken).
+    private var newsPages: [NewsPage] {
+        var pages: [NewsPage] = []
+        if updater.isUpdating || updater.updateError != nil
+            || (updater.available != nil && store.updateNotificationsEnabled) { pages.append(.update) }
+        pages += companion.eventEggs.map { .eventEgg($0.egg) }
+        if eventEggTaken != nil { pages.append(.eventEggTaken) }
+        if companion.birthdayGift != nil || birthdayGiftOpened { pages.append(.birthday) }
+        if store.hasUnseenChangelog { pages.append(.changelog) }
+        return pages
+    }
+
+    /// The news in one strip of one height, one at a time with arrows between them: stacked, four of them pushed Home
+    /// down by some 170 points.
+    @ViewBuilder
+    private var newsStrip: some View {
+        let pages = newsPages
+        if !pages.isEmpty {
+            let index = min(newsIndex, pages.count - 1)
+            VStack(alignment: .leading, spacing: 4) {
+                if pages.count > 1 {
+                    HStack(spacing: 6) {
+                        Text(l.newsCount(pages.count)).font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+                        Spacer(minLength: 4)
+                        Button { newsIndex = (index + pages.count - 1) % pages.count } label: {
+                            Image(systemName: "chevron.left").frame(width: 18, height: 14)
+                        }
+                        .accessibilityLabel(l.recapPrevious)
+                        Text(l.newsPosition(index + 1, pages.count))
+                            .font(.caption2).foregroundStyle(.secondary).monospacedDigit()
+                        Button { newsIndex = (index + 1) % pages.count } label: {
+                            Image(systemName: "chevron.right").frame(width: 18, height: 14)
+                        }
+                        .accessibilityLabel(l.recapNext)
+                    }
+                    .buttonStyle(.borderless)
+                }
+                newsPage(pages[index])
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func newsPage(_ page: NewsPage) -> some View {
+        switch page {
+        case .update: updateBanner
+        case .birthday: birthdayBanner
+        case .eventEgg(let egg):
+            if let pending = companion.eventEggs.first(where: { $0.egg == egg }) { eventEggBanner(pending) }
+        case .eventEggTaken: eventEggTakenBanner
+        case .changelog: changelogBanner
+        }
+    }
+
     /// Why the save is not written (`CompanionStore.SaveLock`): stays until the cause is gone.
     @ViewBuilder
     private var saveLockBanner: some View {
@@ -441,10 +512,7 @@ struct PopoverView: View {
         @Bindable var nav = nav
         return VStack(alignment: .leading, spacing: 12) {
             saveLockBanner
-            updateBanner
-            birthdayBanner
-            eventEggBanner
-            changelogBanner
+            newsStrip
             PopoverTabPicker(tab: $nav.tab, l: l, unclaimedAchievements: companion.unclaimedAchievementsCount)
 
             if nav.tab == .collection {
@@ -1384,6 +1452,7 @@ struct PopoverView: View {
                 store.floatingPetEnabled.toggle()
             }
             CircleIconButton(systemImage: "lightbulb", help: l.ideasTitle) { nav.showingIdeas = true }
+            CircleIconButton(systemImage: "calendar", help: l.calendarTitle) { nav.showingCalendar = true }
             CircleIconButton(systemImage: "newspaper", help: l.changelogTitle) { openChangelog() }
                 .overlay(alignment: .topTrailing) {
                     if store.hasUnseenChangelog {

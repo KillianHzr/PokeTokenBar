@@ -1969,15 +1969,24 @@ enum LocalUsageReader {
         // 에게 "빌 수 있다"는 잘못된 신호를 준다). 아래 `Set`·`map` 은 빈 배열에서도 안전하다.
         let inMonth = Set(days)
         var buckets: [String: Bucket] = [:]
+        var byModel: [String: [String: Bucket]] = [:]
         for e in entries where inMonth.contains(e.localDay) {
             buckets[e.localDay, default: Bucket()].add(e)
+            byModel[e.localDay, default: [:]][e.model, default: Bucket()].add(e)
         }
 
         return days.map { day in
             let b = buckets[day] ?? Bucket()
+            let models = byModel[day]?.compactMapValues { m -> ModelUsage? in
+                guard m.total > 0 else { return nil }
+                let priced = m.costCoverage.hasKnown && !m.costCoverage.unknown
+                return ModelUsage(input: m.input, output: m.output, cacheWrite: m.cacheWrite, cacheRead: m.cacheRead,
+                                  cost: priced ? m.cost : nil)
+            }
             return DailyUsage(date: day, inputTokens: b.input, outputTokens: b.output,
                               cacheCreationTokens: b.cacheWrite, cacheReadTokens: b.cacheRead,
-                              totalTokens: b.total, totalCost: b.cost, costCoverage: b.costCoverage)
+                              totalTokens: b.total, totalCost: b.cost, costCoverage: b.costCoverage,
+                              modelUsage: models ?? [:])
         }
     }
 

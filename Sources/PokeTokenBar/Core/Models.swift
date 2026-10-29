@@ -14,6 +14,9 @@ struct DailyUsage: Decodable, Sendable {
     var usageCost: UsageCost { UsageCost(amount: totalCost, coverage: costCoverage) }
     /// totalTokens per source model when the provider reports it (nil otherwise).
     var models: [String: Int]?
+    /// Each model's tokens by kind and cost, from a local read (`LocalUsageReader.monthDailySeries`): the Stats page's
+    /// split by model and what the cache saved. Nil when the source does not give it.
+    var modelUsage: [String: ModelUsage]?
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -37,7 +40,9 @@ struct DailyUsage: Decodable, Sendable {
 
     init(date: String, inputTokens: Int, outputTokens: Int,
          cacheCreationTokens: Int, cacheReadTokens: Int, totalTokens: Int, totalCost: Double,
-         models: [String: Int]? = nil, costCoverage: CostCoverage = .source) {
+         models: [String: Int]? = nil, costCoverage: CostCoverage = .source,
+         modelUsage: [String: ModelUsage]? = nil) {
+        self.modelUsage = modelUsage
         self.date = date
         self.inputTokens = inputTokens
         self.outputTokens = outputTokens
@@ -53,6 +58,19 @@ struct DailyUsage: Decodable, Sendable {
         case costCoverage
         case date, period, inputTokens, outputTokens, cacheCreationTokens, cacheReadTokens
         case cachedInputTokens, totalTokens, totalCost, costUSD, models
+    }
+}
+
+/// One model's share of a day: its tokens by kind, and their cost (nil when a part of it is not priced).
+struct ModelUsage: Equatable, Sendable {
+    var input = 0, output = 0, cacheWrite = 0, cacheRead = 0
+    var cost: Double?
+    var total: Int { input + output + cacheWrite + cacheRead }
+
+    /// Two shares of one model added up: a cost unknown on either side is unknown.
+    static func + (a: ModelUsage, b: ModelUsage) -> ModelUsage {
+        ModelUsage(input: a.input + b.input, output: a.output + b.output, cacheWrite: a.cacheWrite + b.cacheWrite,
+                   cacheRead: a.cacheRead + b.cacheRead, cost: a.cost.flatMap { x in b.cost.map { x + $0 } })
     }
 }
 

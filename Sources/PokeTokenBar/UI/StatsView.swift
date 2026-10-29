@@ -11,6 +11,8 @@ struct StatsScreen: View {
     @State private var scope: RecapScope = .month
     /// 0 is the running period, -1 the one before it. Never positive: the future has no usage.
     @State private var offset = 0
+    /// "Where the tokens went" split by model rather than by tool.
+    @State private var splitByModel = false
     /// Today's bar, as on Home.
     fileprivate static let accent = Design.actionColor
     private static let kindColors: [Color] = [
@@ -213,12 +215,23 @@ struct StatsScreen: View {
                     .hoverTip(TokenFormatter.grouped(kind.1))
                 }
             }
-            if breakdown.tools.count > 1 {
+            let byModel = splitByModel && !breakdown.models.isEmpty
+            if breakdown.tools.count > 1 || !breakdown.models.isEmpty {
                 Divider()
-                Text(l.statsByTool).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                ForEach(breakdown.tools, id: \.id) { tool in
+                if breakdown.models.isEmpty {
+                    Text(l.statsByTool).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                } else {
+                    Picker(l.statsByTool, selection: $splitByModel) {
+                        Text(l.statsByTool).tag(false)
+                        Text(l.statsByModel).tag(true)
+                    }
+                    .pickerStyle(.segmented).labelsHidden().controlSize(.small)
+                }
+                ForEach(Array((byModel ? breakdown.models : breakdown.tools).enumerated()), id: \.element.id) { index, tool in
                     HStack(spacing: 6) {
-                        Circle().fill(Self.toolColor(tool.id, colors)).frame(width: 7, height: 7)
+                        Circle().fill(byModel ? DailyTrendStack.palette[index % DailyTrendStack.palette.count]
+                                              : Self.toolColor(tool.id, colors))
+                            .frame(width: 7, height: 7)
                         Text(tool.name).lineLimit(1)
                         Spacer(minLength: 4)
                         Text(TokenFormatter.compact(tool.tokens)).fontWeight(.semibold).monospacedDigit()
@@ -233,6 +246,11 @@ struct StatsScreen: View {
                     }
                     .font(.caption)
                 }
+            }
+            if store.showsCost, let saved = breakdown.cacheSavings, saved > 0.5 {
+                Label(l.statsCacheSaved(TokenFormatter.costCompact(saved)), systemImage: "arrow.down.circle")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .hoverTip(l.statsCacheSavedHint)
             }
         }
         .designCard()

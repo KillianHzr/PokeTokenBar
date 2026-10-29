@@ -1443,6 +1443,10 @@ struct CompanionState: Codable, Sendable, Equatable {
     var eventEggsNotified: Set<String> = []
     /// The egg came from an event egg: it hatches that event's Pokémon (`CompanionStore.chooseBase`).
     var eggEvent: EventEgg?
+    /// The claim of the event egg incubating (`EventEgg.key`), and the base each claimed one hatched, from 2026-10-29:
+    /// the calendar says what came out of each egg taken.
+    var eggEventKey: String?
+    var eventEggHatches: [String: Int] = [:]
     /// The year of the last birthday the gift was announced for, so the notification comes once.
     var birthdayNotifiedYear: Int?
     // 알 상태에서 미리 롤해둔 부화 종(프리패칭) — 부화 순간 네트워크 딜레이 제거. 재시작에도 유지.
@@ -1569,6 +1573,8 @@ struct CompanionState: Codable, Sendable, Equatable {
         eggEvent = c.lenientOptional(EventEgg.self, forKey: .eggEvent)
         birthdayNotifiedYear = c.lenientOptional(Int.self, forKey: .birthdayNotifiedYear)
         writer = c.lenientOptional(SaveWriter.self, forKey: .writer)
+        eggEventKey = c.lenientOptional(String.self, forKey: .eggEventKey)
+        eventEggHatches = c.lenient([String: Int].self, forKey: .eventEggHatches, default: [:])
     }
 
     /// 졸업 기록 또는 현재 개체가 실제로 도달한 단계에 이 종이 포함되는가.

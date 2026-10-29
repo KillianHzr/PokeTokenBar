@@ -84,6 +84,25 @@ extension L {
     var statsByTool: String {
         t("도구별", "By tool", "ツール別", "Por herramienta", "Par outil", "Por ferramenta", "Nach Tool", "По инструментам")
     }
+    var statsByModel: String {
+        t("모델별", "By model", "モデル別", "Por modelo", "Par modèle", "Por modelo", "Nach Modell", "По моделям")
+    }
+    func statsCacheSaved(_ amount: String) -> String {
+        t("캐시로 아낀 비용: 약 \(amount)", "The cache saved you about \(amount)", "キャッシュで節約できた額：約\(amount)",
+          "La caché te ahorró unos \(amount)", "Le cache t'a fait économiser environ \(amount)",
+          "O cache economizou cerca de \(amount)", "Der Cache hat dir etwa \(amount) gespart",
+          "Кэш сэкономил около \(amount)")
+    }
+    var statsCacheSavedHint: String {
+        t("캐시에서 읽은 토큰을 입력 가격 대신 읽기 가격으로 계산하고, 캐시 쓰기의 추가 비용을 뺐어요. API 공개 가격 기준이며 구독 요금이 아니에요.",
+          "Tokens read from the cache, priced at the read price instead of the input price, less what writing the cache cost more. Public API prices, not your subscription bill.",
+          "キャッシュから読んだトークンを入力価格ではなく読み取り価格で計算し、キャッシュ書き込みの追加分を引いた額です。APIの公開価格で、サブスクリプションの請求ではありません。",
+          "Tokens leídos de la caché al precio de lectura en vez del de entrada, menos lo que costó de más escribir la caché. Precios públicos de la API, no tu suscripción.",
+          "Les tokens lus du cache, au prix de lecture au lieu du prix d'entrée, moins ce que l'écriture du cache a coûté en plus. Prix publics de l'API, pas ta facture d'abonnement.",
+          "Tokens lidos do cache pelo preço de leitura em vez do de entrada, menos o que gravar o cache custou a mais. Preços públicos da API, não sua assinatura.",
+          "Aus dem Cache gelesene Tokens zum Lesepreis statt zum Eingabepreis, abzüglich der Mehrkosten fürs Schreiben des Caches. Öffentliche API-Preise, nicht dein Abo.",
+          "Токены из кэша по цене чтения вместо цены ввода, минус переплата за запись в кэш. Публичные цены API, а не ваша подписка.")
+    }
 
     // MARK: Since install
 

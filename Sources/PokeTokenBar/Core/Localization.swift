@@ -2305,6 +2305,74 @@ struct L {
     var shopHint: String { t("사용한 토큰으로 아이템을 살 수 있어요.", "Spend the tokens you've used on items.", "使ったトークンでアイテムを購入できます。", "Usa los tokens que has consumido para comprar objetos.", "Dépense les tokens que tu as consommés pour acheter des objets.", "Compre itens com os tokens que você já usou.", "Mit deinen verbrauchten Tokens kannst du Gegenstände kaufen.", "Тратьте использованные токены на предметы.") }
     var buy: String { t("구매", "Buy", "購入", "Comprar", "Acheter", "Comprar", "Kaufen", "Купить") }
     func buyConfirm(_ name: String) -> String { t("\(name) 구매할까요?", "Buy \(name)?", "\(name) を購入しますか？", "¿Comprar \(name)?", "Acheter \(name) ?", "Comprar \(name)?", "\(name) kaufen?", "Купить \"\(name)\"?") }
+    func newsCount(_ n: Int) -> String {
+        t("새 소식 \(n)개", "\(n) news", "お知らせ\(n)件", "\(n) novedades", "\(n) nouvelles", "\(n) novidades",
+          "\(n) Neuigkeiten", "Новостей: \(n)")
+    }
+    func newsPosition(_ index: Int, _ count: Int) -> String {
+        t("\(count)개 중 \(index)", "\(index) of \(count)", "\(count)件中\(index)件目", "\(index) de \(count)", "\(index) sur \(count)",
+          "\(index) de \(count)", "\(index) von \(count)", "\(index) из \(count)")
+    }
+    var countsFor: String { t("이 포켓몬이 채워 주는 목표", "Counts toward", "この子が進める目標", "Cuenta para", "Compte pour",
+                              "Conta para", "Zählt für", "Засчитывается в") }
+    /// A goal of `CompanionStore.activeGoals`: an item, with its region for a regional one ("Rock Badge, Johto").
+    func activeGoalName(_ goal: CompanionStore.ActiveGoal) -> String {
+        let name = itemName(goal.item)
+        guard let generation = goal.generation, goal.item != .excavation else { return name }
+        return "\(name), \(regionName(generation: generation))"
+    }
+    func moreGoals(_ count: Int, _ list: String) -> String {
+        t("외 \(count)개: \(list)", "and \(count) more: \(list)", "ほか\(count)件：\(list)", "y \(count) más: \(list)",
+          "et \(count) autres : \(list)", "e mais \(count): \(list)", "und \(count) weitere: \(list)", "и ещё \(count): \(list)")
+    }
+    /// The confirmation of a send-off, when the Pokémon still counts for goals.
+    func stillCountsFor(_ name: String, _ list: String) -> String {
+        t("\(KoreanParticle.subject.attach(to: name)) 아직 채워 주는 목표: \(list).", "\(name) still counts toward \(list).",
+          "\(name)はまだこの目標を進めます：\(list)。", "\(name) aún cuenta para \(list).", "\(name) compte encore pour \(list).",
+          "\(name) ainda conta para \(list).", "\(name) zählt noch für \(list).", "\"\(name)\" ещё засчитывается в: \(list).")
+    }
+    /// What the wallet lacks for a purchase ("Il te manque 12.4M").
+    func shopMissing(_ amount: String) -> String {
+        t("\(amount) 부족해요", "You need \(amount) more", "あと\(amount)足りません", "Te faltan \(amount)", "Il te manque \(amount)",
+          "Faltam \(amount)", "Dir fehlen \(amount)", "Не хватает \(amount)")
+    }
+    /// Why a price is struck: the item that lowers it.
+    func discountLine(_ item: ItemKind) -> String {
+        let name = itemName(item)
+        switch item {
+        case .jadeOrb:
+            return t("\(name): 알은 20% 더 할인", "\(name): another 20% off eggs", "\(name)：タマゴはさらに20%引き",
+                     "\(name): un 20% menos más en huevos", "\(name) : encore 20 % de moins sur les œufs",
+                     "\(name): mais 20% a menos nos ovos", "\(name): weitere 20 % weniger auf Eier",
+                     "\"\(name)\": ещё 20% на яйца")
+        default:
+            return t("\(name): 25% 할인", "\(name): 25% off", "\(name)：25%引き", "\(name): 25% menos", "\(name) : 25 % de moins",
+                     "\(name): 25% a menos", "\(name): 25 % weniger", "\"\(name)\": скидка 25%")
+        }
+    }
+    func shinyOddsChange(from now: UInt64, to next: UInt64) -> String {
+        t("이로치 확률: 1/\(now) → 1/\(next)", "Shiny odds: 1 in \(now) → 1 in \(next)", "色違いの確率：\(now)分の1 → \(next)分の1",
+          "Probabilidad variocolor: 1 de \(now) → 1 de \(next)", "Chances chromatiques : 1 sur \(now) → 1 sur \(next)",
+          "Chance de shiny: 1 em \(now) → 1 em \(next)", "Schillerchance: 1 zu \(now) → 1 zu \(next)",
+          "Шанс на шайни: 1 из \(now) → 1 из \(next)")
+    }
+    /// The confirmation of a purchase with its total, so it stays in sight while paying.
+    func buyConfirm(_ name: String, total: String) -> String {
+        t("\(total)에 \(name) 구매할까요?", "Buy \(name) for \(total)?", "\(name)を\(total)で購入しますか？",
+          "¿Comprar \(name) por \(total)?", "Acheter \(name) pour \(total) ?", "Comprar \(name) por \(total)?",
+          "\(name) für \(total) kaufen?", "Купить \"\(name)\" за \(total)?")
+    }
+    func remainingAfterPurchase(_ amount: String) -> String {
+        t("구매 후 \(amount) 남아요.", "You'll have \(amount) left.", "購入後は\(amount)残ります。", "Te quedarán \(amount).",
+          "Il te restera \(amount).", "Vão sobrar \(amount).", "Danach bleiben dir \(amount).", "Останется \(amount).")
+    }
+    func eggsGoToBag(_ count: Int) -> String {
+        count > 1
+            ? t("가방에 들어가요.", "They go in your Bag.", "バッグに入ります。", "Van a tu bolsa.", "Ils vont dans ton sac.",
+                "Vão para a sua bolsa.", "Sie kommen in deinen Beutel.", "Они попадут в сумку.")
+            : t("가방에 들어가요.", "It goes in your Bag.", "バッグに入ります。", "Va a tu bolsa.", "Il va dans ton sac.",
+                "Vai para a sua bolsa.", "Es kommt in deinen Beutel.", "Оно попадёт в сумку.")
+    }
     var notEnoughTokens: String { t("토큰이 부족해요", "Not enough tokens", "トークンが足りません", "No tienes suficientes tokens", "Pas assez de tokens", "Tokens insuficientes", "Nicht genug Tokens", "Недостаточно токенов") }
     func ownedCount(_ n: Int) -> String { t("보유 ×\(n)", "Owned ×\(n)", "所持 ×\(n)", "En posesión ×\(n)", "Possédés ×\(n)", "Você tem ×\(n)", "Im Beutel ×\(n)", "Есть ×\(n)") }
     var shopPriceLabel: String { t("가격", "Price", "価格", "Precio", "Prix", "Preço", "Preis", "Цена") }

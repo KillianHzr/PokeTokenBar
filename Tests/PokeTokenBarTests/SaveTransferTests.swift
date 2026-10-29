@@ -591,7 +591,7 @@ final class SaveTransferTests: XCTestCase {
                                      "lastBirthdayGiftClaimedAt", "lastBirthdayGiftDate", "birthdayChangedAfterGiftYear", "birthdayNotifiedYear",
                                      // The event egg in incubation, and the events' eggs already taken or announced:
                                      // moving the save never brings an event's egg twice the same year.
-                                     "eggEvent", "claimedEventEggs", "eventEggsNotified",
+                                     "eggEvent", "claimedEventEggs", "eventEggsNotified", "eggEventKey", "eventEggHatches",
                                      // The Fossil Egg in incubation, how many hatched, and the fossil lines had
                                      // before the digs: the digs follow the save.
                                      "eggFromFossilEgg", "fossilEggsHatched", "fossilLinesBeforeDigs",

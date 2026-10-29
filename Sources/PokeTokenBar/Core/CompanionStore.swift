@@ -7,12 +7,14 @@ import UserNotifications
 @MainActor
 @Observable
 final class CompanionStore {
-    private(set) var state = CompanionState() { didSet { dexSpeciesCache = [:] } }
+    private(set) var state = CompanionState() { didSet { dexSpeciesCache = [:]; goalsBySpecies = nil } }
     private(set) var displayState: CompanionStateKind = .egg
     private(set) var currentLine: EvoLine? { didSet { dexSpeciesCache = [:] } }
     /// `collectedDexSpecies` by `groupForms`, until the state or the line changes: a form species' page read it some
     /// 25 times per draw (`formSpecies`, `dexCover`, the picker), each folding and sorting the whole Pokédex.
     @ObservationIgnored private var dexSpeciesCache: [Bool: [DexSpecies]] = [:]
+    /// `goals(counting:)` for every species, until the state changes.
+    @ObservationIgnored private var goalsBySpecies: [Int: [ActiveGoal]]?
     /// How many times the Pokédex was folded: the tests check the cache with it.
     @ObservationIgnored private(set) var dexSpeciesFolds = 0
     /// Writes of the save file, for the tests of what writes it.
@@ -394,6 +396,24 @@ final class CompanionStore {
         }
     }
 
+    /// The Shop's price before the discounts the player's items give (`price(of:)`): struck beside the price paid.
+    func basePrice(of entry: ShopEntry) -> Int { PokemonBalance.scaled(entry.price, by: shopDifficulty) }
+
+    /// The items that lower an entry's price, in the order they apply: the Rainbow Wing on everything, the Jade Orb on
+    /// eggs again.
+    func discounts(of entry: ShopEntry) -> [ItemKind] {
+        var items: [ItemKind] = []
+        if ownsRainbowWing { items.append(.rainbowWing) }
+        if case .egg = entry, ownsJadeOrb { items.append(.jadeOrb) }
+        return items
+    }
+
+    /// The shiny odds now and with the Shiny Charm, for its Shop card: 1 in 64 to 1 in 48, or with the Reveal Glass 1
+    /// in 32 to 1 in 24.
+    var shinyCharmOdds: (now: UInt64, withCharm: UInt64) {
+        (shinyDenominator, Self.shinyDenominator(charmOwned: true, revealGlassOwned: ownsRevealGlass))
+    }
+
     /// 알을 포함한 상점 한 줄의 실제 가격.
     func price(of entry: ShopEntry) -> Int {
         var p = PokemonBalance.scaled(entry.price, by: shopDifficulty)
@@ -742,6 +762,125 @@ final class CompanionStore {
             && !a.pathIDs.prefix(a.stageIndex + 1).contains(PikachuCostume.speciesID)
             && PikachuCostume.next(owned: state.pikachuCostumes, seed: 0) != nil
         return ActiveNews(newSpecies: newSpecies, firstShiny: firstShiny, costume: costume)
+    }
+
+    /// A goal the Pokémon raised advances: graduated, it adds `gain` species to it, which stands at `count` of `needed`.
+    /// `generation`: a regional achievement's region, or a dig's number.
+    struct ActiveGoal: Equatable, Sendable {
+        let item: ItemKind
+        let generation: Int?
+        let gain: Int
+        let count: Int
+        let needed: Int
+    }
+
+    /// The goals not claimed yet that graduating the Pokémon raised would advance, the ones it advances most first: a
+    /// gym badge's or the Legendary Egg's region, the next dig (its Rock species in this form), a stone or an artifact
+    /// still locked, a species' forms. Empty when it brings nothing new. Helps to choose whether to keep it.
+    var activeGoals: [ActiveGoal] {
+        guard let a = state.active, let news = activeNews, !news.newSpecies.isEmpty else { return [] }
+        let new = Set(news.newSpecies)
+        let registered = graduatedSpeciesIDs
+        var goals: [ActiveGoal] = []
+        func consider(_ item: ItemKind, _ generation: Int?, _ progress: GoalProgress, counted: Set<Int>) {
+            guard !progress.isMet else { return }
+            let gain = min(Set(progress.goal.species).subtracting(progress.registered).intersection(counted).count,
+                           progress.goal.needed - progress.count)
+            guard gain > 0 else { return }
+            goals.append(ActiveGoal(item: item, generation: generation, gain: gain, count: progress.count,
+                                    needed: progress.goal.needed))
+        }
+        for kind in Self.achievementItems {
+            if kind == .excavation {
+                // The digs add up: only the next one counts, with the species that are Rock in this form.
+                let rock = new.filter { PokemonTypeData.types(forSpeciesID: $0, form: a.form).contains(.rock) }
+                if let next = regionTiers(.excavation).first(where: { !$0.isDone && !$0.progress.isMet }) {
+                    consider(kind, next.generation, next.progress, counted: rock)
+                }
+            } else if kind.isRegional {
+                for tier in regionTiers(kind, registered: registered) where !tier.isDone {
+                    consider(kind, tier.generation, tier.progress, counted: new)
+                }
+            } else if !isClaimed(kind), !isUnlocked(kind, registered: registered) {
+                if case .forms(let goal)? = kind.unlock, new.contains(goal.speciesID) {
+                    let have = state.collectedForms(speciesID: goal.speciesID, graduatedOnly: true)
+                        .intersection(goal.forms).count
+                    goals.append(ActiveGoal(item: kind, generation: nil, gain: 1, count: have, needed: goal.forms.count))
+                    continue
+                }
+                // Any one goal unlocks it: the one this Pokémon advances most.
+                let before = goals.count
+                for progress in unlockProgress(of: kind, registered: registered) {
+                    consider(kind, nil, progress, counted: new)
+                }
+                if goals.count - before > 1 {
+                    let best = goals[before...].max { $0.gain < $1.gain || ($0.gain == $1.gain && $0.count < $1.count) }!
+                    goals.removeSubrange(before...)
+                    goals.append(best)
+                }
+            }
+        }
+        // The most species first, then the closest to done.
+        return goals.sorted {
+            if $0.gain != $1.gain { return $0.gain > $1.gain }
+            return Double($0.count + $0.gain) / Double(max(1, $0.needed)) > Double($1.count + $1.gain) / Double(max(1, $1.needed))
+        }
+    }
+
+    /// How a species not caught yet comes (7.5): from the species it evolves from (`base`: its line's first), a fossil
+    /// line's egg, a legendary's or a mythical's eggs, else any egg.
+    enum SpeciesSource: Equatable, Sendable {
+        case evolves(from: Int, base: Int)
+        case fossil, legendary, mythical, egg
+    }
+
+    nonisolated static func source(of speciesID: Int) -> SpeciesSource {
+        if let parent = PokemonEvolutionData.parents[speciesID] {
+            var base = parent
+            while let up = PokemonEvolutionData.parents[base] { base = up }
+            return .evolves(from: parent, base: base)
+        }
+        if FossilDig.isFossilLine(speciesID) { return .fossil }
+        if SpeciesGoal.mythicals.contains(speciesID) { return .mythical }
+        if SpeciesGoal.legendaries.contains(speciesID) { return .legendary }
+        return .egg
+    }
+
+    /// The goals not claimed yet a species not graduated counts for, the closest to done first: a gym badge's or the
+    /// Legendary Egg's region, a stone or an artifact still locked.
+    func goals(counting speciesID: Int) -> [ActiveGoal] {
+        _ = state.dex.count   // observed even from the cache
+        if goalsBySpecies == nil { goalsBySpecies = indexGoalsBySpecies() }
+        return goalsBySpecies?[speciesID] ?? []
+    }
+
+    /// Every species not graduated with the goals it counts for, made once per state: a Pokédex page asks it for each
+    /// of its silhouettes.
+    private func indexGoalsBySpecies() -> [Int: [ActiveGoal]] {
+        let registered = graduatedSpeciesIDs
+        var index: [Int: [ActiveGoal]] = [:]
+        func add(_ item: ItemKind, _ generation: Int?, _ progress: GoalProgress) {
+            guard !progress.isMet else { return }
+            let goal = ActiveGoal(item: item, generation: generation, gain: 1, count: progress.count,
+                                  needed: progress.goal.needed)
+            for id in progress.goal.species where !registered.contains(id) {
+                // Any one goal unlocks a non-regional item: one entry per item.
+                if generation == nil, index[id]?.contains(where: { $0.item == item }) == true { continue }
+                index[id, default: []].append(goal)
+            }
+        }
+        for kind in Self.achievementItems where kind != .excavation {
+            if kind.isRegional {
+                for tier in regionTiers(kind, registered: registered) where !tier.isDone {
+                    add(kind, tier.generation, tier.progress)
+                }
+            } else if !isClaimed(kind), !isUnlocked(kind, registered: registered) {
+                for progress in unlockProgress(of: kind, registered: registered) { add(kind, nil, progress) }
+            }
+        }
+        return index.mapValues { goals in
+            goals.sorted { Double($0.count) / Double(max(1, $0.needed)) > Double($1.count) / Double(max(1, $1.needed)) }
+        }
     }
 
     /// The hint of the Home badge saying it brings something: what graduating it adds, and a costume it brings.
@@ -2504,13 +2643,20 @@ final class CompanionStore {
     /// Buys a Shop egg: its price leaves the wallet and the egg goes in the Bag (`ItemKind(shopEgg:)`). Bought, it
     /// used to send the current Pokémon off at once; the player now picks the moment (`useBagEgg`).
     @discardableResult
-    func buyEgg(_ tier: Rarity?) -> Bool {
-        guard canBuyEgg(tier), let kind = ItemKind(shopEgg: tier) else { return false }
-        state.spentTokens += price(of: .egg(tier))
-        state.inventory[kind.rawValue, default: 0] += 1
+    func buyEgg(_ tier: Rarity?, count: Int = 1) -> Bool {
+        guard count >= 1, count <= maxEggBuyCount(tier), let kind = ItemKind(shopEgg: tier) else { return false }
+        state.spentTokens += price(of: .egg(tier)) * count
+        state.inventory[kind.rawValue, default: 0] += count
         save()
-        AppLog.write("egg purchased: \(kind.rawValue) to the bag")
+        AppLog.write("egg purchased: \(kind.rawValue) ×\(count) to the bag")
         return true
+    }
+
+    /// How many eggs of a tier the wallet buys at once: they wait in the Bag.
+    func maxEggBuyCount(_ tier: Rarity?) -> Int {
+        guard canBuyEgg(tier) else { return 0 }
+        let price = price(of: .egg(tier))
+        return price > 0 ? availableTokens / price : 0
     }
 
     /// Evolution stone use gate: a stone in the Bag and, like an egg purchase, a companion to send off.
@@ -2657,6 +2803,62 @@ final class CompanionStore {
         EventEgg.claimable(now: clock(), claimed: state.claimedEventEggs, firstCatch: firstCatch?.date, calendar: LocalUsageReader.gregorianCalendar())
     }
 
+    /// One line of the events' calendar (7.6): an event egg in one year, or the birthday.
+    struct CalendarItem: Equatable, Sendable {
+        enum Source: Equatable, Sendable { case event(EventEgg), birthday }
+        enum Status: Equatable, Sendable {
+            case toTake
+            /// `hatched`: the base it hatched, once used (recorded from 2026-10-29).
+            case taken(hatched: Int?)
+            case upcoming
+        }
+        let source: Source
+        let year: Int
+        let start: Date
+        /// The start of the day after the last one.
+        let end: Date
+        let status: Status
+    }
+
+    /// The calendar: the eggs on now (to take or taken), the next ones within a year, earliest first, and those taken
+    /// this year that are over.
+    func eventCalendar() -> (now: [CalendarItem], upcoming: [CalendarItem], taken: [CalendarItem]) {
+        let calendar = LocalUsageReader.gregorianCalendar()
+        let today = clock()
+        let year = calendar.component(.year, from: today)
+        let horizon = calendar.date(byAdding: .year, value: 1, to: today) ?? today
+        var now: [CalendarItem] = [], upcoming: [CalendarItem] = [], taken: [CalendarItem] = []
+        for egg in EventEgg.allCases {
+            // Within a year from now, a yearly event comes once at most.
+            for y in [year - 1, year, year + 1, year + 2] {
+                guard let days = egg.days(in: y, firstCatch: firstCatch?.date, calendar: calendar) else { continue }
+                let key = egg.key(year: y)
+                let claimEnd = calendar.date(byAdding: .day, value: egg.claimDays, to: days.end) ?? days.end
+                let status: CalendarItem.Status = state.claimedEventEggs.contains(key)
+                    ? .taken(hatched: state.eventEggHatches[key]) : .toTake
+                let item = CalendarItem(source: .event(egg), year: y, start: days.start, end: days.end, status: status)
+                if today >= days.start && today < claimEnd {
+                    now.append(item)
+                } else if days.start > today, days.start < horizon {
+                    upcoming.append(CalendarItem(source: .event(egg), year: y, start: days.start, end: days.end,
+                                                 status: .upcoming))
+                } else if case .taken = status, calendar.component(.year, from: days.start) == year
+                            || calendar.component(.year, from: days.end) == year, today >= claimEnd {
+                    taken.append(item)
+                }
+            }
+        }
+        if let birthday = state.birthday {
+            let thisYear = birthday.date(in: year, calendar: calendar)
+            let next = thisYear >= calendar.startOfDay(for: today) ? thisYear : birthday.date(in: year + 1, calendar: calendar)
+            let end = calendar.date(byAdding: .day, value: 1, to: next) ?? next
+            upcoming.append(CalendarItem(source: .birthday, year: calendar.component(.year, from: next), start: next,
+                                         end: end, status: .upcoming))
+        }
+        return (now.sorted { $0.start < $1.start }, upcoming.sorted { $0.start < $1.start },
+                taken.sorted { $0.start > $1.start })
+    }
+
     /// Whether this waiting egg's event is on, rather than in the two weeks after it.
     func isEventOn(_ egg: EventEgg, year: Int) -> Bool {
         egg.isOn(year: year, now: clock(), firstCatch: firstCatch?.date, calendar: LocalUsageReader.gregorianCalendar())
@@ -2682,6 +2884,9 @@ final class CompanionStore {
         state.inventory[egg.item.rawValue] = itemCount(egg.item) - 1
         replaceActiveWithEgg(price: 0, tier: egg.tier, type: egg.type)
         state.eggEvent = egg
+        // The latest claim of this event not hatched yet: what comes out is its.
+        state.eggEventKey = state.claimedEventEggs
+            .filter { $0.hasPrefix(egg.rawValue + "@") && state.eventEggHatches[$0] == nil }.max()
         save()
         AppLog.write("event egg used: \(egg.rawValue), discarded active")
         return true
@@ -2789,6 +2994,7 @@ final class CompanionStore {
         state.eggFromBirthdayEgg = false
         state.eggFromFossilEgg = false
         state.eggEvent = nil
+        state.eggEventKey = nil
         state.pendingHatchID = nil    // 새 보증으로 처음부터 롤(활성 포켓몬이 있는 동안엔 원래 비어 있다)
         state.pendingForm = nil
         state.pendingShiny = false
@@ -3310,7 +3516,9 @@ final class CompanionStore {
         state.eggFromLegendaryEgg = false
         state.eggFromBirthdayEgg = false
         state.eggFromFossilEgg = false
+        if event != nil, let key = state.eggEventKey { state.eventEggHatches[key] = line.baseID }
         state.eggEvent = nil
+        state.eggEventKey = nil
         state.pendingShiny = false
         // 개체 롤: shiny(1/64, 부적 1/48, Reveal Glass halves it)·성격(25종)은 부화 순간 확정, 진화해도 유지.
         // 알림 문구는 이 판정과 같은 분모를 보여준다.

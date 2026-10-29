@@ -82,7 +82,36 @@ struct StatsReport {
         let unsplit: Int
         /// Largest first, tools that used nothing left out.
         let tools: [Tool]
+        /// The same split by model, largest first: empty when a day of the period has no split by model.
+        var models: [Tool] = []
+        /// What reading the cache saved at the API's public prices: its tokens at the input price less the read
+        /// price, less what writing the cache cost over the input price (net). Nil when no model is priced.
+        var cacheSavings: Double?
         var total: Int { input + output + cacheWrite + cacheRead + unsplit }
+    }
+
+    /// The models of these days, largest first, with what reading the cache saved (`Breakdown.cacheSavings`). Empty
+    /// as soon as a day with usage has no split by model.
+    static func modelSplit(_ days: [DailyUsage]) -> (models: [Tool], savings: Double?) {
+        var usage: [String: ModelUsage] = [:]
+        for day in days where day.totalTokens > 0 {
+            guard let models = day.modelUsage, !models.isEmpty else { return ([], nil) }
+            for (model, share) in models { usage[model] = usage[model].map { $0 + share } ?? share }
+        }
+        var savings: Double?
+        for (model, share) in usage {
+            let rate = ModelPricing.rate(for: model)
+            guard rate.input > 0 else { continue }
+            let saved = Double(share.cacheRead) * (rate.input - rate.cacheRead)
+                - Double(share.cacheWrite) * max(0, rate.cacheWrite - rate.input)
+            savings = (savings ?? 0) + saved
+        }
+        let models = usage.map { model, share in
+            Tool(id: model, name: RaisingRecord.modelName(model), tokens: share.total, cost: share.cost)
+        }
+        .filter { $0.tokens > 0 }
+        .sorted { $0.tokens != $1.tokens ? $0.tokens > $1.tokens : $0.id < $1.id }
+        return (models, savings)
     }
 
     struct Projection: Equatable {
@@ -221,8 +250,10 @@ struct StatsReport {
             let total = days.reduce(0) { $0 + $1.totalTokens }
             let split = toolSplit(active)
             if total > 0 {
+                let byModel = modelSplit(days)
                 breakdown = Breakdown(input: input, output: output, cacheWrite: cacheWrite, cacheRead: cacheRead,
-                                      unsplit: max(0, total - input - output - cacheWrite - cacheRead), tools: split)
+                                      unsplit: max(0, total - input - output - cacheWrite - cacheRead), tools: split,
+                                      models: byModel.models, cacheSavings: byModel.savings)
             }
         }
 

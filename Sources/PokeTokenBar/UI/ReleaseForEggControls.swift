@@ -59,17 +59,25 @@ struct ReleaseForEggControls: View {
                 }
             }
         case .confirm:
-            HStack(spacing: 8) {
-                Text(confirmText)
-                    .font(.caption2).foregroundStyle(.secondary).lineLimit(2)
-                Spacer()
-                // 이로치나 전설 등 고가치 포켓몬이면 한 번 더 경고, 아니면 즉시 실행.
-                Button(actionTitle) {
-                    if store.isHighValueCompanion { stage = .preciousConfirm } else { commit() }
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Text(confirmText)
+                        .font(.caption2).foregroundStyle(.secondary).lineLimit(2)
+                    Spacer()
+                    // 이로치나 전설 등 고가치 포켓몬이면 한 번 더 경고, 아니면 즉시 실행.
+                    Button(actionTitle) {
+                        if store.isHighValueCompanion { stage = .preciousConfirm } else { commit() }
+                    }
+                    .buttonStyle(.pill(prominent: true))
+                    Button(l.cancel) { stage = .idle }
+                        .buttonStyle(.borderless).controlSize(.small)
                 }
-                .buttonStyle(.pill(prominent: true))
-                Button(l.cancel) { stage = .idle }
-                    .buttonStyle(.borderless).controlSize(.small)
+                // What it would stop counting for: nothing new to lose, no sentence.
+                if let goals = ActiveGoalsList.sentence(store) {
+                    Label(goals, systemImage: "exclamationmark.circle")
+                        .font(.caption2).foregroundStyle(Color.readableOrange)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         case .preciousConfirm:
             // The warning on its own line: beside the buttons, French and German left it a few letters.

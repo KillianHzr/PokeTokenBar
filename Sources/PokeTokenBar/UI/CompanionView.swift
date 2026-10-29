@@ -1180,6 +1180,7 @@ struct CompanionHeader: View {
             if store.hasActive, !track.isEmpty {
                 evolutionTrack(track, dexLinks: dexLinks)
             }
+            ActiveGoalsList(store: store)
             if let g = store.justGraduated {
                 Text(store.l.graduated(g))
                     .font(.caption2).foregroundStyle(Color.readableOrange)
@@ -2097,9 +2098,19 @@ struct FullDexView: View {
             }
             .frame(maxWidth: .infinity).padding(.vertical, 4)
             .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
-            .hoverTip(store.l.dexMissingHint(id))
+            // How to get it, rather than only that it is missing.
+            .hoverTip(howToGet(id))
             .accessibilityLabel(store.l.dexMissingHint(id))
         }
+    }
+
+    /// The tip of a species not caught (`L.dexHowToGet`): a species owned is named, one not caught keeps its number.
+    private func howToGet(_ id: Int) -> String {
+        let source = CompanionStore.source(of: id)
+        let nextDig = source == .fossil ? store.excavationProgress.towardNext.map { ($0, FossilDig.rockPerDig) } : nil
+        return store.l.dexHowToGet(id, source: source, name: { other in
+            store.dexSpecies.first { $0.id == other }.map { "\($0.name) (#\(other))" } ?? "#\(other)"
+        }, goals: store.goals(counting: id), nextDig: nextDig)
     }
 }
 
@@ -3083,5 +3094,50 @@ struct FormUnlockToast: View {
             try? await Task.sleep(for: .seconds(5))
             if !Task.isCancelled { store.dismissFormUnlockNews() }
         }
+    }
+}
+
+/// What graduating the Pokémon raised would advance (`CompanionStore.activeGoals`), under its track: three goals at
+/// most, the others on one line. Nothing when it brings nothing.
+@MainActor
+struct ActiveGoalsList: View {
+    let store: CompanionStore
+    static let shown = 3
+
+    var body: some View {
+        let goals = store.activeGoals
+        if !goals.isEmpty {
+            let l = store.l
+            VStack(alignment: .leading, spacing: 4) {
+                Text(l.countsFor).font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+                ForEach(Array(goals.prefix(Self.shown).enumerated()), id: \.offset) { _, goal in
+                    HStack(spacing: 6) {
+                        ItemIconView(kind: goal.item, size: 16)
+                        Text(l.activeGoalName(goal)).lineLimit(1).truncationMode(.tail)
+                        Spacer(minLength: 4)
+                        Text("+\(goal.gain)").fontWeight(.bold)
+                        Text("\(goal.count)/\(goal.needed)").foregroundStyle(.secondary)
+                    }
+                    .font(.caption).monospacedDigit()
+                }
+                if goals.count > Self.shown {
+                    Text(l.moreGoals(goals.count - Self.shown, goals.dropFirst(Self.shown)
+                        .map { "\(l.activeGoalName($0)) (+\($0.gain))" }.joined(separator: " · ")))
+                        .font(.caption2).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    /// The confirmation's sentence: the goals, each with what it adds.
+    static func sentence(_ store: CompanionStore) -> String? {
+        let goals = store.activeGoals
+        guard !goals.isEmpty else { return nil }
+        let l = store.l
+        let list = goals.prefix(shown).map { "\(l.activeGoalName($0)) (+\($0.gain))" }.joined(separator: ", ")
+            + (goals.count > shown ? ", …" : "")
+        return l.stillCountsFor(store.displayName, list)
     }
 }
